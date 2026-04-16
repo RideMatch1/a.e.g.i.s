@@ -32,6 +32,11 @@
       "reason": "The crypto-auditor file defines the crypto-weakness detection patterns (md5, sha1, DES, JWT 'none'). Self-match is structural — these are PATTERNS-OF-CONCERN literals, not actual crypto usage."
     },
     {
+      "file": "packages/scanners/src/ast/**/*.ts",
+      "rule": "crypto-auditor",
+      "reason": "Taint-tracker / function-summary match crypto primitive names (HMAC, digest, token-generation patterns) for taint-source / sanitizer bookkeeping. Not runtime crypto."
+    },
+    {
       "file": "packages/scanners/src/quality/jwt-checker.ts",
       "rule": "crypto-auditor",
       "reason": "JWT-checker contains JWT algorithm names ('none', 'HS256', etc.) as detection literals. crypto-auditor matches the 'none' string as a structural FP on the detection source."
@@ -52,9 +57,44 @@
       "reason": "xss-checker defines XSS sink patterns (innerHTML, document.write, etc.) in its regex array. Structural self-match."
     },
     {
+      "file": "packages/scanners/src/ast/**/*.ts",
+      "rule": "xss-checker",
+      "reason": "Taint-analyzer sinks / taint-tracker contain innerHTML / dangerouslySetInnerHTML as the detection targets. Same structural class."
+    },
+    {
       "file": "packages/scanners/src/quality/ssrf-checker.ts",
       "rule": "ssrf-checker",
       "reason": "ssrf-checker defines SSRF sink patterns (fetch / axios / got / url-parse references). Structural self-match."
+    },
+    {
+      "file": "packages/scanners/src/ast/**/*.ts",
+      "rule": "ssrf-checker",
+      "reason": "Taint-tracker references fetch / axios as detection sinks in regex literals."
+    },
+    {
+      "file": "packages/scanners/src/attacks/*-probe.ts",
+      "rule": "ssrf-checker",
+      "reason": "DAST probe modules are PURPOSE-BUILT to make HTTP calls to target URLs — that is their entire job (auth probe, privesc probe, rate-limit probe, race probe, header probe). The target URL is user-supplied at siege-mode time and INTENDED to be variable."
+    },
+    {
+      "file": "packages/cli/src/commands/fix.ts",
+      "rule": "ssrf-checker",
+      "reason": "aegis fix posts to the user-configured AI-provider endpoint (--ai flag; defaults to local Ollama). The URL is variable by design."
+    },
+    {
+      "file": "packages/cli/src/commands/pentest.ts",
+      "rule": "ssrf-checker",
+      "reason": "aegis pentest targets the user-supplied URL against a running server for live DAST. Variable URL is the entire point of the command."
+    },
+    {
+      "file": "packages/cli/src/commands/siege.ts",
+      "rule": "ssrf-checker",
+      "reason": "aegis siege orchestrates DAST probes against user-supplied targets. Variable URL is by design."
+    },
+    {
+      "file": "packages/scanners/src/quality/redos-checker.ts",
+      "rule": "redos-checker",
+      "reason": "redos-checker contains nested-quantifier regex LITERALS used to DETECT catastrophic-backtracking patterns. The detection regex IS the thing redos-checker matches on."
     },
     {
       "file": "packages/scanners/src/attacks/redos-probe.ts",
@@ -67,9 +107,29 @@
       "reason": "logging-checker defines LOGGER_PACKAGES and LOG_CALL_PATTERNS as detection literals. Self-match is structural."
     },
     {
+      "file": "packages/cli/**",
       "rule": "logging-checker",
-      "file": "**/*",
-      "reason": "AEGIS is a scanner CLI, not a web/HTTP application — the 'no centralized logger' finding does not apply. Scanner orchestration uses console output as its control surface. This is a project-shape mismatch, not a security gap."
+      "reason": "CLI package uses console as its control surface; no winston/pino needed. Scoped to avoid the prior blanket '**/*' suppression that taught users a bad template pattern (brutal-review M5)."
+    },
+    {
+      "file": "packages/scanners/**",
+      "rule": "logging-checker",
+      "reason": "Scanner package orchestrates scan runs via console; no centralized web-app logger applies. Scoped replacement for the prior blanket '**/*' suppression."
+    },
+    {
+      "file": "packages/mcp-server/**",
+      "rule": "logging-checker",
+      "reason": "MCP server writes diagnostic JSON responses to stdio — structured logger does not apply to an MCP transport worker."
+    },
+    {
+      "file": "packages/reporters/**",
+      "rule": "logging-checker",
+      "reason": "Reporter package emits formatted output (JSON / SARIF / terminal) as its primary function."
+    },
+    {
+      "file": "packages/core/**",
+      "rule": "logging-checker",
+      "reason": "Core orchestration layer coordinates scanners and emits diagnostic stderr warnings; no structured web logger applies."
     },
     {
       "file": "packages/scanners/src/quality/header-checker.ts",
