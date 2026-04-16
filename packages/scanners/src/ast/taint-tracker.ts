@@ -318,6 +318,7 @@ function trackTaintCore(
 
     handleVariableDeclaration(ctx, node);
     handleAssignment(ctx, node);
+    handleConditionalImportIfStatement(ctx, node);
     handlePromiseCallback(ctx, node);
     checkCallSink(ctx, node);
     checkCrossFileCallSink(ctx, node);
@@ -900,6 +901,65 @@ function isConditionalDynamicImport(expr: ts.Expression): boolean {
     return ts.isCallExpression(inner) && inner.expression.kind === ts.SyntaxKind.ImportKeyword;
   };
   return isDynamicImportCall(u.whenTrue) || isDynamicImportCall(u.whenFalse);
+}
+
+/**
+ * v0.8.1 hotfix (brutal-review M4): extend Phase 5 conditional-import
+ * detection to cover the if/else form
+ *   let x;
+ *   if (cond) x = await import('./a');
+ *   else     x = await import('./b');
+ * in addition to the ternary form handled above. Both branches must
+ * assign the same identifier; at least one branch must assign a
+ * dynamic import() call. Called from walkWithScopes on every
+ * IfStatement so the binding name is recorded in
+ * ctx.conditionalImports before the downstream sink emission fires.
+ */
+function handleConditionalImportIfStatement(ctx: TaintContext, node: ts.Node): void {
+  if (!ts.isIfStatement(node)) return;
+  if (node.elseStatement === undefined) return;
+
+  const thenAssign = extractSingleAssignment(node.thenStatement);
+  const elseAssign = extractSingleAssignment(node.elseStatement);
+  if (thenAssign === null || elseAssign === null) return;
+  if (thenAssign.name !== elseAssign.name) return;
+
+  if (
+    isAwaitedDynamicImport(thenAssign.value) ||
+    isAwaitedDynamicImport(elseAssign.value)
+  ) {
+    ctx.conditionalImports.add(thenAssign.name);
+  }
+}
+
+/**
+ * Return the `(name, rhs)` of a single `ident = expr` assignment inside a
+ * Statement, unwrapping a single-statement Block. Returns null if the
+ * branch contains anything other than exactly one ident-assignment.
+ */
+function extractSingleAssignment(
+  stmt: ts.Statement,
+): { name: string; value: ts.Expression } | null {
+  let inner: ts.Statement = stmt;
+  if (ts.isBlock(inner)) {
+    if (inner.statements.length !== 1) return null;
+    inner = inner.statements[0];
+  }
+  if (!ts.isExpressionStatement(inner)) return null;
+  const expr = inner.expression;
+  if (!ts.isBinaryExpression(expr)) return null;
+  if (expr.operatorToken.kind !== ts.SyntaxKind.EqualsToken) return null;
+  if (!ts.isIdentifier(expr.left)) return null;
+  return { name: expr.left.text, value: expr.right };
+}
+
+/** Expression shape: `(await)? (import('./…'))`. */
+function isAwaitedDynamicImport(expr: ts.Expression): boolean {
+  let node: ts.Expression = expr;
+  while (ts.isAwaitExpression(node) || ts.isParenthesizedExpression(node)) {
+    node = node.expression;
+  }
+  return ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword;
 }
 
 /**

@@ -329,6 +329,54 @@ describe('taint-tracker — sanitizers', () => {
     `);
     expect(findings.length).toBeGreaterThanOrEqual(1);
   });
+
+  // v0.8.1 hotfix regression (brutal-review M4): conditional-import
+  // confidence downgrade must also cover the if/else assignment form,
+  // not just the ternary. Tainted template-literal sink on db.query()
+  // where db was assigned in both branches of an if/else must emit
+  // with confidence: 'medium' (same as the ternary case).
+  it('conditional-import downgrade — if/else form with single-statement branches', () => {
+    const findings = analyze(`
+      const body = req.body;
+      let db;
+      if (process.env.MOCK) {
+        db = await import('./mock-db');
+      } else {
+        db = await import('./real-db');
+      }
+      await db.query(\`SELECT * FROM users WHERE id = \${body.id}\`);
+    `);
+    expect(findings.length).toBe(1);
+    expect(findings[0].confidence).toBe('medium');
+  });
+
+  it('conditional-import downgrade — ternary form still works (regression)', () => {
+    const findings = analyze(`
+      const body = req.body;
+      const db = process.env.MOCK
+        ? await import('./mock-db')
+        : await import('./real-db');
+      await db.query(\`SELECT * FROM users WHERE id = \${body.id}\`);
+    `);
+    expect(findings.length).toBe(1);
+    expect(findings[0].confidence).toBe('medium');
+  });
+
+  it('conditional-import downgrade does NOT fire on unconditional if/else assignment of non-imports', () => {
+    const findings = analyze(`
+      const body = req.body;
+      let db;
+      if (process.env.MOCK) {
+        db = otherDb;
+      } else {
+        db = realDb;
+      }
+      await db.query(\`SELECT * FROM users WHERE id = \${body.id}\`);
+    `);
+    expect(findings.length).toBe(1);
+    // No dynamic-import on either branch → full confidence
+    expect(findings[0].confidence).toBeUndefined();
+  });
 });
 
 describe('taint-tracker — per-CWE sanitization', () => {
