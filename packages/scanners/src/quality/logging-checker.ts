@@ -1,7 +1,75 @@
 import { walkFiles, readFileSafe } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+
+/**
+ * v0.9 polish: does any direct workspace child (pnpm-workspace packages
+ * or npm / yarn workspaces field) declare a `bin`? A `true` result means
+ * the monorepo ships a CLI tool, which suppresses the project-level
+ * "no centralized logger" finding.
+ *
+ * Fail-open: any IO or JSON failure returns false (no suppression).
+ */
+function hasCliWorkspaceChild(projectPath: string): boolean {
+  const globs: string[] = [];
+
+  // pnpm-workspace.yaml — simple YAML `packages:` list
+  const wsYaml = readFileSafe(join(projectPath, 'pnpm-workspace.yaml'));
+  if (wsYaml !== null) {
+    const lines = wsYaml.split('\n');
+    let inPkg = false;
+    for (const raw of lines) {
+      const ln = raw.replace(/#.*$/, '');
+      if (/^packages\s*:/.test(ln.trim())) { inPkg = true; continue; }
+      if (inPkg) {
+        if (/^\S/.test(ln) && ln.trim() !== '') break;
+        const m = ln.match(/^\s*-\s*['"]?([^'"\s]+)['"]?/);
+        if (m) globs.push(m[1]);
+      }
+    }
+  }
+
+  // package.json workspaces field
+  const rootPkg = readFileSafe(join(projectPath, 'package.json'));
+  if (rootPkg !== null) {
+    try {
+      const j = JSON.parse(rootPkg) as {
+        workspaces?: string[] | { packages?: string[] };
+      };
+      if (Array.isArray(j.workspaces)) globs.push(...j.workspaces);
+      else if (j.workspaces && Array.isArray(j.workspaces.packages)) {
+        globs.push(...j.workspaces.packages);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  for (const glob of globs) {
+    const parts = glob.split('/');
+    if (parts.length !== 2 || parts[1] !== '*') continue;
+    const dir = join(projectPath, parts[0]);
+    if (!existsSync(dir)) continue;
+    try {
+      for (const child of readdirSync(dir)) {
+        const childPkgPath = join(dir, child, 'package.json');
+        const content = readFileSafe(childPkgPath);
+        if (content === null) continue;
+        try {
+          const parsed = JSON.parse(content) as { bin?: unknown };
+          if (parsed.bin !== undefined) return true;
+        } catch {
+          // ignore malformed sub-package
+        }
+      }
+    } catch {
+      // ignore unreadable dir
+    }
+  }
+
+  return false;
+}
 
 /** Test files — findings here are usually intentional patterns, not real issues */
 function isTestFile(filePath: string): boolean {
@@ -126,14 +194,19 @@ export const loggingCheckerScanner: Scanner = {
     // Check 1: Does the project have a centralized logger?
     // -------------------------------------------------------------------
     let hasCentralizedLogger = false;
+    let isCliTool = false;
 
     // Check package.json for logger dependencies
     const pkgContent = readFileSafe(join(projectPath, 'package.json'));
     if (pkgContent) {
-      type PkgJsonDeps = { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-      let pkgJson: PkgJsonDeps | null = null;
+      type PkgJsonShape = {
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+        bin?: string | Record<string, string>;
+      };
+      let pkgJson: PkgJsonShape | null = null;
       try {
-        pkgJson = JSON.parse(pkgContent) as PkgJsonDeps;
+        pkgJson = JSON.parse(pkgContent) as PkgJsonShape;
       } catch {
         pkgJson = null;
       }
@@ -143,6 +216,13 @@ export const loggingCheckerScanner: Scanner = {
           ...(pkgJson.devDependencies ?? {}),
         };
         hasCentralizedLogger = LOGGER_PACKAGES.some((pkg) => pkg in allDeps);
+        // v0.9 polish: a package that declares a `bin` is a CLI tool.
+        // The "no centralized logger" finding does not apply — console
+        // output is the CLI's user-facing control surface, not a debug
+        // artifact. Suppress at the source rather than requiring users
+        // to blanket-suppress in aegis.config.json. Also check for
+        // workspace children that expose `bin` (monorepo root shape).
+        isCliTool = pkgJson.bin !== undefined || hasCliWorkspaceChild(projectPath);
       }
     }
 
@@ -175,7 +255,7 @@ export const loggingCheckerScanner: Scanner = {
       }
     }
 
-    if (!hasCentralizedLogger) {
+    if (!hasCentralizedLogger && !isCliTool) {
       addFinding(
         'medium',
         'No centralized logging infrastructure detected',
