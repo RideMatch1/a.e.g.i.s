@@ -497,7 +497,23 @@ function checkCallSink(ctx: TaintContext, node: ts.Node): void {
     }
   }
 
-  for (const arg of node.arguments) {
+  // v0.9 polish (brutal-review NI2): setTimeout / setInterval are CWE-94
+  // code-injection sinks ONLY in the legacy string-eval form
+  //   setTimeout("doStuff('" + userInput + "')", delay)
+  // The modern `setTimeout(callback, delay)` form with a function first
+  // arg is not a sink regardless of what flows into the delay slot.
+  // Without type info at this layer we use the AST shape as a proxy:
+  // if arg 0 is an arrow or function expression, it's a callback; skip.
+  // We also restrict taint checking to arg 0 — the delay is not code.
+  const isDelayStyleSink = callText === 'setTimeout' || callText === 'setInterval';
+  if (isDelayStyleSink) {
+    const firstArg = node.arguments[0];
+    if (firstArg === undefined) return;
+    if (ts.isArrowFunction(firstArg) || ts.isFunctionExpression(firstArg)) return;
+  }
+
+  for (const [argIdx, arg] of node.arguments.entries()) {
+    if (isDelayStyleSink && argIdx > 0) break; // only arg 0 is code-position
     const taint = findTaintInExpr(ctx, arg);
     if (taint) {
       // Per-CWE check: does any sanitizer on the path neutralize this sink's CWE?

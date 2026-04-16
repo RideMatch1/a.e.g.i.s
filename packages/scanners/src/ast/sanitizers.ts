@@ -38,8 +38,17 @@ export const TAINT_SANITIZER_DEFS: SanitizerDef[] = [
   { name: 'BigInt', neutralizes: [CWE_SQLI, CWE_CMD_INJECTION, CWE_SSRF, CWE_PATH_TRAVERSAL] },
 
   // Encoding — prevents URL-based attacks
-  { name: 'encodeURIComponent', neutralizes: [CWE_SSRF, CWE_XSS, CWE_PATH_TRAVERSAL] },
-  { name: 'encodeURI', neutralizes: [CWE_SSRF, CWE_PATH_TRAVERSAL] },
+  //
+  // v0.9 polish (brutal-review NI1): removed CWE_PATH_TRAVERSAL from
+  // encodeURIComponent / encodeURI. These encode `/` as `%2F` and `..`
+  // as plain `..` — but frameworks that accept encoded URL parameters
+  // (Next.js dynamic routes, Express query parsing, …) decode the
+  // string BEFORE filesystem access, so the traversal sequence is
+  // restored. URL-encoding is a safe-transport sanitizer, not a
+  // filesystem-safety sanitizer. Kept on SSRF + XSS where the encoded
+  // form is consumed directly.
+  { name: 'encodeURIComponent', neutralizes: [CWE_SSRF, CWE_XSS] },
+  { name: 'encodeURI', neutralizes: [CWE_SSRF] },
 
   // HTML sanitization — prevents XSS only
   { name: 'DOMPurify.sanitize', neutralizes: [CWE_XSS] },

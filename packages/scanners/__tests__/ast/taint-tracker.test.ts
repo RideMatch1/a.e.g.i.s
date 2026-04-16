@@ -377,6 +377,55 @@ describe('taint-tracker — sanitizers', () => {
     // No dynamic-import on either branch → full confidence
     expect(findings[0].confidence).toBeUndefined();
   });
+
+  // v0.9 regression (brutal-review NI2): setTimeout / setInterval are
+  // CWE-94 sinks only in the legacy string-eval first-arg form. When
+  // arg 0 is a function, no code-injection is possible — the delay
+  // being tainted does not matter.
+  it('setTimeout with function first arg is NOT a CWE-94 sink (tainted delay)', () => {
+    const findings = analyze(`
+      const delay = parseInt(req.query.delay);
+      setTimeout(() => console.log('hi'), delay);
+    `);
+    expect(findings.length).toBe(0);
+  });
+
+  it('setTimeout with string first arg STILL flags tainted value in that slot', () => {
+    const findings = analyze(`
+      const cmd = req.body.cmd;
+      setTimeout(cmd, 1000);
+    `);
+    expect(findings.length).toBe(1);
+  });
+
+  it('setInterval with function first arg is NOT a CWE-94 sink (tainted interval)', () => {
+    const findings = analyze(`
+      const interval = parseInt(req.query.interval);
+      setInterval(function () { updateUi(); }, interval);
+    `);
+    expect(findings.length).toBe(0);
+  });
+
+  // v0.9 regression (brutal-review NI1): encodeURIComponent is NOT a
+  // path-traversal sanitizer. Frameworks decode URL-encoded params
+  // before filesystem access, so the `%2F%2E%2E` sequence is restored
+  // to `../`. encodeURIComponent stays a sanitizer for SSRF + XSS
+  // where the encoded form is consumed directly.
+  it('encodeURIComponent does NOT sanitize CWE-22 (decoded before fs access)', () => {
+    const findings = analyze(`
+      const p = encodeURIComponent(req.body.path);
+      fs.readFileSync(p);
+    `);
+    expect(findings.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('encodeURIComponent STILL sanitizes CWE-918 (SSRF)', () => {
+    const findings = analyze(`
+      const url = encodeURIComponent(req.body.url);
+      fetch(url);
+    `);
+    expect(findings.length).toBe(0);
+  });
 });
 
 describe('taint-tracker — per-CWE sanitization', () => {
