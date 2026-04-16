@@ -1052,6 +1052,54 @@ function resolveTaint(ctx: TaintContext, node: ts.Node): TaintEntry | null {
       return ctx.functionReturns.get(fnName) ?? null;
     }
 
+    // v0.8 Phase 3: cross-file aware pass-through (policy §2).
+    // Consult the exported-fn summary when available:
+    //   (a) sanitizesCwes > 0 → suppress propagation entirely — the
+    //       wrapper neutralizes taint through a known sanitizer, so the
+    //       return is not a credible taint carrier (CLEAN-07-shaped
+    //       FP prevention when the result is assigned to a variable).
+    //   (b) any arg is tainted AND the matching param has
+    //       returnsTainted=true → propagate with origin-annotated path.
+    // When no summary is available, fall through to the optimistic
+    // fallback below. Wires the v0.7-populated summary.params[i].
+    // returnsTainted field into cross-file analysis.
+    if (fnName && ctx.moduleGraph && ctx.summaries && ctx.program) {
+      const origin = ctx.moduleGraph.resolveSymbolOrigin(ctx.sf.fileName, fnName);
+      if (origin !== null) {
+        const originSf = ctx.program.getSourceFile(origin.file);
+        if (originSf !== undefined) {
+          const fnNode = findExportedFunction(originSf, origin.exportName);
+          if (fnNode !== null) {
+            const summary = buildSummary(
+              fnNode,
+              origin.exportName,
+              ctx.program,
+              ctx.moduleGraph,
+              ctx.summaries,
+            );
+            if (summary !== null) {
+              if (summary.sanitizesCwes.length > 0) return null;
+              for (let i = 0; i < node.arguments.length; i++) {
+                const rule = summary.params[i];
+                if (rule === undefined) break;
+                if (!rule.returnsTainted) continue;
+                const t = findTaintInExpr(ctx, node.arguments[i]);
+                if (t !== null) {
+                  return {
+                    ...t,
+                    path: [
+                      ...t.path,
+                      `${fnName}()[→ ${origin.exportName} in ${origin.file}]`,
+                    ],
+                  };
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     // Method call with .safeParse / .parse (Zod)
     if (ts.isPropertyAccessExpression(node.expression)) {
       const methodName = node.expression.name.text;
