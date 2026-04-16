@@ -5,12 +5,19 @@
  * Explicitly excluded: process.env (deploy-time config, not user input).
  */
 export const TAINT_SOURCES: string[] = [
-  // Express / Node.js
+  // Express / Node.js / Next.js App Router
+  // Both `req` and `request` are common aliases (Next.js App Router allows
+  // either name for the handler argument). Keep both sets fully symmetric
+  // — earlier versions missed `req.json`/`text`/`formData` and
+  // `request.params`, producing silent FNs on any route that preferred the
+  // other alias.
   'req.body', 'req.query', 'req.params', 'req.headers',
-  // Next.js / Web API
-  'request.body', 'request.query', 'request.headers',
-  'request.nextUrl.searchParams', 'searchParams.get',
+  'req.json', 'req.text', 'req.formData',
+  'req.nextUrl.searchParams',
+  // Next.js / Web API (request-named alias)
+  'request.body', 'request.query', 'request.params', 'request.headers',
   'request.json', 'request.text', 'request.formData',
+  'request.nextUrl.searchParams', 'searchParams.get',
   // Browser
   'document.location', 'window.location', 'location.search',
   'location.hash', 'document.referrer',

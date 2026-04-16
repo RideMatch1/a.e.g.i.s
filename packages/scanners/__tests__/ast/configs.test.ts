@@ -28,6 +28,31 @@ describe('sources', () => {
   it('does NOT match plain variable', () => {
     expect(isSourceExpression('myVariable')).toBe(false);
   });
+
+  it('matches req.json / req.text / req.formData (v0.7.1 BLOCKER fix)', () => {
+    // Pre-fix asymmetry: `request.json` was a source but `req.json` wasn't
+    // — a byte-identical handler with `request` → `req` renamed silently
+    // dropped every cross-file SSRF/SQLi/XSS finding. Symmetric coverage
+    // is load-bearing for the `req`-alias convention that's common in
+    // Next.js App Router routes.
+    expect(isSourceExpression('req.json')).toBe(true);
+    expect(isSourceExpression('req.text')).toBe(true);
+    expect(isSourceExpression('req.formData')).toBe(true);
+    // Property-of-source traversal (awaited .json() then destructured):
+    expect(isSourceExpression('req.json.id')).toBe(true);
+  });
+
+  it('matches request.params (v0.7.1 symmetric-coverage fix)', () => {
+    expect(isSourceExpression('request.params')).toBe(true);
+    expect(isSourceExpression('request.params.id')).toBe(true);
+  });
+
+  it('matches req.nextUrl.searchParams (Next.js middleware pattern)', () => {
+    // NextRequest is bound to `req` in middleware and `request` in routes
+    // — both should match the searchParams source.
+    expect(isSourceExpression('req.nextUrl.searchParams')).toBe(true);
+    expect(isSourceExpression('req.nextUrl.searchParams.get')).toBe(true);
+  });
 });
 
 describe('sinks', () => {
