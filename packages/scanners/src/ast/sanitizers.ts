@@ -90,6 +90,10 @@ export const PARSE_NOT_SANITIZER = new Set([
   'JSON.parse', 'JSON5.parse', 'URL.parse',
   'querystring.parse', 'qs.parse', 'cookie.parse',
   'path.parse', 'url.parse', 'csv.parse',
+  // v0.8 Phase 6: Date.parse returns a number (timestamp) or NaN, not a
+  // safe-validated string. Does not neutralize SQLi / CmdInjection / SSRF
+  // because the raw string flows through when the result is unused.
+  'Date.parse',
 ]);
 
 /**

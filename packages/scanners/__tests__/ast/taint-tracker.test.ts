@@ -257,6 +257,50 @@ describe('taint-tracker — sanitizers', () => {
     `);
     expect(findings.length).toBe(1);
   });
+
+  // v0.8 Phase 6 regression: Date.parse returns a timestamp number; the
+  // original tainted string must continue flowing when propagated.
+  it('does NOT remove taint after Date.parse', () => {
+    const findings = analyze(`
+      const when = req.body.when;
+      Date.parse(when);
+      exec(when);
+    `);
+    expect(findings.length).toBe(1);
+  });
+
+  // v0.8 Phase 6 regression: URL-regex-whitelist suppresses SSRF inside
+  // an if-guard checking the tainted identifier via <regex>.test(url).
+  it('URL-regex-whitelist suppresses CWE-918 inside if-guard', () => {
+    const findings = analyze(`
+      const url = req.body.url;
+      const ALLOW = /^https:\\/\\/api\\.example\\.com/;
+      if (ALLOW.test(url)) {
+        fetch(url);
+      }
+    `);
+    expect(findings.length).toBe(0);
+  });
+
+  it('URL-regex-whitelist does NOT suppress unrelated CWE-918 without guard', () => {
+    const findings = analyze(`
+      const url = req.body.url;
+      fetch(url);
+    `);
+    expect(findings.length).toBe(1);
+  });
+
+  it('URL-regex-whitelist does NOT suppress when .test targets a different identifier', () => {
+    const findings = analyze(`
+      const url = req.body.url;
+      const other = 'https://ok';
+      const ALLOW = /^https:/;
+      if (ALLOW.test(other)) {
+        fetch(url);
+      }
+    `);
+    expect(findings.length).toBe(1);
+  });
 });
 
 describe('taint-tracker — per-CWE sanitization', () => {

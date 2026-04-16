@@ -503,6 +503,14 @@ function checkCallSink(ctx: TaintContext, node: ts.Node): void {
       const neutralized = taint.sanitizers.some((s) => sanitizesForCwe(s, sinkMeta.cwe));
       if (neutralized) continue; // sanitized for this specific vulnerability class
 
+      // v0.8 Phase 6: URL-regex-whitelist — suppress CWE-918 when the
+      // sink is nested inside an if-guard / conditional whose condition
+      // tests the same identifier via `<regex>.test(<id>)`. Common in
+      // webhook allow-list handlers (cal-com intercom pattern from v0.7
+      // dogfood). Only suppresses the SSRF class — path-traversal /
+      // open-redirect / other flows through the same var keep firing.
+      if (sinkMeta.cwe === 918 && isInsideUrlRegexGuard(node, arg)) continue;
+
       // v0.8 Phase 5: if the callee's object is a conditionally-imported
       // var (cond ? await import(...) : await import(...)), downgrade
       // the single-file finding to confidence: 'medium' — the scanner
@@ -818,6 +826,56 @@ function checkCrossFileMethodCall(ctx: TaintContext, node: ts.Node): void {
       });
     }
   }
+}
+
+/**
+ * v0.8 Phase 6 helper: is the sink nested inside an if-guard or
+ * conditional-expression whose condition contains `<anything>.test(arg)`
+ * where `arg` is the tainted argument identifier? Used to suppress the
+ * CWE-918 (SSRF) finding on common allow-list patterns:
+ *
+ *   if (REGEX.test(url)) await fetch(url);
+ *
+ * Walks ancestors up to the source file. Matches either a bare call
+ * `.test(...)` or one nested inside a logical binary (`&& / ||`) so
+ * patterns like `typeof url === 'string' && ALLOW.test(url)` work.
+ */
+function isInsideUrlRegexGuard(sinkNode: ts.Node, taintedArg: ts.Node): boolean {
+  if (!ts.isIdentifier(taintedArg)) return false;
+  const varName = taintedArg.text;
+
+  const containsRegexTestOn = (expr: ts.Expression): boolean => {
+    let result = false;
+    const visit = (n: ts.Node): void => {
+      if (result) return;
+      if (
+        ts.isCallExpression(n) &&
+        ts.isPropertyAccessExpression(n.expression) &&
+        ts.isIdentifier(n.expression.name) &&
+        n.expression.name.text === 'test' &&
+        n.arguments.length > 0 &&
+        ts.isIdentifier(n.arguments[0]) &&
+        n.arguments[0].text === varName
+      ) {
+        result = true;
+        return;
+      }
+      ts.forEachChild(n, visit);
+    };
+    visit(expr);
+    return result;
+  };
+
+  let parent: ts.Node | undefined = sinkNode.parent;
+  while (parent !== undefined) {
+    if (ts.isIfStatement(parent)) {
+      if (containsRegexTestOn(parent.expression)) return true;
+    } else if (ts.isConditionalExpression(parent)) {
+      if (containsRegexTestOn(parent.condition)) return true;
+    }
+    parent = parent.parent;
+  }
+  return false;
 }
 
 /**
