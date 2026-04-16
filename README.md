@@ -65,6 +65,11 @@ aegis audit .
 aegis init .
 ```
 
+> **New to AEGIS?** The
+> **[Getting Started guide](./docs/GETTING-STARTED.md)** walks you from
+> zero-install to your first scan, config, false-positive handling, MCP
+> setup, and CI integration in about 5 minutes.
+
 ---
 
 ## What AEGIS finds that generic SAST tools miss
