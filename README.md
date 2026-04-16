@@ -5,14 +5,16 @@
 **The paranoid audit tool your vibe-coded app deserves.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Tests: 1368 passing](https://img.shields.io/badge/Tests-1368%20passing-brightgreen)
+![Tests: 1374 passing](https://img.shields.io/badge/Tests-1374%20passing-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 ![npm](https://img.shields.io/npm/v/@aegis-scan/cli)
 ![Internal Maturity: 7.8](https://img.shields.io/badge/Internal%20Maturity-7.8%2F10-blue)
-[![Release: v0.8.0](https://img.shields.io/badge/Release-v0.8.0-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.8.0)
+[![Release: v0.8.1](https://img.shields.io/badge/Release-v0.8.1-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.8.1)
 
-> **Current release: `v0.8.0` — type-aware expansion.** Closes the four type-aware gaps deferred from v0.7 (HOC binding, generic pass-through return-taint, method-call cross-file via TypeChecker, conditional-import confidence downgrade). Extends `TYPED_SINK_MODULES` beyond `child_process` to fs / path / crypto / http / https. Adds `Date.parse` blocklist + URL-regex-whitelist sanitizer (closes v0.7 cal-com FP). Corpus doubled (3 → 6 OSS projects) toward the n≥20 cross-file measurement runway. Structural self-match refinement takes AEGIS-on-itself from 0/F to 973/A. Ships [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md) for 5-minute onboarding. See [CHANGELOG](./CHANGELOG.md) for the full v0.8 scope + honest score framing.
+> **Current release: `v0.8.1` — brutal-review hotfix.** Closes three MAJORs from the v0.8.0 post-ship cold-read review: a false-negative-producing sanitizer-registry bug on `path.normalize` / `path.resolve` / `path.basename` (removed — they do not prevent path traversal on their own), stale MCP tool names in the tutorial that broke first-contact for every MCP user (rewritten), and a scope gap in the Phase 5 conditional-import confidence downgrade that left the if/else form at full confidence (extended). Three remaining MAJORs (GitHub Action default pin, blanket logging-checker suppression in self-scan config, HOC text-match precision) deferred to v0.9 with documented rationale. See [CHANGELOG](./CHANGELOG.md) §[0.8.1] for full detail.
+
+> **Prior release: `v0.8.0` — type-aware expansion.** Closes the four type-aware gaps deferred from v0.7 (HOC binding, generic pass-through return-taint, method-call cross-file via TypeChecker, conditional-import confidence downgrade). Extends `TYPED_SINK_MODULES` beyond `child_process` to fs / path / crypto / http / https. Adds `Date.parse` blocklist + URL-regex-whitelist sanitizer (closes v0.7 cal-com FP). Corpus doubled (3 → 6 OSS projects) toward the n≥20 cross-file measurement runway. Structural self-match refinement takes AEGIS-on-itself from 0/F to 973/A. Ships [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md) for 5-minute onboarding. See [CHANGELOG](./CHANGELOG.md) for the full v0.8 scope + honest score framing.
 
 > **Two scores, don't confuse them:**
 > - **"Internal Maturity 7.7/10"** (badge above) — AEGIS's *own* honest self-assessment of its maturity as a product. Tracks over releases. Different from the validator's precision-tier system.

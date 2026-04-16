@@ -11,6 +11,98 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.8.1] — 2026-04-16 — "Brutal-Review Hotfix"
+
+**Honest score:** 7.8 (unchanged — correctness hotfix closing three
+brutal-review MAJORs, not a capability release).
+
+**Summary:** Closes three MAJORs surfaced by the v0.8.0 post-ship
+cold-read review: a false-negative-producing sanitizer-registry bug
+on `path.*`, stale MCP tool names in the tutorial that broke first-
+contact for every MCP user, and a scope gap in the Phase 5
+conditional-import confidence downgrade that left the if/else form
+at full confidence. M3 / M5 / M6 from the same review deferred to
+v0.9 scope with rationale (see Known limitations below).
+
+### Fixed
+
+- **`path.normalize` / `path.resolve` / `path.basename` removed from
+  TAINT_SANITIZER_DEFS (brutal-review M1).** They were listed as
+  CWE-22 neutralizers. They are not sanitizers on their own:
+    path.normalize('../../../../etc/passwd') === '../../../../etc/passwd'
+    path.resolve('/srv/app', '../../etc/passwd') === '/etc/passwd'
+    path.basename('../evil') === 'evil'
+  normalize only collapses `./..` sequences relative to the string;
+  does not strip a leading `..` chain without an absolute base.
+  resolve escapes the intended base when the caller does not assert
+  `resolved.startsWith(base)`. basename drops one leading segment —
+  the trust decision belongs to the caller, not the call. The safe
+  pattern (`resolve(base, input)` + `startsWith(base)` check) is not
+  a call-name pattern; it does not belong in a call-name sanitizer
+  registry. Effect: real path-traversal findings downstream of these
+  calls were previously silent false negatives. Fix restores them.
+  +3 regression tests pin the corrected behaviour.
+
+- **`docs/GETTING-STARTED.md` §5 MCP tool names corrected
+  (brutal-review M2).** The tutorial listed three names
+  (`scan_project`, `scan_file`, `audit_project`) that do not exist
+  in `packages/mcp-server/src/index.ts`. Any first-time MCP user
+  following the guide and calling one of those from Claude Code /
+  Cursor / an agent got a "tool not found" error. Replaced with the
+  five tools actually registered: `aegis_scan`, `aegis_findings`,
+  `aegis_score`, `aegis_compliance`, `aegis_fix_suggestion`.
+
+- **Conditional-import downgrade extended to if/else form
+  (brutal-review M4).** Phase 5 (v0.8.0) covered only the ternary
+  form (`cond ? await import(a) : await import(b)`). The equivalent
+  if/else assignment pattern
+
+    let db;
+    if (cond) db = await import('./a');
+    else      db = await import('./b');
+    db.query(tainted);
+
+  bypassed the confidence-downgrade and emitted at full confidence.
+  Adds `handleConditionalImportIfStatement` alongside the existing
+  VariableDeclaration path. Both branches must reduce to an
+  `ident = <rhs>` assignment to the same identifier, with at least
+  one rhs being an `(await)? import(...)` call. +3 regression
+  tests: if/else fires downgrade, ternary still works, non-import
+  if/else does NOT fire.
+
+### Known limitations — explicitly deferred to v0.9
+
+- **Brutal-review M3 — GitHub Action `aegis-version: main` default.**
+  Contradicts the README's pin-to-tag guidance. Pre-existing from
+  v0.7 era; not a new regression. Scoped to v0.9 + a release-
+  checklist item that bumps the default per tag.
+- **Brutal-review M5 — blanket `**/*` logging-checker suppression in
+  the self-scan aegis.config.json.** The scope is correct for AEGIS
+  (it's a scanner CLI, not a web app), but as a published config
+  template it teaches users to disable logging-checker globally.
+  v0.9 will replace with scoped paths (cli + scanners + mcp-server).
+- **Brutal-review M6 — `detectHocSinkPropagation` text-match on any
+  outer-param call.** Pre-existing v0.7 code; flags HOCs that call
+  ANY outer param, not specifically sink-calling outer params. FP
+  risk on `withLogging` / `withRetry` patterns. v0.9 will extend
+  the helper to verify the inner-call actually reaches a known
+  sink before setting `returnsFunctionThatCallsSink = true`.
+
+### Test counts
+
+- Tests: **1368 → 1374 green** (+6: 3 path.* sanitizer regressions,
+  3 conditional-import-form regressions).
+- Benchmark: **30/30 strict unchanged**.
+- Self-scan (AEGIS-on-AEGIS): unchanged at **973/A/not-blocked**.
+
+### Cross-file precision
+
+Unchanged from v0.8.0 §Measurement. n=2 across n=6 corpora. v0.7
+`confidence: 'medium'` hedge retained on the same unmeasurable-
+threshold basis. Zone decision still deferred.
+
+---
+
 ## [0.8.0] — 2026-04-16 — "Type-Aware Expansion"
 
 **Honest score:** 7.8 (target was 8.5, reduced because the cross-file
