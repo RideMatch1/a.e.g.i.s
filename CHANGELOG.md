@@ -11,6 +11,134 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.9.0] — 2026-04-16 — "Precision Polish"
+
+**Honest score:** 7.9 (was 7.8 at v0.8.1 — small bump reflecting
+self-scan precision wins plus monorepo-usability fix; cross-file
+precision measurement remains unmeasurable so the v0.7 hedge stays).
+
+**Summary:** Scanner precision pass targeting the false-positive
+classes that made AEGIS awkward to use on real codebases. Self-scan
+on the AEGIS repo now reaches **1000/1000 A** with **0 findings** —
+up from 973/A/55-findings at v0.8.1. The wins translate to every
+monorepo / TS-alias codebase, not just AEGIS itself: the
+phantom-dependency checker was producing ~38 noise findings on any
+modern Next.js monorepo and that flood is now fully closed.
+
+### Added
+
+- **`aegis.config.json` accepts `description` + `$schema`.** JSON
+  doesn't support comments and the strict config schema previously
+  rejected the usual `$comment` / `$description` escape hatches,
+  leaving users with no way to annotate their config for future
+  readers. Two optional NOP fields added — accepted by validation,
+  ignored by the scanner.
+
+### Fixed
+
+- **Supply-chain phantom-dependency precision (five FP classes).**
+  Previously the checker produced 38 noise findings on AEGIS's own
+  scan and a similar flood on every modern Next.js/TS monorepo.
+  Each FP class fixed at the source:
+    1. **TypeScript path aliases.** `@/lib`, `~/utils`, `#node-internal`
+       are tsconfig.paths / Node subpath-imports, not npm package
+       specifiers. `extractPackageName` now returns null for these
+       prefixes.
+    2. **Workspace package names.** `@aegis-scan/core` imported in
+       a monorepo root is provided by a workspace member, not a top-
+       level npm package. `pnpm-workspace.yaml` packages-list and
+       `package.json` workspaces field are parsed; each sub-package's
+       `name` field is registered as a declared dep.
+    3. **Sub-package runtime deps.** `ora` / `chalk` / `commander`
+       etc. declared in `packages/cli/package.json` are not phantom
+       at the monorepo root. The same workspace walk aggregates every
+       sub-package's `dependencies` / `devDependencies` /
+       `peerDependencies` / `optionalDependencies` into the declared
+       set.
+    4. **Comment false-matches.** The import-regex captured strings
+       inside documentation comments (e.g. `// require('pkg')`).
+       Source is now line-comment and block-comment stripped before
+       the regex runs.
+    5. **Regex garbage.** A new `isValidNpmPackageName` guard filters
+       captures to the npm-name format (lowercase `[a-z0-9._-]`
+       optionally scoped). Closes multi-line-import artefacts like
+       `") || line.includes("`.
+  Plus: `vscode` / `electron` / `atom` added to the builtins set as
+  host-provided ambient runtimes. Plus: supply-chain now respects
+  `config.ignore` in its file walker.
+
+- **logging-checker "no centralized logger" skipped on CLI tools.**
+  Previously any project without winston/pino/bunyan got a project-
+  level `medium` finding. CLI tools correctly use console as their
+  interface. New detection: if the root `package.json` has a `bin`
+  field, OR the root is a monorepo whose workspace children expose
+  `bin`, the project-level finding is suppressed at the source.
+  Per-file log-hygiene findings (mutation audit logs, auth event
+  logs) still fire — only the project-shape false positive is
+  gated. Also removes the brutal-review-M5 concern: AEGIS's own
+  `aegis.config.json` no longer needs a blanket `**/*` suppression.
+
+- **Scanner-precision tune (brutal-review NI1 + NI2).**
+    - `setTimeout` / `setInterval` skip emission when arg 0 is an
+      arrow or function expression — modern `setTimeout(fn, delay)`
+      usage is not code-injection regardless of delay taint. Only
+      arg 0 is inspected when they do fire (legacy string-eval
+      form). Removes a FP flood on every codebase passing a user-
+      configured delay to a callback.
+    - `encodeURIComponent` / `encodeURI` no longer credit CWE-22
+      (path traversal). Frameworks that accept URL-encoded path
+      parameters decode before filesystem access, so the
+      `%2F%2E%2E` sequence is restored to `../` at the fs layer.
+      Kept as sanitizer for CWE-918 (SSRF) and CWE-79 (XSS) where
+      the encoded form is consumed directly.
+
+- **self-scan `aegis.config.json` scope expansion (brutal-review M5
+  partial fix).** The blanket `**/*` logging-checker suppression is
+  removed — replaced with scoped per-package rules (cli, scanners,
+  mcp-server, reporters, core). Also closes residual structural
+  self-matches on ast/sinks.ts / ast/taint-tracker.ts (xss + ssrf),
+  function-summary.ts (crypto-auditor), redos-checker.ts, and DAST
+  probe modules (ssrf — purpose-built to fetch target URLs).
+
+- **GitHub Action default `aegis-version` pinned (brutal-review M3).**
+  Previously `main` — a floating ref that silently broke every CI
+  pipeline when AEGIS regressed. Now `v0.9.0`. Description expanded
+  with pinning rationale. Release checklist: bump this per tag.
+
+- **CI workflow step name stale (brutal-review N1).** "Benchmark (15
+  planted vulnerabilities)" → "Benchmark (21 planted vulnerabilities
+  + 9 clean-file FP checks)". Matches `expected.json` actual.
+
+### Explicitly deferred (brutal-review M6 analysis)
+
+- `detectHocSinkPropagation` text-match: on reconsideration, the
+  concern does NOT manifest as practical FPs. The consume-side
+  check in `checkCrossFileCallSink` HOC branch gates emission on
+  `collectSinkCwesInFunction(arg, ctx.checker)` returning a non-
+  empty set — i.e. the INLINE argument must call a known taint
+  sink. Summary `returnsFunctionThatCallsSink=true` is a pre-gate,
+  not a trigger. A text-match FP on the summary (withLogging that
+  merely calls its param without reaching a sink) is neutralized
+  by the inline-arg sink-reach check. No fix shipped in v0.9; the
+  analysis is recorded here for future reviewers.
+
+### Test counts
+
+- Tests: **1374 → 1379 green** (+5: 3 `setTimeout`/`setInterval`
+  first-arg-fn regression pins, 2 `encodeURIComponent` CWE-22 /
+  CWE-918 regression pins).
+- Benchmark: **30/30 strict unchanged**.
+- Self-scan (AEGIS-on-AEGIS): **973/A (55 findings) → 1000/A
+  (0 findings)**.
+
+### Cross-file precision
+
+Unchanged from v0.8.x §Measurement. n=2 across n=6 corpora. v0.7
+`confidence: 'medium'` hedge retained on the same unmeasurable-
+threshold basis.
+
+---
+
 ## [0.8.1] — 2026-04-16 — "Brutal-Review Hotfix"
 
 **Honest score:** 7.8 (unchanged — correctness hotfix closing three
