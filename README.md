@@ -5,14 +5,18 @@
 **The paranoid audit tool your vibe-coded app deserves.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Tests: 1339 passing](https://img.shields.io/badge/Tests-1339%20passing-brightgreen)
+![Tests: 1343 passing](https://img.shields.io/badge/Tests-1343%20passing-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 ![npm](https://img.shields.io/npm/v/@aegis-scan/cli)
-![Honest 7.7](https://img.shields.io/badge/Honest%20Score-7.7%2F10-blue)
-[![Release: v0.7.0](https://img.shields.io/badge/Release-v0.7.0-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.7.0)
+![Internal Maturity: 7.7](https://img.shields.io/badge/Internal%20Maturity-7.7%2F10-blue)
+[![Release: v0.7.1](https://img.shields.io/badge/Release-v0.7.1-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.7.1)
 
-> **Current release: `v0.7.0` — Cross-File Taint Foundation.** Whole-program taint propagation across imported function calls, SARIF 2.1.0 `relatedLocations`, 25/25 strict benchmark. See [CHANGELOG](./CHANGELOG.md) for the full v0.7.0 scope, deferred-to-v0.8 gaps, and measurement caveats.
+> **Current release: `v0.7.1` — hotfix patch.** Closes two v0.7.0 BLOCKERs surfaced by external review: `req.*` alias gap in TAINT_SOURCES (silent FN on Next.js routes that use `req` instead of `request`) and test/benchmark dirs not in DEFAULT_IGNORE (noise flood on any project with a test suite). Benchmark 25/25 → 26/26 strict. See [CHANGELOG](./CHANGELOG.md) for the full v0.7.1 + v0.7.0 scope.
+
+> **Two scores, don't confuse them:**
+> - **"Internal Maturity 7.7/10"** (badge above) — AEGIS's *own* honest self-assessment of its maturity as a product. Tracks over releases. Different from the validator's precision-tier system.
+> - **"0-1000" (see Scoring section below)** — the score AEGIS *outputs* for a scanned project. Based on weighted findings in that project's code. Graded FORTRESS → CRITICAL.
 
 ---
 

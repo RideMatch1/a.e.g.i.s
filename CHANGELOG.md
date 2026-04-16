@@ -11,6 +11,71 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.7.1] — 2026-04-16 — "Review-Hotfix"
+
+**Honest score:** 7.7 (unchanged — hotfix patch, not a capability release).
+
+**Summary:** Two v0.7.0 BLOCKERs surfaced by an external cold-read
+review agent. Shipped as a same-day patch.
+
+### Fixed
+
+- **`req.json` / `req.text` / `req.formData` / `request.params`
+  now recognised as taint sources.** Pre-v0.7.1 a byte-identical
+  Next.js handler with `request` renamed to `req` silently dropped
+  cross-file SSRF / SQLi / XSS findings — the `request.*` alias was
+  fully covered but `req.*` was missing the body-parser methods and
+  `request.params` was missing too. `req` and `request` are now
+  fully symmetric in `TAINT_SOURCES`. Also added `req.nextUrl.search
+  Params` for Next.js middleware completeness.
+- **Test + benchmark fixture dirs now in `DEFAULT_IGNORE`.** Pre-
+  v0.7.1 `aegis scan` on any project with `__tests__/`, `benchmark/`,
+  `fixtures/`, `__mocks__/`, `test/`, or `tests/` folders flooded
+  findings with intentionally-vulnerable fixture code and mocked
+  test data. The default ignore list now excludes these conventional
+  names; users can override via `aegis.config.json` if they
+  explicitly want to scan tests.
+
+### Added
+
+- **Benchmark fixture VULN-18**: byte-identical to VULN-01 except the
+  handler argument is named `req` instead of `request`. Locks the
+  `TAINT_SOURCES` symmetry into the benchmark — removing any of the
+  new sources flips 26/26 red. Benchmark now 25/25 → 26/26 strict.
+
+### Changed
+
+- Tests 1339 → 1343 (+4 regression assertions: 3 for the
+  `TAINT_SOURCES` symmetry fix, 1 for the `DEFAULT_IGNORE` fix).
+- README clarifies the two distinct scores (**"Internal Maturity
+  7.7/10"** for AEGIS's own maturity vs **"0-1000"** for the score
+  AEGIS outputs about scanned projects).
+
+### Deferred to v0.8
+
+These review findings (MAJOR-tier) are scope for the v0.8 type-aware
+expansion sprint, not a patch:
+
+- `aegis fix` LLM prompt-injection hardening (triple-backtick fence
+  is attacker-controllable when source contains a backtick sequence).
+- Cross-file dogfood corpus expansion to n≥20 for a valid FP-rate
+  measurement (the v0.7.0 `confidence: medium` hedge stays).
+- Structural self-match FPs on AEGIS's own production code
+  (`header-checker` self-flags, `logging-checker` wants
+  winston/pino, `zod-enforcer` wants coercion on every
+  `searchParams.get`). Scanner refinement, not a hotfix.
+- Getting-Started tutorial (separate docs PR, not tied to a tag).
+
+### Credits
+
+Review findings surfaced by an external cold-read review agent; the
+specific confounder-isolated repro (`request` → `req` rename drops
+the finding from 1 to 0) pinned the exact attack surface for
+BLOCKER #1. Full report at `/tmp/aegis-review/REVIEW.md` on the
+maintainer's machine (not included in repo).
+
+---
+
 ## [0.7.0] — 2026-04-16 — "Cross-File Taint Foundation"
 
 **Honest score:** 7.7 (unchanged from 0.6.1 — see "Known Limitations"
