@@ -1,0 +1,28 @@
+{
+  "name": "aegis",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AEGIS — Automated Enterprise-Grade Inspection Suite",
+  "scripts": {
+    "build": "turbo build",
+    "test": "turbo test",
+    "benchmark": "node packages/benchmark/run.mjs",
+    "lint": "turbo lint",
+    "clean": "turbo clean",
+    "dev": "turbo dev",
+    "dogfood:setup": "bash scripts/dogfood-corpus.sh",
+    "dogfood:scan": "bash scripts/dogfood-scan.sh",
+    "dogfood:annotate": "bash scripts/dogfood-annotate.sh",
+    "dogfood:report": "node packages/cli/dist/index.js precision report"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

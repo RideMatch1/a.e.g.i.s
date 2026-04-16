@@ -1,0 +1,54 @@
+rules:
+  - id: aegis.supabase-rls.missing-tenant-filter
+    patterns:
+      - pattern: $SUPABASE.from($TABLE).$CHAIN
+      - pattern-not: $SUPABASE.from($TABLE).$A.eq('tenant_id', ...).$B
+      - pattern-not: $SUPABASE.from($TABLE).$A.eq("tenant_id", ...).$B
+    message: >
+      Supabase query on '$TABLE' may be missing a tenant_id filter.
+      Every query must include .eq('tenant_id', ...) to enforce multi-tenant isolation.
+    severity: ERROR
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      owasp: "A01:2021 - Broken Access Control"
+      cwe: "CWE-284: Improper Access Control"
+
+  - id: aegis.supabase-rls.service-role-in-client
+    patterns:
+      - pattern-inside: |
+          "use client"
+          ...
+      - pattern-either:
+          - pattern: |
+              "service_role"
+          - pattern: |
+              'service_role'
+          - pattern: createClient(..., ..., { ... serviceRole ... })
+    message: >
+      Supabase service_role key detected in a client-side ('use client') file.
+      The service_role key bypasses Row Level Security and must never be exposed to the browser.
+    severity: ERROR
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      owasp: "A02:2021 - Cryptographic Failures"
+      cwe: "CWE-312: Cleartext Storage of Sensitive Information"
+
+  - id: aegis.supabase-rls.wildcard-select-sensitive-table
+    pattern-either:
+      - pattern: $SUPABASE.from('profiles').select('*')
+      - pattern: $SUPABASE.from("profiles").select('*')
+      - pattern: $SUPABASE.from('customers').select('*')
+      - pattern: $SUPABASE.from("customers").select('*')
+      - pattern: $SUPABASE.from('users').select('*')
+      - pattern: $SUPABASE.from("users").select('*')
+    message: >
+      Wildcard SELECT on sensitive table detected. Enumerate only the columns you need
+      instead of select('*') to avoid leaking PII and unintended data exposure.
+    severity: WARNING
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"

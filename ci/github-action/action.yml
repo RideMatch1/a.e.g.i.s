@@ -1,0 +1,219 @@
+name: 'AEGIS Security Audit'
+description: 'Run AEGIS security scans on your project. Produces a 0-1000 security score with actionable findings.'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  mode:
+    description: 'Scan mode: scan (quick) or audit (full)'
+    required: false
+    default: 'scan'
+  path:
+    description: 'Project path to scan'
+    required: false
+    default: '.'
+  fail-on-blocker:
+    description: 'Fail the workflow if a blocker finding is detected'
+    required: false
+    default: 'true'
+  fail-below:
+    description: 'Fail the workflow if the score is below this threshold (0-1000)'
+    required: false
+    default: '0'
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub Code Scanning'
+    required: false
+    default: 'false'
+  comment-on-pr:
+    description: 'Post a summary comment on the pull request'
+    required: false
+    default: 'true'
+  diff-against:
+    description: 'Only report findings for files changed vs this git ref (e.g. origin/main). Perfect for PRs.'
+    required: false
+    default: ''
+  aegis-version:
+    description: 'AEGIS version/ref to use (branch, tag, or commit SHA)'
+    required: false
+    default: 'main'
+
+outputs:
+  score:
+    description: 'Security score (0-1000)'
+    value: ${{ steps.scan.outputs.score }}
+  grade:
+    description: 'Security grade (S/A/B/C/D/F)'
+    value: ${{ steps.scan.outputs.grade }}
+  badge:
+    description: 'Security badge (FORTRESS/HARDENED/SOLID/NEEDS_WORK/AT_RISK/CRITICAL)'
+    value: ${{ steps.scan.outputs.badge }}
+  findings:
+    description: 'Total number of findings'
+    value: ${{ steps.scan.outputs.findings }}
+  blocked:
+    description: 'Whether a blocker finding was detected (true/false)'
+    value: ${{ steps.scan.outputs.blocked }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Install AEGIS
+      shell: bash
+      run: |
+        AEGIS_DIR="${RUNNER_TEMP}/aegis"
+        git clone --depth 1 --branch ${{ inputs.aegis-version }} https://github.com/RideMatch1/a.e.g.i.s.git "${AEGIS_DIR}"
+        cd "${AEGIS_DIR}"
+        pnpm install --frozen-lockfile
+        pnpm build
+        echo "AEGIS_CLI=${AEGIS_DIR}/packages/cli/dist/index.js" >> $GITHUB_ENV
+
+    - name: Run AEGIS scan
+      id: scan
+      shell: bash
+      run: |
+        set +e
+
+        # Build diff flag if configured
+        DIFF_FLAG=""
+        if [ -n "${{ inputs.diff-against }}" ]; then
+          DIFF_FLAG="--diff ${{ inputs.diff-against }}"
+        fi
+
+        # Run scan with JSON output for machine parsing
+        node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --format json --no-color > aegis-results.json 2>/dev/null
+        EXIT_CODE=$?
+
+        # Extract metrics from JSON
+        SCORE=$(node -e "const d=require('./aegis-results.json'); console.log(d.score)")
+        GRADE=$(node -e "const d=require('./aegis-results.json'); console.log(d.grade)")
+        BADGE=$(node -e "const d=require('./aegis-results.json'); console.log(d.badge)")
+        FINDINGS=$(node -e "const d=require('./aegis-results.json'); console.log(d.findings.length)")
+        BLOCKED=$(node -e "const d=require('./aegis-results.json'); console.log(d.blocked)")
+
+        echo "score=${SCORE}" >> $GITHUB_OUTPUT
+        echo "grade=${GRADE}" >> $GITHUB_OUTPUT
+        echo "badge=${BADGE}" >> $GITHUB_OUTPUT
+        echo "findings=${FINDINGS}" >> $GITHUB_OUTPUT
+        echo "blocked=${BLOCKED}" >> $GITHUB_OUTPUT
+
+        # Terminal output for the log
+        node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --no-color 2>/dev/null || true
+
+        # Generate SARIF if requested
+        if [ "${{ inputs.upload-sarif }}" = "true" ]; then
+          node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --format sarif --no-color > aegis-results.sarif 2>/dev/null
+        fi
+
+        # Check fail conditions
+        if [ "${{ inputs.fail-on-blocker }}" = "true" ] && [ "${BLOCKED}" = "true" ]; then
+          echo "::error::AEGIS detected blocker findings — score forced to 0"
+          exit 1
+        fi
+
+        FAIL_BELOW=${{ inputs.fail-below }}
+        if [ "${FAIL_BELOW}" -gt 0 ] 2>/dev/null && [ "${SCORE}" -lt "${FAIL_BELOW}" ]; then
+          echo "::error::AEGIS score ${SCORE} is below threshold ${FAIL_BELOW}"
+          exit 1
+        fi
+
+    - name: Post PR comment
+      if: inputs.comment-on-pr == 'true' && github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let data;
+          try {
+            data = JSON.parse(fs.readFileSync('aegis-results.json', 'utf8'));
+          } catch {
+            return; // no results to post
+          }
+
+          const score = data.score;
+          const grade = data.grade;
+          const badge = data.badge;
+          const total = data.findings.length;
+          const blocked = data.blocked;
+
+          // Count by severity
+          const bySev = {};
+          for (const f of data.findings) {
+            bySev[f.severity] = (bySev[f.severity] || 0) + 1;
+          }
+
+          // Top 10 findings
+          const sevOrder = { blocker: 0, critical: 1, high: 2, medium: 3, low: 4, info: 5 };
+          const sorted = [...data.findings]
+            .sort((a, b) => (sevOrder[a.severity] ?? 9) - (sevOrder[b.severity] ?? 9))
+            .slice(0, 10);
+
+          const sevEmoji = { blocker: '🚫', critical: '🔴', high: '🟠', medium: '🟡', low: '🔵', info: 'ℹ️' };
+          const gradeEmoji = { S: '🏰', A: '🛡️', B: '✅', C: '⚠️', D: '❌', F: '💀' };
+
+          let body = `## ${gradeEmoji[grade] || '🔍'} AEGIS Security Audit — Score: ${score}/1000 (${grade}/${badge})\n\n`;
+
+          if (blocked) {
+            body += `> **🚫 BLOCKER detected** — ${data.blockerReason}\n\n`;
+          }
+
+          body += `| Severity | Count |\n|---|---|\n`;
+          for (const sev of ['critical', 'high', 'medium', 'low', 'info']) {
+            if (bySev[sev]) {
+              body += `| ${sevEmoji[sev] || ''} ${sev.toUpperCase()} | ${bySev[sev]} |\n`;
+            }
+          }
+          body += `| **Total** | **${total}** |\n\n`;
+
+          if (sorted.length > 0) {
+            body += `### Top Findings\n\n`;
+            body += `| Severity | File | Finding |\n|---|---|---|\n`;
+            for (const f of sorted) {
+              const file = f.file ? f.file.replace(process.cwd() + '/', '') : '-';
+              const line = f.line ? `:${f.line}` : '';
+              body += `| ${sevEmoji[f.severity] || ''} ${f.severity.toUpperCase()} | \`${file}${line}\` | ${f.title.substring(0, 80)} |\n`;
+            }
+            body += `\n`;
+          }
+
+          body += `---\n*Generated by [AEGIS](https://github.com/RideMatch1/a.e.g.i.s) — Automated Enterprise-Grade Inspection Suite*`;
+
+          // Find and update existing comment or create new
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existing = comments.find(c => c.body && c.body.includes('AEGIS Security Audit'));
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
+
+    - name: Upload SARIF
+      if: inputs.upload-sarif == 'true' && always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: aegis-results.sarif
+      continue-on-error: true

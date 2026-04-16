@@ -1,0 +1,36 @@
+rules:
+  - id: aegis.nextjs-auth.missing-auth-guard
+    patterns:
+      - pattern: |
+          export async function $METHOD(request: $REQ_TYPE) {
+            ...
+          }
+      - pattern-not-inside: |
+          export async function $METHOD(request: $REQ_TYPE) {
+            ...
+            secureApiRouteWithTenant(...)
+            ...
+          }
+      - pattern-not-inside: |
+          export async function $METHOD(request: $REQ_TYPE) {
+            ...
+            getServerSession(...)
+            ...
+          }
+      - pattern-not-inside: |
+          export async function $METHOD(request: $REQ_TYPE) {
+            ...
+            auth()
+            ...
+          }
+    message: "API route handler missing authentication guard. Add secureApiRouteWithTenant(), getServerSession(), or auth() call."
+    severity: ERROR
+    languages: [typescript, javascript]
+    paths:
+      include:
+        - "src/app/api/**"
+        - "app/api/**"
+    metadata:
+      category: security
+      owasp: "A07:2021 - Identification and Authentication Failures"
+      cwe: "CWE-306: Missing Authentication for Critical Function"

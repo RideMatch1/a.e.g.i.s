@@ -1,0 +1,45 @@
+{
+  "name": "@aegis-scan/mcp-server",
+  "version": "0.7.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "mcp-server"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "security",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "audit"
+  ],
+  "description": "AEGIS MCP Server — use AEGIS as a tool in any AI coding agent",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "aegis-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aegis-scan/core": "workspace:*",
+    "@aegis-scan/scanners": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

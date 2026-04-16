@@ -1,0 +1,28 @@
+export * from './types.js';
+export { detectStack } from './detect.js';
+export { calculateScore, getGrade, getBadge, CATEGORY_WEIGHTS } from './scoring.js';
+export { loadConfig, type ConfigFileShape } from './config.js';
+export { Orchestrator } from './orchestrator.js';
+export { exec, commandExists, walkFiles, readFileSafe, clearWalkFilesCache, getChangedFiles, type ExecResult, type ExecOptions } from './utils.js';
+export { getVersion } from './version.js';
+export {
+  parseSuppressions,
+  isSuppressed,
+  getUnusedSuppressions,
+  getNakedSuppressions,
+  type Suppression,
+} from './suppressions.js';
+export {
+  globToRegex,
+  configSuppressionMatches,
+  applyPipelineSuppressions,
+  type SuppressionStats,
+} from './suppression-filter.js';
+export {
+  PRECISION_GATES,
+  SCANNER_TIERS,
+  tierOf,
+  gateFor,
+  passesPrecisionGate,
+  type PrecisionTier,
+} from './precision-tiers.js';

@@ -1,0 +1,27 @@
+{
+  "name": "aegis-vscode",
+  "displayName": "AEGIS Security Audit",
+  "description": "Run AEGIS security scans directly in VS Code",
+  "version": "0.2.0",
+  "publisher": "aegis-security",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Linters", "Testing"],
+  "activationEvents": ["onCommand:aegis.scan", "onCommand:aegis.scanFile"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "aegis.scan", "title": "AEGIS: Scan Workspace" },
+      { "command": "aegis.scanFile", "title": "AEGIS: Scan Current File" },
+      { "command": "aegis.showScore", "title": "AEGIS: Show Security Score" }
+    ],
+    "configuration": {
+      "title": "AEGIS",
+      "properties": {
+        "aegis.autoScanOnSave": { "type": "boolean", "default": false, "description": "Run AEGIS scan on file save" },
+        "aegis.severity.minimum": { "type": "string", "default": "medium", "enum": ["info", "low", "medium", "high", "critical", "blocker"], "description": "Minimum severity to show in diagnostics" }
+      }
+    }
+  },
+  "scripts": { "build": "tsc", "package": "vsce package" },
+  "devDependencies": { "@types/vscode": "^1.90.0", "typescript": "^5.8.0" }
+}

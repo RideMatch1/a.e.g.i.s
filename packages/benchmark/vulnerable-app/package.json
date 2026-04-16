@@ -1,0 +1,14 @@
+{
+  "name": "aegis-benchmark-vulnerable-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Intentionally vulnerable Next.js/Supabase app for AEGIS benchmark testing",
+  "dependencies": {
+    "next": "^15.0.0",
+    "@supabase/supabase-js": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

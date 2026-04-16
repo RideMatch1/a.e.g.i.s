@@ -1,0 +1,6 @@
+{
+  "name": "@aegis-scan/rules",
+  "version": "0.2.0",
+  "description": "Custom Semgrep and ESLint rules for AEGIS security scanning",
+  "private": true
+}

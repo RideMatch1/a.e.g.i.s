@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+coverage/
+.env
+.env.*
+.npmrc
+.DS_Store
+
+# Precision-annotation files are project-local: they hold absolute
+# corpus paths and per-finding TP/FP verdicts. Regenerate on demand
+# via `pnpm dogfood:annotate`.
+aegis-precision/
+~/aegis-corpus/

@@ -1,0 +1,48 @@
+{
+  "name": "@aegis-scan/scanners",
+  "version": "0.7.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "scanners"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "security",
+    "scanner",
+    "sast",
+    "owasp",
+    "cwe"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aegis-scan/core": "workspace:*"
+  },
+  "optionalDependencies": {
+    "typescript": "^5.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

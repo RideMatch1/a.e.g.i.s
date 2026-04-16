@@ -1,0 +1,72 @@
+rules:
+  - id: aegis.react-xss.dangerous-html-without-sanitize
+    patterns:
+      - pattern: dangerouslySetInnerHTML={{ __html: $EXPR }}
+      - pattern-not: dangerouslySetInnerHTML={{ __html: sanitize($EXPR) }}
+      - pattern-not: dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize($EXPR) }}
+      - pattern-not: dangerouslySetInnerHTML={{ __html: sanitizeHtml($EXPR) }}
+      - pattern-not: dangerouslySetInnerHTML={{ __html: xss($EXPR) }}
+    message: >
+      dangerouslySetInnerHTML used without a sanitization function.
+      Wrap the value with DOMPurify.sanitize(), sanitizeHtml(), or equivalent
+      before passing it to avoid XSS vulnerabilities.
+    severity: ERROR
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation (XSS)"
+
+  - id: aegis.react-xss.href-user-input-no-protocol-check
+    patterns:
+      - pattern: <$TAG href={$VAR} .../>
+      - pattern-not-inside: |
+          if ($VAR.startsWith('https://') || ...) { ... }
+      - pattern-not-inside: |
+          if (/^https?:\/\//.test($VAR)) { ... }
+      - pattern-not-inside: |
+          if (isValidUrl($VAR)) { ... }
+      - pattern-not: <$TAG href={$SAFE_URL} .../>
+      - metavariable-regex:
+          metavariable: $SAFE_URL
+          regex: '^".*"$'
+    message: >
+      Dynamic href value '$VAR' is assigned without protocol validation.
+      An attacker could supply 'javascript:...' to trigger XSS.
+      Validate that the URL starts with 'https://' or use a URL allowlist before rendering.
+    severity: ERROR
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation (XSS)"
+
+  - id: aegis.react-xss.document-write
+    pattern: document.write(...)
+    message: >
+      document.write() is a direct XSS sink. Any unsanitized string passed here
+      is executed as HTML. Replace with DOM manipulation (createElement, textContent)
+      or React rendering.
+    severity: ERROR
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation (XSS)"
+
+  - id: aegis.react-xss.inner-html-assignment
+    patterns:
+      - pattern: $EL.innerHTML = $EXPR
+      - pattern-not: $EL.innerHTML = sanitize($EXPR)
+      - pattern-not: $EL.innerHTML = DOMPurify.sanitize($EXPR)
+      - pattern-not: $EL.innerHTML = sanitizeHtml($EXPR)
+    message: >
+      Direct innerHTML assignment without sanitization.
+      Use textContent for plain text, or sanitize the HTML with DOMPurify
+      before assigning to innerHTML.
+    severity: ERROR
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation (XSS)"

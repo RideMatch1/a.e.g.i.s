@@ -1,0 +1,32 @@
+{
+  "description": "Expected AEGIS findings for the vulnerable benchmark app. Vulnerabilities MUST be found, clean files MUST NOT be flagged by their respective scanners.",
+  "vulnerabilities": {
+    "VULN-01": { "scanner": "taint-analyzer", "cwe": 89, "severity": "critical", "file": "vuln-01-sqli/route.ts", "description": "SQL Injection via taint flow: req.body → trim() → template literal → db.query()" },
+    "VULN-02": { "scanner": "taint-analyzer", "cwe": 918, "severity": "high", "file": "vuln-02-ssrf/route.ts", "description": "SSRF via destructured request body → fetch()" },
+    "VULN-03": { "scanner": "taint-analyzer", "cwe": 79, "severity": "high", "file": "vuln-03-xss/route.ts", "description": "XSS via searchParams → new Response() with HTML content-type" },
+    "VULN-04": { "scanner": "taint-analyzer", "cwe": 22, "severity": "high", "file": "vuln-04-path-traversal/route.ts", "description": "Path Traversal via searchParams → fs.readFileSync()" },
+    "VULN-05": { "scanner": "taint-analyzer", "cwe": 78, "severity": "critical", "file": "vuln-05-cmdi/route.ts", "description": "Command Injection via multi-hop taint: req.body → trim() → exec()" },
+    "VULN-06": { "scanner": "taint-analyzer", "cwe": 89, "severity": "critical", "file": "vuln-06-rpc-sqli/route.ts", "description": "SQLi via .rpc() template interpolation in function name" },
+    "VULN-07": { "scanner": "auth-enforcer", "cwe": 306, "severity": "high", "file": "vuln-07-no-auth/route.ts", "description": "Missing authentication guard on API route" },
+    "VULN-08": { "scanner": "tenant-isolation-checker", "cwe": 639, "severity": "high", "file": "vuln-08-no-tenant/route.ts", "description": "Missing tenant_id filter — cross-tenant data leak" },
+    "VULN-09": { "scanner": "rate-limit-checker", "cwe": null, "severity": "high", "file": "auth/login/route.ts", "description": "Sensitive route missing rate limiting" },
+    "VULN-10": { "scanner": "pagination-checker", "cwe": null, "severity": "high", "file": "vuln-10-no-pagination/route.ts", "description": "Database query without pagination or row limit" },
+    "VULN-11": { "scanner": "mass-assignment-checker", "cwe": 915, "severity": "high", "file": "vuln-11-mass-assignment/route.ts", "description": "Mass assignment — unvalidated body to .insert()" },
+    "VULN-12": { "scanner": "taint-analyzer", "cwe": 94, "severity": "critical", "file": "vuln-12-eval/route.ts", "description": "Code injection via eval() with tainted input" },
+    "VULN-13": { "scanner": "taint-analyzer", "cwe": 601, "severity": "medium", "file": "vuln-13-open-redirect/route.ts", "description": "Open redirect via tainted searchParams → redirect()" },
+    "VULN-14": { "scanner": "zod-enforcer", "cwe": null, "severity": "high", "file": "vuln-14-no-zod/route.ts", "description": "Mutation route without Zod validation" },
+    "VULN-15": { "scanner": "taint-analyzer", "cwe": 1321, "severity": "high", "file": "vuln-15-prototype-pollution/route.ts", "description": "Prototype pollution via Object.assign() with tainted input" },
+    "VULN-16": { "scanner": "taint-analyzer", "cwe": 89, "severity": "critical", "file": "vuln-16-cross-file-sqli/route.ts", "description": "Cross-file SQL Injection: tainted body → imported wrapper → db.query() template interpolation" },
+    "VULN-17": { "scanner": "taint-analyzer", "cwe": 79, "severity": "high", "file": "vuln-17-cross-file-xss/route.ts", "description": "Cross-file XSS: tainted searchParam → imported renderer → new Response() with HTML body" }
+  },
+  "false_positives": {
+    "CLEAN-01": { "scanner": "auth-enforcer", "file": "clean-auth/route.ts", "description": "Properly authenticated route with secureApiRouteWithTenant + requireRole" },
+    "CLEAN-02": { "scanner": "taint-analyzer", "file": "clean-taint/route.ts", "description": "Zod .safeParse() sanitizes all taint — no taint findings expected" },
+    "CLEAN-03": { "scanner": "tenant-isolation-checker", "file": "clean-tenant/route.ts", "description": "Query with .eq('tenant_id', ...) — properly filtered" },
+    "CLEAN-04": { "scanner": "rate-limit-checker", "file": "clean-rate-limit/route.ts", "description": "Auth route WITH checkIPRateLimit — properly rate-limited" },
+    "CLEAN-05": { "scanner": "taint-analyzer", "file": "clean-taint-sanitized/route.ts", "description": "parseInt blocks SQLi, encodeURIComponent blocks SSRF — per-CWE sanitization" },
+    "CLEAN-06": { "scanner": "taint-analyzer", "file": "clean-06-shadowed-sink/route.ts", "description": "Locally-shadowed `exec()` function — type-aware resolver identifies LOCAL decl, not child_process" },
+    "CLEAN-07": { "scanner": "taint-analyzer", "file": "clean-07-cross-file-sanitized/route.ts", "description": "Cross-file sanitized: imported wrapper parseInt()s raw before db.query() — summary.sanitizesCwes + sink-text mismatch suppress emission" },
+    "CLEAN-08": { "scanner": "taint-analyzer", "file": "clean-08-re-exported-safe/route.ts", "description": "Cross-file re-exported identity: barrel re-export of no-sink function — module-graph traversal finds empty sinkCwes, no finding emitted" }
+  }
+}

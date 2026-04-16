@@ -1,0 +1,54 @@
+{
+  "name": "@aegis-scan/cli",
+  "version": "0.7.0",
+  "description": "AEGIS CLI — The paranoid audit tool your vibe-coded app deserves",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "cli"
+  },
+  "homepage": "https://github.com/RideMatch1/a.e.g.i.s#readme",
+  "keywords": [
+    "security",
+    "audit",
+    "sast",
+    "dast",
+    "compliance",
+    "gdpr",
+    "owasp",
+    "scanner",
+    "cli"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "bin": {
+    "aegis": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aegis-scan/core": "workspace:*",
+    "@aegis-scan/reporters": "workspace:*",
+    "@aegis-scan/scanners": "workspace:*",
+    "commander": "^13.0.0",
+    "chalk": "^5.4.0",
+    "ora": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

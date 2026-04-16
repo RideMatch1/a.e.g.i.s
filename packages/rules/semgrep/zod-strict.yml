@@ -1,0 +1,39 @@
+rules:
+  - id: aegis.zod-strict.object-without-strict
+    patterns:
+      - pattern: z.object({...})
+      - pattern-not: z.object({...}).strict()
+      - pattern-not: z.object({...}).strict(...)
+    message: >
+      Zod schema z.object({...}) is missing .strict().
+      Without .strict(), unknown keys are silently stripped instead of causing
+      a validation error. Add .strict() to reject unexpected fields in API input.
+    severity: ERROR
+    languages: [typescript, javascript]
+    paths:
+      include:
+        - "src/app/api/**"
+        - "app/api/**"
+        - "src/lib/api/**"
+        - "lib/api/**"
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-20: Improper Input Validation"
+
+  - id: aegis.zod-strict.record-unknown-or-any
+    pattern-either:
+      - pattern: z.record(z.unknown())
+      - pattern: z.record(z.any())
+      - pattern: z.record($KEY, z.unknown())
+      - pattern: z.record($KEY, z.any())
+    message: >
+      z.record(z.unknown()) / z.record(z.any()) allows arbitrary key-value pairs
+      without type constraints. This defeats the purpose of schema validation and
+      can allow injection of unexpected data. Define an explicit value type instead.
+    severity: WARNING
+    languages: [typescript, javascript]
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-20: Improper Input Validation"
