@@ -97,6 +97,23 @@ describe('loadConfig — default ignore paths', () => {
     expect(config.ignore).toContain('coverage');
   });
 
+  it('includes test + benchmark dirs in ignore list (v0.7.1 BLOCKER fix)', async () => {
+    // Pre-fix: scanning a project with __tests__ / benchmark / fixtures
+    // flooded findings with intentionally-vulnerable fixture code +
+    // mocked test data — AEGIS-on-AEGIS scored 0/F/CRITICAL on its OWN
+    // benchmark fixtures. Any user running `aegis scan .` from a repo
+    // with a test suite saw the same noise flood.
+    writePkg(tmpDir, {});
+    const config = await loadConfig(tmpDir);
+    for (const dir of [
+      '__tests__', '__test__', 'test', 'tests',
+      '__mocks__', '__fixtures__', 'fixtures',
+      'benchmark', 'benchmarks',
+    ]) {
+      expect(config.ignore, `default ignore missing '${dir}'`).toContain(dir);
+    }
+  });
+
   it('has at least 5 default ignore paths', async () => {
     writePkg(tmpDir, {});
     const config = await loadConfig(tmpDir);

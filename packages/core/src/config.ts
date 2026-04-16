@@ -89,6 +89,20 @@ const DEFAULT_IGNORE = [
   '.windsurf',
   '.codex',
   '.aider',
+  // Test + benchmark fixtures (v0.7.1): scanning these is almost always
+  // noise — they contain intentionally-vulnerable code OR mocked data.
+  // Users who DO want to scan their tests can override via
+  // aegis.config.json `ignore` (unions with this list) or explicitly
+  // include paths on the CLI.
+  '__tests__',
+  '__test__',
+  'test',
+  'tests',
+  '__mocks__',
+  '__fixtures__',
+  'fixtures',
+  'benchmark',
+  'benchmarks',
 ];
 
 /**
