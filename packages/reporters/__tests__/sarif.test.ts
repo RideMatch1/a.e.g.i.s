@@ -367,8 +367,8 @@ describe('sarifReporter — SARIF 2.1.0 conformance', () => {
   it('artifactLocation.uri is always a non-empty relative path when present', () => {
     const result = makeResult({
       findings: [
-        { id: 'F1', scanner: 's', category: 'security', severity: 'high', title: 't1', description: 'd', file: '/Users/dev/project/src/app.ts', line: 10 },
-        { id: 'F2', scanner: 's', category: 'security', severity: 'high', title: 't2', description: 'd', file: '/Users/dev/project/lib/util.ts', line: 5 },
+        { id: 'F1', scanner: 's', category: 'security', severity: 'high', title: 't1', description: 'd', file: '/tmp/fixture/src/app.ts', line: 10 },
+        { id: 'F2', scanner: 's', category: 'security', severity: 'high', title: 't2', description: 'd', file: '/tmp/fixture/lib/util.ts', line: 5 },
       ],
     });
     const sarif = parseSarif(result);
