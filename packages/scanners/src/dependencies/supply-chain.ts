@@ -53,10 +53,24 @@ interface PkgScripts {
  * Extract package name from an import specifier.
  * Scoped: '@scope/pkg/subpath' -> '@scope/pkg'
  * Regular: 'lodash/fp' -> 'lodash'
+ *
+ * Returns null for:
+ *   - Relative/absolute imports: './x', '../x', '/x'
+ *   - TypeScript path aliases: '@/x', '~/x', '#x'
+ *     (common tsconfig paths conventions — these resolve to local
+ *     directories, not npm packages)
  */
 function extractPackageName(specifier: string): string | null {
   // Skip relative/absolute imports
   if (specifier.startsWith('.') || specifier.startsWith('/')) return null;
+
+  // v0.9 polish: skip TypeScript path aliases — these are tsconfig.paths
+  // mappings to local directories (e.g. "@/lib/*" → "./src/lib/*"), not
+  // npm package specifiers. Treating them as phantom deps produces a
+  // flood of noise in any modern Next.js / TS codebase.
+  if (specifier.startsWith('@/') || specifier.startsWith('~/')) return null;
+  if (specifier.startsWith('#')) return null;   // Node.js subpath-imports convention
+  if (specifier === '@' || specifier === '~') return null;
 
   if (specifier.startsWith('@')) {
     const parts = specifier.split('/');
@@ -65,6 +79,118 @@ function extractPackageName(specifier: string): string | null {
   }
 
   return specifier.split('/')[0];
+}
+
+/**
+ * v0.9 polish: valid-npm-package-name check. npm names are lowercase-
+ * ASCII with dots/underscores/hyphens, optionally scoped. Rejecting
+ * non-conforming captures eliminates regex-noise phantom findings like
+ * "pkg" (template-literal variable), "vscode" (VS Code runtime module),
+ * and multi-line-import garbage.
+ *
+ * Per npm rules — the name itself matches:
+ *   - Unscoped:  [a-z0-9][a-z0-9._-]{0,213}
+ *   - Scoped:    @<scope>/<name> with the same char class in both halves
+ * No uppercase, no spaces, no punctuation outside the char class.
+ */
+export function isValidNpmPackageName(name: string): boolean {
+  if (name.length === 0 || name.length > 214) return false;
+  // Scoped
+  if (name.startsWith('@')) {
+    const m = name.match(/^@([a-z0-9][a-z0-9._-]*)\/([a-z0-9][a-z0-9._-]*)$/);
+    return m !== null;
+  }
+  // Unscoped
+  return /^[a-z0-9][a-z0-9._-]*$/.test(name);
+}
+
+/**
+ * v0.9 polish: discover workspace package names from pnpm-workspace.yaml
+ * (or package.json workspaces field). Returns both the `name` of each
+ * workspace sub-package AND every declared dep in each sub-package, so
+ * a monorepo root scan does not flag sub-package runtime deps (ora,
+ * chalk, etc. declared in packages/cli/package.json) as phantoms.
+ *
+ * Supports:
+ *   - pnpm-workspace.yaml with packages: [ 'packages/*', 'apps/*' ]
+ *   - package.json "workspaces": [ ... ] (npm / yarn classic)
+ *   - package.json "workspaces.packages": [ ... ] (yarn berry)
+ */
+function discoverWorkspaceDeps(projectPath: string): {
+  workspaceNames: Set<string>;
+  subPackageDeps: Set<string>;
+} {
+  const workspaceNames = new Set<string>();
+  const subPackageDeps = new Set<string>();
+  const globs: string[] = [];
+
+  const wsYaml = readFileSafe(join(projectPath, 'pnpm-workspace.yaml'));
+  if (wsYaml !== null) {
+    const lines = wsYaml.split('\n');
+    let inPkg = false;
+    for (const raw of lines) {
+      const ln = raw.replace(/#.*$/, '');
+      if (/^packages\s*:/.test(ln.trim())) { inPkg = true; continue; }
+      if (inPkg) {
+        if (/^\S/.test(ln) && ln.trim() !== '') break;
+        const m = ln.match(/^\s*-\s*['"]?([^'"\s]+)['"]?/);
+        if (m) globs.push(m[1]);
+      }
+    }
+  }
+
+  const rootPkg = readFileSafe(join(projectPath, 'package.json'));
+  if (rootPkg !== null) {
+    try {
+      const parsed = JSON.parse(rootPkg) as {
+        workspaces?: string[] | { packages?: string[] };
+      };
+      const ws = parsed.workspaces;
+      if (Array.isArray(ws)) globs.push(...ws);
+      else if (ws && Array.isArray(ws.packages)) globs.push(...ws.packages);
+    } catch {
+      // ignore malformed package.json
+    }
+  }
+
+  for (const glob of globs) {
+    const parts = glob.split('/');
+    if (parts.length !== 2 || parts[1] !== '*') continue;
+    const dir = join(projectPath, parts[0]);
+    if (!existsSync(dir)) continue;
+    try {
+      for (const child of readdirSync(dir)) {
+        const childPkgPath = join(dir, child, 'package.json');
+        const childPkg = readFileSafe(childPkgPath);
+        if (childPkg === null) continue;
+        try {
+          const j = JSON.parse(childPkg) as {
+            name?: string;
+            dependencies?: Record<string, string>;
+            devDependencies?: Record<string, string>;
+            peerDependencies?: Record<string, string>;
+            optionalDependencies?: Record<string, string>;
+          };
+          if (j.name) workspaceNames.add(j.name);
+          for (const depKey of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const) {
+            const deps = j[depKey];
+            if (deps) for (const dep of Object.keys(deps)) subPackageDeps.add(dep);
+          }
+        } catch {
+          // ignore malformed sub package.json
+        }
+      }
+    } catch {
+      // ignore unreadable dir
+    }
+  }
+
+  return { workspaceNames, subPackageDeps };
+}
+
+/** Legacy alias kept for any external callers that relied on the prior export-less helper shape. */
+function discoverWorkspacePackages(projectPath: string): Set<string> {
+  return discoverWorkspaceDeps(projectPath).workspaceNames;
 }
 
 export const supplyChainScanner: Scanner = {
@@ -77,7 +203,7 @@ export const supplyChainScanner: Scanner = {
     return true;
   },
 
-  async scan(projectPath: string, _config: AegisConfig): Promise<ScanResult> {
+  async scan(projectPath: string, config: AegisConfig): Promise<ScanResult> {
     const start = Date.now();
     const findings: Finding[] = [];
     let idCounter = 1;
@@ -272,13 +398,31 @@ export const supplyChainScanner: Scanner = {
 
     // --- Check 6: Phantom Dependencies ---
     if (pkgJson) {
+      // v0.9 polish: merge user's config.ignore with the built-in walker
+      // ignore list. Previously the scanner walked into directories the
+      // user had explicitly excluded (e.g. benchmark/vulnerable-app) and
+      // produced phantom findings for their private deps.
+      const walkerIgnore = [
+        ...new Set([
+          'node_modules', '.next', '.git', 'dist', 'build', '.turbo', 'coverage',
+          ...(config.ignore ?? []),
+        ]),
+      ];
       const sourceFiles = walkFiles(
         projectPath,
-        ['node_modules', '.next', '.git', 'dist', 'build', '.turbo', 'coverage'],
+        walkerIgnore,
         ['ts', 'tsx', 'js', 'jsx'],
       );
 
       const declaredDeps = new Set(Object.keys(allDeps));
+      // v0.9 polish: include workspace-provided packages AND the deps
+      // declared inside each workspace sub-package.json in the declared
+      // set, so monorepo cross-package imports (@aegis-scan/core) and
+      // sub-package runtime deps (ora, chalk, commander declared in
+      // packages/cli/package.json) do not register as phantoms.
+      const { workspaceNames, subPackageDeps } = discoverWorkspaceDeps(projectPath);
+      for (const name of workspaceNames) declaredDeps.add(name);
+      for (const dep of subPackageDeps) declaredDeps.add(dep);
       const importedPackages = new Set<string>();
 
       const importPatterns = [
@@ -289,8 +433,18 @@ export const supplyChainScanner: Scanner = {
       ];
 
       for (const file of sourceFiles) {
-        const content = readFileSafe(file);
-        if (!content) continue;
+        const rawContent = readFileSafe(file);
+        if (!rawContent) continue;
+
+        // v0.9 polish: strip line comments before running the import
+        // regex. Without this, documentation comments inside AEGIS's
+        // own supply-chain scanner (e.g. `// require('pkg')`) are
+        // captured as phantom-dep imports. Block comments stripped
+        // best-effort; import-like strings inside intentional block
+        // comments remain a minor edge case.
+        const content = rawContent
+          .replace(/\/\/.*$/gm, '')
+          .replace(/\/\*[\s\S]*?\*\//g, '');
 
         for (const pattern of importPatterns) {
           // Reset lastIndex for global regexps
@@ -303,8 +457,13 @@ export const supplyChainScanner: Scanner = {
         }
       }
 
-      // Built-in Node.js modules to exclude
+      // Built-in Node.js modules + host-provided ambient runtimes to exclude
       const builtins = new Set([
+        // v0.9 polish: common ambient modules provided by host runtimes
+        // (not npm packages; resolved by the host at runtime).
+        'vscode',       // VS Code Extension API
+        'electron',     // Electron main/renderer
+        'atom',         // Atom editor API (legacy but still shipped in some codebases)
         'fs', 'path', 'os', 'url', 'http', 'https', 'crypto', 'stream', 'util',
         'events', 'buffer', 'child_process', 'cluster', 'dgram', 'dns', 'net',
         'readline', 'tls', 'zlib', 'assert', 'querystring', 'string_decoder',
@@ -320,6 +479,11 @@ export const supplyChainScanner: Scanner = {
       for (const imported of importedPackages) {
         if (builtins.has(imported)) continue;
         if (declaredDeps.has(imported)) continue;
+        // v0.9 polish: reject captures that aren't valid npm package
+        // names — these come from multi-line import regex false-matches
+        // ("pkg" as template-literal variable, "vscode" ambient runtime,
+        // concat fragments like ") || line.includes(").
+        if (!isValidNpmPackageName(imported)) continue;
 
         addFinding(
           'medium',
