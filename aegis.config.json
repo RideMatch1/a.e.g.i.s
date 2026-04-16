@@ -1,0 +1,84 @@
+{
+  "ignore": [
+    "packages/benchmark/vulnerable-app/**",
+    "packages/*/dist/**",
+    "packages/*/node_modules/**",
+    "coverage/**"
+  ],
+  "suppressions": [
+    {
+      "file": "packages/cli/src/**/*.ts",
+      "rule": "console-checker",
+      "reason": "CLI package: console output IS the user interface. console.log/error/warn are intentional and map to stdout/stderr as required for a command-line tool, not debug artifacts."
+    },
+    {
+      "file": "packages/scanners/src/**/*.ts",
+      "rule": "console-checker",
+      "reason": "Scanner source files log diagnostic output during scan orchestration (duration, progress, warnings). Not debug artifacts; not end-user-facing in a web context."
+    },
+    {
+      "file": "packages/scanners/src/quality/*-checker.ts",
+      "rule": "rls-bypass-checker",
+      "reason": "Scanner definition files contain the detection patterns (service_role, .rpc, supabase.method) as regex literals. A bare text-match gate will always self-match; AST-level analysis would be over-engineering for this class."
+    },
+    {
+      "file": "packages/scanners/src/ast/**/*.ts",
+      "rule": "rls-bypass-checker",
+      "reason": "Taint-analyzer sinks and tracker reference supabase/rpc as detection targets in comments and literal arrays — not actual runtime Supabase client usage."
+    },
+    {
+      "file": "packages/scanners/src/quality/crypto-auditor.ts",
+      "rule": "crypto-auditor",
+      "reason": "The crypto-auditor file defines the crypto-weakness detection patterns (md5, sha1, DES, JWT 'none'). Self-match is structural — these are PATTERNS-OF-CONCERN literals, not actual crypto usage."
+    },
+    {
+      "file": "packages/scanners/src/quality/jwt-checker.ts",
+      "rule": "crypto-auditor",
+      "reason": "JWT-checker contains JWT algorithm names ('none', 'HS256', etc.) as detection literals. crypto-auditor matches the 'none' string as a structural FP on the detection source."
+    },
+    {
+      "file": "packages/scanners/src/quality/jwt-checker.ts",
+      "rule": "jwt-checker",
+      "reason": "Scanner defining JWT-weakness detection references JWT algorithm literals. Self-match is structural."
+    },
+    {
+      "file": "packages/scanners/src/quality/sql-concat-checker.ts",
+      "rule": "sql-concat-checker",
+      "reason": "sql-concat-checker defines SQL-injection detection patterns. The source literally contains .rpc() / .execute() template samples as documentation."
+    },
+    {
+      "file": "packages/scanners/src/quality/xss-checker.ts",
+      "rule": "xss-checker",
+      "reason": "xss-checker defines XSS sink patterns (innerHTML, document.write, etc.) in its regex array. Structural self-match."
+    },
+    {
+      "file": "packages/scanners/src/quality/ssrf-checker.ts",
+      "rule": "ssrf-checker",
+      "reason": "ssrf-checker defines SSRF sink patterns (fetch / axios / got / url-parse references). Structural self-match."
+    },
+    {
+      "file": "packages/scanners/src/attacks/redos-probe.ts",
+      "rule": "redos-checker",
+      "reason": "redos-probe contains regex-pattern literals used to DETECT catastrophic-backtracking regex. The detection regex IS the thing redos-checker matches on."
+    },
+    {
+      "file": "packages/scanners/src/quality/logging-checker.ts",
+      "rule": "logging-checker",
+      "reason": "logging-checker defines LOGGER_PACKAGES and LOG_CALL_PATTERNS as detection literals. Self-match is structural."
+    },
+    {
+      "rule": "logging-checker",
+      "file": "**/*",
+      "reason": "AEGIS is a scanner CLI, not a web/HTTP application — the 'no centralized logger' finding does not apply. Scanner orchestration uses console output as its control surface. This is a project-shape mismatch, not a security gap."
+    },
+    {
+      "file": "packages/scanners/src/quality/header-checker.ts",
+      "rule": "header-checker",
+      "reason": "Lists security-header names (CSP, HSTS, etc.) as detection regex. Not a Next.js config file."
+    }
+  ],
+  "suppressionOptions": {
+    "warnUnused": false,
+    "warnNaked": true
+  }
+}
