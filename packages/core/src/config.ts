@@ -36,6 +36,13 @@ const SuppressionOptionsSchema = z.object({
 }).strict();
 
 const ConfigFileSchema = z.object({
+  // v0.9 polish: optional human-friendly documentation fields. JSON
+  // doesn't support comments, and strict-schema previously rejected the
+  // usual `$comment` / `$description` escape hatches — users had no
+  // way to annotate their config for future readers. These two
+  // optional fields are NOP in the scanner but accepted by validation.
+  description: z.string().optional(),
+  $schema: z.string().optional(),
   stack: z.object({
     framework: z.string().optional(),
     database: z.string().optional(),

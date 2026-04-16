@@ -1,4 +1,5 @@
 {
+  "description": "AEGIS self-scan scoping. AEGIS is a scanner CLI — console output IS the CLI's interface, scanner sources contain the detection patterns they match on as regex literals (structural self-match), and the repo is not a Next.js application. These suppressions ARE the user-facing answer to 'how do I scope AEGIS for a non-standard repo' — same knob real consumers get.",
   "ignore": [
     "packages/benchmark/vulnerable-app/**",
     "packages/*/dist/**",
