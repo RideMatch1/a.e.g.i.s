@@ -20,5 +20,5 @@ jobs:
       - name: Type-check (catches interface mismatches mocks may hide)
         run: cd packages/core && npx tsc --noEmit && cd ../scanners && npx tsc --noEmit && cd ../reporters && npx tsc --noEmit && cd ../cli && npx tsc --noEmit
       - run: pnpm test
-      - name: Benchmark (15 planted vulnerabilities)
+      - name: Benchmark (21 planted vulnerabilities + 9 clean-file FP checks)
         run: pnpm benchmark
