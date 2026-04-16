@@ -1,6 +1,6 @@
 {
   "name": "@aegis-scan/cli",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "AEGIS CLI — The paranoid audit tool your vibe-coded app deserves",
   "license": "MIT",
   "repository": {

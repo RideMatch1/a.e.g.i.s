@@ -5,14 +5,14 @@
 **The paranoid audit tool your vibe-coded app deserves.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Tests: 1350 passing](https://img.shields.io/badge/Tests-1350%20passing-brightgreen)
+![Tests: 1368 passing](https://img.shields.io/badge/Tests-1368%20passing-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 ![npm](https://img.shields.io/npm/v/@aegis-scan/cli)
-![Internal Maturity: 7.7](https://img.shields.io/badge/Internal%20Maturity-7.7%2F10-blue)
-[![Release: v0.7.2](https://img.shields.io/badge/Release-v0.7.2-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.7.2)
+![Internal Maturity: 7.8](https://img.shields.io/badge/Internal%20Maturity-7.8%2F10-blue)
+[![Release: v0.8.0](https://img.shields.io/badge/Release-v0.8.0-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.8.0)
 
-> **Current release: `v0.7.2` — adoption polish + LLM hardening.** Closes the v0.7.0 review MAJOR on `aegis fix` prompt-injection (XML-sentinel boundary + sandwich-defense directives). Rewrites the MCP / VS Code / GitHub Action README sections with copy-paste-ready snippets + full input schemas. v0.7.1 closed two BLOCKERs on `req.*` alias + test-dir exclusion (benchmark 25/25 → 26/26 strict). See [CHANGELOG](./CHANGELOG.md) for full v0.7.x scope.
+> **Current release: `v0.8.0` — type-aware expansion.** Closes the four type-aware gaps deferred from v0.7 (HOC binding, generic pass-through return-taint, method-call cross-file via TypeChecker, conditional-import confidence downgrade). Extends `TYPED_SINK_MODULES` beyond `child_process` to fs / path / crypto / http / https. Adds `Date.parse` blocklist + URL-regex-whitelist sanitizer (closes v0.7 cal-com FP). Corpus doubled (3 → 6 OSS projects) toward the n≥20 cross-file measurement runway. Structural self-match refinement takes AEGIS-on-itself from 0/F to 973/A. Ships [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md) for 5-minute onboarding. See [CHANGELOG](./CHANGELOG.md) for the full v0.8 scope + honest score framing.
 
 > **Two scores, don't confuse them:**
 > - **"Internal Maturity 7.7/10"** (badge above) — AEGIS's *own* honest self-assessment of its maturity as a product. Tracks over releases. Different from the validator's precision-tier system.
@@ -115,7 +115,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 - Barrel re-exports up to depth 5.
 - Cross-file sanitizer recognition — imports of a function that wraps its arg through a known sanitizer suppress the finding.
 
-Known limitations (deferred to v0.8): HOC / curry patterns, generic pass-through return-taint, method-call cross-file callees, conditional-import confidence downgrade. See [CHANGELOG](./CHANGELOG.md).
+v0.8 closes the four type-aware gaps from v0.7: HOC / curry consumption at binding sites (policy §9), generic pass-through return-taint via `summary.returnsTainted`, method-call cross-file via TypeChecker symbol resolution, and conditional-import confidence downgrade. Known limitations (scoped to v0.9+): regex-guard awareness inside cross-file callee bodies, SSRF URL-arg vs header-arg distinction for `fetch(url, {headers})`, cross-file precision measurement (pending n≥20 emissions). See [CHANGELOG](./CHANGELOG.md).
 
 ---
 

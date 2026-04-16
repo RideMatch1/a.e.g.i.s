@@ -11,6 +11,135 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.8.0] — 2026-04-16 — "Type-Aware Expansion"
+
+**Honest score:** 7.8 (target was 8.5, reduced because the cross-file
+precision measurement remains unmeasurable — see §Measurement below).
+
+**Summary:** Closes the four type-aware gaps the v0.7 post-ship review
+flagged (HOC binding, generic pass-through return-taint, method-call
+cross-file via TypeChecker, conditional-import confidence downgrade).
+Extends the typed-sink-module foundation beyond `child_process` to
+fs / path / crypto / http / https. Adds Date.parse to the
+parse-not-sanitizer blocklist and a URL-regex-whitelist sanitizer
+class that closes the v0.7 dogfood cal-com intercom false positive.
+Doubles the dogfood corpus (3 → 6 OSS Next.js projects) toward the
+n≥20 cross-file precision threshold. Refines structural self-match
+false positives so AEGIS-on-AEGIS moves from 0/F/CRITICAL to
+973/A-grade. Ships a 260-line GETTING-STARTED tutorial.
+
+### Added
+
+- **Type-aware sink-module foundation (Phase 1).** `TYPED_SINK_MODULES`
+  now covers fs, fs/promises, path, crypto, http, https beyond the
+  v0.7 child_process baseline. Locally-shadowed `readFile`,
+  `writeFile`, `request`, `createSign`, etc. correctly resolve as
+  non-sinks via `resolveSinkSymbol`.
+- **HOC cross-file consumption (Phase 2).** When an exported function
+  returns an inner function that calls one of its own parameters
+  (`summary.returnsFunctionThatCallsSink = true`), binding sites that
+  pass an inline sink-calling arrow as the wrapped argument now emit
+  a cross-file finding at the binding line — policy §9. Benchmark
+  fixture VULN-19.
+- **Generic pass-through return-taint cross-file (Phase 3).** The
+  v0.7-populated `summary.params[i].returnsTainted` field is now
+  consumed in `resolveTaint`. Identity-style imported functions
+  propagate taint with an origin-annotated path; sanitizer wrappers
+  (summaries with non-empty `sanitizesCwes`) are suppressed to
+  prevent a silent FP class. Benchmark fixture VULN-20.
+- **Method-call cross-file via TypeChecker (Phase 4).** For
+  `obj.method(x)` where the method's declaration lives in another
+  user-land file (PropertyAssignment with function initializer or
+  MethodDeclaration shorthand), TypeChecker resolves the symbol,
+  `buildSummary` analyses the method body, and per-argument sink-CWE
+  propagation fires. Confidence fixed at `'medium'` per gap #4
+  policy. Benchmark fixture VULN-21.
+- **Conditional-import confidence downgrade (Phase 5).** Variables
+  initialized via `condition ? await import(a) : await import(b)`
+  are tracked in `TaintContext.conditionalImports`; sinks whose
+  callee object is such a variable emit with `confidence: 'medium'`
+  rather than the scanner default. Benchmark runner gains an
+  optional `maxTolerated` field on CLEAN-* fixtures for this class.
+  Benchmark fixture CLEAN-09.
+- **URL-regex-whitelist sanitizer (Phase 6).** Suppresses CWE-918
+  (SSRF) findings when the sink is inside an if-guard whose condition
+  contains `<regex>.test(<tainted-id>)` with the same bare identifier
+  passed to the sink. Closes the cal-com intercom FP from v0.7
+  dogfood.
+- **Corpus expansion (Phase 7).** `scripts/dogfood-corpus.sh` now
+  clones taxonomy, documenso, and nextjs-commerce alongside the
+  existing cal-com / dub / openstatus. Six OSS Next.js projects
+  covering production SaaS, storefront, and starter patterns.
+- **`docs/GETTING-STARTED.md` (Phase 9).** 260-line walk-through
+  from zero-install to first scan, config, false-positive handling,
+  MCP setup, and GitHub Actions integration. Linked from README.
+
+### Fixed
+
+- **Date.parse blocklist (Phase 6).** Added to `PARSE_NOT_SANITIZER`
+  alongside JSON.parse / URL.parse / qs.parse. `Date.parse` returns a
+  timestamp number or NaN without validating the input string; the
+  raw tainted value continues to flow.
+- **header-checker isAvailable gate (Phase 8).** Returns false when
+  the project shows no Next.js signal (no next.config.*, no
+  middleware.*, no `next` in package.json deps). Eliminates the
+  structural 10-header-missing FP on non-Next.js codebases (scanner
+  OSS, pure libraries, CLI tooling).
+- **rls-bypass-checker tightening (Phase 8).** Requires an actual
+  database-client usage signal in the same file (createClient call,
+  supabase member access, imports from postgres / pg / drizzle-orm /
+  @prisma, `new Pool()` / `new PrismaClient()`) before firing on
+  `service_role` or `.rpc(` text. Eliminates one self-match class.
+- **Self-scan scoping via `aegis.config.json` (Phase 8).** Repo-root
+  config scopes AEGIS-on-itself for the structural realities of a
+  scanner CLI (console output IS the interface; detection-pattern
+  literals self-match the regex that defines them; the repo is not a
+  Next.js web app). Self-scan score: **0/F/CRITICAL → 973/A** with
+  211 → 55 findings, the remaining 55 being legitimate non-self-match
+  signal (supply-chain CVEs etc).
+
+### Measurement (cross-file precision — v0.7 hedge)
+
+- Corpus scanned at n=6 OSS projects (cal-com, dub, openstatus,
+  taxonomy, documenso, nextjs-commerce).
+- Cross-file findings total: **2** across 2951 total findings. Below
+  the plan §3 TBD-3 statistical-validity threshold of n≥20.
+- Manual annotation of both findings concluded FP at v0.8 — one is
+  suppressed by a regex-guard inside the cross-file callee's body
+  (not yet AST-aware in function-summary.ts), the other has the
+  tainted value in a request header while the fetch URL is a
+  hardcoded literal (not SSRF). Both are candidate v0.9 narrowings.
+- **The v0.7 `confidence: 'medium'` cross-file hedge is retained at
+  v0.8 on the same basis it was introduced — the statistical
+  threshold is still unmet, not because a valid measurement landed
+  Yellow or Red.** Green / Yellow / Red zone decision deferred to
+  the first dogfood run where n ≥ 20 emissions exist.
+
+### Test counts
+
+- Tests: **1350 → 1368 green** (+18: 10 type-resolve symbol
+  assertions for the expanded TYPED_SINK_MODULES, 4 Date.parse /
+  URL-regex-guard regression tests, 4 header-checker isAvailable
+  gating tests, - 1 "always available" assertion retired, + 5 new
+  available-on-signal variants).
+- Benchmark: **26/26 → 30/30 strict** (+VULN-19, VULN-20, VULN-21,
+  CLEAN-09).
+- Self-scan (AEGIS-on-AEGIS): **0/F/CRITICAL (211 findings, blocked)
+  → 973/A (55 findings, not blocked)**.
+
+### Known limitations (scoped to v0.9+)
+
+- Cross-file precision measurement pending n≥20 emissions — needs
+  either much larger corpus or additional detection categories.
+- Regex-guard awareness inside cross-file callee bodies (closes the
+  cal-com isValidCalURL FP seen in Phase 7 annotation).
+- SSRF URL-arg vs header-arg distinction for `fetch(url, {headers})`
+  shape (closes the dub bitly rate-limit FP).
+- HOC binding at non-export sites (internal binding, variable
+  re-binding, class-method HOCs).
+
+---
+
 ## [0.7.2] — 2026-04-16 — "Adoption Polish + LLM Hardening"
 
 **Honest score:** 7.7 (unchanged — polish + security hardening, not a
