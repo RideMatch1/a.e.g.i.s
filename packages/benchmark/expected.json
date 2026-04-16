@@ -20,7 +20,8 @@
     "VULN-17": { "scanner": "taint-analyzer", "cwe": 79, "severity": "high", "file": "vuln-17-cross-file-xss/route.ts", "description": "Cross-file XSS: tainted searchParam → imported renderer → new Response() with HTML body" },
     "VULN-18": { "scanner": "taint-analyzer", "cwe": 89, "severity": "critical", "file": "vuln-18-req-alias-sqli/route.ts", "description": "req-alias SQL Injection (v0.7.1 regression pin): req.json() source + template-literal sink — locks req.* / request.* TAINT_SOURCES symmetry" },
     "VULN-19": { "scanner": "taint-analyzer", "cwe": 78, "severity": "critical", "file": "vuln-19-hoc-cmdi/route.ts", "description": "Cross-file HOC binding (v0.8 Phase 2): withAuth wraps an inline exec-calling arrow — emit at binding site (policy §9)" },
-    "VULN-20": { "scanner": "taint-analyzer", "cwe": 78, "severity": "critical", "file": "vuln-20-identity-cmdi/route.ts", "description": "Cross-file generic pass-through (v0.8 Phase 3): imported identity returns tainted param; single-file sink on the propagated variable (policy §2)" }
+    "VULN-20": { "scanner": "taint-analyzer", "cwe": 78, "severity": "critical", "file": "vuln-20-identity-cmdi/route.ts", "description": "Cross-file generic pass-through (v0.8 Phase 3): imported identity returns tainted param; single-file sink on the propagated variable (policy §2)" },
+    "VULN-21": { "scanner": "taint-analyzer", "cwe": 78, "severity": "critical", "file": "vuln-21-method-cmdi/route.ts", "description": "Cross-file method call (v0.8 Phase 4): imported object's method internally calls exec; TypeChecker resolves the method decl across files" }
   },
   "false_positives": {
     "CLEAN-01": { "scanner": "auth-enforcer", "file": "clean-auth/route.ts", "description": "Properly authenticated route with secureApiRouteWithTenant + requireRole" },

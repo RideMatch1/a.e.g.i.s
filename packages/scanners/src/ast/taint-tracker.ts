@@ -311,6 +311,7 @@ function trackTaintCore(
     handlePromiseCallback(ctx, node);
     checkCallSink(ctx, node);
     checkCrossFileCallSink(ctx, node);
+    checkCrossFileMethodCall(ctx, node);
     checkNewExpressionSink(ctx, node);
     checkRpcSink(ctx, node);
     checkPropertySink(ctx, node);
@@ -669,6 +670,127 @@ function checkCrossFileCallSink(ctx: TaintContext, node: ts.Node): void {
       // per-CWE emit. Reporter-side dedup handles the rare case where
       // two CWEs map to identical file+line and the consumer wants
       // just one.
+    }
+  }
+}
+
+/**
+ * v0.8 Phase 4: method-call cross-file via TypeChecker.
+ *
+ * Complements `checkCrossFileCallSink` which handles only bare-identifier
+ * callees. For `obj.method(x)` where `obj` is an imported namespace /
+ * object and `.method`'s declaration lives in another user-land file
+ * (not node_modules, not lib.*.d.ts), resolve the method symbol via the
+ * TypeChecker, locate its function-like node (PropertyAssignment
+ * initializer or MethodDeclaration shorthand), summarize it, and apply
+ * the standard per-argument sink-CWE propagation.
+ *
+ * Confidence is fixed at 'medium' per gap #4 policy: method-call
+ * resolution relies on the checker finding a single clean declaration,
+ * which can be brittle under overloads, type-widening, or
+ * conditional-import patterns.
+ *
+ * Declaration declined (→ return) when:
+ *   - Object / method is not a bare identifier (computed callees OOS)
+ *   - method name is in SAFE_CHAIN_METHODS (Supabase .from()/.eq() etc.)
+ *   - Symbol can't be resolved or aliased
+ *   - All declarations live in node_modules / @types / lib.*.d.ts / same
+ *     file (not cross-file)
+ *   - Declaration doesn't point to a summarizable function node
+ */
+function checkCrossFileMethodCall(ctx: TaintContext, node: ts.Node): void {
+  if (!ts.isCallExpression(node)) return;
+  if (!ctx.moduleGraph || !ctx.summaries || !ctx.program || !ctx.checker) return;
+  if (!ts.isPropertyAccessExpression(node.expression)) return;
+  const methodAccess = node.expression;
+  if (!ts.isIdentifier(methodAccess.expression)) return;
+  if (!ts.isIdentifier(methodAccess.name)) return;
+
+  const objIdent = methodAccess.expression;
+  const methodIdent = methodAccess.name;
+  const objName = objIdent.text;
+  const methodName = methodIdent.text;
+  const fullCalleeName = `${objName}.${methodName}`;
+
+  if (SAFE_CHAIN_METHODS.has(methodName)) return;
+
+  let methodSymbol = ctx.checker.getSymbolAtLocation(methodIdent);
+  if (!methodSymbol) return;
+  if (methodSymbol.flags & ts.SymbolFlags.Alias) {
+    try {
+      methodSymbol = ctx.checker.getAliasedSymbol(methodSymbol);
+    } catch {
+      return;
+    }
+  }
+
+  const decls = methodSymbol.getDeclarations() ?? [];
+  if (decls.length === 0) return;
+
+  let fnNode: SummarizableFn | null = null;
+  let originFile: string | null = null;
+  for (const decl of decls) {
+    const declFile = decl.getSourceFile().fileName;
+    if (declFile.includes('/node_modules/')) continue;
+    if (declFile.includes('/@types/')) continue;
+    if (/\/lib\.[^/]+\.d\.ts$/.test(declFile)) continue;
+    if (declFile === ctx.sf.fileName) continue;
+
+    if (ts.isPropertyAssignment(decl) && isSummarizable(decl.initializer)) {
+      fnNode = decl.initializer;
+      originFile = declFile;
+      break;
+    }
+    if (ts.isMethodDeclaration(decl)) {
+      fnNode = decl;
+      originFile = declFile;
+      break;
+    }
+  }
+  if (fnNode === null || originFile === null) return;
+
+  const summary = buildSummary(
+    fnNode,
+    methodName,
+    ctx.program,
+    ctx.moduleGraph,
+    ctx.summaries,
+  );
+  if (summary === null) return;
+
+  for (let i = 0; i < node.arguments.length; i++) {
+    const rule = summary.params[i];
+    if (rule === undefined) break;
+    if (rule.sinkCwes.length === 0) continue;
+
+    const taint = findTaintInExpr(ctx, node.arguments[i]);
+    if (taint === null) continue;
+
+    for (const cwe of rule.sinkCwes) {
+      if (summary.sanitizesCwes.includes(cwe)) continue;
+      const neutralized = taint.sanitizers.some((s) => sanitizesForCwe(s, cwe));
+      if (neutralized) continue;
+
+      const sinkMeta = findSinkMetaByCwe(cwe);
+      if (sinkMeta === null) continue;
+
+      ctx.findings.push({
+        sourceExpr: taint.sourceExpr,
+        sourceLine: taint.sourceLine,
+        sinkName: fullCalleeName,
+        sinkLine: getLineNumber(ctx.sf, node.getStart(ctx.sf)),
+        cwe,
+        owasp: sinkMeta.owasp,
+        severity: sinkMeta.severity,
+        category: sinkMeta.category,
+        taintPath: [
+          ...taint.path,
+          `${fullCalleeName}() [cross-file method → ${methodName} in ${originFile}]`,
+        ],
+        crossFile: true,
+        crossFileOrigin: originFile,
+        confidence: 'medium',
+      });
     }
   }
 }
