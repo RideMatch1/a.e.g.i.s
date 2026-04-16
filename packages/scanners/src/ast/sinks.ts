@@ -121,6 +121,26 @@ export const TYPED_SINK_MODULES: Record<string, readonly string[]> = {
   child_process: [
     'exec', 'execSync', 'execFile', 'execFileSync', 'spawn', 'spawnSync', 'fork',
   ],
+  fs: [
+    'readFile', 'readFileSync', 'writeFile', 'writeFileSync',
+    'createReadStream', 'createWriteStream',
+    'unlink', 'unlinkSync', 'rmdir', 'rmdirSync', 'mkdir', 'mkdirSync',
+  ],
+  'fs/promises': [
+    'readFile', 'writeFile', 'unlink', 'rmdir', 'mkdir',
+  ],
+  path: [
+    'join', 'resolve',
+  ],
+  crypto: [
+    'createSign', 'createVerify', 'pbkdf2', 'pbkdf2Sync',
+  ],
+  http: [
+    'request', 'get',
+  ],
+  https: [
+    'request', 'get',
+  ],
 };
 
 const AMBIENT_SINK_NAMES = new Set(

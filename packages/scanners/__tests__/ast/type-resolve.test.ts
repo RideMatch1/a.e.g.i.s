@@ -134,4 +134,139 @@ describe('resolveSinkSymbol', () => {
     // Declaration is in the local file (ObjectLiteralExpression) → not a sink
     expect(result).toEqual({ isSink: false });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  // v0.8 Phase 1: TYPED_SINK_MODULES extension beyond child_process
+  // ─────────────────────────────────────────────────────────────
+
+  it('imported fs.readFile → { isSink: true }', () => {
+    const file = writeFixture('import-fs-readfile.ts', [
+      "import { readFile } from 'fs';",
+      "readFile('/etc/passwd', () => {});",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'readFile')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('imported fs.writeFile → { isSink: true }', () => {
+    const file = writeFixture('import-fs-writefile.ts', [
+      "import { writeFile } from 'fs';",
+      "writeFile('/tmp/x', 'data', () => {});",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'writeFile')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('imported fs/promises readFile → { isSink: true }', () => {
+    const file = writeFixture('import-fs-promises.ts', [
+      "import { readFile } from 'fs/promises';",
+      "readFile('/etc/passwd');",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'readFile')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('namespace fs.unlink → { isSink: true }', () => {
+    const file = writeFixture('namespace-fs-unlink.ts', [
+      "import * as fs from 'fs';",
+      "fs.unlink('/tmp/x', () => {});",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'unlink')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('imported path.join → { isSink: true }', () => {
+    const file = writeFixture('import-path-join.ts', [
+      "import { join } from 'path';",
+      "join('a', 'b');",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'join')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('namespace path.resolve → { isSink: true }', () => {
+    const file = writeFixture('namespace-path-resolve.ts', [
+      "import * as pathMod from 'path';",
+      "pathMod.resolve('x');",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'resolve')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('imported crypto.createSign → { isSink: true }', () => {
+    const file = writeFixture('import-crypto-createsign.ts', [
+      "import { createSign } from 'crypto';",
+      "createSign('RSA-SHA256');",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'createSign')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('imported http.request → { isSink: true }', () => {
+    const file = writeFixture('import-http-request.ts', [
+      "import { request } from 'http';",
+      "request('http://example.com', () => {});",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'request')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('imported https.request → { isSink: true }', () => {
+    const file = writeFixture('import-https-request.ts', [
+      "import { request } from 'https';",
+      "request('https://example.com', () => {});",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'request')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: true });
+  });
+
+  it('locally-shadowed readFile (same name as fs sink) → { isSink: false }', () => {
+    // User defines their own readFile — must NOT be flagged
+    const file = writeFixture('shadowed-readfile.ts', [
+      "function readFile(p: string): string { return p; }",
+      "readFile('/etc/passwd');",
+    ].join('\n'));
+    const program = buildProgram(VULN_APP, [file])!;
+    const sf = program.getSourceFile(file)!;
+    const call = findCall(sf, 'readFile')!;
+
+    const result = resolveSinkSymbol(call, program.getTypeChecker());
+    expect(result).toEqual({ isSink: false });
+  });
 });
