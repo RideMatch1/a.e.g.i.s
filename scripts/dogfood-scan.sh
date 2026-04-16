@@ -73,9 +73,13 @@ scan_project() {
 if [ -n "$USER_PROJECT" ]; then
   scan_project "user-project" "$USER_PROJECT"
 fi
-scan_project "cal-com"     "$CORPUS_DIR/cal-com"
-scan_project "dub"         "$CORPUS_DIR/dub"
-scan_project "openstatus"  "$CORPUS_DIR/openstatus"
+scan_project "cal-com"         "$CORPUS_DIR/cal-com"
+scan_project "dub"             "$CORPUS_DIR/dub"
+scan_project "openstatus"      "$CORPUS_DIR/openstatus"
+# v0.8 Phase 7 additions — expanded corpus for n>=20 precision validation
+scan_project "taxonomy"        "$CORPUS_DIR/taxonomy"
+scan_project "documenso"       "$CORPUS_DIR/documenso"
+scan_project "nextjs-commerce" "$CORPUS_DIR/nextjs-commerce"
 
 echo ""
 echo "✅ Scans done — $CORPUS_DIR/scans/*-${DATE_TAG}.json"

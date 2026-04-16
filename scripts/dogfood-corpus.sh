@@ -13,6 +13,9 @@
 #   AEGIS_CORPUS_PIN_CALCOM       — git ref for cal.com (default: main)
 #   AEGIS_CORPUS_PIN_DUB          — git ref for dub (default: main)
 #   AEGIS_CORPUS_PIN_OPENSTATUS   — git ref for openstatus (default: main)
+#   AEGIS_CORPUS_PIN_TAXONOMY     — git ref for taxonomy (default: main)
+#   AEGIS_CORPUS_PIN_DOCUMENSO    — git ref for documenso (default: main)
+#   AEGIS_CORPUS_PIN_COMMERCE     — git ref for vercel/commerce (default: main)
 #
 # Pinning to a specific commit-hash makes precision-numbers reproducible
 # across runs. Track pins in your own project docs when measuring precision.
@@ -66,6 +69,25 @@ clone_or_update "dub" \
 clone_or_update "openstatus" \
   "https://github.com/openstatusHQ/openstatus.git" \
   "${AEGIS_CORPUS_PIN_OPENSTATUS:-main}"
+
+# v0.8 Phase 7: expanded corpus — adds 3 production projects to reach the
+# n>=20 cross-file-finding statistical-validity threshold required to
+# validate the cross-file confidence='medium' hedge introduced in v0.7.
+
+# Taxonomy — shadcn's canonical Next.js App Router + Prisma + NextAuth
+clone_or_update "taxonomy" \
+  "https://github.com/shadcn-ui/taxonomy.git" \
+  "${AEGIS_CORPUS_PIN_TAXONOMY:-main}"
+
+# Documenso — production SaaS, Next.js + Prisma + signing, multi-tenant
+clone_or_update "documenso" \
+  "https://github.com/documenso/documenso.git" \
+  "${AEGIS_CORPUS_PIN_DOCUMENSO:-main}"
+
+# Next.js Commerce (Vercel) — canonical storefront, Next.js + Shopify
+clone_or_update "nextjs-commerce" \
+  "https://github.com/vercel/commerce.git" \
+  "${AEGIS_CORPUS_PIN_COMMERCE:-main}"
 
 echo ""
 echo "✅ Corpus ready at $CORPUS_DIR"
