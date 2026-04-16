@@ -18,7 +18,8 @@
     "VULN-15": { "scanner": "taint-analyzer", "cwe": 1321, "severity": "high", "file": "vuln-15-prototype-pollution/route.ts", "description": "Prototype pollution via Object.assign() with tainted input" },
     "VULN-16": { "scanner": "taint-analyzer", "cwe": 89, "severity": "critical", "file": "vuln-16-cross-file-sqli/route.ts", "description": "Cross-file SQL Injection: tainted body → imported wrapper → db.query() template interpolation" },
     "VULN-17": { "scanner": "taint-analyzer", "cwe": 79, "severity": "high", "file": "vuln-17-cross-file-xss/route.ts", "description": "Cross-file XSS: tainted searchParam → imported renderer → new Response() with HTML body" },
-    "VULN-18": { "scanner": "taint-analyzer", "cwe": 89, "severity": "critical", "file": "vuln-18-req-alias-sqli/route.ts", "description": "req-alias SQL Injection (v0.7.1 regression pin): req.json() source + template-literal sink — locks req.* / request.* TAINT_SOURCES symmetry" }
+    "VULN-18": { "scanner": "taint-analyzer", "cwe": 89, "severity": "critical", "file": "vuln-18-req-alias-sqli/route.ts", "description": "req-alias SQL Injection (v0.7.1 regression pin): req.json() source + template-literal sink — locks req.* / request.* TAINT_SOURCES symmetry" },
+    "VULN-19": { "scanner": "taint-analyzer", "cwe": 78, "severity": "critical", "file": "vuln-19-hoc-cmdi/route.ts", "description": "Cross-file HOC binding (v0.8 Phase 2): withAuth wraps an inline exec-calling arrow — emit at binding site (policy §9)" }
   },
   "false_positives": {
     "CLEAN-01": { "scanner": "auth-enforcer", "file": "clean-auth/route.ts", "description": "Properly authenticated route with secureApiRouteWithTenant + requireRole" },

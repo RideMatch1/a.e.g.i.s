@@ -580,6 +580,43 @@ function checkCrossFileCallSink(ctx: TaintContext, node: ts.Node): void {
   );
   if (summary === null) return;
 
+  // v0.8 Phase 2: HOC binding detection (policy §9).
+  // If the outer fn returns a function that internally invokes one of
+  // its own params, AND any binding-site argument is an inline function
+  // whose body calls a sink, emit at the binding site. The composed
+  // proxy will funnel any later invocation into the sink; flagging the
+  // binding is a static structural signal (no tainted value required at
+  // this line). Confidence stays 'medium' pending the v0.8 Phase 7
+  // precision measurement that validates cross-file emissions.
+  if (summary.returnsFunctionThatCallsSink) {
+    for (const arg of node.arguments) {
+      if (!ts.isArrowFunction(arg) && !ts.isFunctionExpression(arg)) continue;
+      const innerSinkCwes = collectSinkCwesInFunction(arg, ctx.checker);
+      if (innerSinkCwes.size === 0) continue;
+      for (const cwe of innerSinkCwes) {
+        const sinkMeta = findSinkMetaByCwe(cwe);
+        if (sinkMeta === null) continue;
+        ctx.findings.push({
+          sourceExpr: `HOC-wrapped sink-fn via ${calleeName}(…)`,
+          sourceLine: getLineNumber(ctx.sf, arg.getStart(ctx.sf)),
+          sinkName: calleeName,
+          sinkLine: getLineNumber(ctx.sf, node.getStart(ctx.sf)),
+          cwe,
+          owasp: sinkMeta.owasp,
+          severity: sinkMeta.severity,
+          category: sinkMeta.category,
+          taintPath: [
+            `HOC binding: inner fn calls sink (CWE-${cwe})`,
+            `${calleeName}() [cross-file → ${origin.exportName} in ${origin.file}]`,
+          ],
+          crossFile: true,
+          crossFileOrigin: origin.file,
+          confidence: 'medium',
+        });
+      }
+    }
+  }
+
   // For each argument position, check if it's tainted AND summary says it
   // reaches a sink AND the sanitizer panel doesn't neutralize.
   for (let i = 0; i < node.arguments.length; i++) {
@@ -634,6 +671,37 @@ function checkCrossFileCallSink(ctx: TaintContext, node: ts.Node): void {
       // just one.
     }
   }
+}
+
+/**
+ * v0.8 Phase 2 helper: collect distinct sink CWEs found inside the body
+ * of an inline arrow / function-expression argument passed to an HOC
+ * binding site. Uses the same registry + type-aware shadow check as the
+ * single-file sink path, so a locally-shadowed `exec` inside the arrow
+ * does NOT contribute.
+ */
+function collectSinkCwesInFunction(
+  fn: ts.ArrowFunction | ts.FunctionExpression,
+  checker: ts.TypeChecker | undefined,
+): Set<number> {
+  const cwes = new Set<number>();
+  const visit = (n: ts.Node): void => {
+    if (ts.isCallExpression(n)) {
+      const callText = n.expression.getText();
+      const meta = getSinkMeta(callText);
+      if (meta !== undefined) {
+        let shadowed = false;
+        if (checker && isAmbientSinkCandidate(callText)) {
+          const resolved = resolveSinkSymbol(n, checker);
+          if (resolved && resolved.isSink === false) shadowed = true;
+        }
+        if (!shadowed) cwes.add(meta.cwe);
+      }
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(fn.body);
+  return cwes;
 }
 
 /**
