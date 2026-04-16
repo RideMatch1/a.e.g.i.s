@@ -49,8 +49,38 @@ describe('headerCheckerScanner', () => {
     projectPath = makeTempProject();
   });
 
-  it('is always available', async () => {
-    expect(await headerCheckerScanner.isAvailable()).toBe(true);
+  // v0.8 Phase 8: gated on Next.js project signal to avoid structural
+  // FPs when scanning non-web-framework codebases (scanner OSS, pure
+  // libraries). Presence of next.config.*, middleware.*, or a 'next'
+  // dependency in package.json all qualify.
+  it('is NOT available on an empty project (no Next.js signal)', async () => {
+    expect(await headerCheckerScanner.isAvailable(projectPath)).toBe(false);
+  });
+
+  it('is available when next.config.ts exists', async () => {
+    writeFileSync(join(projectPath, 'next.config.ts'), 'export default {};');
+    expect(await headerCheckerScanner.isAvailable(projectPath)).toBe(true);
+  });
+
+  it('is available when package.json lists "next" as a dependency', async () => {
+    writeFileSync(
+      join(projectPath, 'package.json'),
+      JSON.stringify({ dependencies: { next: '^14.0.0' } }),
+    );
+    expect(await headerCheckerScanner.isAvailable(projectPath)).toBe(true);
+  });
+
+  it('is available when package.json lists "next" as a devDependency', async () => {
+    writeFileSync(
+      join(projectPath, 'package.json'),
+      JSON.stringify({ devDependencies: { next: '^14.0.0' } }),
+    );
+    expect(await headerCheckerScanner.isAvailable(projectPath)).toBe(true);
+  });
+
+  it('is available when middleware.ts exists', async () => {
+    writeFileSync(join(projectPath, 'middleware.ts'), 'export function middleware() {}');
+    expect(await headerCheckerScanner.isAvailable(projectPath)).toBe(true);
   });
 
   it('reports all 10 headers missing when no config file exists', async () => {

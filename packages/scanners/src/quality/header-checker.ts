@@ -80,14 +80,49 @@ const CONFIG_FILENAMES = [
   'middleware.js',
 ];
 
+/**
+ * v0.8 Phase 8: header-checker is a Next.js-specific scanner. It looks
+ * for CSP / HSTS / X-Frame-Options headers inside Next.js config entry
+ * points. When the target project is NOT a Next.js app (scanner OSS,
+ * pure library, non-web tooling) emitting 10 "missing header" findings
+ * is a structural FP — the headers don't apply. Gate at isAvailable.
+ */
+function looksLikeNextJsProject(projectPath: string): boolean {
+  const configCandidates = [
+    'next.config.ts', 'next.config.js', 'next.config.mjs', 'next.config.cjs',
+    'middleware.ts', 'middleware.js',
+  ];
+  for (const c of configCandidates) {
+    if (existsSync(join(projectPath, c))) return true;
+  }
+  // Walk package.json at the project root for a `next` dep in any scope.
+  try {
+    const pkgPath = join(projectPath, 'package.json');
+    if (!existsSync(pkgPath)) return false;
+    const pkg = JSON.parse(readFileSafe(pkgPath) ?? '{}') as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      peerDependencies?: Record<string, string>;
+    };
+    const combined = {
+      ...(pkg.dependencies ?? {}),
+      ...(pkg.devDependencies ?? {}),
+      ...(pkg.peerDependencies ?? {}),
+    };
+    return 'next' in combined;
+  } catch {
+    return false;
+  }
+}
+
 export const headerCheckerScanner: Scanner = {
   name: 'header-checker',
   description:
     'Verifies that security response headers are configured in next.config or middleware',
   category: 'security',
 
-  async isAvailable(_projectPath: string): Promise<boolean> {
-    return true;
+  async isAvailable(projectPath: string): Promise<boolean> {
+    return looksLikeNextJsProject(projectPath);
   },
 
   async scan(projectPath: string, config: AegisConfig): Promise<ScanResult> {
