@@ -214,26 +214,68 @@ Certain findings (eval injection, hardcoded secrets, unauthed admin routes) are 
 
 ---
 
-## MCP Server
+## MCP Server — use AEGIS from any AI coding agent
 
-AEGIS ships a Model Context Protocol server so AI coding agents (Claude Code, Cursor, Continue, …) can run scans and query findings directly.
+AEGIS ships a Model Context Protocol server so AI coding agents (Claude Code, Cursor, Continue, Zed, …) can run scans, query findings, and check compliance posture directly from the conversation. Install locally, then register the server in your agent's MCP config.
+
+**Install:**
+
+```bash
+npm install -D @aegis-scan/mcp-server
+```
+
+**Register (Claude Code** — `~/.config/claude-code/mcp.json`**, Cursor** — `.cursor/mcp.json`**, etc.):**
 
 ```json
 {
   "mcpServers": {
     "aegis": {
-      "command": "node",
-      "args": ["node_modules/@aegis-scan/mcp-server/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "@aegis-scan/mcp-server"]
     }
   }
 }
 ```
 
-Tools exposed: `aegis_scan`, `aegis_findings`, `aegis_score`, `aegis_compliance`, `aegis_fix_suggestion`.
+**Tools exposed** (callable from the agent without leaving the chat):
+
+| Tool | Purpose |
+|------|---------|
+| `aegis_scan` | Run a scan on a project path; returns findings + score |
+| `aegis_findings` | Filter/query the most recent scan's findings |
+| `aegis_score` | 0-1000 score + grade + badge for the scanned project |
+| `aegis_compliance` | GDPR / SOC 2 / ISO 27001 / PCI-DSS posture summary |
+| `aegis_fix_suggestion` | Get a fix suggestion for a specific finding |
+
+Low-friction for developers who already run Claude Code / Cursor — your assistant can now scan and triage without a context-switch.
+
+---
+
+## VS Code Extension (preview)
+
+An extension lives in `packages/vscode-extension/` and ships with this repo (currently at `0.2.0`, not yet on the VS Code Marketplace). It exposes:
+
+- `AEGIS: Scan Workspace` command
+- `AEGIS: Scan Current File` command
+- `AEGIS: Show Security Score` command
+- Configurable `aegis.autoScanOnSave` + `aegis.severity.minimum` settings
+
+Build from source:
+
+```bash
+cd packages/vscode-extension
+pnpm install && pnpm run build
+pnpm run package   # produces .vsix
+code --install-extension aegis-vscode-0.2.0.vsix
+```
+
+Marketplace publishing is planned for a future release; feedback on the current surface is welcome via Issues.
 
 ---
 
 ## CI/CD — GitHub Action
+
+Drop-in security gate for any GitHub Actions workflow. Posts a PR comment with score, severity table, and top findings; fails the build when the score drops below a configurable threshold.
 
 ```yaml
 name: Security
@@ -246,12 +288,15 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: RideMatch1/a.e.g.i.s/ci/github-action@main
+      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.7.2   # or @main for latest
         with:
-          fail-below: 700
+          mode: scan           # 'scan' (quick) or 'audit' (full)
+          path: .              # project to scan (default: '.')
+          fail-below: 700      # set to 0 to never fail the build
+          comment-on-pr: true  # post PR comment with findings table
 ```
 
-Posts a PR comment with score, severity table, and top findings.
+**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`. See `ci/github-action/action.yml` for the full schema. For reproducibility across team members, pin to a specific tag (`@v0.7.2`) rather than `@main`.
 
 ---
 
