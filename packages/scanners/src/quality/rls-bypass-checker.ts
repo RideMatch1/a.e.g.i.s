@@ -50,6 +50,26 @@ const RLS_COMMENT_PATTERNS: RegExp[] = [
 /** service_role key usage */
 const SERVICE_ROLE_PATTERN = /service_role/;
 
+/**
+ * v0.8 Phase 8: the scanner previously fired on ANY file mentioning
+ * `service_role` or `.rpc()` as a text match, including scanner/sink
+ * definition files that reference those patterns as DETECTION targets
+ * (e.g. aegis's own sinks.ts, taint-tracker.ts, rls-bypass-checker
+ * source). Require an ACTUAL DB-client usage signal — a call-shape or
+ * import — before scanning. A bare word-match on "supabase" or
+ * "createClient" is insufficient because scanner definitions include
+ * those names as string literals.
+ */
+const DB_CLIENT_SIGNAL = new RegExp(
+  [
+    'createClient\\s*\\(',                         // createClient(...)
+    '\\bsupabase\\s*[.]\\s*\\w+',                  // supabase.from(...) / supabase.rpc(...)
+    '\\bfrom\\s*[\'"](?:@supabase/|postgres|pg|drizzle-orm|@prisma/)', // import …
+    'new\\s+(?:Pool|Client|PrismaClient|Kysely)\\b',  // new Pool(), new PrismaClient()
+    'getServerClient\\s*\\(',                      // Supabase SSR helper
+  ].join('|'),
+);
+
 export const rlsBypassCheckerScanner: Scanner = {
   name: 'rls-bypass-checker',
   description: 'Detects Supabase .rpc() calls and service_role usage that may bypass Row Level Security (CWE-863)',
@@ -73,6 +93,11 @@ export const rlsBypassCheckerScanner: Scanner = {
 
       const content = readFileSafe(file);
       if (content === null) continue;
+
+      // v0.8 Phase 8: require a DB-client signal before matching.
+      // Eliminates structural self-match on scanner source files that
+      // reference `service_role` or `.rpc(` as DETECTION patterns.
+      if (!DB_CLIENT_SIGNAL.test(content)) continue;
 
       const lines = content.split('\n');
 
