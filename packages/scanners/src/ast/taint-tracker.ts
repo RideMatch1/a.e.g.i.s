@@ -95,6 +95,15 @@ export interface TaintContext {
    * re-analyzing the callee.
    */
   summaries?: import('./function-summary.js').SummaryCache;
+  /**
+   * v0.8 Phase 5 (policy §4): identifier names whose value was produced
+   * by a conditional dynamic-import expression
+   * (`cond ? await import('./a') : await import('./b')`). Sinks whose
+   * callee object is in this set emit with confidence='medium' because
+   * the scanner can't prove which branch is taken at runtime. Populated
+   * per-file in trackTaintCore via handleVariableDeclaration.
+   */
+  conditionalImports: Set<string>;
 }
 
 /**
@@ -297,6 +306,7 @@ function trackTaintCore(
     checker: program?.getTypeChecker(),
     moduleGraph,
     summaries,
+    conditionalImports: new Set<string>(),
   };
 
   // Phase 2: Walk statements with scope tracking, check sinks
@@ -371,6 +381,12 @@ export function trackTaintInProgramWithGraph(
 
 function handleVariableDeclaration(ctx: TaintContext, node: ts.Node): void {
   if (!ts.isVariableDeclaration(node) || !node.initializer || !node.name) return;
+
+  // v0.8 Phase 5 (policy §4): detect conditional dynamic import and
+  // record the binding name so downstream sinks downgrade confidence.
+  if (ts.isIdentifier(node.name) && isConditionalDynamicImport(node.initializer)) {
+    ctx.conditionalImports.add(node.name.text);
+  }
 
   // Simple identifier: const x = <expr>
   if (ts.isIdentifier(node.name)) {
@@ -487,6 +503,14 @@ function checkCallSink(ctx: TaintContext, node: ts.Node): void {
       const neutralized = taint.sanitizers.some((s) => sanitizesForCwe(s, sinkMeta.cwe));
       if (neutralized) continue; // sanitized for this specific vulnerability class
 
+      // v0.8 Phase 5: if the callee's object is a conditionally-imported
+      // var (cond ? await import(...) : await import(...)), downgrade
+      // the single-file finding to confidence: 'medium' — the scanner
+      // can't prove the branch taken at runtime.
+      const conditionalObj =
+        ts.isPropertyAccessExpression(node.expression) &&
+        ts.isIdentifier(node.expression.expression) &&
+        ctx.conditionalImports.has(node.expression.expression.text);
       ctx.findings.push({
         sourceExpr: taint.sourceExpr,
         sourceLine: taint.sourceLine,
@@ -497,6 +521,7 @@ function checkCallSink(ctx: TaintContext, node: ts.Node): void {
         severity: sinkMeta.severity,
         category: sinkMeta.category,
         taintPath: [...taint.path, callText + '()'],
+        ...(conditionalObj ? { confidence: 'medium' as const } : {}),
       });
       break; // one finding per sink call
     }
@@ -793,6 +818,30 @@ function checkCrossFileMethodCall(ctx: TaintContext, node: ts.Node): void {
       });
     }
   }
+}
+
+/**
+ * v0.8 Phase 5 helper: does the given expression look like a conditional
+ * dynamic-import pattern? Matches
+ *   cond ? await import('./a') : await import('./b')
+ * and its variants (either branch, with or without the await, with
+ * parentheses). A match means the scanner can't statically determine
+ * which module was loaded, so downstream sinks should downgrade
+ * confidence.
+ */
+function isConditionalDynamicImport(expr: ts.Expression): boolean {
+  const unwrap = (e: ts.Expression): ts.Expression => {
+    if (ts.isAwaitExpression(e)) return unwrap(e.expression);
+    if (ts.isParenthesizedExpression(e)) return unwrap(e.expression);
+    return e;
+  };
+  const u = unwrap(expr);
+  if (!ts.isConditionalExpression(u)) return false;
+  const isDynamicImportCall = (e: ts.Expression): boolean => {
+    const inner = unwrap(e);
+    return ts.isCallExpression(inner) && inner.expression.kind === ts.SyntaxKind.ImportKeyword;
+  };
+  return isDynamicImportCall(u.whenTrue) || isDynamicImportCall(u.whenFalse);
 }
 
 /**

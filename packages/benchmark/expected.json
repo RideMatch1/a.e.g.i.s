@@ -31,6 +31,7 @@
     "CLEAN-05": { "scanner": "taint-analyzer", "file": "clean-taint-sanitized/route.ts", "description": "parseInt blocks SQLi, encodeURIComponent blocks SSRF — per-CWE sanitization" },
     "CLEAN-06": { "scanner": "taint-analyzer", "file": "clean-06-shadowed-sink/route.ts", "description": "Locally-shadowed `exec()` function — type-aware resolver identifies LOCAL decl, not child_process" },
     "CLEAN-07": { "scanner": "taint-analyzer", "file": "clean-07-cross-file-sanitized/route.ts", "description": "Cross-file sanitized: imported wrapper parseInt()s raw before db.query() — summary.sanitizesCwes + sink-text mismatch suppress emission" },
-    "CLEAN-08": { "scanner": "taint-analyzer", "file": "clean-08-re-exported-safe/route.ts", "description": "Cross-file re-exported identity: barrel re-export of no-sink function — module-graph traversal finds empty sinkCwes, no finding emitted" }
+    "CLEAN-08": { "scanner": "taint-analyzer", "file": "clean-08-re-exported-safe/route.ts", "description": "Cross-file re-exported identity: barrel re-export of no-sink function — module-graph traversal finds empty sinkCwes, no finding emitted" },
+    "CLEAN-09": { "scanner": "taint-analyzer", "file": "clean-09-conditional-import/route.ts", "description": "Conditional dynamic import (v0.8 Phase 5): ternary over await import(...) — findings downgraded to confidence: 'medium' because the scanner can't prove which branch runs", "maxTolerated": "medium" }
   }
 }

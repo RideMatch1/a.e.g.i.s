@@ -54,12 +54,25 @@ for (const [id, vuln] of Object.entries(spec.vulnerabilities)) {
 // --- Part 2: False Positives (must NOT be found) ---
 console.log(`\nFalse Positive Checks (${Object.keys(spec.false_positives).length} clean files):\n`);
 
+const CONFIDENCE_RANK = { low: 0, medium: 1, high: 2 };
 for (const [id, clean] of Object.entries(spec.false_positives)) {
-  const falseHits = result.findings.filter((f) =>
+  let falseHits = result.findings.filter((f) =>
     (f.file?.includes(clean.file) ?? false) && f.scanner === clean.scanner
   );
+  // v0.8 Phase 5: CLEAN fixtures may tolerate low-confidence emissions
+  // (e.g., conditional-import patterns where the scanner emits but hedges
+  // because it can't prove the taken branch). A hit counts as FP only when
+  // its confidence exceeds the fixture's maxTolerated threshold.
+  if (clean.maxTolerated) {
+    const threshold = CONFIDENCE_RANK[clean.maxTolerated];
+    falseHits = falseHits.filter((f) => {
+      const conf = f.confidence ?? 'high';
+      return CONFIDENCE_RANK[conf] > threshold;
+    });
+  }
   if (falseHits.length === 0) {
-    console.log(`  PASS  ${id}: ${clean.description} [no ${clean.scanner} findings]`);
+    const note = clean.maxTolerated ? ` [tolerating <= ${clean.maxTolerated}]` : '';
+    console.log(`  PASS  ${id}: ${clean.description} [no ${clean.scanner} findings]${note}`);
   } else {
     failures++;
     console.log(`  FAIL  ${id}: ${clean.description} [${falseHits.length} false positive(s) from ${clean.scanner}]`);
