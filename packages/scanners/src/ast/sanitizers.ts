@@ -62,9 +62,23 @@ export const TAINT_SANITIZER_DEFS: SanitizerDef[] = [
   { name: 'isValidUUID', neutralizes: ALL_CWES },
 
   // Path sanitization
-  { name: 'path.normalize', neutralizes: [CWE_PATH_TRAVERSAL] },
-  { name: 'path.resolve', neutralizes: [CWE_PATH_TRAVERSAL] },
-  { name: 'path.basename', neutralizes: [CWE_PATH_TRAVERSAL] },
+  //
+  // v0.8.1 hotfix: path.normalize / path.resolve / path.basename were
+  // previously listed as CWE_PATH_TRAVERSAL neutralizers. They are not
+  // sanitizers on their own. Demonstrations:
+  //   path.normalize('../../../../etc/passwd') === '../../../../etc/passwd'
+  //   (no leading-`..` strip without an absolute base)
+  //   path.resolve('/srv/app', '../../etc/passwd') === '/etc/passwd'
+  //   (escapes the intended base when the caller does not assert
+  //   `resolved.startsWith(base)`)
+  //   path.basename('../evil') === 'evil'
+  //   (drops one leading segment but the trust decision belongs to the
+  //   caller, not the call itself)
+  // The safe pattern is `path.resolve(base, input)` + an explicit
+  // `resolved.startsWith(base)` check. Neither half of that contract
+  // belongs to a call-name-only sanitizer registry. Removing the
+  // entries eliminates a silent false-negative class on real
+  // path-traversal code. See brutal-review v0.8.0 finding M1.
 
   // String sanitization
   { name: 'validator.escape', neutralizes: [CWE_XSS] },

@@ -301,6 +301,34 @@ describe('taint-tracker — sanitizers', () => {
     `);
     expect(findings.length).toBe(1);
   });
+
+  // v0.8.1 hotfix regression (brutal-review M1): path.normalize does NOT
+  // strip leading `..` sequences on its own; it must not credit CWE-22
+  // sanitization. The tainted value flowing through normalize into an
+  // fs sink MUST still emit a path-traversal finding.
+  it('path.normalize does NOT sanitize CWE-22 (leading `..` chains survive)', () => {
+    const findings = analyze(`
+      const p = path.normalize(req.body.path);
+      fs.readFileSync(p);
+    `);
+    expect(findings.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('path.resolve does NOT sanitize CWE-22 without an explicit startsWith assertion', () => {
+    const findings = analyze(`
+      const p = path.resolve('/srv/app', req.body.path);
+      fs.readFileSync(p);
+    `);
+    expect(findings.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('path.basename does NOT sanitize CWE-22 as a general call-name sanitizer', () => {
+    const findings = analyze(`
+      const p = path.basename(req.body.path);
+      fs.readFileSync(p);
+    `);
+    expect(findings.length).toBeGreaterThanOrEqual(1);
+  });
 });
 
 describe('taint-tracker — per-CWE sanitization', () => {
