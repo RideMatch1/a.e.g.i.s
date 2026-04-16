@@ -217,9 +217,18 @@ npm install -g @aegis-scan/mcp-server
 }
 ```
 
-The agent can now call `scan_project`, `scan_file`, and `audit_project`
-directly. See the **MCP Server** section of the [README](../README.md)
-for the full input-schema + example prompts.
+The agent can now call these five tools directly:
+
+| Tool | Purpose |
+|---|---|
+| `aegis_scan` | Run the security scan on a project directory (`mode: 'scan' \| 'audit'`) |
+| `aegis_findings` | Fetch detailed findings from the last scan, optionally filtered by severity or scanner |
+| `aegis_score` | Get the current 0-1000 score + grade for a project |
+| `aegis_compliance` | Check a project against a compliance framework (`gdpr` / `soc2` / `iso27001` / `pci-dss`) |
+| `aegis_fix_suggestion` | Request a fix suggestion for a specific finding id |
+
+See the **MCP Server** section of the [README](../README.md) for the
+full input schemas + example agent prompts.
 
 ---
 
