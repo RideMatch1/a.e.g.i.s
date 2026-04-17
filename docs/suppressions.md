@@ -46,6 +46,42 @@ AEGIS tracks which suppressions matched a finding. Ones that never
 matched are warned on stderr with the file and line, so you can clean
 them up as the code evolves.
 
+### Inline suppressions on taint-analyzer findings — place on the SINK line, not the source
+
+A taint finding has **two** relevant lines:
+
+- **Source line** — where the tainted value enters (e.g., `req.body`,
+  `searchParams.get(...)`, `await req.json()`).
+- **Sink line** — where the tainted value reaches a dangerous call
+  (e.g., `exec(cmd)`, `fetch(url)`, `db.query(sql)`).
+
+AEGIS reports the finding's `file:line` as the **sink line**. The
+inline suppression comment must be placed on the line immediately
+**above the sink**, not above the source. Multi-hop taint flows can
+put these lines 4+ apart; if you suppress near the source the finding
+still emits because the sink line has no annotation.
+
+Incorrect (suppression on source; sink still fires):
+
+```typescript
+// aegis-ignore CWE-78 — trusted internal CLI
+const cmd = req.body.command;        // <-- source (has the comment)
+const normalised = cmd.trim();
+exec(normalised);                    // <-- sink (unannotated; finding here)
+```
+
+Correct (suppression on sink):
+
+```typescript
+const cmd = req.body.command;
+const normalised = cmd.trim();
+// aegis-ignore CWE-78 — trusted internal CLI
+exec(normalised);                    // <-- finding now suppressed
+```
+
+Rule of thumb: read the scanner's output for the `file:line`, go to
+that line, put the suppression comment one line above it.
+
 ## Config-level syntax
 
 ```json
