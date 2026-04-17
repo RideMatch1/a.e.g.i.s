@@ -1,0 +1,9 @@
+{
+  "id": "D9",
+  "cwe": 918,
+  "type": "FP",
+  "description": "Cross-file regex-guard — v0.9.1 paramReachesSink fix regression pin",
+  "expected": [
+    { "scanner": "taint-analyzer", "cwe": 918 }
+  ]
+}

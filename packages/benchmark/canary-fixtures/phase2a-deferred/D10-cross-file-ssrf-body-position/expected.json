@@ -1,0 +1,9 @@
+{
+  "id": "D10",
+  "cwe": 918,
+  "type": "FP",
+  "description": "Cross-file URL-position filter — v0.9.1 body-arg vs URL-arg fix regression pin",
+  "expected": [
+    { "scanner": "taint-analyzer", "cwe": 918 }
+  ]
+}
