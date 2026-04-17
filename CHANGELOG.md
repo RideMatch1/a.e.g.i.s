@@ -11,6 +11,154 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.11.1] — 2026-04-17 — "Dogfood-Driven Precision"
+
+**Honest score:** **8.7** (up from 8.6 at v0.11.0). Patch release driven
+entirely by empirical dogfood — scanning a real-world Next.js+Supabase
+project with v0.11.0 surfaced three distinct auth-enforcer FP classes
+(comment-prose match, layout/middleware-unawareness, narrow MIDDLEWARE_AUTH
+pattern list) plus two ssrf-checker FPs (non-exported wrapper, env-host
+template). None of these were on the v0.11 roadmap as speculative items;
+all are empirically measured with canary-pinned RED → GREEN transitions.
+
+**Canary tally:** new phase3-v011x-dogfood harness reaches **23/23 full
+green** on first impl-attempt (6 RED baseline → 23 GREEN post-fix, with
+the extra 17 being regression pins for edge cases derived from Flag 3's
+variant matrix). phase1 + phase2a + phase2b unchanged at 27/27.
+
+**Full test suite:** 1462 → 1498 (+36 regression pins: 31 for the new
+`ast/page-context.ts` module across 7 exports, +2 FP #1 + +3 FP #2 in
+`ssrf-checker.test.ts`). Benchmark 30/30 unchanged. Self-scan 1000/A/0.
+
+**Real-world corpus (8 projects):** `|Δ|` max = 3 points, 0 grade shifts.
+The Spa-style dogfood project driving this release: 940/A → 946/A, 6
+false-positive findings eliminated (3 auth-enforcer CWE-306, 3
+ssrf-checker CWE-918).
+
+### Fixed — 5 empirical FP classes (Bugs A + B + C + FP #1 + FP #2)
+
+**Bug A — auth-enforcer comment-prose suppression.**
+
+Natural-language prose inside `//` line comments and `/* … */` block
+comments was being lexically matched by `DB_ACCESS_PATTERNS` regex
+`\bquery\s*\(`. Example: a page with the line comment
+`// Stats query (separat, ohne Filter)` triggered a spurious
+"Server component with DB access missing auth guard" finding despite
+the page having zero actual database calls.
+
+Fix: new `stripComments` utility in `ast/page-context.ts` preserves
+line numbers and skips string literals (so SQL hints like
+`'SELECT /* comment */ * FROM t'` survive). Applied before regex
+scans on page.tsx content.
+
+Reference class: v0.10 Z2 comment-leak applied to a different scanner.
+
+**Bug B — auth-enforcer App-Router layout+middleware awareness.**
+
+`auth-enforcer` scanned each `page.tsx` file in isolation, expecting
+an inline auth guard. The modern Next.js App-Router pattern uses
+`middleware.ts` + parent `layout.tsx` as the auth boundary — dozens of
+FPs per scan on any real App-Router codebase.
+
+Fix: new `ast/page-context.ts` module with layout-chain walking
+(`collectAncestorLayouts`), middleware matcher AST parsing
+(`parseMiddlewareMatchers`), Next.js matcher-path semantics
+(`matcherCoversPath`), first-statement directive check
+(`isClientDirective`), and **structural** layout-guard recognition
+(`hasLayoutAuthGuard`) — no hardcoded auth-helper names. Custom
+helpers like `hasAccessToPath`, `checkAccess`, `requireUser` are all
+recognised via the shape
+`const { X } = await fn(); if (!X) redirect/throw/notFound`.
+
+Edge-case handling explicitly pinned via canary: `'use client'`
+layouts do not count (client-side auth is cosmetic), wrong-direction
+checks (`if (user) redirect`) do not count, log-only fail-open
+patterns do not count, `try/catch` swallowing auth failures do not
+count (top-level walk naturally excludes them), env-conditional
+guard wrappers (`process.env.BYPASS_AUTH`) do not count, `export
+const runtime = 'edge'` bypasses suppression conservatively.
+
+The composite `pageIsGuardedByContext` check is OR-gated across
+layout-chain and middleware sources — any single FAIL-CLOSED source
+suffices. Wired into `auth-enforcer`'s `page.tsx` server-component
+scan.
+
+**Bug C — MIDDLEWARE_AUTH_PATTERNS data-driven widening.**
+
+Survey of 9 public projects + real-world dogfood surfaced four
+dominant middleware auth patterns the original 6-entry list missed:
+- `getServerSession` — next-auth v4 (5/9 corpus)
+- `getServerAuthSession` — T3-stack convention
+- `.auth.(getUser|getSession)` — Supabase SSR
+- `currentUser` — Clerk
+
+Added as regex entries in `MIDDLEWARE_AUTH_PATTERNS`; mirror-copy
+kept in `ast/page-context.ts` for the guard-check helper (local copy
+avoids a cross-scanner import cycle; M1 + M2 canary pins detect any
+drift).
+
+**FP #1 — ssrf-checker non-exported wrapper + TS-generics tolerance.**
+
+Z4's Day-1 library-wrapper heuristic gated on the `export` keyword
+before `function`. Real-world codebases structure wrappers as
+non-exported internal helpers (`async function apiFetch(url) { … }`)
+called from exported convenience functions (`apiGet`, `apiPost`).
+The SSRF reasoning is identical — wrapper has no user input, the
+call site does.
+
+Fix: widened the regex to drop the `export` gate AND tolerate
+TypeScript generic parameters between the function name and the
+opening paren (`function apiFetch<T>(url)` broke the original
+`\w+\s*\(` shape entirely — `\w+[^(]*\(` handles any non-paren
+chars between name and `(`).
+
+**FP #2 — ssrf-checker env-assigned template host.**
+
+Template-literal fetches of the shape `fetch(\`${X}/path\`, …)` fired
+on every instance, regardless of X's origin. When X is assigned from
+`process.env.Y` in the same file (idiomatic config-loaded host), the
+host is deployment-fixed and not user-controllable — no SSRF risk.
+
+Fix: new `isTemplateEnvHostFetch` helper extracts the first
+interpolation variable and looks for
+`const|let|var <X> = process.env.<Y>` (including `?? 'default'`
+fallback shape) in the same file. Out of scope for v0.11.1:
+destructure-from-env shape (`const { X } = process.env`) — will
+still emit (conservative).
+
+### Architecture
+
+- New `ast/page-context.ts` (~700 LoC including 7 exports + JSDoc-
+  encoded discipline rules). Mirror-role to v0.11's `ast/guard-flow.ts`
+  — shared primitives for cross-file Next.js App-Router analysis.
+- 31 unit tests in `__tests__/ast/page-context.test.ts` covering each
+  export in isolation (pure-function tests for content-level
+  primitives, filesystem-backed tests via `writeFixtures` for the
+  layout-chain and middleware-parsing helpers).
+- Scope-asymmetry (Bug B design decision): name-list recognition for
+  middleware (converged ~10 patterns), STRUCTURAL AST recognition for
+  layout (custom helpers divergent per codebase).
+
+### Known limitations (still deferred beyond v0.11.1)
+
+- **FP #3** — tenant-isolation-checker `[slug]` dynamic-route +
+  `.eq('slug', param)` + service_role pattern recognition. Defered
+  because it's security-sensitive: the suppression must check
+  parameter-flow (slug unchanged), scoped-use (no subsequent writes),
+  and ideally RLS-policy awareness. Requires canary-first-with-edge-
+  cases discipline; scheduled for v0.11.2.
+- Bug A block-comment class: SQL hints inside strings survive
+  correctly, but if a quoted string happens to contain the literal
+  `*/` followed by a `\bquery\s*\(` prose inside another quoted
+  region, the stripper's string-skip is simple and may not handle
+  pathological cases. Not observed in real-world code; flagged here
+  for completeness.
+- FP #2 destructure-from-env (`const { X } = process.env`) still
+  emits. Conservative by choice — rare shape, and the regex complexity
+  to cover it wasn't canary-pinned as necessary.
+
+---
+
 ## [0.11.0] — 2026-04-17 — "Recall Honesty Part 2"
 
 **Honest score:** **8.6** (up from 8.5 at v0.10.0). Closes the four
