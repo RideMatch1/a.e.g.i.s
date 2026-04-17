@@ -140,6 +140,35 @@ AEGIS is not a Semgrep replacement — it's a **Semgrep multiplier**. When Semgr
 
 ---
 
+## Real-world corpus
+
+AEGIS v0.9.5 was tuned against an 8-project public-source corpus (each
+finding manually annotated TP/FP, the top FP patterns pinned with
+regression tests). All scores below are post-v0.9.5 precision fixes:
+
+| Project | Stack | Score | Grade |
+|---|---|---|---|
+| shadcn/taxonomy | Next.js + next-auth | 985 | A |
+| formbricks | Next.js + Prisma | 968 | A |
+| midday | Next.js + Supabase | 957 | A |
+| dub | Next.js + Prisma | 956 | A |
+| trigger.dev | Next.js + Prisma | 953 | A |
+| cal.com | Next.js + Prisma | 947 | A |
+| supabase-studio | Next.js + Supabase | 0 | F* |
+
+*\*supabase-studio retains two BLOCKER findings on legitimate SQL
+string-concatenation in shipping source (`Reports.constants.ts` and
+`Logs.utils.ts`). These are not false positives — a Supabase-internal
+admin dashboard with a different threat model than a customer-facing
+app, but the findings are accurate as written.*
+
+Corpus-driven fixes in v0.9.5: `public/` / `static/` / `assets/` ignored
+by default, per-scanner scoring cap, tightened `eval()` and `innerHTML`
+patterns. See [CHANGELOG.md](./CHANGELOG.md#095--2026-04-17--corpus-driven-precision-fixes)
+for the full methodology.
+
+---
+
 ## Honest limitations
 
 Running a security tool is a trust exercise. Here is what AEGIS does **not** do well — or at all — documented up front so you can decide where AEGIS fits in your stack:
@@ -362,7 +391,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.9.4   # pin to a specific release tag
+      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.9.5   # pin to a specific release tag
         with:
           mode: scan           # 'scan' (quick) or 'audit' (full)
           path: .              # project to scan (default: '.')
@@ -370,7 +399,7 @@ jobs:
           comment-on-pr: true  # post PR comment with findings table
 ```
 
-**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.9.4`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
+**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.9.5`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
 
 ---
 

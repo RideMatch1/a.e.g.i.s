@@ -11,6 +11,104 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.9.5] — 2026-04-17 — "Corpus-Driven Precision Fixes"
+
+**Honest score:** 8.3 → **8.4**. First release shaped primarily by real-world
+corpus findings rather than validator / dogfood feedback. Eight public
+Next.js projects (midday, supabase-studio, dub, cal.com, documenso,
+formbricks, trigger.dev, shadcn/taxonomy) were scanned with v0.9.3, each
+finding was manually annotated TP/FP, and the four most impactful FP
+patterns were fixed and pinned with regression tests. Corpus scores
+recovered from four F-grades to A-grade on well-maintained codebases,
+with the lone remaining F — supabase-studio — correctly retained because
+its two BLOCKERs are legitimate SQL-concat findings in shipping source.
+
+### Fixed
+
+- **`public/`, `static/`, `assets/` added to `DEFAULT_IGNORE`** (corpus
+  fix 1; `packages/core/src/config.ts`). Supabase-studio went from 483
+  findings to 249 after this change: the removed 234 FPs were all
+  Monaco Editor + vendor-bundle `eval()` matches in `public/monaco/`.
+  Rationale: projects do not own the source inside `public/`; scanning
+  minified vendor bundles produces no actionable signal. Opt out via
+  explicit `ignore: ['!public']` in `aegis.config.json` if needed.
+
+- **Per-scanner-per-category scoring cap (50 pts max)** (corpus fix 2;
+  `packages/core/src/scoring.ts`). A single quality scanner accumulating
+  400+ low-severity findings was collapsing well-maintained projects to
+  F/0. Any one scanner can now contribute at most 50 deduction points per
+  category; high / critical / blocker findings from different scanners
+  still stack normally. Corpus recovery:
+
+  | Project | Before | After | Stack |
+  |---------|--------|-------|-------|
+  | formbricks | 0/F | 968/A | Next.js + Prisma |
+  | trigger.dev | 0/F | 953/A | Next.js + Prisma |
+  | midday | 0/F | 957/A | Next.js + Supabase |
+  | dub | 933/A | 956/A | Next.js + Prisma |
+  | cal.com | 899/A | 947/A | Next.js + Prisma |
+
+- **`eval()` pattern hardened — three sub-fixes** (corpus fix 3;
+  `packages/scanners/src/quality/crypto-auditor.ts`). The prior pattern
+  `\beval\s*\(` had three FP classes:
+  - Word-boundary end: `\beval\b` (not `\beval`) now required, so
+    `evalite()` and `evaluate()` no longer substring-match.
+  - No whitespace between `eval` and `(`: `bun run eval (watch mode)` in
+    prose comments no longer matches.
+  - Negative lookbehind `(?<!\.)` excludes method calls: `redis.eval()`
+    (Lua API), `someLib.eval()`, etc. no longer flag.
+
+  Midday's `evalite()` AI-eval-framework BLOCKER, formbricks's
+  `redis.eval()` Lua-API BLOCKER, and several comment-prose FPs across
+  the corpus are eliminated.
+
+- **`innerHTML` flags only variable writes** (corpus fix 4;
+  `packages/scanners/src/quality/xss-checker.ts`). Pattern tightened to
+  `/\.innerHTML\s*=\s*(?!["'\`])(?=\w|\${)/` — safe clears
+  (`element.innerHTML = ""`) and comparisons (`x.innerHTML === y`) no
+  longer match; only assignments of bare identifiers or template
+  expressions do. Midday's `innerHTML = ""` safe-clear FP eliminated.
+
+### Added
+
+- **+6 corpus regression pins** — three in
+  `packages/scanners/src/quality/__tests__/crypto-auditor.test.ts`
+  (evalite word-boundary, comment-prose, `redis.eval()` method-call) and
+  three in `packages/scanners/src/quality/__tests__/xss-checker.test.ts`
+  (safe clear, comparison, templated write). Test count: 1402 → **1408**.
+
+### Release-hygiene note
+
+The code changes in this release were in fact already published to npm
+under `0.9.4` — the `pnpm publish -r` command published from the current
+HEAD after the v0.9.4 tag was cut, so the corpus-fix commit was bundled
+into the 0.9.4 tarballs alongside the release-workflow bootstrap. This
+release tags the code under its correct version with a CHANGELOG that
+matches what is actually shipped. Users on `@aegis-scan/*@0.9.4` already
+have these fixes; users on `@aegis-scan/*@0.9.5` have the fixes **and**
+documentation that accurately describes them.
+
+### Known FP patterns deferred to v0.10
+
+- `tenant-isolation-checker` fires on Prisma apps using `workspaceId`
+  instead of `tenant_id` — dub gets 17 high-severity FPs. Fix requires
+  teaching the checker to detect Prisma-based multi-tenancy conventions.
+- `ssrf-checker` doesn't recognize guard functions (`if (isSafeUrl(x))
+  fetch(x)`). Fix requires taint-flow guard-awareness.
+- `supabase-studio` retains 2 SQL-concat BLOCKERs in
+  `Reports.constants.ts` and `Logs.utils.ts`. These are **real** findings
+  in shipping source code and remain correctly flagged.
+
+### Self-scan / benchmark
+
+- Self-scan on `~/Developer/projects/aegis`: **1000 / A / 0 findings**.
+- Taint benchmark: **30 / 30 strict**.
+- Test suite: **1408 passing** (165 core + 1050 scanners + 92 reporters
+  + 14 mcp-server + 87 CLI).
+- `pnpm build`: exit 0 across all five packages.
+
+---
+
 ## [0.9.4] — 2026-04-17 — "Release-Workflow Bootstrap"
 
 **Honest score:** unchanged **8.3**. No code changes. Release-hygiene-only

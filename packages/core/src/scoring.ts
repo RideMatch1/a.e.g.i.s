@@ -129,7 +129,7 @@ function buildBreakdown(findings: Finding[]): AuditResult['breakdown'] {
   // still penalizing projects with more findings.
   const categoryFindingCount: Record<string, number> = {};
 
-  // Per-scanner-per-category deduction cap (v0.9.4 corpus finding): a single
+  // Per-scanner-per-category deduction cap (v0.9.5 corpus finding): a single
   // quality scanner (e.g. console-checker) with 400+ low-severity findings was
   // collapsing well-maintained projects to F/0 scores. The cap ensures that any
   // one scanner can contribute at most MAX_DEDUCTION_PER_SCANNER_CAT points of

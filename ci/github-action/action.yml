@@ -34,9 +34,9 @@ inputs:
     required: false
     default: ''
   aegis-version:
-    description: 'AEGIS version/ref to use (branch, tag, or commit SHA). IMPORTANT: keep this pinned to a specific tag (v0.9.4) rather than a floating branch like `main` — pinning guarantees reproducible CI across commits + prevents silent regressions when AEGIS itself updates. The default is bumped per release as a release-checklist item.'
+    description: 'AEGIS version/ref to use (branch, tag, or commit SHA). IMPORTANT: keep this pinned to a specific tag (v0.9.5) rather than a floating branch like `main` — pinning guarantees reproducible CI across commits + prevents silent regressions when AEGIS itself updates. The default is bumped per release as a release-checklist item.'
     required: false
-    default: 'v0.9.4'
+    default: 'v0.9.5'
 
 outputs:
   score:
