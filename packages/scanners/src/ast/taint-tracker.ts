@@ -20,6 +20,10 @@ import {
   isSummarizable,
   type SummarizableFn,
 } from './function-summary.js';
+import {
+  isSinkDominatedByNarrowingCondition,
+  detectGuard,
+} from './guard-flow.js';
 import type { Confidence, Severity } from '@aegis-scan/core';
 
 export interface TaintFinding {
@@ -528,6 +532,12 @@ function checkCallSink(ctx: TaintContext, node: ts.Node): void {
       // open-redirect / other flows through the same var keep firing.
       if (sinkMeta.cwe === 918 && isInsideUrlRegexGuard(node, arg)) continue;
 
+      // v0.11 Cluster B + Z3: consumer-side named-guard + startsWith-
+      // literal + allowlist.has/.includes suppression. CWE-specific
+      // (Flag B): a guard that narrows CWE-918 does NOT suppress a
+      // CWE-89 sink even on the same identifier.
+      if (isSinkGuardedByKnownPredicate(node, arg, sinkMeta.cwe, ctx)) continue;
+
       // v0.8 Phase 5: if the callee's object is a conditionally-imported
       // var (cond ? await import(...) : await import(...)), downgrade
       // the single-file finding to confidence: 'medium' — the scanner
@@ -686,6 +696,12 @@ function checkCrossFileCallSink(ctx: TaintContext, node: ts.Node): void {
       const neutralized = taint.sanitizers.some((s) => sanitizesForCwe(s, cwe));
       if (neutralized) continue;
 
+      // v0.11 Cluster B + Z3: consumer-side guard suppression at
+      // cross-file sink emission. Guard resolution is the consumer's
+      // file — a Z3 consumer wraps a cross-file sink call with its
+      // own same-file or imported guard check.
+      if (isSinkGuardedByKnownPredicate(node, node.arguments[i], cwe, ctx)) continue;
+
       const sinkMeta = findSinkMetaByCwe(cwe);
       if (sinkMeta === null) continue; // shouldn't happen — registry-derived CWE
 
@@ -820,6 +836,9 @@ function checkCrossFileMethodCall(ctx: TaintContext, node: ts.Node): void {
       if (summary.sanitizesCwes.includes(cwe)) continue;
       const neutralized = taint.sanitizers.some((s) => sanitizesForCwe(s, cwe));
       if (neutralized) continue;
+
+      // v0.11: see checkCrossFileCallSink.
+      if (isSinkGuardedByKnownPredicate(node, node.arguments[i], cwe, ctx)) continue;
 
       const sinkMeta = findSinkMetaByCwe(cwe);
       if (sinkMeta === null) continue;
@@ -1112,6 +1131,213 @@ function findExportedFunction(
     }
   }
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// v0.11 Cluster B + Z3 — consumer-side guard recognition.
+//
+// The summary-builder side (guard-flow.detectGuard) flags whether an
+// exported function IS a boolean-returning narrowing guard. The helpers
+// below are the CONSUMER-SIDE complement: given a sink call and a
+// tainted argument identifier, is the sink dominated by a known guard
+// call on that identifier (via positive-wrap if-then or negated-early-
+// exit) for the specified CWE?
+//
+// Invoked from every sink-emission call site (checkCallSink,
+// checkCrossFileCallSink, checkCrossFileMethodCall) just before
+// findings.push. Each call site passes the specific
+// (sink call, tainted arg, CWE) triple.
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Walk ancestors until an enclosing function-like node is found; return
+ * its body. Falls back to `null` when the target sits at top level —
+ * callers substitute the SourceFile itself for the dominator walk.
+ */
+function enclosingFunctionBody(node: ts.Node): ts.Node | null {
+  let p: ts.Node | undefined = node.parent;
+  while (p !== undefined) {
+    if (
+      ts.isFunctionDeclaration(p) ||
+      ts.isFunctionExpression(p) ||
+      ts.isArrowFunction(p) ||
+      ts.isMethodDeclaration(p)
+    ) {
+      return p.body ?? null;
+    }
+    p = p.parent;
+  }
+  return null;
+}
+
+/**
+ * Find a same-file summarizable function by its local name. Handles
+ * `function foo() {}` and `const foo = () => {}` / `const foo =
+ * function() {}`. Returns null when the name doesn't resolve to a
+ * function node in this file.
+ */
+function findSameFileSummarizable(
+  sf: ts.SourceFile,
+  fnName: string,
+): SummarizableFn | null {
+  for (const stmt of sf.statements) {
+    if (ts.isFunctionDeclaration(stmt) && stmt.name?.text === fnName) {
+      return stmt;
+    }
+    if (ts.isVariableStatement(stmt)) {
+      for (const decl of stmt.declarationList.declarations) {
+        if (
+          ts.isIdentifier(decl.name) &&
+          decl.name.text === fnName &&
+          decl.initializer !== undefined &&
+          isSummarizable(decl.initializer)
+        ) {
+          return decl.initializer;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve the guardsCwes of a named function callee. Prefers same-file
+ * resolution (cheap: direct {@link detectGuard} invocation, no Program
+ * required — works even on the single-file trackTaint path) and falls
+ * back to cross-file via the module graph + full summary build.
+ * Returns an empty array when the name resolves to nothing summarizable
+ * or the resolved function is not a recognised guard.
+ */
+function resolveGuardsCwesForCallee(
+  fnName: string,
+  ctx: TaintContext,
+): readonly number[] {
+  const sameFileFn = findSameFileSummarizable(ctx.sf, fnName);
+  if (sameFileFn !== null) {
+    const paramNames = sameFileFn.parameters.map((p) => p.name.getText(ctx.sf));
+    return detectGuard(sameFileFn, paramNames[0]);
+  }
+
+  if (!ctx.program || !ctx.moduleGraph || !ctx.summaries) return [];
+  const origin = ctx.moduleGraph.resolveSymbolOrigin(ctx.sf.fileName, fnName);
+  if (origin === null) return [];
+  const originSf = ctx.program.getSourceFile(origin.file);
+  if (originSf === undefined) return [];
+  const fnNode = findExportedFunction(originSf, origin.exportName);
+  if (fnNode === null) return [];
+  const summary = buildSummary(
+    fnNode,
+    origin.exportName,
+    ctx.program,
+    ctx.moduleGraph,
+    ctx.summaries,
+  );
+  if (summary === null) return [];
+  return summary.guardsCwes;
+}
+
+/**
+ * Does `call` satisfy a narrowing guard shape on `argName` for `cwe`?
+ * Two families:
+ *   1. Direct shape on the identifier — `argName.startsWith('<literal>')`.
+ *      Initial v0.11 scope: narrows CWE-918 only.
+ *   2. Named predicate — `<fn>(argName)` where fn is a same-file or
+ *      cross-file summarizable whose guardsCwes includes `cwe`.
+ */
+function callSatisfiesGuardShape(
+  call: ts.CallExpression,
+  argName: string,
+  cwe: number,
+  ctx: TaintContext,
+): boolean {
+  if (
+    ts.isPropertyAccessExpression(call.expression) &&
+    ts.isIdentifier(call.expression.name) &&
+    call.expression.name.text === 'startsWith' &&
+    ts.isIdentifier(call.expression.expression) &&
+    call.expression.expression.text === argName &&
+    call.arguments.length > 0 &&
+    ts.isStringLiteral(call.arguments[0])
+  ) {
+    return cwe === 918;
+  }
+
+  if (
+    ts.isIdentifier(call.expression) &&
+    call.arguments.length > 0 &&
+    ts.isIdentifier(call.arguments[0]) &&
+    call.arguments[0].text === argName
+  ) {
+    const fnName = call.expression.text;
+    const guardsCwes = resolveGuardsCwesForCallee(fnName, ctx);
+    return guardsCwes.includes(cwe);
+  }
+
+  return false;
+}
+
+/**
+ * Condition-expression predicate used with
+ * {@link isSinkDominatedByNarrowingCondition}: walks the expression,
+ * finds the first CallExpression that matches a guard shape on
+ * `argName` for `cwe`, and checks its negation status against
+ * `wantNegated`.
+ */
+function conditionHasKnownGuardOn(
+  expr: ts.Node,
+  argName: string,
+  wantNegated: boolean,
+  cwe: number,
+  ctx: TaintContext,
+): boolean {
+  let found = false;
+  const visit = (n: ts.Node): void => {
+    if (found) return;
+    if (ts.isCallExpression(n) && callSatisfiesGuardShape(n, argName, cwe, ctx)) {
+      const negated =
+        n.parent !== undefined &&
+        ts.isPrefixUnaryExpression(n.parent) &&
+        n.parent.operator === ts.SyntaxKind.ExclamationToken;
+      if (negated === wantNegated) {
+        found = true;
+        return;
+      }
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(expr);
+  return found;
+}
+
+/**
+ * Is the sink call dominated by a known guard on the tainted argument
+ * identifier for the given CWE? Consumer-side complement of
+ * function-summary's guardsCwes.
+ *
+ * Flag A early-exit: non-identifier args cannot be gated by a named
+ * guard call — taint on a string literal, template, or computed access
+ * bypasses the dominator walk.
+ *
+ * Flag B: the CWE match is strict. A guard that narrows CWE-918 does
+ * NOT suppress a CWE-89 sink even when both involve the same tainted
+ * identifier.
+ *
+ * Flag E: the dominator walk stays within a single file. The only
+ * cross-file hop is in {@link resolveGuardsCwesForCallee} for named
+ * guard callees, via module-graph + buildSummary.
+ */
+function isSinkGuardedByKnownPredicate(
+  call: ts.CallExpression,
+  argNode: ts.Node,
+  cwe: number,
+  ctx: TaintContext,
+): boolean {
+  if (!ts.isIdentifier(argNode)) return false;
+  const argName = argNode.text;
+  const fnBody = enclosingFunctionBody(call) ?? ctx.sf;
+  return isSinkDominatedByNarrowingCondition(call, fnBody, (conditionExpr, wantNegated) =>
+    conditionHasKnownGuardOn(conditionExpr, argName, wantNegated, cwe, ctx),
+  );
 }
 
 function checkNewExpressionSink(ctx: TaintContext, node: ts.Node): void {

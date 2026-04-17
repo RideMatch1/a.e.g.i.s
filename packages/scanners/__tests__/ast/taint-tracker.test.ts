@@ -1381,3 +1381,168 @@ describe('taint-tracker — cross-file taint (v0.7 Phase 2)', () => {
     }
   });
 });
+
+// ── v0.11 Cluster B + Z3: consumer-side guard suppression ───────────────
+// These tests pin the three sink-emission call sites where
+// isSinkGuardedByKnownPredicate fires before findings.push:
+//   - checkCallSink (same-file sink)
+//   - checkCrossFileCallSink (cross-file bare-identifier sink)
+//   - checkCrossFileMethodCall (cross-file method-call sink)
+// Each site has at least one positive (guard suppresses) + one
+// negative (no suppression) pin. Plus Flag-B (CWE-specificity) and
+// the D1 value-vs-guard regression.
+
+describe('taint-tracker — v0.11 consumer-side guards (Cluster B / Z3)', () => {
+  afterEach(cleanup);
+
+  // ── Same-file sink (checkCallSink) ───────────────────────────────────
+
+  it('D4 — same-file named-fn guard via negated-return suppresses CWE-918', () => {
+    const findings = analyze(`
+      function isSafeUrl(u) { return u.startsWith('https://'); }
+      export async function handler(req) {
+        const { url } = await req.json();
+        if (!isSafeUrl(url)) return;
+        await fetch(url);
+      }
+    `);
+    expect(findings.filter((f) => f.cwe === 918)).toEqual([]);
+  });
+
+  it('D4 — same-file named-fn guard via positive wrap suppresses CWE-918', () => {
+    const findings = analyze(`
+      function isSafeUrl(u) { return u.startsWith('https://'); }
+      export async function handler(req) {
+        const { url } = await req.json();
+        if (isSafeUrl(url)) {
+          await fetch(url);
+        }
+      }
+    `);
+    expect(findings.filter((f) => f.cwe === 918)).toEqual([]);
+  });
+
+  it('D1 regression — value-capture is NOT a guard (fetch still fires)', () => {
+    // A variable-binding call to the guard doesn't gate the sink.
+    // The guard-vs-value distinction is the D1 lesson from v0.10;
+    // reusing it here protects against the parallel silent-miss.
+    const findings = analyze(`
+      function isSafeUrl(u) { return u.startsWith('https://'); }
+      export async function handler(req) {
+        const { url } = await req.json();
+        const ok = isSafeUrl(url);
+        await fetch(url);
+      }
+    `);
+    expect(findings.filter((f) => f.cwe === 918).length).toBeGreaterThan(0);
+  });
+
+  it('D5 — direct startsWith-literal on param via negated-return suppresses CWE-918', () => {
+    const findings = analyze(`
+      export async function handler(req) {
+        const { url } = await req.json();
+        if (!url.startsWith('https://api.stripe.com/')) return;
+        await fetch(url);
+      }
+    `);
+    expect(findings.filter((f) => f.cwe === 918)).toEqual([]);
+  });
+
+  it('D5 — direct startsWith-literal on param via positive wrap suppresses CWE-918', () => {
+    const findings = analyze(`
+      export async function handler(req) {
+        const { url } = await req.json();
+        if (url.startsWith('https://api.stripe.com/')) {
+          await fetch(url);
+        }
+      }
+    `);
+    expect(findings.filter((f) => f.cwe === 918)).toEqual([]);
+  });
+
+  // ── Flag-B: CWE-specific suppression ─────────────────────────────────
+
+  it('Flag B — guard narrows CWE-918, sink is CWE-89 (SQLi) → NOT suppressed', () => {
+    const findings = analyze(`
+      function isSafeUrl(u) { return u.startsWith('https://'); }
+      export async function handler(req) {
+        const { q } = await req.json();
+        if (!isSafeUrl(q)) return;
+        db.query(\`SELECT * FROM t WHERE x = '\${q}'\`);
+      }
+    `);
+    // isSafeUrl is a CWE-918 guard, but the sink is CWE-89 — must emit.
+    expect(findings.some((f) => f.cwe === 89)).toBe(true);
+  });
+
+  // ── Sibling-branch negative ──────────────────────────────────────────
+
+  it('guard in one branch does NOT suppress sink in sibling branch', () => {
+    const findings = analyze(`
+      function isSafeUrl(u) { return u.startsWith('https://'); }
+      export async function handler(req, cond) {
+        const { url } = await req.json();
+        if (cond) {
+          if (isSafeUrl(url)) { log('ok'); }
+        } else {
+          await fetch(url);
+        }
+      }
+    `);
+    expect(findings.filter((f) => f.cwe === 918).length).toBeGreaterThan(0);
+  });
+
+  // ── Negated-throw variant ────────────────────────────────────────────
+
+  it('negated-throw early-exit also counts as dominating guard', () => {
+    const findings = analyze(`
+      export async function handler(req) {
+        const { url } = await req.json();
+        if (!url.startsWith('https://')) throw new Error('bad');
+        await fetch(url);
+      }
+    `);
+    expect(findings.filter((f) => f.cwe === 918)).toEqual([]);
+  });
+
+  // ── Cross-file sink (checkCrossFileCallSink) ─────────────────────────
+
+  it('Z3 — cross-file imported guard suppresses cross-file sink', () => {
+    const findings = analyzeCrossFile({
+      'lib/validators.ts':
+        "export function isSafeUrl(u: string): boolean { return u.startsWith('https://'); }\n",
+      'lib/http.ts':
+        "export async function fetchUrl(url: string) { return fetch(url); }\n",
+      'api/proxy.ts':
+        "import { isSafeUrl } from '../lib/validators';\n" +
+        "import { fetchUrl } from '../lib/http';\n" +
+        'export async function handler(req: { json: () => Promise<{ url: string }> }) {\n' +
+        '  const { url } = await req.json();\n' +
+        '  if (!isSafeUrl(url)) return;\n' +
+        '  return fetchUrl(url);\n' +
+        '}\n',
+    });
+    const crossFileSsrf = findings.filter((f) => f.crossFile === true && f.cwe === 918);
+    expect(crossFileSsrf).toEqual([]);
+  });
+
+  it('Z3 — cross-file imported non-guard fn does NOT suppress cross-file sink', () => {
+    // Imported helper without a guard shape — suppression must not engage.
+    const findings = analyzeCrossFile({
+      'lib/helpers.ts':
+        'export function trim(u: string) { return u.trim(); }\n',
+      'lib/http.ts':
+        "export async function fetchUrl(url: string) { return fetch(url); }\n",
+      'api/proxy.ts':
+        "import { trim } from '../lib/helpers';\n" +
+        "import { fetchUrl } from '../lib/http';\n" +
+        'export async function handler(req: { json: () => Promise<{ url: string }> }) {\n' +
+        '  const { url } = await req.json();\n' +
+        '  if (!trim(url)) return;\n' +
+        '  return fetchUrl(url);\n' +
+        '}\n',
+    });
+    const crossFileSsrf = findings.filter((f) => f.crossFile === true && f.cwe === 918);
+    expect(crossFileSsrf.length).toBeGreaterThan(0);
+  });
+});

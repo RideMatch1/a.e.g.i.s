@@ -27,6 +27,14 @@ const SAFE_PATTERNS = [
   /ALLOWED_HOSTS/,                // Host allowlist constant
   /url\.startsWith\s*\(\s*['"]https?:\/\//,  // Protocol check
   /new\s+URL\s*\([^)]+\)\s*\.hostname/,       // Hostname extraction for validation
+  // v0.11 Cluster B (D4): user-defined URL/Host/Origin guard function
+  // with explicit `: boolean` return type. Narrow by convention — the
+  // name token and the typed return together distinguish a URL guard
+  // from generic boolean helpers (e.g. `isAdmin`, `isEnabled`) that
+  // don't handle SSRF risk. Paired in taint-analyzer with the
+  // consumer-side dominator check; both scanners go silent for the
+  // same structural shape.
+  /\bfunction\s+\w*(?:Url|URL|Host|Origin)\w*\s*\([^)]+\)\s*:\s*boolean\b/,
 ];
 
 function shouldSkipFile(filePath: string): boolean {

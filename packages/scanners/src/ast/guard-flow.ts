@@ -48,9 +48,13 @@ type GuardAnalyzableFn =
  *     not this one — the walk does not descend into inner function
  *     bodies.
  *
- * Narrowing shapes recognised (v0.11 initial):
+ * Narrowing shapes recognised (v0.11):
  *   - `<firstParamName>.startsWith('<literal>')` — D5 canary shape
  *   - `<regex-expr>.test(<firstParamName>)` — v0.9.1 sanctioned shape
+ *   - `<allowlist>.has(<firstParamName>)`
+ *     `<allowlist>.includes(<firstParamName>)` — generic allowlist narrow
+ *   - `<allowlist>.has(new URL(<firstParamName>).hostname)` — D4 canary
+ *     shape (host-allowlist with URL parse)
  *
  * ABSTRACTION BOUNDARY: this helper is FUNCTION-INTRINSIC. It asks
  * "is this fn a guard?" — never "is this sink dominated by a guard?"
@@ -93,10 +97,39 @@ export function detectGuard(
 
   if (returnExprs.length === 0) return [];
 
+  // Build local-var bindings for Shape 4 intra-body tracking. The D4
+  // canary uses `const u = new URL(raw); return X.has(u.hostname);`
+  // (not the inline `X.has(new URL(raw).hostname)` shape), so a
+  // same-function forward-assignment pass is required to recognise
+  // that `u.hostname` derives from `paramName`. Nested function
+  // bodies are skipped — their declarations are not visible here.
+  const localVars = new Map<string, ts.Expression>();
+  if (ts.isBlock(body)) {
+    const visitDecls = (n: ts.Node): void => {
+      if (
+        ts.isVariableDeclaration(n) &&
+        ts.isIdentifier(n.name) &&
+        n.initializer !== undefined
+      ) {
+        localVars.set(n.name.text, n.initializer);
+      }
+      if (
+        ts.isFunctionDeclaration(n) ||
+        ts.isFunctionExpression(n) ||
+        ts.isArrowFunction(n) ||
+        ts.isMethodDeclaration(n)
+      ) {
+        return;
+      }
+      ts.forEachChild(n, visitDecls);
+    };
+    visitDecls(body);
+  }
+
   let guardFound = false;
   for (const expr of returnExprs) {
     if (isBoolLiteral(expr)) continue;
-    if (narrowsOnParam(expr, firstParamName)) {
+    if (narrowsOnParam(expr, firstParamName, localVars)) {
       guardFound = true;
       continue;
     }
@@ -120,9 +153,14 @@ function isBoolLiteral(expr: ts.Expression): boolean {
 /**
  * Does `expr` structurally narrow taint on `paramName`? Shape-intrinsic
  * AST-match — no regex-bleeding, no symbol resolution. Parenthesised
- * wrappers are transparent.
+ * wrappers are transparent. `localVars` supplies same-function binding
+ * lookups for Shape 4's `const u = new URL(p); X.has(u.hostname)` form.
  */
-function narrowsOnParam(expr: ts.Expression, paramName: string): boolean {
+function narrowsOnParam(
+  expr: ts.Expression,
+  paramName: string,
+  localVars: Map<string, ts.Expression>,
+): boolean {
   let e = expr;
   while (ts.isParenthesizedExpression(e)) e = e.expression;
 
@@ -153,6 +191,109 @@ function narrowsOnParam(expr: ts.Expression, paramName: string): boolean {
     return true;
   }
 
+  // Shape 3: `<allowlist>.has(<paramName>)` / `<allowlist>.includes(<paramName>)`
+  if (
+    ts.isCallExpression(e) &&
+    ts.isPropertyAccessExpression(e.expression) &&
+    ts.isIdentifier(e.expression.name) &&
+    (e.expression.name.text === 'has' || e.expression.name.text === 'includes') &&
+    e.arguments.length > 0 &&
+    ts.isIdentifier(e.arguments[0]) &&
+    e.arguments[0].text === paramName
+  ) {
+    return true;
+  }
+
+  // Shape 4: `<allowlist>.has(<urlLike>.hostname)` where <urlLike>
+  // resolves to `new URL(<paramName>)` either inline or via an
+  // intermediate local binding. The D4 canary uses the binding form —
+  // supporting both keeps recognition aligned with idiomatic TypeScript
+  // (`const u = new URL(raw)` for readability, `new URL(raw).hostname`
+  // for one-liners).
+  if (
+    ts.isCallExpression(e) &&
+    ts.isPropertyAccessExpression(e.expression) &&
+    ts.isIdentifier(e.expression.name) &&
+    e.expression.name.text === 'has' &&
+    e.arguments.length > 0 &&
+    ts.isPropertyAccessExpression(e.arguments[0]) &&
+    ts.isIdentifier(e.arguments[0].name) &&
+    e.arguments[0].name.text === 'hostname'
+  ) {
+    const urlExpr = e.arguments[0].expression;
+    if (isNewUrlOnParam(urlExpr, paramName)) return true;
+    if (ts.isIdentifier(urlExpr)) {
+      const binding = localVars.get(urlExpr.text);
+      if (binding !== undefined && isNewUrlOnParam(binding, paramName)) return true;
+    }
+  }
+
+  return false;
+}
+
+/** `new URL(<paramName>)`, unwrapping await/parens. */
+function isNewUrlOnParam(expr: ts.Expression, paramName: string): boolean {
+  let e = expr;
+  while (ts.isParenthesizedExpression(e) || ts.isAwaitExpression(e)) e = e.expression;
+  return (
+    ts.isNewExpression(e) &&
+    ts.isIdentifier(e.expression) &&
+    e.expression.text === 'URL' &&
+    e.arguments !== undefined &&
+    e.arguments.length > 0 &&
+    ts.isIdentifier(e.arguments[0]) &&
+    e.arguments[0].text === paramName
+  );
+}
+
+/**
+ * Generic dominator walk: does an ancestor `if(cond) { sink(...) }` or a
+ * preceding `if(!cond) return/throw;` in the same block dominate the
+ * sink call, where `cond` satisfies a caller-supplied narrowing
+ * predicate?
+ *
+ * The predicate receives `(conditionExpr, wantNegated)`. `wantNegated`
+ * tells the predicate which shape the caller is probing:
+ *   - `false` for the ancestor-then-branch (positive wrap) case — the
+ *     narrowing call MUST NOT be under `!`.
+ *   - `true`  for the preceding-early-exit case — the narrowing call
+ *     MUST be under `!`.
+ *
+ * Shared by:
+ *   - {@link isCallGuardedByRegexTest} (v0.9.1 summary-builder side)
+ *   - v0.11 consumer-side `isSinkGuardedByKnownPredicate` in the taint
+ *     tracker (Cluster B + Z3).
+ *
+ * Single source of truth for the domination semantics — when the walk
+ * needs to refine (e.g., handle conditional-expression ancestors or
+ * do-while / switch), one change covers all call sites.
+ */
+export function isSinkDominatedByNarrowingCondition(
+  call: ts.CallExpression,
+  fnBody: ts.Node,
+  isNarrowing: (conditionExpr: ts.Node, wantNegated: boolean) => boolean,
+): boolean {
+  // Case 1: ancestor IfStatement with positive narrowing and call in then-branch.
+  let anc: ts.Node | undefined = call.parent;
+  while (anc !== undefined && anc !== fnBody.parent) {
+    if (ts.isIfStatement(anc) && isNarrowing(anc.expression, false)) {
+      if (isNodeContained(call, anc.thenStatement)) return true;
+    }
+    anc = anc.parent;
+  }
+
+  // Case 2: preceding early-exit (return / throw) in the same block.
+  const block = enclosingBlock(call);
+  if (block === null) return false;
+  const sinkStmt = statementContaining(block, call);
+  if (sinkStmt === null) return false;
+  const idx = block.statements.indexOf(sinkStmt);
+  for (let i = 0; i < idx; i++) {
+    const stmt = block.statements[i];
+    if (!ts.isIfStatement(stmt)) continue;
+    if (!isNarrowing(stmt.expression, true)) continue;
+    if (thenTerminates(stmt.thenStatement)) return true;
+  }
   return false;
 }
 
@@ -166,36 +307,19 @@ function narrowsOnParam(expr: ts.Expression, paramName: string): boolean {
  *      `if (!<something>.test(paramName)) return ...;` or
  *      `if (!<something>.test(paramName)) throw ...;`
  *      (negated-early-exit guard).
+ *
+ * Delegates the dominator walk to
+ * {@link isSinkDominatedByNarrowingCondition} — the predicate is the
+ * only thing specific to regex-test recognition.
  */
 export function isCallGuardedByRegexTest(
   call: ts.CallExpression,
   fnBody: ts.Node,
   paramName: string,
 ): boolean {
-  // Case 1: ancestor IfStatement with positive .test(param) and call is in then-branch.
-  let anc: ts.Node | undefined = call.parent;
-  while (anc !== undefined && anc !== fnBody.parent) {
-    if (ts.isIfStatement(anc)) {
-      if (exprHasRegexTestOn(anc.expression, paramName, false)) {
-        if (isNodeContained(call, anc.thenStatement)) return true;
-      }
-    }
-    anc = anc.parent;
-  }
-
-  // Case 2: preceding early-exit in the same block.
-  const block = enclosingBlock(call);
-  if (block === null) return false;
-  const sinkStmt = statementContaining(block, call);
-  if (sinkStmt === null) return false;
-  const idx = block.statements.indexOf(sinkStmt);
-  for (let i = 0; i < idx; i++) {
-    const stmt = block.statements[i];
-    if (!ts.isIfStatement(stmt)) continue;
-    if (!exprHasRegexTestOn(stmt.expression, paramName, true)) continue;
-    if (thenTerminates(stmt.thenStatement)) return true;
-  }
-  return false;
+  return isSinkDominatedByNarrowingCondition(call, fnBody, (conditionExpr, wantNegated) =>
+    exprHasRegexTestOn(conditionExpr, paramName, wantNegated),
+  );
 }
 
 /**
