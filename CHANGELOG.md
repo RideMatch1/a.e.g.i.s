@@ -11,6 +11,210 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.9.2] — 2026-04-17 — "Validator Hotfix + World-Class-OSS Polish"
+
+**Honest score:** 7.8 → **8.2** (MAJORs from an independent external
+stress-test all closed in the same cycle; world-class-OSS polish pass
+adds npm-metadata quality, community health templates, README
+architecture + honest-limitations sections, VS Code .vsix release-
+asset build, and a validator-attested PASS summary; cross-file
+precision hedge unchanged — still `confidence: 'medium'` on same
+n<20 unmeasurable basis).
+
+**Summary:** An external adversarial stress-test of v0.9.1 delivered
+5 MAJOR + 5 MINOR findings. Every MAJOR is closed here; four MINORs
+are closed; the fifth (display-layer LOW-CONFIDENCE badge hedge) is
+now committed rather than deferred. In parallel, a world-class-OSS
+polish sprint lifts the repo to production-adoption quality:
+discoverable npm metadata, structured issue / PR templates,
+architecture-in-README, honest limitations codified in the README,
+independently-validated PASS summary with reproducible citations, and
+a pre-built `.vsix` attached to every Release.
+
+### Fixed — validator findings closed
+
+- **MAJOR-01: mass-assignment-checker `req.json()` silent FN**
+  (`packages/scanners/src/quality/mass-assignment-checker.ts`).
+  The scanner hardcoded `request.json()` in four regexes, so any
+  Next.js codebase using the common `req` handler-parameter
+  abbreviation silently bypassed detection — a SAST emitting a
+  false safety signal, same bug class as the v0.8 `path.normalize`
+  sanitiser-registry bug. All four patterns generalised to
+  `(?:req|request)\.json`; kept symmetric with the taint-analyzer's
+  TAINT_SOURCES which already handles both aliases (v0.7.1 hotfix).
+  +3 regression tests.
+
+- **MAJOR-02: auth-enforcer misses next-auth / Clerk ownership
+  + role guards** (`packages/scanners/src/quality/auth-enforcer.ts`).
+  The ROLE_GUARD_PATTERNS set was tuned to spa-app helpers
+  (requireRole, isManager, …). Validator reproduced 3 FPs on
+  shadcn-ui/taxonomy. Extended with dominant community shapes:
+  `session.user.id === post.userId` ownership comparisons,
+  `verifyCurrentUser*` / `userHasAccess*` / `canEdit*` helper
+  families, Clerk `has({ role })` / `publicMetadata.role` / `auth()
+  .protect()` / `currentUser()`. Matches guard SHAPES where
+  possible, not mere keywords. +6 regression tests.
+
+- **MAJOR-03: CHANGELOG v0.9.1 test-count format switch**
+  (`CHANGELOG.md`). v0.9.1 silently switched from the v0.9.0
+  all-packages-total format (1379) to a scanners-only delta (1030)
+  without annotation — sequential readers saw an apparent 349-test
+  regression. Amended in place with both numbers + a format-note.
+
+- **MAJOR-04: GETTING-STARTED §1 stale example output**
+  (`docs/GETTING-STARTED.md`). The first-scan example showed a
+  completely different format than the actual CLI emits (7/10
+  scanners vs 47 scanners, no ASCII box, no category bars, no
+  Confidence line). Rewrote the code block to faithfully reproduce
+  the current terminal output with illustrative findings; added a
+  forward-link to the v0.9.2 LOW-CONFIDENCE badge hedge.
+
+- **MAJOR-05: README scanner-count reconciliation** (`README.md`).
+  Three conflicting counts ("39 built-in", "37+1+1=39", "59 total")
+  and a missing row (`nextPublicLeakScanner`). Authoritative count
+  from `getAllScanners()` in `packages/scanners/src/index.ts`:
+  40 built-in + 16 external + 5 attack probes = **60 total**. Added
+  the missing row. Replaced the flat table with a CWE-annotated
+  reference so users can filter by the CWE class they care about.
+
+- **MINOR-01: HARDENED badge visually dominates on LOW-confidence
+  runs** (`packages/reporters/src/terminal.ts`,
+  `ci/github-action/action.yml`). Empty or thinly-scanned projects
+  reach `1000/A` because there's nothing to fail on; the LOW-
+  confidence hedge is a separate line that casual readers miss.
+  Display-layer fix: badge gets a yellow `[LOW-CONFIDENCE]` prefix
+  in the terminal + in CI PR comments; a dim sub-line explains what
+  LOW confidence means and how to raise it. Grade enum, numeric
+  score, and machine-readable JSON all unchanged. +2 regression
+  tests.
+
+- **MINOR-02: GH Action `aegis-version` default pin drift**
+  (`ci/github-action/action.yml`). Release-checklist item missed at
+  v0.9.1; default bumped 0.9.0 → **0.9.2** in the release prep
+  commit.
+
+- **MINOR-04: inline-suppression placement docs for taint flows**
+  (`docs/suppressions.md`). New subsection explaining that the
+  `// aegis-ignore` comment for a taint-analyzer finding must go on
+  the sink line (which the finding's `file:line` points at), not
+  the source line. Incorrect + correct side-by-side examples.
+
+- **MINOR-05: GH Action silently swallows scan errors**
+  (`ci/github-action/action.yml`). Removed `2>/dev/null` from the
+  three scan invocations; stderr captured to `aegis-stderr.log`;
+  post-scan validation gate emits a clear `::error::` with the
+  stderr contents if the JSON is empty or unparseable, so the
+  previous cryptic `Cannot find module` / `Unexpected token` errors
+  are replaced with actionable diagnostics.
+
+### Deferred with analysis (validator MINOR-03 → v0.10+)
+
+- **MINOR-03: VS Code `.vsix` pre-build** — closed differently than
+  originally listed as deferred. A new `.github/workflows/release.yml`
+  triggers on `release: published`, builds the extension, runs
+  `vsce package`, and uploads the .vsix as a release asset. So the
+  README's `code --install-extension aegis-vscode-X.Y.Z.vsix`
+  instruction now works out-of-box for every published release.
+  VS Code Marketplace publication remains v0.10 scope (separate
+  review process).
+
+### Added — world-class-OSS polish
+
+- **Package metadata across 5 public packages** (author, bugs URL,
+  homepage, engines.node, corrected repository.directory to
+  `packages/<name>`, extended per-package keywords, richer
+  descriptions) — improves npm search, package-page experience,
+  and repository linkage for all consumers.
+
+- **Community health** — `.github/ISSUE_TEMPLATE/` (bug report,
+  feature request, **dedicated false-positive template**,
+  **dedicated false-negative template**, config.yml routing
+  security-vulns to GitHub Security Advisories + general questions
+  to Discussions + disabling blank issues),
+  `.github/PULL_REQUEST_TEMPLATE.md` (scope checkboxes, coverage
+  delta, breaking-change flag, merge checklist), `.github/CODEOWNERS`
+  (path-level routing ready for future per-area owner additions).
+
+- **README Architecture section** — ASCII pipeline diagram
+  (config → walker → scanners → findings → suppressions →
+  score/grade/badge/confidence → reporters) so first-time readers
+  orient without cloning.
+
+- **README Honest Limitations section** — explicit list of what
+  AEGIS does NOT do well: cross-file precision unmeasured at n≥20,
+  not a general SAST replacement, compliance checks are pattern-
+  based rules not audit-grade, single-maintainer bus-factor,
+  TS/JS only, external wrappers require tool on PATH. Codifies
+  honest-score discipline in the README so it survives ownership
+  changes.
+
+- **README Independently Validated section** — bullets of what the
+  v0.9.1 external stress-test reviewer confirmed reproducibly
+  (self-scan 1000/A, benchmark 30/30, 1386 tests green, adversarial
+  input resilience <2s, prompt-injection hardening held,
+  prototype-pollution blocked, real TP captured on the vercel/
+  next.js with-supabase example). Honest-score discipline applied
+  to the positive side.
+
+- **aegis.config.json schema accepts `description` + `$schema`**
+  (v0.9.0 preceded, documented here) — so users can annotate their
+  configs for future readers without the strict schema rejecting
+  the typical `$comment` / `$description` escape hatches.
+
+### Test counts
+
+- Tests: **1386 → 1397 green** (scanners package 1030 → 1039 +9:
+  3 mass-assignment req.json regressions, 6 auth-enforcer next-auth
+  patterns; reporters package 90 → 92 +2: LOW-CONFIDENCE badge
+  prefix regressions).
+- Benchmark: **30/30 strict unchanged**.
+- Self-scan (AEGIS-on-AEGIS): **1000/A/0-findings unchanged**.
+
+### Independently validated (v0.9.1 stress-test findings)
+
+These items were confirmed reproducibly by the external reviewer
+and remain true at v0.9.2 — no regressions were introduced:
+
+- Self-scan on the AEGIS repo produces 1000/A/HARDENED, 0 findings.
+- Benchmark 30/30 strict (21 planted vulnerabilities + 9 clean-file
+  FP checks).
+- 1386 tests green across the 5 public packages (1397 after v0.9.2's
+  regression additions).
+- Adversarial inputs — 10k-line import file, 1 MB template literal,
+  BOM + RTL override chars, symlink loop — all complete in <2 s
+  without crash.
+- Prompt-injection hardening on `aegis fix` holds (per-invocation
+  random hex sentinel).
+- Prototype-pollution via config rejected by the Zod-strict schema.
+- JSON-only config parser immune to arbitrary code execution.
+- Real TP captured externally on the official vercel/next.js
+  with-supabase example (open-redirect via `searchParams.get('next')`).
+- Forensic leak check — `git log` + `git grep` on `main` + all
+  published tarballs — clean of any private-identity references.
+
+### Cross-file precision
+
+Unchanged from v0.9.1 §Cross-file precision. n=0 observed on 6-corpus
+dogfood post-FP-close. `confidence: 'medium'` retained on cross-file
+findings. Yellow / Green zone classification awaits n≥20 validated
+measurement.
+
+### Known limitations — scoped to v0.10+
+
+- Compliance framework depth audit (GDPR / SOC2 / ISO27001 / PCI-DSS
+  scanners are pattern-based, not audit-grade). v1.0 scope.
+- External-benchmark integration (OWASP Benchmark Project, NIST
+  SAMATE Juliet subset) — enables recognised precision/recall claims.
+  v1.0 credibility sprint.
+- Full-flow AST auth-enforcer replacing the v0.9.2 extended pattern
+  list with taint-tracker-integrated flow analysis. v0.10.
+- VS Code Marketplace publication (v0.9.2 ships the `.vsix` as a
+  release asset; Marketplace submission has its own review cycle).
+- Web dashboard / Grafana integration — **not** scheduled; out of
+  Festung-Mode-B per D3/D5 (no SaaS, no remote calls).
+
+---
+
 ## [0.9.1] — 2026-04-17 — "Cross-File Precision"
 
 **Honest score:** 8.0 (was 7.9 at v0.9.0 — the two cross-file FPs
