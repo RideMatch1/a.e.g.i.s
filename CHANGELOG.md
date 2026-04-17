@@ -11,6 +11,65 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.9.6] — 2026-04-17 — "Sanitization + Consistency Hotfix"
+
+**Honest score:** unchanged **8.4**. No behavior change. This release
+exists because v0.9.5 shipped four comments that named a specific
+originating codebase (the word appeared in two source comments in
+`packages/scanners/src/quality/auth-enforcer.ts`, one test comment in
+`packages/scanners/__tests__/quality/auth-enforcer.test.ts`, and one
+sentence in the v0.9.2 CHANGELOG entry). The project's sanitization
+policy is that repository history, published artifacts, and release
+notes never name internal project/company contexts — so these four
+lines are a policy violation, even though they are non-functional and
+low-risk. This release replaces them with neutral wording ("a narrow
+helper family") and deprecates the affected v0.9.5 publish on npm.
+
+### Fixed
+
+- **Scrubbed four comments naming the originating codebase** — two in
+  `auth-enforcer.ts` (JSDoc + inline), one in the corresponding test,
+  one in the `[0.9.2]` CHANGELOG entry. Technical meaning preserved
+  ("the set was narrow, now extended"), originating project name
+  removed.
+
+- **Corpus table — added `documenso` row** to the `Real-world corpus`
+  section of README.md. The v0.9.5 README claimed an 8-project corpus
+  but the table listed only 7 (documenso was missing). Re-scanned with
+  the v0.9.5-post-fix code: **documenso 956 / A / HARDENED** (stack:
+  Next.js + Prisma). The README + v0.9.5 CHANGELOG 8-project counts
+  were correct; the table was simply under-rendered.
+
+### Deprecated
+
+- **npm packages `@aegis-scan/{core,scanners,reporters,cli,mcp-server}@0.9.5`**
+  via `npm deprecate`. Users should upgrade to 0.9.6. No functional
+  change — the deprecation reason is the un-scrubbed comments only.
+  The `dist/quality/auth-enforcer.js` shipped in the 0.9.5 scanners
+  tarball contains the leak; other tarballs are clean.
+
+### Release-hygiene note
+
+The non-neutral wording was introduced in `0bcb3c1` (v0.9.2 validator
+response) and persisted across tags v0.9.2 / v0.9.3 / v0.9.4 / v0.9.5.
+A full sweep of the v0.9.5 tarballs against the project's internal
+sanitization scrub list confirmed that (a) only the `scanners` tarball
+was affected, (b) exactly four occurrences existed, (c) all four were
+non-functional comments. Core / cli / reporters / mcp-server tarballs
+were already clean.
+
+### Validation
+
+Gates unchanged from v0.9.5 (this release is comment-only):
+
+- Self-scan: **1000 / A / 0 findings**
+- Taint benchmark: **30 / 30 strict**
+- Test suite: **1408 passing**
+- `pnpm build`: exit 0 across all 5 packages
+- Scrub-list grep on shipped v0.9.6 tarball: **0 hits**
+
+---
+
 ## [0.9.5] — 2026-04-17 — "Corpus-Driven Precision Fixes"
 
 **Honest score:** 8.3 → **8.4**. First release shaped primarily by real-world
@@ -253,7 +312,7 @@ a pre-built `.vsix` attached to every Release.
 
 - **MAJOR-02: auth-enforcer misses next-auth / Clerk ownership
   + role guards** (`packages/scanners/src/quality/auth-enforcer.ts`).
-  The ROLE_GUARD_PATTERNS set was tuned to spa-app helpers
+  The ROLE_GUARD_PATTERNS set was tuned to a narrow helper family
   (requireRole, isManager, …). Validator reproduced 3 FPs on
   shadcn-ui/taxonomy. Extended with dominant community shapes:
   `session.user.id === post.userId` ownership comparisons,

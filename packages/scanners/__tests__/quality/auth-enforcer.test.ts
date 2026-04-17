@@ -183,7 +183,7 @@ describe('authEnforcerScanner', () => {
 
   // v0.9.2 regression (validator MAJOR-02): next-auth / Auth.js ownership
   // comparisons must NOT be flagged as "missing role guard". Previous
-  // ROLE_GUARD_PATTERNS set was tuned to spa-app's custom helpers and
+  // ROLE_GUARD_PATTERNS set was tuned to a narrow helper family and
   // produced low-severity FPs on every properly-authorised next-auth
   // route in the wild (validator reproduced 3 FPs on shadcn-ui/taxonomy).
   it('does NOT flag next-auth ownership comparison (session.user.id === post.userId)', async () => {

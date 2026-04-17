@@ -26,8 +26,8 @@ const AUTH_GUARD_PATTERNS = [
 /**
  * Role / authorisation guard patterns.
  *
- * The original v0.7 set was tuned to the originating spa-app's custom
- * helpers (requireRole, requireRoleOrSelf, isManager, …). Validator-
+ * The original v0.7 set was tuned to a narrow helper family
+ * (requireRole, requireRoleOrSelf, isManager, …). Validator-
  * report MAJOR-02 surfaced that standard next-auth / Clerk / iron-
  * session community shapes do NOT match any of those names, so every
  * properly-authorised next-auth route produced a "missing role guard"
@@ -42,7 +42,7 @@ const AUTH_GUARD_PATTERNS = [
  * v0.10 scope.
  */
 const ROLE_GUARD_PATTERNS = [
-  // Original spa-app helper family (kept for backward compat).
+  // Original tuning set (kept for backward compat).
   /requireRole/,
   /requireRoleOrSelf/,
   /isManager/,

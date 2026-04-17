@@ -152,6 +152,7 @@ regression tests). All scores below are post-v0.9.5 precision fixes:
 | formbricks | Next.js + Prisma | 968 | A |
 | midday | Next.js + Supabase | 957 | A |
 | dub | Next.js + Prisma | 956 | A |
+| documenso | Next.js + Prisma | 956 | A |
 | trigger.dev | Next.js + Prisma | 953 | A |
 | cal.com | Next.js + Prisma | 947 | A |
 | supabase-studio | Next.js + Supabase | 0 | F* |
@@ -391,7 +392,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.9.5   # pin to a specific release tag
+      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.9.6   # pin to a specific release tag
         with:
           mode: scan           # 'scan' (quick) or 'audit' (full)
           path: .              # project to scan (default: '.')
@@ -399,7 +400,7 @@ jobs:
           comment-on-pr: true  # post PR comment with findings table
 ```
 
-**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.9.5`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
+**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.9.6`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
 
 ---
 
