@@ -142,20 +142,27 @@ AEGIS is not a Semgrep replacement — it's a **Semgrep multiplier**. When Semgr
 
 ## Real-world corpus
 
-AEGIS v0.9.5 was tuned against an 8-project public-source corpus (each
-finding manually annotated TP/FP, the top FP patterns pinned with
-regression tests). All scores below are post-v0.9.5 precision fixes:
+AEGIS is tuned against an 8-project public-source corpus. Each finding
+is manually annotated TP/FP and the recurring FP patterns are pinned
+as regression tests. Scores below are post-v0.10.0:
 
-| Project | Stack | Score | Grade |
+| Project | Stack | v0.9.5 | v0.10.0 |
 |---|---|---|---|
-| shadcn/taxonomy | Next.js + next-auth | 985 | A |
-| formbricks | Next.js + Prisma | 968 | A |
-| midday | Next.js + Supabase | 957 | A |
-| dub | Next.js + Prisma | 956 | A |
-| documenso | Next.js + Prisma | 956 | A |
-| trigger.dev | Next.js + Prisma | 953 | A |
-| cal.com | Next.js + Prisma | 947 | A |
-| supabase-studio | Next.js + Supabase | 0 | F* |
+| shadcn/taxonomy | Next.js + next-auth | 985 A | 984 A |
+| formbricks | Next.js + Prisma | 968 A | 967 A |
+| midday | Next.js + Supabase | 957 A | 958 A |
+| dub | Next.js + Prisma | 956 A | 951 A |
+| documenso | Next.js + Prisma | 956 A | 956 A |
+| trigger.dev | Next.js + Prisma | 953 A | 953 A |
+| cal.com | Next.js + Prisma | 947 A | 947 A |
+| supabase-studio | Next.js + Supabase | 0 F* | 0 F* |
+
+**v0.10.0 movement: `|Δ|` max = 5 points, 0 grade shifts.** The same
+change set closed **+7 synthetic-recall canaries** (out of a 27-canary
+v0.10 harness). Interpretation: precision on real-world corpora stayed
+stable while recall on documented CWE / scanner gaps improved. The
+dual view is intentional — a precision-only read would call a tool
+"good" for not changing scores, which is circular.
 
 *\*supabase-studio retains two BLOCKER findings on legitimate SQL
 string-concatenation in shipping source (`Reports.constants.ts` and
@@ -163,10 +170,27 @@ string-concatenation in shipping source (`Reports.constants.ts` and
 admin dashboard with a different threat model than a customer-facing
 app, but the findings are accurate as written.*
 
-Corpus-driven fixes in v0.9.5: `public/` / `static/` / `assets/` ignored
-by default, per-scanner scoring cap, tightened `eval()` and `innerHTML`
-patterns. See [CHANGELOG.md](./CHANGELOG.md#095--2026-04-17--corpus-driven-precision-fixes)
-for the full methodology.
+Corpus-driven fixes in v0.10.0 (AST rewrite + pattern-scope tweaks
+across 6 scanners; details in
+[CHANGELOG.md](./CHANGELOG.md#0100--2026-04-17--recall-honesty)):
+
+- AST-based Prisma query detection for multi-tenant isolation (dub
+  no longer loses signal to literal-name mismatch).
+- Auth-enforcer gating-position analysis — ownership comparisons must
+  actually gate, not just appear in the file.
+- `@self-only` JSDoc annotation for self-service routes that want
+  auth but no role-guard (distinct from the existing `@public`).
+- Pattern-scope fixes in mass-assignment (nested Prisma args), RSC
+  data leak (Prisma findUnique / findMany), prompt-injection (direct-
+  variable LLM shape), RLS-bypass (UPPERCASE env-var match), and the
+  DEFAULT_IGNORE `public` / `static` / `assets` entries now scope to
+  the project root only.
+- **Canary-based recall measurement** — `packages/benchmark/canary-
+  fixtures/` is a 27-canary harness covering 5 harness-validation +
+  10 deferred-item targets + 12 blind-spot stressors. 23/27 pass
+  post-v0.10; the remaining 4 (D4 / D5 taint-analyzer guard-flow,
+  S1 CVE-2025-29927 middleware bypass, S12 timing-safe var-name
+  allowlist) are explicit v0.11 scope.
 
 ---
 
@@ -392,7 +416,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.9.6   # pin to a specific release tag
+      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.10.0  # pin to a specific release tag
         with:
           mode: scan           # 'scan' (quick) or 'audit' (full)
           path: .              # project to scan (default: '.')
@@ -400,7 +424,7 @@ jobs:
           comment-on-pr: true  # post PR comment with findings table
 ```
 
-**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.9.6`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
+**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.10.0`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
 
 ---
 

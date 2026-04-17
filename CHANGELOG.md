@@ -11,6 +11,193 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.10.0] — 2026-04-17 — "Recall Honesty"
+
+**Honest score:** **8.5** (up from 8.4 at v0.9.6). First release
+shaped by a canary-based recall-measurement harness rather than by
+ad-hoc precision improvements. A 27-canary fixture suite
+(`packages/benchmark/canary-fixtures/`) now measures: 5 harness-
+validation canaries, 10 deferred-item targets (from v0.9.x backlog),
+and 12 blind-spot stressors covering scanners untouched by previous
+releases. Each canary is authored against POST-v0.10.0 expected
+behaviour — first-run RED *is* the FN/FP measurement. Every v0.10
+fix is paired to a canary that was RED before the fix and is GREEN
+after it.
+
+**Canary tally: 16/27 → 23/27 pass.** The remaining 4 are explicit
+v0.11 scope (see "Known limitations" below). Full test suite
+1408 → 1427 green.
+
+**Real-world corpus (8 projects): 0 grade shifts, `|Δ|` max = 5.**
+README corpus table updated with post-v0.10.0 scores. Precision on
+real-world codebases held stable while synthetic recall on
+documented gaps improved — the dual view is intentional. A
+precision-only interpretation of "scores stable = good" would be
+circular; recall improvement is the real signal.
+
+### Fixed — 9 scanner-precision and -recall fixes across 7 scanners
+
+**Tenant-isolation-checker — AST rewrite with Prisma awareness (Z2 + D8).**
+
+Pre-v0.10: regex-only `.from(` detection. Two problems — (a) regex
+matched inside comment prose (`// uses supabase .from(...)`) and
+produced spurious CWE-639 findings; (b) Prisma codebases had 0%
+coverage. Post-v0.10: AST-based detection parses each route file
+with the TypeScript Compiler API, identifies Supabase `.from(`
+chains and recognised Prisma query-method calls (findFirst,
+findUnique, findMany, their OrThrow variants, create, update,
+upsert, delete, their plural variants, count, aggregate, groupBy).
+Checks the chain / where-clause for any tenant-boundary
+discriminant (tenant_id, tenantId, workspaceId, teamId, orgId,
+organizationId). Activation gate widened — scan if ANY discriminant
+literal OR Prisma / Supabase client usage is present.
+
+Calibration from dub-corpus sanity: admin routes (`/admin/` path
+component) skipped by design — auth-enforcer's role-guard check is
+the right gate, not tenant-isolation. `@cross-tenant` /
+`@admin-only` JSDoc annotations honoured as explicit opt-outs for
+routes that deliberately serve cross-tenant data outside the
+`/admin/` convention. Prisma findings emit at MEDIUM
+(audit-required) not HIGH (IDOR) because ORM relationships often
+scope implicitly via FK chains.
+
+**Auth-enforcer — full-flow gating analysis (D1) + `@self-only`
+annotation (D3) + word-bounded `/authorize/` (Z1).**
+
+ROLE_GUARD_PATTERNS split into two semantic buckets:
+
+- CALL patterns (`requireRole`, `hasRole`, `isAdmin`, Clerk
+  `has({role:…})`, taxonomy-style `verifyCurrent…` and
+  `userHasAccess` helpers) — throw on missing role, presence
+  anywhere in file is accepted as a guard.
+- COMPARISON patterns (`session.user.id [!=]== X`, Clerk
+  `publicMetadata.role`, reversed-operand + snake_case variants) —
+  only count when the expression appears in a GATING position
+  (if-condition, ternary-condition, while/do/for-condition, left
+  operand of `&&` / `||` / `??`). A comparison assigned to a
+  variable (`const isOwn = session.user.id === params.id`) never
+  gates the subsequent write; pre-v0.10 it did silence CWE-285 FPs
+  despite not being an actual gate.
+
+`@self-only` is a new JSDoc / line-comment suppression distinct
+from `@public`. `@public` suppresses both CWE-306 (auth) and
+CWE-285 (role). `@self-only` requires auth (CWE-306 still fires if
+missing) and suppresses only CWE-285 — intended for authenticated
+self-service routes where every user manages their own resources.
+
+Z1: `/authorize/` → `/\bauthorize\s*\(/`. The bare regex
+substring-matched inside any `"unauthorized"` / `"authorization"`
+string literal — every route returning `{ error: 'unauthorized' }`
+silenced CWE-285. The word-bounded function-call shape eliminates
+the substring leak.
+
+**Mass-assignment-checker — balanced-brace Prisma regex (Z5).**
+
+Pre-v0.10: `[^}]*data:body` could not cross `}`, so the realistic
+nested shape `{ where: { id }, data: body }` — the standard Prisma
+mutation call — escaped detection. Replaced with
+`(?:[^{}]|\{[^{}]*\})*` which allows one level of nested objects.
+
+**RSC-data-checker — Prisma full-record detection (Z6).**
+
+Pre-v0.10: SELECT_ALL_PATTERN only matched Supabase `.select('*')`.
+Prisma codebases had 0% RSC-leak coverage — `prisma.user.findUnique`
+returns every scalar field (incl. password_hash, resetToken,
+mfaSecret) by default. Added PRISMA_FULL_RECORD_PATTERN alongside
+SELECT_ALL_PATTERN; widened DATA_TO_JSX detection to recognise props
+whose value is a single-variable expression matching a likely
+full-record identifier (user / post / profile / account /
+subscription / organization / team / workspace / document / …).
+
+**Prompt-injection-checker — direct-variable shape (Z7).**
+
+Pre-v0.10 patterns all required template-literal `${…}`
+interpolation. The idiomatic OpenAI / Anthropic SDK shape
+(`content: userMessage` directly, no template literal) escaped
+detection despite identical risk. Two new patterns — one for LLM
+messages arrays, one for direct `prompt: userVariable` — both use
+negative lookaheads to exclude string-literal / array / object
+values.
+
+**RLS-bypass-checker — case-insensitive service_role (Z8).**
+
+Pre-v0.10: `/service_role/` without /i flag + dynamic
+`RegExp(source, 'g')` dropped any pattern flags. The canonical
+Supabase env-var `SUPABASE_SERVICE_ROLE_KEY` (UPPERCASE) did NOT
+match — codebases referencing only the env-var without lowercase
+prose escaped detection. Fix: pattern + dynamic regex composition
+both explicit `'gi'`.
+
+**walkFiles — root-only ignore encoding (Z9).**
+
+v0.9.5's DEFAULT_IGNORE entries `public` / `static` / `assets` were
+aimed at the Next.js project-root `public/` directory but matched
+at ANY depth — legitimate nested paths (`app/api/public/…`,
+`src/components/public/…`) were silently dropped. walkFiles now
+accepts ignore entries prefixed with `/` as "root-only" shape.
+DEFAULT_IGNORE entries migrated to `/public`, `/static`,
+`/assets`. Bare names (used by scanner-internal skip lists and user
+configs) retain any-depth semantics — backwards-compatible.
+
+### Added
+
+- **Canary harness** (`packages/benchmark/canary-run.mjs`, 155 LoC)
+  — iterates a given phase directory, invokes the Orchestrator per
+  fixture, asserts expected `{scanner, cwe}` pairs. Supports TP
+  mode (ANY declared pair matched = pass; single vuln class can
+  emit under equivalent CWEs) and FP mode (no declared pair fires).
+  OR-scanner support (scanner can be a string or string[]).
+- **27 canary fixtures** across three phases.
+- **+19 unit-test regression pins** — covering Prisma tenant
+  detection, comment-strip, @self-only, full-flow gating, word-
+  bounded `/authorize/`, nested mass-assignment regex,
+  Prisma-to-JSX, direct-variable prompt injection, UPPERCASE
+  service-role, walkFiles root-only.
+
+### Changed
+
+- 5 `@aegis-scan/*` packages bumped 0.9.6 → 0.10.0.
+- `ci/github-action/action.yml` default `aegis-version` pinned to
+  `v0.10.0`. README example + pinning note updated.
+
+### Known limitations (explicit v0.11 scope)
+
+- **Cluster B + Z3** (D4 / D5 canaries) — `taint-analyzer`
+  consumer-side cross-file guard-flow. v0.9.1 covered exporter-side
+  guard-then-sink; consumer-side `if (guard(x)) sink(x)` with a
+  lib-imported boolean validator is a separate pattern. Planned
+  analyzer-core upgrade for v0.11.
+- **Z4** — `ssrf-checker` regex fires inside library wrappers
+  (`export function rateLimitCall(url, opts) { return fetch(url,
+  ...) }`) regardless of whether consumers pass user input.
+  Heuristic or engine-overlap resolution deferred.
+- **S1** — CVE-2025-29927 Next.js middleware auth-bypass pattern.
+  No middleware-specific scanner exists today; auth-enforcer's
+  scope is `/api/` route handlers only. New scanner category for
+  v0.11.
+- **S12** — `timing-safe-checker` variable-name allowlist is narrow
+  (token, secret, apiKey, signature, webhookSecret, CRON_SECRET).
+  Custom names escape. Allowlist expansion deferred.
+
+### Honesty notes
+
+- `|Δ|` max 5 on dub reflects real Prisma findings surfaced at
+  MEDIUM (audit-required), absorbed by the per-scanner 50-point
+  cap. Users who want HIGH severity can override in
+  `aegis.config.json`.
+- cal-com +22 findings (906 → 911 → 928 across the R1-R3 sequence;
+  final 911 in public README). The delta is from Z9 unskipping
+  nested `apps/*/public/` dirs in the monorepo structure. Users
+  who prefer the pre-v0.10 behaviour can add a bare `public` entry
+  (no leading slash) to their `aegis.config.json` `ignore` list.
+- The 22-canary harness is intentionally synthetic and
+  small-sample. Canary recall is not corpus recall — published
+  FN/FP numbers are per-canary, with the sample size reported
+  alongside. Corpus scanning remains the authoritative real-world
+  signal.
+
+---
+
 ## [0.9.6] — 2026-04-17 — "Sanitization + Consistency Hotfix"
 
 **Honest score:** unchanged **8.4**. No behavior change. This release
