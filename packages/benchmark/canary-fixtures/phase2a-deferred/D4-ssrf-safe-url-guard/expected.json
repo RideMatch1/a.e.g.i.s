@@ -1,0 +1,9 @@
+{
+  "id": "D4",
+  "cwe": 918,
+  "type": "FP",
+  "description": "Named allowlist guard dominates fetch — taint-flow should recognise",
+  "expected": [
+    { "scanner": ["ssrf-checker", "taint-analyzer"], "cwe": 918 }
+  ]
+}
