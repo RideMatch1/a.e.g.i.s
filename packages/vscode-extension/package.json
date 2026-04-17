@@ -53,6 +53,7 @@
     "clean": "rm -rf dist *.vsix"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.2.0",
     "typescript": "^5.8.0"
