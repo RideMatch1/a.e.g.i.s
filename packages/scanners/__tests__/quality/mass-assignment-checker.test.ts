@@ -214,4 +214,46 @@ describe('massAssignmentCheckerScanner', () => {
     expect(typeof result.duration).toBe('number');
     expect(result.available).toBe(true);
   });
+
+  // v0.9.2 regression (validator MAJOR-01): handler parameter aliased as
+  // `req` (the Next.js App Router community's dominant abbreviation) must
+  // NOT silently bypass mass-assignment detection. Previous versions
+  // hardcoded `request.json()` in the source-read regex.
+  it('flags Supabase .insert(body) with req.json() (req alias) as HIGH', async () => {
+    createApiRoute(projectPath, 'items-req', `
+      export async function POST(req) {
+        const body = await req.json();
+        await supabase.from('items').insert(body);
+        return Response.json({ ok: true });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.title.includes('Mass assignment'));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe('high');
+    expect(finding!.cwe).toBe(915);
+  });
+
+  it('flags inline .insert(await req.json()) (req alias, no intermediate body var) as HIGH', async () => {
+    createApiRoute(projectPath, 'items-inline-req', `
+      export async function POST(req) {
+        await supabase.from('items').insert(await req.json());
+        return Response.json({ ok: true });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.some((f) => f.title.includes('Mass assignment'))).toBe(true);
+  });
+
+  it('does NOT flag when req.json() result is destructured before use', async () => {
+    createApiRoute(projectPath, 'items-destructure-req', `
+      export async function POST(req) {
+        const { name, description, price } = await req.json();
+        await supabase.from('items').insert({ name, description, price });
+        return Response.json({ ok: true });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('Mass assignment'))).toHaveLength(0);
+  });
 });

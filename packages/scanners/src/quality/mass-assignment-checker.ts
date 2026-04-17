@@ -15,8 +15,19 @@ function findLineNumber(content: string, matchIndex: number): number {
   return content.slice(0, matchIndex).split('\n').length;
 }
 
-/** Patterns that indicate the request body is read */
-const REQUEST_JSON_PATTERN = /await\s+request\.json\s*\(\s*\)/;
+/**
+ * Patterns that indicate the request body is read.
+ *
+ * v0.9.2 (validator MAJOR-01): accept both `req` and `request` as
+ * handler-parameter aliases. Next.js App Router allows either name for
+ * the incoming `NextRequest` argument; the `req` abbreviation is
+ * extremely common in the ecosystem. Previously only `request.json()`
+ * matched, so every codebase using `const body = await req.json()`
+ * silently bypassed the detection. Kept symmetric with
+ * `packages/scanners/src/ast/sources.ts` TAINT_SOURCES which already
+ * handles both aliases.
+ */
+const REQUEST_JSON_PATTERN = /await\s+(?:req|request)\.json\s*\(\s*\)/;
 
 /** Patterns that indicate the raw body is passed directly to a DB operation */
 const RAW_DB_PATTERNS = [
@@ -24,23 +35,24 @@ const RAW_DB_PATTERNS = [
   /\.(insert|update|upsert)\s*\(\s*(?:body|data|payload|params|input|values)\s*\)/,
   // Prisma: prisma.*.create({ data: body|data|payload|... }) / .update / .upsert
   /prisma\s*\.\s*\w+\s*\.\s*(?:create|update|upsert)\s*\(\s*\{[^}]*data\s*:\s*(?:body|data|payload|params|input|values)\b/,
-  // Inline: .insert(await request.json()) / .update(await request.json()) / .upsert(await request.json())
-  /\.(insert|update|upsert)\s*\(\s*await\s+request\.json\s*\(\s*\)\s*\)/,
+  // Inline: .insert(await req.json()) / .update(await request.json()) / .upsert(...) — either alias
+  /\.(insert|update|upsert)\s*\(\s*await\s+(?:req|request)\.json\s*\(\s*\)\s*\)/,
 ];
 
 /** Patterns that indicate the body is sanitised before DB use.
  *  If ANY of these are found, the file is considered mitigated. */
 const MITIGATION_PATTERNS = [
-  // Zod parse / safeParse
-  /\.parse\s*\(\s*(?:body|await request\.json\s*\(\s*\))/,
-  /\.safeParse\s*\(\s*(?:body|await request\.json\s*\(\s*\))/,
+  // Zod parse / safeParse — either alias
+  /\.parse\s*\(\s*(?:body|await\s+(?:req|request)\.json\s*\(\s*\))/,
+  /\.safeParse\s*\(\s*(?:body|await\s+(?:req|request)\.json\s*\(\s*\))/,
   // Any safeParse or parseAsync call anywhere in the file
   /\.safeParse\s*\(/,
   /\.parseAsync\s*\(/,
   /\.safeParseAsync\s*\(/,
   // Explicit field destructuring from body/data/payload/params/input/values
   /const\s*\{[^}]+\}\s*=\s*(?:body|data|payload|params|input|values)/,
-  /const\s*\{[^}]+\}\s*=\s*await\s+request\.json/,
+  // Inline destructure direct from the await — either alias
+  /const\s*\{[^}]+\}\s*=\s*await\s+(?:req|request)\.json/,
 ];
 
 function hasMitigation(content: string): boolean {
