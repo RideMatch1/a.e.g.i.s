@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
   it('flags service_role usage as CRITICAL', async () => {
     createFile(
       projectPath,
-      'app/api/admin/route.ts',
+      'app/api/data-sync/route.ts',
       `
 import { createClient } from '@supabase/supabase-js';
 
@@ -273,8 +273,53 @@ export async function GET(req: Request) {
     const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
     const prismaFindings = result.findings.filter(f => f.title.includes('Prisma'));
     expect(prismaFindings.length).toBeGreaterThan(0);
-    expect(prismaFindings[0].severity).toBe('high');
+    // v0.10 dub-corpus calibration: Prisma findings emit at MEDIUM
+    // (audit required) not HIGH (IDOR). ORM relationships often scope
+    // implicitly via FK chains.
+    expect(prismaFindings[0].severity).toBe('medium');
     expect(prismaFindings[0].cwe).toBe(639);
+  });
+
+  it('v0.10: skips routes under `/admin/` path (dub-corpus calibration)', async () => {
+    createFile(
+      projectPath,
+      'app/api/admin/ban/route.ts',
+      `
+import { prisma } from '@/lib/prisma';
+
+export async function POST() {
+  // Intentionally cross-tenant — admin ban flow.
+  const banned = await prisma.user.findMany({ where: { flagged: true } });
+  return Response.json(banned);
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const prismaFindings = result.findings.filter(f => f.title.includes('Prisma'));
+    expect(prismaFindings).toHaveLength(0);
+  });
+
+  it('v0.10: honours `@cross-tenant` JSDoc annotation', async () => {
+    createFile(
+      projectPath,
+      'app/api/support/users/route.ts',
+      `
+import { prisma } from '@/lib/prisma';
+
+/**
+ * Support tooling — intentionally cross-tenant.
+ * @cross-tenant
+ */
+export async function GET() {
+  return prisma.user.findMany({ where: { status: 'active' } });
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const prismaFindings = result.findings.filter(f => f.title.includes('Prisma'));
+    expect(prismaFindings).toHaveLength(0);
   });
 
   it('v0.10: AST-based — `.from(` inside comment does NOT fire (Z2 pin)', async () => {

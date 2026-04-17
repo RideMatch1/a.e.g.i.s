@@ -55,9 +55,29 @@ function shouldSkipFile(filePath: string): boolean {
     filePath.includes('/generated/') ||
     filePath.includes('/scripts/') ||
     filePath.includes('/cron/') ||
-    filePath.includes('/webhooks/')
+    filePath.includes('/webhooks/') ||
+    // v0.10 (dub-corpus delta): admin routes are by-design cross-tenant.
+    // `requireRole('admin')` on the auth-enforcer side is the right
+    // gate for those; tenant-isolation-checker would produce redundant
+    // FPs on every prisma call inside them.
+    filePath.includes('/admin/') ||
+    filePath.includes('/_admin/')
   );
 }
+
+/** Opt-out content annotations. A route that deliberately handles
+ *  cross-tenant access (support / ops tooling, admin panels implemented
+ *  via content rather than URL convention) can declare intent with a
+ *  JSDoc or line comment tag. */
+const CROSS_TENANT_CONTENT_PATTERNS: readonly RegExp[] = [
+  // Inside a block comment (`/** … @cross-tenant … */`). Prose between
+  // `/**` and the tag is allowed — \s* couldn't cross non-whitespace.
+  /\/\*[\s\S]*?@cross-tenant\b[\s\S]*?\*\//,
+  /\/\*[\s\S]*?@admin-only\b[\s\S]*?\*\//,
+  // On a single-line comment.
+  /\/\/[^\n]*@cross-tenant\b/,
+  /\/\/[^\n]*@admin-only\b/,
+];
 
 /** Prisma method calls that read or mutate records. */
 const PRISMA_METHODS = new Set([
@@ -253,9 +273,14 @@ export const tenantIsolationCheckerScanner: Scanner = {
       const content = readFileSafe(file);
       if (content === null) continue;
 
-      // Explicit opt-out — the Spa-App / Sonnenhof family of helpers own
-      // tenant filtering internally.
+      // Explicit opt-out — dedicated helper family owns tenant filtering.
       if (/secureApiRouteWithTenant/.test(content)) continue;
+
+      // Explicit opt-out via JSDoc / line-comment annotation. Routes
+      // that deliberately serve cross-tenant data (support tooling,
+      // admin endpoints that live outside `/admin/` by convention)
+      // declare intent with `@cross-tenant` or `@admin-only`.
+      if (CROSS_TENANT_CONTENT_PATTERNS.some((p) => p.test(content))) continue;
 
       // AST parse once per file — ~5ms on typical route sizes.
       let sf: ts.SourceFile;
@@ -321,11 +346,20 @@ export const tenantIsolationCheckerScanner: Scanner = {
           findings.push({
             id,
             scanner: 'tenant-isolation-checker',
-            severity: 'high',
+            // v0.10 dub-corpus delta: Prisma ORM findings emit at MEDIUM
+            // (audit required) rather than HIGH (IDOR). Many legitimate
+            // Prisma queries are scoped by primary key or FK-relationship
+            // chain rather than by an explicit discriminant column —
+            // without taint/relationship analysis the scanner cannot
+            // distinguish those from true gaps. Supabase `.from(` remains
+            // HIGH because those are direct SQL queries without implicit
+            // ORM scoping. Users can opt a whole file out via the
+            // `@cross-tenant` / `@admin-only` annotations.
+            severity: 'medium',
             title:
-              'Prisma query missing tenant-boundary filter — cross-tenant data leak possible',
+              'Prisma query missing tenant-boundary filter — audit for cross-tenant exposure',
             description:
-              `A Prisma ${prisma.method}() call in an API route has no tenant discriminant in its where clause. Add workspaceId / teamId / orgId / organizationId / tenantId / tenant_id matching the project's multi-tenancy convention, or scope the query to the caller's tenant at the DB layer via row-level security. This emission is AST-based, so prose mentions of the terms in comments do not false-trigger.`,
+              `A Prisma ${prisma.method}() call in an API route has no tenant discriminant in its where clause (workspaceId / teamId / orgId / organizationId / tenantId / tenant_id). This MAY be safe if the query is scoped by primary key on a resource that already belongs to the caller's tenant via FK relationship — OR it may be a cross-tenant leak. AST-based emission (no regex-in-comment FPs). Suppress an intentionally cross-tenant file with the JSDoc \`@cross-tenant\` or \`@admin-only\` annotation.`,
             file,
             line: getLineNumber(sf, node.getStart(sf)),
             category: 'security',
