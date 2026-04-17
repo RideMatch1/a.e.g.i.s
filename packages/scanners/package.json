@@ -1,7 +1,7 @@
 {
   "name": "@aegis-scan/scanners",
-  "version": "0.10.0",
-  "description": "AEGIS scanner registry — 39 built-in regex/AST checkers + 1 AST cross-file taint analyzer + 16 external-tool wrappers (Semgrep, Gitleaks, Trivy, ZAP, …). Framework-specific security rules for Next.js + Supabase: multi-tenant isolation, RLS bypass, Zod enforcement, RSC data leaks, and more.",
+  "version": "0.11.0",
+  "description": "AEGIS scanner registry — 40 built-in regex/AST checkers + 1 AST cross-file taint analyzer + 16 external-tool wrappers (Semgrep, Gitleaks, Trivy, ZAP, …). Framework-specific security rules for Next.js + Supabase: multi-tenant isolation, RLS bypass, Zod enforcement, RSC data leaks, and more.",
   "license": "MIT",
   "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
   "homepage": "https://github.com/RideMatch1/a.e.g.i.s#readme",

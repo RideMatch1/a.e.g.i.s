@@ -9,7 +9,7 @@
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 [![npm](https://img.shields.io/npm/v/@aegis-scan/cli?label=%40aegis-scan%2Fcli)](https://www.npmjs.com/package/@aegis-scan/cli)
 
-Stack-specific security scanner for **Next.js + Supabase + React**. 40 built-in checkers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, VS Code extension, and GitHub Action.
+Stack-specific security scanner for **Next.js + Supabase + React**. 41 built-in checkers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, VS Code extension, and GitHub Action.
 
 ---
 
@@ -34,7 +34,7 @@ db.query(query);                                   // sink: SQL Injection (CWE-8
 
 Per-CWE sanitizer awareness: `parseInt()` blocks SQL injection but not XSS, `DOMPurify.sanitize()` blocks XSS but not SQL injection, `encodeURIComponent()` blocks SSRF but not path traversal (frameworks decode before fs access).
 
-Suite composition: **38** regex scanners + **1** AST taint analyzer + **1** RPC-specific SQLi scanner (built-in), **16** external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** live attack probes, **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
+Suite composition: **39** regex scanners + **1** AST taint analyzer + **1** RPC-specific SQLi scanner (built-in), **16** external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** live attack probes, **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
 
 ---
 
@@ -58,7 +58,7 @@ Suite composition: **38** regex scanners + **1** AST taint analyzer + **1** RPC-
              ▼              ▼              ▼
   ┌──────────────────┐  ┌────────────┐  ┌──────────────────┐
   │ Built-in scanners│  │  Taint     │  │ External wrappers│
-  │  (39 regex rules)│  │  Analyzer  │  │  (Semgrep, ZAP, …│
+  │  (40 regex rules)│  │  Analyzer  │  │  (Semgrep, ZAP, …│
   │                  │  │  (AST +    │  │   auto-skip when │
   │                  │  │   TS       │  │   not installed) │
   │                  │  │   Compiler)│  │                  │
@@ -144,25 +144,26 @@ AEGIS is not a Semgrep replacement — it's a **Semgrep multiplier**. When Semgr
 
 AEGIS is tuned against an 8-project public-source corpus. Each finding
 is manually annotated TP/FP and the recurring FP patterns are pinned
-as regression tests. Scores below are post-v0.10.0:
+as regression tests. Scores below are post-v0.11.0:
 
-| Project | Stack | v0.9.5 | v0.10.0 |
-|---|---|---|---|
-| shadcn/taxonomy | Next.js + next-auth | 985 A | 984 A |
-| formbricks | Next.js + Prisma | 968 A | 967 A |
-| midday | Next.js + Supabase | 957 A | 958 A |
-| dub | Next.js + Prisma | 956 A | 951 A |
-| documenso | Next.js + Prisma | 956 A | 956 A |
-| trigger.dev | Next.js + Prisma | 953 A | 953 A |
-| cal.com | Next.js + Prisma | 947 A | 947 A |
-| supabase-studio | Next.js + Supabase | 0 F* | 0 F* |
+| Project | Stack | v0.9.5 | v0.10.0 | v0.11.0 |
+|---|---|---|---|---|
+| shadcn/taxonomy | Next.js + next-auth | 985 A | 984 A | 984 A |
+| formbricks | Next.js + Prisma | 968 A | 967 A | 967 A |
+| midday | Next.js + Supabase | 957 A | 958 A | 957 A |
+| dub | Next.js + Prisma | 956 A | 951 A | 950 A |
+| documenso | Next.js + Prisma | 956 A | 956 A | 956 A |
+| trigger.dev | Next.js + Prisma | 953 A | 953 A | 952 A |
+| cal.com | Next.js + Prisma | 947 A | 947 A | 947 A |
+| supabase-studio | Next.js + Supabase | 0 F* | 0 F* | 0 F* |
 
-**v0.10.0 movement: `|Δ|` max = 5 points, 0 grade shifts.** The same
-change set closed **+7 synthetic-recall canaries** (out of a 27-canary
-v0.10 harness). Interpretation: precision on real-world corpora stayed
-stable while recall on documented CWE / scanner gaps improved. The
-dual view is intentional — a precision-only read would call a tool
-"good" for not changing scores, which is circular.
+**v0.11.0 movement vs v0.10.0: `|Δ|` max = 1 point, 0 grade shifts.**
+The same change set closed **+4 synthetic-recall canaries**, taking
+the 27-canary harness to **27/27 full green** for the first time.
+Interpretation: precision on real-world corpora stayed stable while
+recall on documented CWE / scanner gaps improved. The dual view is
+intentional — a precision-only read would call a tool "good" for not
+changing scores, which is circular.
 
 *\*supabase-studio retains two BLOCKER findings on legitimate SQL
 string-concatenation in shipping source (`Reports.constants.ts` and
@@ -170,21 +171,28 @@ string-concatenation in shipping source (`Reports.constants.ts` and
 admin dashboard with a different threat model than a customer-facing
 app, but the findings are accurate as written.*
 
-Corpus-driven fixes in v0.10.0 (AST rewrite + pattern-scope tweaks
-across 6 scanners; details in
-[CHANGELOG.md](./CHANGELOG.md#0100--2026-04-17--recall-honesty)):
+Corpus-driven fixes in v0.11.0 (analyzer-core consumer-side symmetry +
+new scanner + precision tweaks; details in
+[CHANGELOG.md](./CHANGELOG.md#0110--2026-04-17--recall-honesty-part-2)):
 
-- AST-based Prisma query detection for multi-tenant isolation (dub
-  no longer loses signal to literal-name mismatch).
-- Auth-enforcer gating-position analysis — ownership comparisons must
-  actually gate, not just appear in the file.
-- `@self-only` JSDoc annotation for self-service routes that want
-  auth but no role-guard (distinct from the existing `@public`).
-- Pattern-scope fixes in mass-assignment (nested Prisma args), RSC
-  data leak (Prisma findUnique / findMany), prompt-injection (direct-
-  variable LLM shape), RLS-bypass (UPPERCASE env-var match), and the
-  DEFAULT_IGNORE `public` / `static` / `assets` entries now scope to
-  the project root only.
+- New `ast/guard-flow.ts` module — shared dominator-walk between
+  function-summary (v0.9.1 builder-side) and taint-tracker (v0.11
+  consumer-side). Closes D4 (named-fn URL guard) + D5 (startsWith-
+  literal guard) + Z3 (cross-file consumer-side guard symmetry) via
+  a single `isSinkGuardedByKnownPredicate` wired into three sink-
+  emission call sites.
+- New scanner `middleware-auth-checker` — Next.js middleware auth-
+  bypass CVE-2025-29927 via `x-middleware-subrequest` header.
+  Bumps built-in scanner count 40 → 41.
+- `ssrf-checker` structural SAFE_PATTERN for user-defined typed URL
+  guards (name token + `: boolean` return). Silences ssrf-checker
+  on D4-shape allowlist helpers — both scanners now fall silent in
+  tandem on the same structural signal.
+- `ssrf-checker` library-wrapper heuristic (Z4) — exported fetch-
+  wrappers where the URL is a parameter no longer emit CWE-918 at
+  the wrapper site.
+- `timing-safe-checker` UPPERCASE env-var name allowlist widened to
+  cover the common `process.env.SECRET` shape.
 - **Canary-based recall measurement** — `packages/benchmark/canary-
   fixtures/` is a 27-canary harness covering 5 harness-validation +
   10 deferred-item targets + 12 blind-spot stressors. 23/27 pass
@@ -256,12 +264,13 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 > [`packages/scanners/src/index.ts`](./packages/scanners/src/index.ts). Counts
 > below are re-verified at every release per the release checklist.
 
-### Built-in (40 scanners: 39 regex + 1 AST taint analyzer)
+### Built-in (41 scanners: 40 regex + 1 AST taint analyzer)
 
 | Scanner | Category | CWE(s) | What it checks |
 |---------|----------|--------|----------------|
 | `taint-analyzer` | Security | 22, 78, 79, 89, 94, 601, 918, 1321 | **AST-based data-flow analysis** — tracks user input from sources to sinks with per-CWE sanitizer awareness and cross-file propagation |
 | `auth-enforcer` | Security | 285, 306 | Missing auth guards, unprotected routes, RBAC gaps |
+| `middleware-auth-checker` | Security | 285 | Next.js middleware auth-bypass (CVE-2025-29927, `x-middleware-subrequest` header) |
 | `tenant-isolation-checker` | Security | 639 | Supabase queries missing `tenant_id` filters — cross-tenant data leak detection |
 | `rls-bypass-checker` | Security | 863 | Supabase `.rpc()` and `service_role` usage bypassing Row Level Security |
 | `crypto-auditor` | Security | 326, 327, 338, 798 | Weak algorithms, hardcoded secrets, insecure RNG, eval() injection |
@@ -416,7 +425,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.10.0  # pin to a specific release tag
+      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.11.0  # pin to a specific release tag
         with:
           mode: scan           # 'scan' (quick) or 'audit' (full)
           path: .              # project to scan (default: '.')
@@ -424,7 +433,7 @@ jobs:
           comment-on-pr: true  # post PR comment with findings table
 ```
 
-**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.10.0`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
+**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.11.0`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
 
 ---
 

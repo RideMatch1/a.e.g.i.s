@@ -11,6 +11,149 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.11.0] — 2026-04-17 — "Recall Honesty Part 2"
+
+**Honest score:** **8.6** (up from 8.5 at v0.10.0). Closes the four
+v0.10-deferred canaries (D4, D5, S1, S12) and two precision gaps:
+**Z3** (consumer-side guard-flow symmetry — the architectural
+consequence of the D4/D5 fix) and **Z4** (ssrf-checker library-wrapper
+FP reduction — independent, no canary signal). Canary harness reaches
+**27/27 full green** for the first time — the recall-measurement
+baseline established in v0.10.0 is now at parity with the ship bar.
+
+**Canary tally: 23/27 → 27/27 pass.** Full test suite **1427 → 1462
+(+35 regression pins)** across v0.11: +12 Day-1 scanner/precision
+pins, +23 Day-2 analyzer-core work (8 guard-flow unit, 5
+function-summary shape, 10 taint-tracker consumer-side suppression).
+
+**Real-world corpus (8 projects): 0 grade shifts, `|Δ|` max = 1
+point.** The same code-base drift that closed 4 synthetic canaries
+left real-world precision stable — same dual-claim pattern as
+v0.10.0 (synthetic-recall-up + real-world-precision-stable).
+
+### Fixed — 4 canary-tracked closures + 2 precision improvements
+
+**D4 / D5 — Consumer-side guard suppression (taint-analyzer).**
+
+v0.9.1 added exporter-side regex-guard recognition in function-summary
+(`if (!regex.test(param)) return; sink(param)` inside an exported
+function would NOT emit CWE-918 on the cross-file call). v0.11 extends
+the same dominator-walk semantics to the *consumer* side: when a
+caller writes `if (!isSafeUrl(url)) return; await fetch(url)` with a
+local or imported guard function, the sink emission is suppressed.
+**Three new recognition shapes** land alongside the v0.9.1
+`<regex>.test(param)`:
+
+- `<paramName>.startsWith('<literal>')` — the D5 canary shape
+  (protocol / host prefix check).
+- `<allowlist>.has(<paramName>)` / `.includes(<paramName>)` — simple
+  membership allowlists.
+- `<allowlist>.has(new URL(<paramName>).hostname)` — the D4 canary
+  shape (host-allowlist with URL parse). Same-function intra-body
+  local-var tracking recognises the idiomatic
+  `const u = new URL(raw); TRUSTED_HOSTS.has(u.hostname)` form in
+  addition to the inline `X.has(new URL(p).hostname)` one-liner.
+
+Architecture: a new `ast/guard-flow.ts` module owns the shared
+dominator walk used by both the exporter-side check (v0.9.1) and the
+new consumer-side `isSinkGuardedByKnownPredicate` helper — single
+source of truth for "does an ancestor-then or preceding-early-exit
+if-stmt dominate this sink call?". The field
+`guardsCwes: number[]` on `FunctionSummary` mirrors `sanitizesCwes`
+but with caller-side dominance semantics (initial CWE scope: 918
+only; broader classes expand as canary data demands).
+
+CWE-specificity is strict: a guard that narrows CWE-918 does NOT
+suppress a CWE-89 or CWE-78 sink on the same identifier. Value-
+capture does NOT count as a guard (D1 lesson from v0.10 auth-enforcer
+full-flow: a boolean-returning call that isn't used in an if /
+ternary / short-circuit doesn't narrow anything — `const ok =
+isSafeUrl(x)` followed by `fetch(x)` is still an SSRF sink). Pinned
+by a regression test.
+
+**D4 — ssrf-checker structural SAFE_PATTERN for typed URL guards.**
+
+ssrf-checker runs in parallel to the taint-analyzer. Silencing
+taint-analyzer alone left ssrf-checker firing its own regex-based
+CWE-918 on D4. A new narrow SAFE_PATTERN
+`\bfunction\s+\w*(Url|URL|Host|Origin)\w*\(.+\)\s*:\s*boolean\b`
+recognises user-defined typed boolean guards — narrow by convention
+(name token + typed return together distinguish URL guards from
+generic boolean helpers like `isAdmin`). Both scanners now fall
+silent in tandem on the same structural shape.
+
+**S1 — middleware-auth-checker: CVE-2025-29927 (new scanner, 41st).**
+
+Next.js middleware-auth bypass via crafted `x-middleware-subrequest`
+header. New scanner `middleware-auth-checker` fires on
+`middleware.ts` / `middleware.js` that checks the header and returns
+a bypass path (`NextResponse.next()` / redirect-to-same-path) — the
+CVE shape. Bumps AEGIS scanner count from 40 → 41.
+
+**S12 — timing-safe-checker: UPPERCASE env-var name allowlist.**
+
+Pre-v0.11: timing-safe-checker's UPPERCASE detection matched
+`STATIC_TOKEN` and `WEBHOOK_SECRET` but missed the idiomatic
+`process.env.SECRET` match because the regex did not allow
+`UPPERCASE_WITH_UNDERSCORES` fully. Widened the allowlist regex; S12
+canary flips RED → PASS.
+
+**Z4 — ssrf-checker library-wrapper heuristic (FP reduction, no
+canary flip).** Exported functions whose first parameter is the
+variable passed to `fetch` are library HTTP wrappers — SSRF exposure
+materialises at the consumer's call site, not inside the wrapper.
+Regex-scoped parameter capture (`\(([^)]*)\)`) avoids the body-bleed
+over-match that an early draft hit.
+
+**Z3 — Cross-file consumer-side guard resolution (symmetry with
+v0.9.1 exporter-side).** The same consumer-side helper that handles
+D4 / D5 resolves named-function guards cross-file via the module
+graph, reading `guardsCwes` from the imported function's summary.
+`resolveSymbolOrigin` → `findExportedFunction` → `buildSummary`
+pipeline reused from the existing cross-file-sink path — no new
+graph-traversal logic.
+
+### Architecture
+
+- **New module `packages/scanners/src/ast/guard-flow.ts` (~400 LoC
+  inclusive of JSDoc-encoded discipline rules** — e.g.
+  `detectGuard MUST NOT call isCallGuardedByRegexTest` as an
+  abstraction-boundary warning embedded in-code, not just in review
+  comments; Flag-1-style enforcement that survives reviewer
+  turnover). Shared between `function-summary` (builder-side) and
+  `taint-tracker` (consumer-side). Exports
+  `isSinkDominatedByNarrowingCondition` (generic dominator walk),
+  `isCallGuardedByRegexTest` (v0.9.1 API preserved, now delegates),
+  `detectGuard` (v0.11 new, summary-side).
+- **New helpers in `taint-tracker.ts`**: `enclosingFunctionBody`,
+  `findSameFileSummarizable`, `resolveGuardsCwesForCallee`,
+  `callSatisfiesGuardShape`, `conditionHasKnownGuardOn`,
+  `isSinkGuardedByKnownPredicate`. Wired into three sink-emission
+  call sites: `checkCallSink`, `checkCrossFileCallSink`,
+  `checkCrossFileMethodCall`. Each with per-CWE strict match.
+- **Built-in scanner count 40 → 41** (38 → 39 regex + 1 AST + 1 RPC)
+  via `middleware-auth-checker`.
+
+### Known limitations (still deferred beyond v0.11)
+
+- **Guard shapes not yet recognised**: non-typed arrow-function
+  guards (`const isSafeUrl = (u) => u.startsWith('https://')`) work
+  for taint-analyzer via summary detectGuard but ssrf-checker's
+  SAFE_PATTERN requires the `function <Name>(): boolean` form.
+- **Value-disjunction guards**: `url.startsWith('https://a') ||
+  url.startsWith('https://b')` does NOT count as a guard (one
+  recognised shape per return; disjunction requires multi-return
+  merge which is post-v0.11 scope).
+- **Non-918 guard CWEs**: `detectGuard` returns `[918]` only.
+  Real-world use of startsWith / regex.test on paramName is
+  overwhelmingly URL-narrowing; SQL / path-traversal guard CWEs
+  expand when canary data demands.
+- **Overloaded method symbols** in `checkCrossFileMethodCall` still
+  brittle when the TypeChecker finds multiple declarations — fail-
+  open today, no regression from v0.10 but known weakness.
+
+---
+
 ## [0.10.0] — 2026-04-17 — "Recall Honesty"
 
 **Honest score:** **8.5** (up from 8.4 at v0.9.6). First release
