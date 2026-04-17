@@ -1,24 +1,37 @@
 {
   "name": "@aegis-scan/reporters",
   "version": "0.9.1",
+  "description": "AEGIS output reporters — terminal (colourised with progress bars), JSON, SARIF 2.1.0 (GitHub Code Scanning), HTML report, and Markdown for CI comments. Consumes ScanResult from @aegis-scan/core.",
   "license": "MIT",
+  "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
+  "homepage": "https://github.com/RideMatch1/a.e.g.i.s#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RideMatch1/a.e.g.i.s.git",
-    "directory": "reporters"
+    "url": "git+https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "packages/reporters"
+  },
+  "bugs": {
+    "url": "https://github.com/RideMatch1/a.e.g.i.s/issues"
+  },
+  "keywords": [
+    "security",
+    "reporter",
+    "sarif",
+    "json",
+    "html",
+    "markdown",
+    "terminal",
+    "ci-reporter",
+    "github-code-scanning"
+  ],
+  "engines": {
+    "node": ">=20"
   },
   "publishConfig": {
     "access": "public"
   },
   "files": [
     "dist"
-  ],
-  "keywords": [
-    "security",
-    "reporter",
-    "sarif",
-    "json",
-    "html"
   ],
   "type": "module",
   "main": "dist/index.js",

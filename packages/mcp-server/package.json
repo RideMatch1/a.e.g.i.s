@@ -1,11 +1,35 @@
 {
   "name": "@aegis-scan/mcp-server",
   "version": "0.9.1",
+  "description": "AEGIS MCP server — exposes scan / findings / score / compliance / fix-suggestion tools to any Model Context Protocol agent (Claude Code, Cursor, Continue, Zed). Five registered tools: aegis_scan, aegis_findings, aegis_score, aegis_compliance, aegis_fix_suggestion.",
   "license": "MIT",
+  "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
+  "homepage": "https://github.com/RideMatch1/a.e.g.i.s#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RideMatch1/a.e.g.i.s.git",
-    "directory": "mcp-server"
+    "url": "git+https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "packages/mcp-server"
+  },
+  "bugs": {
+    "url": "https://github.com/RideMatch1/a.e.g.i.s/issues"
+  },
+  "keywords": [
+    "security",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "claude-code",
+    "cursor",
+    "continue",
+    "zed",
+    "sast",
+    "scanner",
+    "audit",
+    "nextjs",
+    "supabase"
+  ],
+  "engines": {
+    "node": ">=20"
   },
   "publishConfig": {
     "access": "public"
@@ -13,14 +37,6 @@
   "files": [
     "dist"
   ],
-  "keywords": [
-    "security",
-    "mcp",
-    "model-context-protocol",
-    "ai",
-    "audit"
-  ],
-  "description": "AEGIS MCP Server — use AEGIS as a tool in any AI coding agent",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

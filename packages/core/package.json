@@ -1,11 +1,31 @@
 {
   "name": "@aegis-scan/core",
   "version": "0.9.1",
+  "description": "AEGIS core engine — orchestrator, scoring (0-1000), config loader with Zod-strict schema, suppression filter, shared types + utilities. The foundation of the AEGIS security-scanner suite for Next.js + Supabase.",
   "license": "MIT",
+  "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
+  "homepage": "https://github.com/RideMatch1/a.e.g.i.s#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RideMatch1/a.e.g.i.s.git",
-    "directory": "core"
+    "url": "git+https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/RideMatch1/a.e.g.i.s/issues"
+  },
+  "keywords": [
+    "security",
+    "sast",
+    "scanner-core",
+    "orchestrator",
+    "scoring",
+    "suppressions",
+    "nextjs",
+    "supabase",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=20"
   },
   "publishConfig": {
     "access": "public"
@@ -13,13 +33,6 @@
   "files": [
     "dist"
   ],
-  "keywords": [
-    "security",
-    "audit",
-    "scoring",
-    "scanner"
-  ],
-  "description": "AEGIS core engine — orchestrator, scoring, config",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
