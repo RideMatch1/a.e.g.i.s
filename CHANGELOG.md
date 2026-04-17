@@ -11,6 +11,74 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.9.1] — 2026-04-17 — "Cross-File Precision"
+
+**Honest score:** 8.0 (was 7.9 at v0.9.0 — the two cross-file FPs
+observed in the v0.8 dogfood delta are closed with AST-precise
+filters, not text-suppression; precision on cross-file CWE-918 is
+now 100% on the observed corpus, though n=0 post-fix means "no false
+safety signal" rather than a validated measurement).
+
+**Summary:** Closes the two v0.8-corpus cross-file false positives
+flagged in the Phase-7 delta memo (cal-com intercom isValidCalURL +
+dub bitly rate-limit). Both fixes are AST-precise post-filters on
+`paramReachesSink` in function-summary.ts; no text-suppression, no
+new false-negative classes introduced.
+
+### Fixed
+
+- **Cross-file regex-guard filter (cal-com isValidCalURL pattern).**
+  `paramReachesSink` previously credited CWE-918 on any SSRF-class
+  sink call mentioning the param, regardless of whether the call was
+  protected by `<regex>.test(param)`. New helper walks the fn body
+  AST to find SSRF sink calls on `paramName`, then for each checks
+  two guard shapes:
+    1. Ancestor `if (<x>.test(param)) { … sink(param) }` — positive
+       wrap; call must be in the then-branch.
+    2. Preceding `if (!<x>.test(param)) return | throw;` — negated
+       early-exit; siblings after it are guarded.
+  Any unguarded sink call defeats the filter and the CWE stays.
+  Symmetric to v0.8 Phase 6's single-file URL-regex-whitelist; the
+  cross-file version lives in function-summary.ts so cross-file
+  callers see a clean summary.
+
+- **Cross-file SSRF URL-position filter (dub bitly rate-limit pattern).**
+  CWE-918 (SSRF) requires the tainted value to reach the URL argument
+  of fetch / axios / etc. A param that only flows into the options-
+  object (`{ headers, body, method }`) is a different concern —
+  credential leak, header injection — not SSRF. The new filter walks
+  fn.body for SSRF-class CallExpressions and checks whether
+  paramName appears in the FIRST argument's source text. Zero URL-
+  position hits → CWE-918 dropped. URL-position hits present →
+  regex-guard filter is also required to pass.
+
+### Test counts
+
+- Tests: **1023 → 1030 green** (+7: 4 regex-guard, 3 URL-position).
+- Benchmark: **30/30 strict unchanged**.
+- Self-scan: **1000/A/0-findings unchanged**.
+
+### Cross-file precision — n=0 post-fix
+
+- v0.8 corpus: 2 cross-file findings, both FP upon manual annotation.
+- v0.9.1 re-scan: 0 cross-file findings across all 6 corpora. Both
+  annotated FPs are now closed at the source.
+- **Honest implication**: cross-file emissions at v0.9.1 have 0
+  observed false positives — but also 0 observed true positives on
+  this corpus. Cross-file detection is high-precision / unknown-
+  recall. The patterns AEGIS detects (HOC binding, method-call
+  cross-file, generic pass-through, bare-identifier cross-file) are
+  apparently rare in the production Next.js codebases scanned
+  (cal-com / dub / openstatus / taxonomy / documenso / nextjs-
+  commerce).
+- **Hedge retention**: v0.7 `confidence: 'medium'` on cross-file
+  findings remains — same threshold basis (n<20 valid-measurement
+  floor) that justified it at v0.7 and v0.8. If anything the
+  post-fix n=0 strengthens the case that we can't yet validate the
+  cross-file precision claim in either direction.
+
+---
+
 ## [0.9.0] — 2026-04-16 — "Precision Polish"
 
 **Honest score:** 7.9 (was 7.8 at v0.8.1 — small bump reflecting

@@ -5,14 +5,16 @@
 **The paranoid audit tool your vibe-coded app deserves.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Tests: 1379 passing](https://img.shields.io/badge/Tests-1379%20passing-brightgreen)
+![Tests: 1386 passing](https://img.shields.io/badge/Tests-1386%20passing-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 ![npm](https://img.shields.io/npm/v/@aegis-scan/cli)
-![Internal Maturity: 7.9](https://img.shields.io/badge/Internal%20Maturity-7.9%2F10-blue)
-[![Release: v0.9.0](https://img.shields.io/badge/Release-v0.9.0-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.9.0)
+![Internal Maturity: 8.0](https://img.shields.io/badge/Internal%20Maturity-8.0%2F10-blue)
+[![Release: v0.9.1](https://img.shields.io/badge/Release-v0.9.1-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.9.1)
 
-> **Current release: `v0.9.0` — precision polish.** Self-scan on the AEGIS repo reaches 1000/A with 0 findings (was 973/A, 55 findings at v0.8.1). Supply-chain phantom-dependency checker now handles TypeScript path aliases, pnpm/npm/yarn workspaces, sub-package deps, and source-comment false matches — closes a ~38-finding FP flood on every modern Next.js monorepo. `setTimeout` / `setInterval` skip emission when arg 0 is a function (eliminates the modern-JS FP class); `encodeURIComponent` no longer credits CWE-22 (decoded-before-fs-access FN class removed). logging-checker skips CLI projects (detects `bin` in root or workspace children). GitHub Action default `aegis-version` pinned per release. `aegis.config.json` now accepts top-level `description` + `$schema` fields. See [CHANGELOG](./CHANGELOG.md) §[0.9.0] for the full scope and the M6 deferral analysis.
+> **Current release: `v0.9.1` — cross-file precision.** Closes both cross-file false positives surfaced by the v0.8 six-corpus dogfood (cal-com isValidCalURL regex-guard pattern + dub bitly rate-limit header-vs-URL-position pattern) with AST-precise filters on `paramReachesSink`. Corpus cross-file count 2 FPs → 0, self-scan 1000/A unchanged. Cross-file detection now has zero observed FPs on six production Next.js codebases — but also zero observed TPs, so the v0.7 `confidence: 'medium'` hedge is retained on the same unmeasurable-recall basis. See [CHANGELOG](./CHANGELOG.md) §[0.9.1] for details + honest n=0 implication.
+
+> **Prior release: `v0.9.0` — precision polish.** Self-scan on the AEGIS repo reaches 1000/A with 0 findings (was 973/A, 55 findings at v0.8.1). Supply-chain phantom-dependency checker now handles TypeScript path aliases, pnpm/npm/yarn workspaces, sub-package deps, and source-comment false matches — closes a ~38-finding FP flood on every modern Next.js monorepo. `setTimeout` / `setInterval` skip emission when arg 0 is a function (eliminates the modern-JS FP class); `encodeURIComponent` no longer credits CWE-22 (decoded-before-fs-access FN class removed). logging-checker skips CLI projects (detects `bin` in root or workspace children). GitHub Action default `aegis-version` pinned per release. `aegis.config.json` now accepts top-level `description` + `$schema` fields. See [CHANGELOG](./CHANGELOG.md) §[0.9.0] for the full scope and the M6 deferral analysis.
 
 > **Prior release: `v0.8.1` — brutal-review hotfix.** Closes three MAJORs from the v0.8.0 post-ship cold-read review: a false-negative-producing sanitizer-registry bug on `path.normalize` / `path.resolve` / `path.basename` (removed — they do not prevent path traversal on their own), stale MCP tool names in the tutorial that broke first-contact for every MCP user (rewritten), and a scope gap in the Phase 5 conditional-import confidence downgrade that left the if/else form at full confidence (extended). Three remaining MAJORs (GitHub Action default pin, blanket logging-checker suppression in self-scan config, HOC text-match precision) deferred to v0.9 with documented rationale. See [CHANGELOG](./CHANGELOG.md) §[0.8.1] for full detail.
 
