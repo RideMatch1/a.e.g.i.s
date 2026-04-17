@@ -1,0 +1,9 @@
+{
+  "id": "D1",
+  "cwe": 285,
+  "type": "TP",
+  "description": "Ownership check exists but does not dominate DB write — full-flow required to detect",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 285 }
+  ]
+}

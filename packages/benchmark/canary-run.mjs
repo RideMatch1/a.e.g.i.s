@@ -124,8 +124,15 @@ for (const name of fixtures) {
     }
   } else if (expected.type === 'FP') {
     // FP canaries assert the scanner does NOT fire (used for suppression proofs).
+    // Only findings matching the declared expected.scanner+cwe count as FPs —
+    // collateral findings from other scanners are healthy noise and ignored.
     const unwanted = result.findings.filter((f) =>
-      expected.expected.some((p) => f.scanner === p.scanner && f.cwe === p.cwe),
+      expected.expected.some((p) => {
+        const acceptedScanners = Array.isArray(p.scanner)
+          ? p.scanner
+          : [p.scanner];
+        return acceptedScanners.includes(f.scanner) && f.cwe === p.cwe;
+      }),
     );
     if (unwanted.length === 0) {
       console.log(`  PASS  ${expected.id} ${name}: no unwanted findings`);

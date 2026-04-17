@@ -1,0 +1,10 @@
+{
+  "id": "D2",
+  "cwe": 285,
+  "type": "FP",
+  "description": "Reversed-operand + snake_case ownership check — v0.9.3 fix regression pin",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 285 },
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

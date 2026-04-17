@@ -1,0 +1,9 @@
+{
+  "id": "D3",
+  "cwe": 285,
+  "type": "FP",
+  "description": "Session-authenticated self-service billing route with @self-only annotation — suppression-mechanism proof (new @self-only is a v0.10 feature distinct from existing @public)",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 285 }
+  ]
+}
