@@ -1,0 +1,9 @@
+{
+  "id": "S10",
+  "cwe": 77,
+  "type": "TP",
+  "description": "LLM chat route — user input directly in messages, no system-prompt isolation",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}

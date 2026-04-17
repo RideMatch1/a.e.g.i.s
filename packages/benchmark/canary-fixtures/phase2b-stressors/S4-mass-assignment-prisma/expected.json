@@ -1,0 +1,9 @@
+{
+  "id": "S4",
+  "cwe": 915,
+  "type": "TP",
+  "description": "Mass assignment — req.json() spread into prisma.update data without allowlist",
+  "expected": [
+    { "scanner": "mass-assignment-checker", "cwe": 915 }
+  ]
+}

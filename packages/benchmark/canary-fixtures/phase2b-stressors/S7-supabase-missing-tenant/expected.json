@@ -1,0 +1,9 @@
+{
+  "id": "S7",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Supabase query missing tenant_id filter on invoices — cross-tenant leak",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

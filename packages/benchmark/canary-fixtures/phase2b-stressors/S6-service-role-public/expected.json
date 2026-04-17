@@ -1,0 +1,10 @@
+{
+  "id": "S6",
+  "cwe": 863,
+  "type": "TP",
+  "description": "service_role key used in public API route — RLS bypassed",
+  "expected": [
+    { "scanner": "rls-bypass-checker", "cwe": 863 },
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

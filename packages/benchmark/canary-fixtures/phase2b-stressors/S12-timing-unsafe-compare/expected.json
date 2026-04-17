@@ -1,0 +1,9 @@
+{
+  "id": "S12",
+  "cwe": 208,
+  "type": "TP",
+  "description": "API key comparison with === operator — non-constant-time, timing side-channel",
+  "expected": [
+    { "scanner": "timing-safe-checker", "cwe": 208 }
+  ]
+}

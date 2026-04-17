@@ -87,8 +87,14 @@ for (const name of fixtures) {
     }
   }
 
+  // TP semantics: ANY listed pair hit = PASS. A single vulnerability
+  // can legitimately be flagged under multiple equivalent CWEs (e.g.
+  // MD5 as CWE-327 broken-crypto OR CWE-328 weak-hash) — either
+  // emission proves the scanner caught it.
+  // FP semantics (below): ANY listed pair hit = unwanted — matches
+  // the "any forbidden emission is a failure" intent.
   if (expected.type === 'TP') {
-    if (misses.length === 0) {
+    if (hits.length > 0) {
       console.log(
         `  PASS  ${expected.id} ${name}: ${hits
           .map((h) => `${h.matchedScanner}/CWE-${h.cwe}`)

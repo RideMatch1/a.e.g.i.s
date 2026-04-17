@@ -1,0 +1,9 @@
+{
+  "id": "S5",
+  "cwe": 89,
+  "type": "TP",
+  "description": "Supabase .rpc() with user input interpolated into function name via template literal",
+  "expected": [
+    { "scanner": ["sql-concat-checker", "taint-analyzer"], "cwe": 89 }
+  ]
+}

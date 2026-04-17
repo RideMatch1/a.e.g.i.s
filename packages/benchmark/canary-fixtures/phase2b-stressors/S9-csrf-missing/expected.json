@@ -1,0 +1,9 @@
+{
+  "id": "S9",
+  "cwe": 352,
+  "type": "TP",
+  "description": "State-changing POST without CSRF token + cookie without SameSite",
+  "expected": [
+    { "scanner": "csrf-checker", "cwe": 352 }
+  ]
+}

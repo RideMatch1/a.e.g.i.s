@@ -1,0 +1,9 @@
+{
+  "id": "S2",
+  "cwe": 22,
+  "type": "TP",
+  "description": "Path traversal via fs.readFile(path.join with user input)",
+  "expected": [
+    { "scanner": ["path-traversal-checker", "taint-analyzer"], "cwe": 22 }
+  ]
+}

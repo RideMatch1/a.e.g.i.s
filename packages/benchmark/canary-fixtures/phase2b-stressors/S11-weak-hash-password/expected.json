@@ -1,0 +1,10 @@
+{
+  "id": "S11",
+  "cwe": 327,
+  "type": "TP",
+  "description": "MD5 used to hash passwords — broken algorithm",
+  "expected": [
+    { "scanner": "crypto-auditor", "cwe": 327 },
+    { "scanner": "crypto-auditor", "cwe": 328 }
+  ]
+}

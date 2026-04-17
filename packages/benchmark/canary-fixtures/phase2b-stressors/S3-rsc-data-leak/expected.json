@@ -1,0 +1,9 @@
+{
+  "id": "S3",
+  "cwe": 200,
+  "type": "TP",
+  "description": "RSC passes full DB record to client component — password_hash, resetToken exposed",
+  "expected": [
+    { "scanner": "rsc-data-checker", "cwe": 200 }
+  ]
+}

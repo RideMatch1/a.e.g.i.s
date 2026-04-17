@@ -1,0 +1,9 @@
+{
+  "id": "S8",
+  "cwe": 20,
+  "type": "TP",
+  "description": "Mutation route with JSON.parse(body) direct to DB — no Zod schema",
+  "expected": [
+    { "scanner": "zod-enforcer", "cwe": 20 }
+  ]
+}
