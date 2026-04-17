@@ -5,51 +5,36 @@
 **The paranoid audit tool your vibe-coded app deserves.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Tests: 1397 passing](https://img.shields.io/badge/Tests-1397%20passing-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
-![npm](https://img.shields.io/npm/v/@aegis-scan/cli)
-![Internal Maturity: 8.2](https://img.shields.io/badge/Internal%20Maturity-8.2%2F10-blue)
-[![Release: v0.9.2](https://img.shields.io/badge/Release-v0.9.2-informational)](https://github.com/RideMatch1/a.e.g.i.s/releases/tag/v0.9.2)
+[![npm](https://img.shields.io/npm/v/@aegis-scan/cli?label=%40aegis-scan%2Fcli)](https://www.npmjs.com/package/@aegis-scan/cli)
 
-> **Current release: `v0.9.2` — validator hotfix + world-class-OSS polish.** An external adversarial stress-test of v0.9.1 delivered 5 MAJOR + 5 MINOR findings; every MAJOR is closed, four of the MINORs closed, and the fifth (display-layer LOW-CONFIDENCE badge hedge) is now committed rather than deferred. In parallel, a world-class-OSS polish sprint lifts the repo to production-adoption quality: npm-metadata across 5 packages, structured issue / PR templates, README architecture diagram + honest-limitations section, independently-validated PASS summary, and a pre-built VS Code `.vsix` attached to every Release via GitHub Actions. Tests 1386 → 1397; benchmark 30/30 unchanged; self-scan 1000/A unchanged. See [CHANGELOG](./CHANGELOG.md) §[0.9.2] for the full scope.
-
-> **Prior release: `v0.9.1` — cross-file precision.** Closed both cross-file FPs surfaced by the v0.8 six-corpus dogfood. Self-scan on the AEGIS repo reaches 1000/A with 0 findings (was 973/A, 55 findings at v0.8.1). Supply-chain phantom-dependency checker now handles TypeScript path aliases, pnpm/npm/yarn workspaces, sub-package deps, and source-comment false matches — closes a ~38-finding FP flood on every modern Next.js monorepo. `setTimeout` / `setInterval` skip emission when arg 0 is a function (eliminates the modern-JS FP class); `encodeURIComponent` no longer credits CWE-22 (decoded-before-fs-access FN class removed). logging-checker skips CLI projects (detects `bin` in root or workspace children). GitHub Action default `aegis-version` pinned per release. `aegis.config.json` now accepts top-level `description` + `$schema` fields. See [CHANGELOG](./CHANGELOG.md) §[0.9.0] for the full scope and the M6 deferral analysis.
-
-> **Prior release: `v0.8.1` — brutal-review hotfix.** Closes three MAJORs from the v0.8.0 post-ship cold-read review: a false-negative-producing sanitizer-registry bug on `path.normalize` / `path.resolve` / `path.basename` (removed — they do not prevent path traversal on their own), stale MCP tool names in the tutorial that broke first-contact for every MCP user (rewritten), and a scope gap in the Phase 5 conditional-import confidence downgrade that left the if/else form at full confidence (extended). Three remaining MAJORs (GitHub Action default pin, blanket logging-checker suppression in self-scan config, HOC text-match precision) deferred to v0.9 with documented rationale. See [CHANGELOG](./CHANGELOG.md) §[0.8.1] for full detail.
-
-> **Prior release: `v0.8.0` — type-aware expansion.** Closes the four type-aware gaps deferred from v0.7 (HOC binding, generic pass-through return-taint, method-call cross-file via TypeChecker, conditional-import confidence downgrade). Extends `TYPED_SINK_MODULES` beyond `child_process` to fs / path / crypto / http / https. Adds `Date.parse` blocklist + URL-regex-whitelist sanitizer (closes v0.7 cal-com FP). Corpus doubled (3 → 6 OSS projects) toward the n≥20 cross-file measurement runway. Structural self-match refinement takes AEGIS-on-itself from 0/F to 973/A. Ships [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md) for 5-minute onboarding. See [CHANGELOG](./CHANGELOG.md) for the full v0.8 scope + honest score framing.
-
-> **Two scores, don't confuse them:**
-> - **"Internal Maturity 7.7/10"** (badge above) — AEGIS's *own* honest self-assessment of its maturity as a product. Tracks over releases. Different from the validator's precision-tier system.
-> - **"0-1000" (see Scoring section below)** — the score AEGIS *outputs* for a scanned project. Based on weighted findings in that project's code. Graded FORTRESS → CRITICAL.
+Stack-specific security scanner for **Next.js + Supabase + React**. 40 built-in checkers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, VS Code extension, and GitHub Action.
 
 ---
 
 ## What is AEGIS?
 
-AEGIS (Automated Enterprise-Grade Inspection Suite) is a **stack-specific security scanner for Next.js + Supabase** with 40 built-in scanners, an AST-based cross-file taint tracker, and a 0-1000 scoring system. It finds vulnerabilities that generic SAST tools (Semgrep, CodeQL, SonarQube) miss because they lack framework-specific rules.
+AEGIS (Automated Enterprise-Grade Inspection Suite) finds vulnerabilities that generic SAST tools miss because they lack framework-specific rules. AEGIS covers the Next.js / Supabase / React gaps — multi-tenant isolation, RLS bypass, Server Component data leaks, Zod enforcement, `.rpc()` SQLi, mass assignment, auth-guard gaps — while Semgrep / CodeQL cover the generic SAST space.
 
-**Best used alongside Semgrep**, not instead of it. AEGIS covers the Supabase / Next.js-specific gaps (multi-tenant isolation, RLS bypass, Server Component data leaks, Zod enforcement) while Semgrep covers the generic SAST space.
-
-What makes it different: AEGIS tracks **data flow** through your code — within a file and across module boundaries:
+What makes the engine different: AEGIS tracks **data flow** through your code — within a file AND across module boundaries:
 
 ```typescript
-// Same-file taint (works since v0.5):
-const id = req.body.id;           // Source: user input
-const trimmed = id.trim();         // Propagates: method call
-const query = `SELECT * WHERE id = ${trimmed}`;  // Propagates: template literal
-db.query(query);                   // Sink: SQL Injection (CWE-89, CRITICAL)
+// Same-file taint:
+const id = req.body.id;                            // source: user input
+const trimmed = id.trim();                         // propagates through method call
+const query = `SELECT * WHERE id = ${trimmed}`;    // propagates through template
+db.query(query);                                   // sink: SQL Injection (CWE-89, CRITICAL)
 
-// Cross-file taint (new in v0.7):
-// lib/db.ts    — export function runQuery(sql: string) { db.query(sql); }
-// api/route.ts — import { runQuery } from '../lib/db';
-//                runQuery(req.body.q);   // ← AEGIS traces this cross-module
+// Cross-file taint:
+// lib/db.ts     — export function runQuery(sql: string) { db.query(sql); }
+// api/route.ts  — import { runQuery } from '../lib/db';
+//                 runQuery(req.body.q);           // AEGIS traces the sink across the boundary
 ```
 
-Per-CWE sanitizer awareness means `parseInt()` blocks SQL injection but not XSS, and `DOMPurify.sanitize()` blocks XSS but not SQL injection.
+Per-CWE sanitizer awareness: `parseInt()` blocks SQL injection but not XSS, `DOMPurify.sanitize()` blocks XSS but not SQL injection, `encodeURIComponent()` blocks SSRF but not path traversal (frameworks decode before fs access).
 
-On top of that: 38 built-in regex scanners + 1 AST taint analyzer + 1 RPC-specific SQLi scanner, 16 external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, …), 5 live attack probes, 4 compliance frameworks (GDPR, SOC 2, ISO 27001, PCI-DSS), an MCP Server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
+Suite composition: **38** regex scanners + **1** AST taint analyzer + **1** RPC-specific SQLi scanner (built-in), **16** external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** live attack probes, **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
 
 ---
 
@@ -159,29 +144,12 @@ AEGIS is not a Semgrep replacement — it's a **Semgrep multiplier**. When Semgr
 
 Running a security tool is a trust exercise. Here is what AEGIS does **not** do well — or at all — documented up front so you can decide where AEGIS fits in your stack:
 
-- **Cross-file taint precision is unmeasured at n≥20.** The v0.8 / v0.9 Dogfood across 6 production Next.js codebases (cal-com, dub, openstatus, taxonomy, documenso, vercel/commerce) produced 2 cross-file findings total, both confirmed FP; v0.9.1's AST-precise regex-guard + URL-position filters closed them at source and now the corpus shows 0 cross-file findings. That means **0 observed FPs but also 0 observed TPs** on this sample — high precision, unknown recall. Cross-file findings still ship with `confidence: 'medium'` pending a validated n≥20 measurement. See CHANGELOG `[0.9.1]` §Cross-file precision.
-- **Not a general SAST replacement.** AEGIS is stack-specific. On a Python, Go, Rust, or Java codebase it will do nothing useful. On Node that isn't Next.js, it finds the generic classes (SQLi, SSRF, path traversal, prompt injection, crypto misuse) but skips the framework-specific ones. Use alongside Semgrep / CodeQL / njsscan, never instead.
-- **Compliance checks are pattern-based rules, not audit-grade.** The `gdpr-engine`, `soc2-checker`, `iso27001-checker`, `pci-dss-checker` scanners implement dozens of the most common pattern-level controls (GDPR: privacy page, cookie consent, PII handling, Google-Fonts self-hosting, double-opt-in, retention). They are **not** a substitute for a certified auditor. Full framework-depth integration (SCF / OSCAL mapping, evidence export) is on the v1.0 roadmap.
-- **Single-maintainer project.** Bus factor is 1. CONTRIBUTING + SECURITY + CODE_OF_CONDUCT + CODEOWNERS + issue templates are in place; contributions and review offers welcome.
-- **TypeScript / JavaScript only.** No Python, Go, Rust, Java, C#, Ruby, PHP. Cross-language support is out of scope for Festung-Mode-B (local-first, no SaaS, low-maintenance OSS).
-- **External-tool wrappers require the tool on PATH.** AEGIS's Semgrep / Gitleaks / Trivy / ZAP / OSV-Scanner / … integrations auto-skip when the underlying binary is absent. This shows up as `Confidence: LOW` with a "Missing: …" note in the terminal output; in CI comments the badge gets a `[LOW-CONFIDENCE]` prefix since v0.9.2.
-
----
-
-## Independently validated (v0.9.1 stress-test)
-
-v0.9.1 went through an adversarial external stress-test by a fresh, no-prior-context reviewer with file-system + network access, running ≈4 hours of reproducible probes. The review confirmed the following as reproducible:
-
-- Self-scan on the AEGIS repo: `1000 / A / HARDENED`, 0 findings.
-- Benchmark `30/30 strict` (21 planted vulnerabilities + 9 clean-file FP checks) passes.
-- Test count `1386 green` across 5 packages.
-- Adversarial inputs (10k-import file, 1 MB template literal, BOM + RTL override chars, symlink loop) complete in <2 s without crash.
-- Prompt-injection hardening on `aegis fix` — per-invocation random hex sentinel holds against escape attempts.
-- Prototype-pollution via config rejected by the Zod-strict schema; JSON-only config parser is immune to arbitrary-code execution.
-- Real TP captured externally: open-redirect pattern in the official `vercel/next.js` `with-supabase` example (`searchParams.get('next') → redirect()`).
-- Forensic leak check (`git log`, `git grep`) on published tarballs and `main` — clean of any private-identity / private-repo references.
-
-The review also surfaced 5 MAJOR + 5 MINOR findings, all closed in v0.9.2 (see CHANGELOG `[0.9.2]`). What is written here is what the reviewer verified reproducibly; honest-score discipline applied to the positive side as well as the negative.
+- **Cross-file taint precision is unmeasured at scale.** The current dogfood corpus (6 production Next.js codebases) has too few cross-file emissions to produce a statistically valid precision number. Cross-file findings therefore ship with `confidence: 'medium'` rather than the default. Same-file taint is measured by the benchmark (30/30 strict) and is the engine's primary strength.
+- **Not a general SAST replacement.** AEGIS is stack-specific. On Python / Go / Rust / Java it does nothing useful. On non-Next.js Node it still covers the generic classes (SQLi, SSRF, path traversal, prompt injection, crypto misuse) but skips the framework-specific rules. Use alongside Semgrep / CodeQL / njsscan, never instead.
+- **Compliance checks are pattern-based rules, not audit-grade.** `gdpr-engine`, `soc2-checker`, `iso27001-checker`, `pci-dss-checker` cover dozens of the most common pattern-level controls (e.g. GDPR: privacy page, cookie consent, PII handling, self-hosted fonts, double-opt-in, retention). They are **not** a substitute for a certified auditor.
+- **TypeScript / JavaScript only.** No Python / Go / Rust / Java / C# / Ruby / PHP.
+- **External-tool wrappers require the tool on PATH.** Semgrep / Gitleaks / Trivy / ZAP / OSV-Scanner / … integrations auto-skip when the underlying binary is absent. The CLI reports `Confidence: LOW` with a "Missing: …" note, and the CI PR-comment badge gets a `[LOW-CONFIDENCE]` prefix, when no security-focused external tool is available.
+- **Single-maintainer project.** CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / CODEOWNERS / issue templates are in place; contributions and review help welcome.
 
 ---
 
@@ -198,16 +166,20 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 | `encodeURIComponent()` | No | Yes | Yes | No |
 | `z.parse()` (Zod) | Yes | Yes | Yes | Yes |
 
-**Cross-file propagation** (v0.7) — a function summary cache lets the tracker follow taint into an imported function, check whether any parameter reaches a sink (and with which CWE), and emit a finding at the caller's file with a `relatedLocations` pointer back to the origin file. Supported patterns:
+**Cross-file propagation** — a function-summary cache lets the tracker follow taint into an imported function, check whether any parameter reaches a sink (and with which CWE), and emit a finding at the caller's file with a `relatedLocations` pointer back to the origin file. Supported patterns:
 
 - Bare-identifier callees: `import { runQuery } from './lib'; runQuery(tainted);`
 - Arrow-function-variable exports: `export const fn = (x) => sink(x);`
 - Default exports: `export default function (x) { sink(x); }`
-- Declaration-style exports: `export { foo };` and `export { foo as bar };`
+- Declaration-style exports: `export { foo };` / `export { foo as bar };`
 - Barrel re-exports up to depth 5.
-- Cross-file sanitizer recognition — imports of a function that wraps its arg through a known sanitizer suppress the finding.
-
-v0.8 closed the four type-aware gaps from v0.7: HOC / curry consumption at binding sites (policy §9), generic pass-through return-taint via `summary.returnsTainted`, method-call cross-file via TypeChecker symbol resolution, and conditional-import confidence downgrade. v0.9.1 closed two additional cross-file FP classes with AST-precise filters in `paramReachesSink`: regex-guard awareness inside cross-file callee bodies (cal-com `isValidCalURL` pattern) and SSRF URL-position vs header-position distinction for `fetch(url, {headers})` shapes (dub `bitly rate-limit` pattern). See [CHANGELOG](./CHANGELOG.md) `[0.9.1]` + `[0.9.2]` for details. Known limitation: cross-file precision measurement still unvalidated at n≥20 — see the **Honest limitations** section above.
+- HOC / curry binding sites (`withAuth((cmd) => exec(cmd))`) emit at the binding line.
+- Generic pass-through return-taint (`identity<T>(x: T): T`).
+- Method-call cross-file callees (`import { db }; db.query(tainted)`) via TypeChecker resolution.
+- Conditional-import downgrade — `confidence: 'medium'` when the callee module is ternary / if-else dynamic-imported.
+- Cross-file sanitizer recognition — imported wrappers that `parseInt()` / `z.parse()` / etc. their arg suppress the finding.
+- Regex-guard filter — `if (!regex.test(x)) return;` before an SSRF sink drops CWE-918.
+- SSRF URL-position check — only the first `fetch(url, …)` arg counts; tainted values in `headers`/`body` do not.
 
 ---
 
@@ -234,7 +206,7 @@ v0.8 closed the four type-aware gaps from v0.7: HOC / curry consumption at bindi
 
 | Scanner | Category | CWE(s) | What it checks |
 |---------|----------|--------|----------------|
-| `taint-analyzer` | Security | 22, 78, 79, 89, 94, 601, 918, 1321 | **AST-based data-flow analysis** — tracks user input from sources to sinks with per-CWE sanitizer awareness, cross-file propagation since v0.7 |
+| `taint-analyzer` | Security | 22, 78, 79, 89, 94, 601, 918, 1321 | **AST-based data-flow analysis** — tracks user input from sources to sinks with per-CWE sanitizer awareness and cross-file propagation |
 | `auth-enforcer` | Security | 285, 306 | Missing auth guards, unprotected routes, RBAC gaps |
 | `tenant-isolation-checker` | Security | 639 | Supabase queries missing `tenant_id` filters — cross-tenant data leak detection |
 | `rls-bypass-checker` | Security | 863 | Supabase `.rpc()` and `service_role` usage bypassing Row Level Security |
@@ -263,7 +235,7 @@ v0.8 closed the four type-aware gaps from v0.7: HOC / curry consumption at bindi
 | `http-timeout-checker` | Security | 400 | HTTP calls without timeouts |
 | `next-public-leak` | Security | 200, 798 | Secrets accidentally prefixed `NEXT_PUBLIC_*` or read in `'use client'` files |
 | `jwt-checker` | Quality | 327, 345 | JWT implementation issues, weak signing, 'none' algorithm |
-| `logging-checker` | Quality | 778 | Missing structured logging (auto-skipped on CLI tools since v0.9) |
+| `logging-checker` | Quality | 778 | Missing structured logging — auto-skips CLI-tool projects (detects `bin` field in root or workspace children) |
 | `console-checker` | Quality | 532 | Debug artifacts in production code (`console.log`, `debugger;`, TODO/FIXME) |
 | `gdpr-engine` | Compliance | — | GDPR/DSGVO: privacy page, consent, PII, Google Fonts, double-opt-in |
 | `soc2-checker` | Compliance | — | SOC 2 Type II control gaps |
@@ -271,7 +243,7 @@ v0.8 closed the four type-aware gaps from v0.7: HOC / curry consumption at bindi
 | `pci-dss-checker` | Compliance | — | PCI DSS cardholder-data exposure |
 | `pagination-checker` | Security | 770 | Database queries without row limits |
 | `i18n-quality` | i18n | — | Hardcoded UI strings, missing locale keys |
-| `supply-chain` | Dependencies | 829, 1357 | Dependency confusion, typosquatting, lockfile integrity, phantom-deps (monorepo-aware since v0.9) |
+| `supply-chain` | Dependencies | 829, 1357 | Dependency confusion, typosquatting, lockfile integrity, monorepo-aware phantom-dep detection (handles TS path aliases + pnpm/npm/yarn workspaces + sub-package deps) |
 | `dep-confusion-checker` | Dependencies | 1357 | Scoped packages without private registry mapping |
 
 ### External wrappers (16 scanners, auto-skipped when not installed)
@@ -390,7 +362,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.7.2   # or @main for latest
+      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.9.3   # pin to a specific release tag
         with:
           mode: scan           # 'scan' (quick) or 'audit' (full)
           path: .              # project to scan (default: '.')
@@ -398,7 +370,7 @@ jobs:
           comment-on-pr: true  # post PR comment with findings table
 ```
 
-**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`. See `ci/github-action/action.yml` for the full schema. For reproducibility across team members, pin to a specific tag (`@v0.7.2`) rather than `@main`.
+**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.9.3`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
 
 ---
 
