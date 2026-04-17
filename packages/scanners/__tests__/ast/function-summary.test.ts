@@ -451,6 +451,59 @@ describe('function-summary — sink registry coverage (validator-audit fixes)', 
     expect(summary.params[0].sinkCwes).toContain(918);
   });
 
+  // v0.9.1 URL-position filter: CWE-918 requires the tainted value to
+  // reach the URL arg of fetch/axios. A param that only flows into the
+  // options-object (headers, body, method) is not an SSRF flow.
+  // Canonical case: dub bitly rate-limit where bitlyApiKey flowed into
+  // `Authorization: Bearer ${apiKey}` but the fetch URL was a literal.
+  it('URL-position filter: tainted param in Authorization header only → drops CWE-918', () => {
+    const { program, paths } = buildProgramFor({
+      'auth-only.ts':
+        'export async function checkRateLimit(apiKey: string) {\n' +
+        '  return fetch(\n' +
+        '    "https://api.example.com/v4/limits",\n' +
+        '    { headers: { Authorization: `Bearer ${apiKey}` } },\n' +
+        '  );\n' +
+        '}',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'checkRateLimit');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'checkRateLimit', program, null, cache)!;
+    expect(summary.params[0].sinkCwes).not.toContain(918);
+  });
+
+  it('URL-position filter: tainted param in URL template literal → keeps CWE-918', () => {
+    const { program, paths } = buildProgramFor({
+      'url-tainted.ts':
+        'export async function realSsrf(host: string) {\n' +
+        '  return fetch(`https://${host}/api/v1/data`);\n' +
+        '}',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'realSsrf');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'realSsrf', program, null, cache)!;
+    expect(summary.params[0].sinkCwes).toContain(918);
+  });
+
+  it('URL-position filter: tainted param in URL + options → keeps CWE-918 (URL position wins)', () => {
+    const { program, paths } = buildProgramFor({
+      'both-positions.ts':
+        'export async function bothPositions(path: string) {\n' +
+        '  return fetch(\n' +
+        '    `https://api.example.com/${path}`,\n' +
+        '    { headers: { "X-Path": path } },\n' +
+        '  );\n' +
+        '}',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'bothPositions');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'bothPositions', program, null, cache)!;
+    expect(summary.params[0].sinkCwes).toContain(918);
+  });
+
   it('regex-guard cross-file: mixed guarded + unguarded → unguarded defeats, CWE-918 kept', () => {
     const { program, paths } = buildProgramFor({
       'mixed.ts':

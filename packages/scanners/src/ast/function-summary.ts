@@ -454,13 +454,28 @@ function paramReachesSink(fn: SummarizableFn, paramName: string): number[] {
     }
   }
 
-  // v0.9.1 polish: regex-guard cross-file — if the function contains
-  // SSRF-class sink calls on this param AND every such call is guarded
-  // by a `<regex>.test(paramName)` check (either as an enclosing if-
-  // then-branch or as a preceding `if (!regex.test(param)) return/throw`
-  // early-exit), drop CWE_SSRF from the summary. Closes the v0.8-corpus
-  // cal-com isValidCalURL FP: `if (!regex.test(url)) return; fetch(url)`.
-  if (cwes.has(918) && allSsrfSinkCallsGuardedByRegex(body, paramName)) {
+  // v0.9.1 polish: refine SSRF (CWE-918) emission against false-positive
+  // shapes surfaced by the v0.8 corpus dogfood. Two combined filters,
+  // both AST-precise, applied only when the text-match already credited
+  // CWE-918:
+  //
+  //   (a) URL-position check. CWE-918 requires the tainted value to
+  //       reach the URL argument of the fetch/axios/etc. call. Tainted
+  //       values that only flow into the options-object (headers, body,
+  //       method) are a different concern — not SSRF. We collect every
+  //       SSRF sink call whose first argument text contains paramName.
+  //       If none → drop 918 (closes the dub bitly rate-limit FP where
+  //       `bitlyApiKey` flowed into `Authorization: Bearer ${...}` but
+  //       the fetch URL was a hardcoded literal).
+  //
+  //   (b) Regex-guard check. If at least one URL-position sink exists,
+  //       require ALL of them to be regex-guarded via
+  //       `<anything>.test(paramName)` (positive if-then wrap OR
+  //       negated early-exit). Closes the cal-com isValidCalURL FP.
+  //
+  // Any unguarded URL-position SSRF sink call defeats the filter and
+  // CWE-918 stays — no regressions on legitimate SSRF patterns.
+  if (cwes.has(918) && ssrfEmissionFiltered(body, paramName)) {
     cwes.delete(918);
   }
 
@@ -468,48 +483,49 @@ function paramReachesSink(fn: SummarizableFn, paramName: string): number[] {
 }
 
 /**
- * v0.9.1 regex-guard helper. Returns true when the function body
- * contains at least one SSRF-class sink call on `paramName` AND
- * every such call is protected by a `<regex>.test(paramName)` guard.
- * Conservative: any single unguarded SSRF sink call defeats the check
- * and the CWE stays. No sink calls found → returns false (nothing to
- * suppress; shouldn't be reached because the text-match already
- * confirmed at least one before this helper fires).
+ * v0.9.1 SSRF-emission filter. Combines the URL-position check and the
+ * regex-guard check into one decision: return true (→ caller drops
+ * CWE-918) when the function has no unguarded URL-position SSRF sink
+ * call on `paramName`.
+ *
+ * Algorithm:
+ *   1. Collect every CallExpression in fn.body that (a) has a callee
+ *      text matching an SSRF-class sink name and (b) has paramName in
+ *      the FIRST argument's source text (URL position).
+ *   2. If zero URL-position calls exist → drop (paramName only reaches
+ *      non-URL args — not an SSRF flow).
+ *   3. Otherwise require every URL-position call to be regex-guarded
+ *      via `<anything>.test(paramName)`. Any single unguarded URL-
+ *      position sink → keep CWE (the SSRF is real).
  */
-function allSsrfSinkCallsGuardedByRegex(body: ts.Node, paramName: string): boolean {
+function ssrfEmissionFiltered(body: ts.Node, paramName: string): boolean {
   const ssrfCallNames = new Set(
     Object.entries(TAINT_SINKS)
       .filter(([, meta]) => meta.cwe === 918)
       .map(([name]) => name),
   );
+  const ident = identRegex(paramName);
+  const urlPositionCalls: ts.CallExpression[] = [];
 
-  const sinkCalls: ts.CallExpression[] = [];
   const collect = (n: ts.Node): void => {
     if (ts.isCallExpression(n)) {
       const calleeText = n.expression.getText();
-      if (ssrfCallNames.has(calleeText) && callPassesIdentifier(n, paramName)) {
-        sinkCalls.push(n);
+      if (ssrfCallNames.has(calleeText) && n.arguments.length > 0) {
+        const firstArg = n.arguments[0];
+        if (ident.test(firstArg.getText())) {
+          urlPositionCalls.push(n);
+        }
       }
     }
     ts.forEachChild(n, collect);
   };
   collect(body);
 
-  if (sinkCalls.length === 0) return false;
-  for (const call of sinkCalls) {
-    if (!isCallGuardedByRegexTest(call, body, paramName)) return false;
+  if (urlPositionCalls.length === 0) return true; // no URL-position hit → drop 918
+  for (const call of urlPositionCalls) {
+    if (!isCallGuardedByRegexTest(call, body, paramName)) return false; // a real SSRF
   }
-  return true;
-}
-
-/** Does the call pass `paramName` as any argument (direct identifier or mentioned in a template literal)? */
-function callPassesIdentifier(call: ts.CallExpression, paramName: string): boolean {
-  for (const arg of call.arguments) {
-    if (ts.isIdentifier(arg) && arg.text === paramName) return true;
-    // Template literals / concatenations / property access that mentions the identifier:
-    if (identRegex(paramName).test(arg.getText())) return true;
-  }
-  return false;
+  return true; // all URL-position calls are regex-guarded
 }
 
 /**
