@@ -47,8 +47,13 @@ const RLS_COMMENT_PATTERNS: RegExp[] = [
   /\/\/\s*server.only/i,
 ];
 
-/** service_role key usage */
-const SERVICE_ROLE_PATTERN = /service_role/;
+/** service_role key usage.
+ *  v0.10 Z8: made case-insensitive. The canonical Supabase env var is
+ *  `SUPABASE_SERVICE_ROLE_KEY` (UPPERCASE) — the pre-v0.10 regex
+ *  `/service_role/` without the /i flag did NOT match that name, so
+ *  any codebase referencing the env var without a lowercase prose
+ *  mention (e.g. `// uses service_role`) escaped detection entirely. */
+const SERVICE_ROLE_PATTERN = /service_role/i;
 
 /**
  * v0.8 Phase 8: the scanner previously fired on ANY file mentioning
@@ -101,8 +106,12 @@ export const rlsBypassCheckerScanner: Scanner = {
 
       const lines = content.split('\n');
 
-      // Check for service_role key usage in server code
-      const serviceRoleRe = new RegExp(SERVICE_ROLE_PATTERN.source, 'g');
+      // Check for service_role key usage in server code. v0.10 Z8:
+      // `gi` — case-insensitive so UPPERCASE env var names
+      // (SUPABASE_SERVICE_ROLE_KEY) match the same pattern as lowercase
+      // prose references. SERVICE_ROLE_PATTERN's `/i` flag is not
+      // preserved by `.source`, so the flag is composed explicitly here.
+      const serviceRoleRe = new RegExp(SERVICE_ROLE_PATTERN.source, 'gi');
       let serviceRoleMatch: RegExpExecArray | null;
       while ((serviceRoleMatch = serviceRoleRe.exec(content)) !== null) {
         const matchLine = findLineNumber(content, serviceRoleMatch.index);

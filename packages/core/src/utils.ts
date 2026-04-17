@@ -83,6 +83,22 @@ export function clearWalkFilesCache(): void {
  * Results are memoized by (dir, ignore, extensions) key for the lifetime of the process
  * or until clearWalkFilesCache() is called.
  */
+/**
+ * Walk a directory tree, returning file paths with the given extensions,
+ * skipping directories whose names appear in the `ignore` list.
+ *
+ * Ignore-list encoding:
+ *   - `"node_modules"`  — bare name matches a directory at ANY depth.
+ *   - `"/public"`       — leading slash means match only at the
+ *                         project root (`dir`'s direct children).
+ *
+ * Root-only entries were introduced in v0.10 (Z9): the v0.9.5
+ * DEFAULT_IGNORE additions `public` / `static` / `assets` were aimed
+ * at the Next.js project-root `public/` directory (Monaco vendor
+ * bundles etc.), but without a root-only distinction they silently
+ * skipped any nested directory of that name too — e.g. a legitimate
+ * route path `app/api/public/foo/route.ts` was dropped entirely.
+ */
 export function walkFiles(
   dir: string,
   ignore: string[] = [],
@@ -94,10 +110,18 @@ export function walkFiles(
   const cached = _walkFilesCache.get(cacheKey);
   if (cached) return cached;
 
+  // Split ignore entries into any-depth (bare) and root-only (leading `/`).
+  const anyDepthIgnore = new Set<string>();
+  const rootOnlyIgnore = new Set<string>();
+  for (const entry of ignore) {
+    if (entry.startsWith('/')) rootOnlyIgnore.add(entry.slice(1));
+    else anyDepthIgnore.add(entry);
+  }
+
   const results: string[] = [];
   const visited = new Set<string>();
 
-  function walk(current: string): void {
+  function walk(current: string, atRoot: boolean): void {
     // Resolve symlinks to detect cycles
     let realPath: string;
     try {
@@ -119,8 +143,9 @@ export function walkFiles(
       const fullPath = path.join(current, entry.name);
 
       if (entry.isDirectory()) {
-        if (ignore.includes(entry.name)) continue;
-        walk(fullPath);
+        if (anyDepthIgnore.has(entry.name)) continue;
+        if (atRoot && rootOnlyIgnore.has(entry.name)) continue;
+        walk(fullPath, false);
       } else if (entry.isFile()) {
         if (extensions.length === 0) {
           results.push(fullPath);
@@ -135,7 +160,7 @@ export function walkFiles(
     }
   }
 
-  walk(resolvedDir);
+  walk(resolvedDir, true);
   _walkFilesCache.set(cacheKey, results);
   return results;
 }

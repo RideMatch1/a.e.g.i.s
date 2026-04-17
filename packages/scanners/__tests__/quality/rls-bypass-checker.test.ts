@@ -189,4 +189,21 @@ const { data } = await supabase.rpc('admin_delete_all');
     expect(typeof result.duration).toBe('number');
     expect(result.available).toBe(true);
   });
+
+  // v0.10 Z8 — case-insensitive service_role match (UPPERCASE env var shape).
+  it('v0.10 Z8: flags SUPABASE_SERVICE_ROLE_KEY env-var reference (UPPERCASE only)', async () => {
+    createFile(projectPath, 'lib/admin.ts', `
+import { createClient } from '@supabase/supabase-js';
+
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+`);
+    const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const srFindings = result.findings.filter((f) => f.title.includes('service_role'));
+    expect(srFindings.length).toBeGreaterThan(0);
+    expect(srFindings[0].cwe).toBe(863);
+    expect(srFindings[0].severity).toBe('high');
+  });
 });
