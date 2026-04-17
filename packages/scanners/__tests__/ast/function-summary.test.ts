@@ -66,6 +66,7 @@ describe('function-summary — SummaryCache machinery', () => {
       paramCount: 1,
       params: [{ paramIndex: 0, returnsTainted: true, sinkCwes: [] }],
       sanitizesCwes: [],
+      guardsCwes: [],
       returnsFunctionThatCallsSink: false,
       originFile: '/tmp/x.ts',
       originHash: 'abc',
@@ -245,6 +246,88 @@ describe('function-summary — buildSummary produces correct shapes', () => {
     // Function returns req.body which references the parameter `req` — that
     // means param 0 reaches the return.
     expect(summary.params[0].returnsTainted).toBe(true);
+  });
+
+  // v0.11 Cluster B / Z3 — guardsCwes field pins.
+  // Parallel in naming + shape to the sanitizer pins above so a reviewer can
+  // read guards-vs-sanitizers as sibling recognitions. Initial v0.11 scope is
+  // CWE-918 (SSRF) only; broader CWE classes expand as canary data demands.
+
+  it('guard (isHttpsUrl via startsWith) → guardsCwes includes SSRF', () => {
+    const { program, paths } = buildProgramFor({
+      'g.ts':
+        "export function isHttpsUrl(url: string) { return url.startsWith('https://'); }\n",
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'isHttpsUrl');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'isHttpsUrl', program, null, cache)!;
+    expect(summary.guardsCwes).toContain(918);
+    // Not a sanitizer — startsWith does not neutralise a value.
+    expect(summary.sanitizesCwes).toEqual([]);
+  });
+
+  it('guard (isSafeUrl via regex.test) → guardsCwes includes SSRF', () => {
+    const { program, paths } = buildProgramFor({
+      'g.ts':
+        "const ALLOW = /^https:\\/\\/api\\.example\\.com/;\n" +
+        'export function isSafeUrl(u: string) { return ALLOW.test(u); }\n',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'isSafeUrl');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'isSafeUrl', program, null, cache)!;
+    expect(summary.guardsCwes).toContain(918);
+    expect(summary.sanitizesCwes).toEqual([]);
+  });
+
+  it('non-narrowing boolean return (constant true) → guardsCwes empty', () => {
+    const { program, paths } = buildProgramFor({
+      'g.ts': 'export function alwaysTrue(_u: string) { return true; }\n',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'alwaysTrue');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'alwaysTrue', program, null, cache)!;
+    expect(summary.guardsCwes).toEqual([]);
+  });
+
+  it('guard shape on unrelated identifier → guardsCwes empty', () => {
+    const { program, paths } = buildProgramFor({
+      'g.ts':
+        "export function misaligned(url: string, other: string) {\n" +
+        "  return other.startsWith('https://');\n" +
+        '}\n',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'misaligned');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'misaligned', program, null, cache)!;
+    // First-param is `url`, but the narrowing happens on `other` — not a
+    // guard for param 0, so guardsCwes stays empty.
+    expect(summary.guardsCwes).toEqual([]);
+  });
+
+  it('function that is BOTH sanitizer and guard → both fields populate (Flag-3 semantic)', () => {
+    // Intentional weird shape: applies encodeURIComponent as a sanitizer on
+    // the first param AND returns a narrowing boolean. Both signals are
+    // real; the summary populates both fields so consumers can choose the
+    // semantics per call-site. encodeURIComponent neutralises XSS + SSRF
+    // per sanitizers.ts; the startsWith narrows for SSRF.
+    const { program, paths } = buildProgramFor({
+      'g.ts':
+        "export function logAndValidate(url: string) {\n" +
+        '  encodeURIComponent(url);\n' +
+        "  return url.startsWith('https://');\n" +
+        '}\n',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'logAndValidate');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'logAndValidate', program, null, cache)!;
+    expect(summary.guardsCwes).toContain(918);
+    expect(summary.sanitizesCwes).toContain(918);
+    expect(summary.sanitizesCwes).toContain(79);
   });
 });
 

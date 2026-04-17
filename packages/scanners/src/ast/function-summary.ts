@@ -39,7 +39,7 @@ import {
   JSX_ATTRIBUTE_SINKS,
 } from './sinks.js';
 import { TAINT_SANITIZER_DEFS, PARSE_NOT_SANITIZER } from './sanitizers.js';
-import { isCallGuardedByRegexTest } from './guard-flow.js';
+import { isCallGuardedByRegexTest, detectGuard } from './guard-flow.js';
 
 /**
  * All CWEs recognized by the sink registry. Used by the conservative
@@ -89,6 +89,19 @@ export interface FunctionSummary {
    * `.parse` / `.safeParse` — matches taint-tracker's sanitizer registry.
    */
   sanitizesCwes: number[];
+  /**
+   * Guard hint (v0.11 Cluster B / Z3): CWEs for which this function is a
+   * boolean-returning narrowing guard on its first parameter. An empty
+   * list means the function is NOT a recognised guard. Semantics are
+   * CONSUMER-SIDE: a guard only suppresses a sink finding when the
+   * caller's control flow shows `if (!guard(x)) early-exit; sink(x)` or
+   * an equivalent dominating shape. The summary-builder populates this
+   * field; the caller-side dominance check lives in taint-tracker (added
+   * in Step 3). Parallel to {@link sanitizesCwes} — a function can be
+   * both sanitizer AND guard; both fields populate independently and
+   * consumers interpret per call-site.
+   */
+  guardsCwes: number[];
   /**
    * True when the function RETURNS a function whose invocation calls a sink
    * with its own argument — HOCs, curried wrappers, etc. (policy §9).
@@ -293,12 +306,14 @@ export function buildSummary(
     }));
 
     const sanitizesCwes = detectSanitizer(fn, paramNames[0]);
+    const guardsCwes = detectGuard(fn, paramNames[0]);
     const returnsFunctionThatCallsSink = detectHocSinkPropagation(fn);
 
     const summary: FunctionSummary = {
       paramCount,
       params,
       sanitizesCwes,
+      guardsCwes,
       returnsFunctionThatCallsSink,
       originFile: sf.fileName,
       originHash: fileHash,
@@ -338,6 +353,7 @@ export function conservativeSummary(
     paramCount,
     params,
     sanitizesCwes: [],
+    guardsCwes: [],
     returnsFunctionThatCallsSink: false,
     originFile,
     originHash,

@@ -19,6 +19,144 @@
 import ts from 'typescript';
 
 /**
+ * Node kinds that {@link detectGuard} can analyse. Mirrors the
+ * SummarizableFn union in function-summary.ts; duplicated here to keep
+ * this module free of a back-import that would cycle.
+ */
+type GuardAnalyzableFn =
+  | ts.FunctionDeclaration
+  | ts.MethodDeclaration
+  | ts.ArrowFunction
+  | ts.FunctionExpression;
+
+/**
+ * Does the function body recognise as a boolean-returning guard that
+ * narrows its first parameter for one of the recognised sink CWEs?
+ *
+ * Returns the CWE numbers this function guards. Empty means "not a
+ * recognised guard". Initial v0.11 scope: CWE-918 (SSRF) only; further
+ * classes expand as canary data demands — do not preemptively widen.
+ *
+ * Recognition rules:
+ *
+ *   - At least ONE return (or arrow expression body) must contain a
+ *     recognised narrowing expression on `firstParamName`.
+ *   - Every OTHER return must be a boolean literal (`true` / `false`).
+ *     Safe-default fallbacks in catch/else branches remain a guard;
+ *     arbitrary non-boolean, non-narrowing returns defeat recognition.
+ *   - Returns inside NESTED functions belong to that nested function,
+ *     not this one — the walk does not descend into inner function
+ *     bodies.
+ *
+ * Narrowing shapes recognised (v0.11 initial):
+ *   - `<firstParamName>.startsWith('<literal>')` — D5 canary shape
+ *   - `<regex-expr>.test(<firstParamName>)` — v0.9.1 sanctioned shape
+ *
+ * ABSTRACTION BOUNDARY: this helper is FUNCTION-INTRINSIC. It asks
+ * "is this fn a guard?" — never "is this sink dominated by a guard?"
+ * The caller-side twin is {@link isCallGuardedByRegexTest} (and, in
+ * Step 3, a new consumer-side helper). Keep the two layers separate;
+ * detectGuard MUST NOT call isCallGuardedByRegexTest.
+ */
+export function detectGuard(
+  fn: GuardAnalyzableFn,
+  firstParamName: string | undefined,
+): number[] {
+  if (firstParamName === undefined) return [];
+  const body = fn.body;
+  if (body === undefined) return [];
+
+  const returnExprs: ts.Expression[] = [];
+
+  // Arrow with expression body: the body IS the return expression.
+  if (ts.isArrowFunction(fn) && !ts.isBlock(body)) {
+    returnExprs.push(body);
+  } else if (ts.isBlock(body)) {
+    const visit = (n: ts.Node): void => {
+      if (ts.isReturnStatement(n) && n.expression !== undefined) {
+        returnExprs.push(n.expression);
+      }
+      // Do not descend into nested function-like nodes — their returns
+      // target them, not this function.
+      if (
+        ts.isFunctionDeclaration(n) ||
+        ts.isFunctionExpression(n) ||
+        ts.isArrowFunction(n) ||
+        ts.isMethodDeclaration(n)
+      ) {
+        return;
+      }
+      ts.forEachChild(n, visit);
+    };
+    visit(body);
+  }
+
+  if (returnExprs.length === 0) return [];
+
+  let guardFound = false;
+  for (const expr of returnExprs) {
+    if (isBoolLiteral(expr)) continue;
+    if (narrowsOnParam(expr, firstParamName)) {
+      guardFound = true;
+      continue;
+    }
+    // Arbitrary (neither bool-literal nor recognised narrow) → not a
+    // clean guard. Conservative: drop the whole recognition.
+    return [];
+  }
+
+  if (!guardFound) return [];
+  return [918];
+}
+
+/** `true` / `false` literal keyword. */
+function isBoolLiteral(expr: ts.Expression): boolean {
+  return (
+    expr.kind === ts.SyntaxKind.TrueKeyword ||
+    expr.kind === ts.SyntaxKind.FalseKeyword
+  );
+}
+
+/**
+ * Does `expr` structurally narrow taint on `paramName`? Shape-intrinsic
+ * AST-match — no regex-bleeding, no symbol resolution. Parenthesised
+ * wrappers are transparent.
+ */
+function narrowsOnParam(expr: ts.Expression, paramName: string): boolean {
+  let e = expr;
+  while (ts.isParenthesizedExpression(e)) e = e.expression;
+
+  // Shape 1: `<paramName>.startsWith('<literal>')`
+  if (
+    ts.isCallExpression(e) &&
+    ts.isPropertyAccessExpression(e.expression) &&
+    ts.isIdentifier(e.expression.name) &&
+    e.expression.name.text === 'startsWith' &&
+    ts.isIdentifier(e.expression.expression) &&
+    e.expression.expression.text === paramName &&
+    e.arguments.length > 0 &&
+    ts.isStringLiteral(e.arguments[0])
+  ) {
+    return true;
+  }
+
+  // Shape 2: `<anything>.test(<paramName>)`
+  if (
+    ts.isCallExpression(e) &&
+    ts.isPropertyAccessExpression(e.expression) &&
+    ts.isIdentifier(e.expression.name) &&
+    e.expression.name.text === 'test' &&
+    e.arguments.length > 0 &&
+    ts.isIdentifier(e.arguments[0]) &&
+    e.arguments[0].text === paramName
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Is the given sink CallExpression guarded by `<regex>.test(paramName)`?
  * Two shapes qualify:
  *
