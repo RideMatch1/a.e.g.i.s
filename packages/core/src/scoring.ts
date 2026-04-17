@@ -129,6 +129,15 @@ function buildBreakdown(findings: Finding[]): AuditResult['breakdown'] {
   // still penalizing projects with more findings.
   const categoryFindingCount: Record<string, number> = {};
 
+  // Per-scanner-per-category deduction cap (v0.9.4 corpus finding): a single
+  // quality scanner (e.g. console-checker) with 400+ low-severity findings was
+  // collapsing well-maintained projects to F/0 scores. The cap ensures that any
+  // one scanner can contribute at most MAX_DEDUCTION_PER_SCANNER_CAT points of
+  // penalty, regardless of volume. High/critical/blocker findings from different
+  // scanners still stack normally — only same-scanner accumulation is bounded.
+  const MAX_DEDUCTION_PER_SCANNER_CAT = 50;
+  const scannerCatAccumulated: Record<string, number> = {};
+
   for (const finding of findings) {
     const cat = finding.category;
     if (!(cat in breakdown)) continue;
@@ -145,7 +154,15 @@ function buildBreakdown(findings: Finding[]): AuditResult['breakdown'] {
     categoryFindingCount[cat] = (categoryFindingCount[cat] ?? 0) + 1;
     const n = categoryFindingCount[cat];
     const actualDeduction = baseDeduction / Math.sqrt(n);
-    breakdown[cat].score = Math.max(0, breakdown[cat].score - actualDeduction);
+
+    // Scanner-category cap: skip once this scanner has hit its ceiling.
+    const capKey = `${finding.scanner}::${cat}`;
+    const accumulated = scannerCatAccumulated[capKey] ?? 0;
+    if (accumulated >= MAX_DEDUCTION_PER_SCANNER_CAT) continue;
+    const cappedDeduction = Math.min(actualDeduction, MAX_DEDUCTION_PER_SCANNER_CAT - accumulated);
+    scannerCatAccumulated[capKey] = accumulated + cappedDeduction;
+
+    breakdown[cat].score = Math.max(0, breakdown[cat].score - cappedDeduction);
   }
 
   return breakdown;

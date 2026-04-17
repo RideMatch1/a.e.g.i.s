@@ -416,4 +416,57 @@ export function Comp({ html }: { html: string }) {
     const finding = result.findings.find((f) => f.title.includes('srcdoc'));
     expect(finding).toBeUndefined();
   });
+
+  it('does NOT flag innerHTML = "" — safe empty-string clear (corpus FP: midday chat-input)', async () => {
+    createFile(
+      projectPath,
+      'components/chat-input.tsx',
+      `
+      useEffect(() => {
+        const el = editableRef.current;
+        if (!el) return;
+        if (value === "") {
+          el.innerHTML = "";
+        } else {
+          el.textContent = value;
+        }
+      }, [value]);
+    `,
+    );
+
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.title.includes('innerHTML'));
+    expect(finding).toBeUndefined();
+  });
+
+  it('does NOT flag innerHTML comparison — reading not writing', async () => {
+    createFile(
+      projectPath,
+      'components/editor.tsx',
+      `
+      if (el.innerHTML !== "") {
+        el.innerHTML = "";
+      }
+    `,
+    );
+
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const innerHtmlFindings = result.findings.filter((f) => f.title.includes('innerHTML'));
+    expect(innerHtmlFindings).toHaveLength(0);
+  });
+
+  it('DOES flag innerHTML = variable — real XSS risk', async () => {
+    createFile(
+      projectPath,
+      'components/renderer.tsx',
+      `
+      el.innerHTML = userContent;
+    `,
+    );
+
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.title.includes('innerHTML'));
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe('high');
+  });
 });

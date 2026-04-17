@@ -110,6 +110,12 @@ const DEFAULT_IGNORE = [
   'fixtures',
   'benchmark',
   'benchmarks',
+  // Vendored / public assets (v0.9.4 corpus finding): scanning public/ dirs
+  // produces massive FP noise from minified third-party bundles (Monaco Editor,
+  // vendor scripts, etc.) that the project doesn't own or control.
+  'public',
+  'static',
+  'assets',
 ];
 
 /**

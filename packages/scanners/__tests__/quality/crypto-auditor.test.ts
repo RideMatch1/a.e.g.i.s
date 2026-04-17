@@ -231,6 +231,53 @@ describe('cryptoAuditorScanner', () => {
     expect(finding!.severity).toBe('blocker');
   });
 
+  it('does NOT flag redis.eval() — method calls are not JS eval()', async () => {
+    createFile(
+      projectPath,
+      'lib/rate-limit.ts',
+      `
+      const result = await redis.eval(luaScript, { keys: [key], arguments: [limit] });
+    `,
+    );
+
+    const result = await cryptoAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const evalFindings = result.findings.filter((f) => f.title.includes('injection'));
+    expect(evalFindings).toHaveLength(0);
+  });
+
+  it('does NOT flag evalite() — substring match false positive', async () => {
+    createFile(
+      projectPath,
+      'evals/tool-selection.eval.ts',
+      `
+      import { evalite } from "evalite";
+      evalite("tool-selection", { data: async () => fixtures, task: async (input) => run(input) });
+    `,
+    );
+
+    const result = await cryptoAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const evalFindings = result.findings.filter((f) => f.title.includes('injection'));
+    expect(evalFindings).toHaveLength(0);
+  });
+
+  it('does NOT flag eval in comment prose — "bun run eval (watch mode)"', async () => {
+    createFile(
+      projectPath,
+      'scripts/run.ts',
+      `
+      /**
+       * Run: bun run eval        (watch mode)
+       * Run: bun run eval:run    (single run)
+       */
+      export function runEvals() { return true; }
+    `,
+    );
+
+    const result = await cryptoAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const evalFindings = result.findings.filter((f) => f.title.includes('injection'));
+    expect(evalFindings).toHaveLength(0);
+  });
+
   it('includes correct line number for findings', async () => {
     createFile(
       projectPath,

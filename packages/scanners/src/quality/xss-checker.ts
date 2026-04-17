@@ -52,13 +52,19 @@ const XSS_RULES: XssRule[] = [
     requiresNoSanitization: true,
   },
   {
-    // .innerHTML = variable (not a string literal)
-    pattern: /\.innerHTML\s*=\s*(?!['"(])/,
+    // .innerHTML = <variable> — only flag writes with a non-literal RHS.
+    // Negative lookahead excludes:
+    //   - string literals: "...", '...', `...`
+    //   - empty-string clears: innerHTML = ""  (safe, common React pattern)
+    //   - comparisons/reads: if (el.innerHTML !== "")
+    // Positive match requires the RHS to start like a variable/expression:
+    //   identifier char, template expression ${, or function call word(
+    pattern: /\.innerHTML\s*=\s*(?!["'`])(?=\w|\$\{)/,
     title: 'XSS risk — innerHTML assignment with variable',
     description:
       'innerHTML is assigned a variable value without detectable sanitization. If the value contains user-controlled HTML, this is an XSS vulnerability. Use textContent for plain text, or sanitize with DOMPurify.sanitize() before assigning to innerHTML.',
     requiresNoSanitization: true,
-    skipStringLiteral: false, // pattern already excludes string literals
+    skipStringLiteral: false, // negative lookahead already excludes literals
   },
   {
     // v-html= (Vue)

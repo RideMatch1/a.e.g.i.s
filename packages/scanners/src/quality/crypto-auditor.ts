@@ -107,7 +107,11 @@ const RULES: PatternRule[] = [
     cwe: 798,
   },
   {
-    pattern: /\beval\s*\(\s*[^'"`\s)]/,
+    // \beval\b: word boundaries exclude evalite/evaluate.
+    // No \s* between eval and (: eliminates comment-prose FPs ("run eval (watch mode)").
+    // (?<!\.): negative lookbehind excludes method calls (redis.eval, someLib.eval)
+    // which are NOT JavaScript's code-injection eval().
+    pattern: /(?<!\.)\beval\b\(\s*[^'"`\s)]/,
     severity: 'blocker',
     title: 'Code injection risk — eval with dynamic input',
     description:
@@ -116,7 +120,7 @@ const RULES: PatternRule[] = [
     cwe: 95,
   },
   {
-    pattern: /\beval\s*\(\s*['"`]/,
+    pattern: /(?<!\.)\beval\b\(\s*['"`]/,
     severity: 'high',
     title: 'eval() with string literal',
     description:
