@@ -117,6 +117,33 @@ describe('terminalReporter', () => {
     expect(plain).toContain('MEDIUM');
   });
 
+  // v0.9.2 regression (validator MINOR-01): LOW confidence prefixes the
+  // badge with [LOW-CONFIDENCE] so HARDENED / FORTRESS isn't misread on
+  // a thinly-scanned project where only built-in scanners ran.
+  it('prefixes badge with [LOW-CONFIDENCE] when confidence is low', () => {
+    const output = terminalReporter.format(
+      makeResult({ confidence: 'low', badge: 'HARDENED' }),
+    );
+    const plain = output.replace(/\x1B\[[0-9;]*m/g, '');
+    expect(plain).toContain('[LOW-CONFIDENCE]');
+    expect(plain).toContain('HARDENED');
+    // Sub-note explains what LOW confidence means
+    expect(plain).toContain('no security-focused external tools');
+  });
+
+  it('does NOT prefix the badge when confidence is medium or high', () => {
+    const medium = terminalReporter.format(
+      makeResult({ confidence: 'medium', badge: 'HARDENED' }),
+    );
+    const high = terminalReporter.format(
+      makeResult({ confidence: 'high', badge: 'HARDENED' }),
+    );
+    const stripMedium = medium.replace(/\x1B\[[0-9;]*m/g, '');
+    const stripHigh = high.replace(/\x1B\[[0-9;]*m/g, '');
+    expect(stripMedium).not.toContain('[LOW-CONFIDENCE]');
+    expect(stripHigh).not.toContain('[LOW-CONFIDENCE]');
+  });
+
   it('returns a string', () => {
     expect(typeof terminalReporter.format(makeResult())).toBe('string');
   });

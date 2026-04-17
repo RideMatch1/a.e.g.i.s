@@ -135,12 +135,34 @@ function format(result: AuditResult): string {
       : chalk.red;
   const confidenceStr = confidenceColor(result.confidence.toUpperCase());
 
+  // v0.9.2 (validator MINOR-01): when confidence is LOW (no security-
+  // focused external tools available), prefix the badge with
+  // [LOW-CONFIDENCE] so readers don't miscalibrate — a HARDENED grade
+  // on an otherwise-empty project only reflects built-in scanners.
+  // Machine-readable JSON keeps the canonical badge enum; only the
+  // human-facing terminal surface gets the hedge.
+  const badgeDisplay = result.confidence === 'low'
+    ? chalk.yellow('[LOW-CONFIDENCE] ') + result.badge
+    : result.badge;
+
   lines.push(
     `  ${chalk.bold('Total Score:')} ${totalColor.bold(String(result.score))}  ` +
       `${chalk.bold('Grade:')} ${gradeColor(result.grade)(result.grade)}  ` +
-      `${chalk.bold('Badge:')} ${result.badge}  ` +
+      `${chalk.bold('Badge:')} ${badgeDisplay}  ` +
       `${chalk.bold('Confidence:')} ${confidenceStr}`,
   );
+  if (result.confidence === 'low') {
+    lines.push(
+      chalk.dim(
+        '  Confidence is LOW because no security-focused external tools (semgrep, gitleaks, …) were available during the scan.',
+      ),
+    );
+    lines.push(
+      chalk.dim(
+        '  Install them (see `Note` above) for MEDIUM or HIGH confidence before trusting the HARDENED / FORTRESS badges.',
+      ),
+    );
+  }
   lines.push('');
 
   // BLOCKER warning

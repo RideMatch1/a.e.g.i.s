@@ -159,6 +159,7 @@ runs:
           const score = data.score;
           const grade = data.grade;
           const badge = data.badge;
+          const confidence = data.confidence;  // 'low' | 'medium' | 'high'
           const total = data.findings.length;
           const blocked = data.blocked;
 
@@ -177,7 +178,18 @@ runs:
           const sevEmoji = { blocker: '🚫', critical: '🔴', high: '🟠', medium: '🟡', low: '🔵', info: 'ℹ️' };
           const gradeEmoji = { S: '🏰', A: '🛡️', B: '✅', C: '⚠️', D: '❌', F: '💀' };
 
-          let body = `## ${gradeEmoji[grade] || '🔍'} AEGIS Security Audit — Score: ${score}/1000 (${grade}/${badge})\n\n`;
+          // v0.9.2 (validator MINOR-01): when confidence is low, prefix
+          // the badge + add a clarifying sub-line so HARDENED / FORTRESS
+          // isn't visually dominant on a thinly-scanned project.
+          const badgeDisplay = confidence === 'low'
+            ? `⚠️ [LOW-CONFIDENCE] ${badge}`
+            : badge;
+
+          let body = `## ${gradeEmoji[grade] || '🔍'} AEGIS Security Audit — Score: ${score}/1000 (${grade}/${badgeDisplay})\n\n`;
+
+          if (confidence === 'low') {
+            body += `> _Low confidence: no security-focused external tools (semgrep, gitleaks, trivy, …) were available during this run. Install them for MEDIUM / HIGH confidence before trusting HARDENED or FORTRESS badges on this project._\n\n`;
+          }
 
           if (blocked) {
             body += `> **🚫 BLOCKER detected** — ${data.blockerReason}\n\n`;
