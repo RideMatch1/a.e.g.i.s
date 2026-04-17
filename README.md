@@ -28,7 +28,7 @@
 
 ## What is AEGIS?
 
-AEGIS (Automated Enterprise-Grade Inspection Suite) is a **stack-specific security scanner for Next.js + Supabase** with 39 built-in scanners, an AST-based cross-file taint tracker, and a 0-1000 scoring system. It finds vulnerabilities that generic SAST tools (Semgrep, CodeQL, SonarQube) miss because they lack framework-specific rules.
+AEGIS (Automated Enterprise-Grade Inspection Suite) is a **stack-specific security scanner for Next.js + Supabase** with 40 built-in scanners, an AST-based cross-file taint tracker, and a 0-1000 scoring system. It finds vulnerabilities that generic SAST tools (Semgrep, CodeQL, SonarQube) miss because they lack framework-specific rules.
 
 **Best used alongside Semgrep**, not instead of it. AEGIS covers the Supabase / Next.js-specific gaps (multi-tenant isolation, RLS bypass, Server Component data leaks, Zod enforcement) while Semgrep covers the generic SAST space.
 
@@ -49,7 +49,7 @@ db.query(query);                   // Sink: SQL Injection (CWE-89, CRITICAL)
 
 Per-CWE sanitizer awareness means `parseInt()` blocks SQL injection but not XSS, and `DOMPurify.sanitize()` blocks XSS but not SQL injection.
 
-On top of that: 37 built-in regex scanners + 1 AST taint analyzer + 1 RPC-specific SQLi scanner, 16 external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, …), 5 live attack probes, 4 compliance frameworks (GDPR, SOC 2, ISO 27001, PCI-DSS), an MCP Server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
+On top of that: 38 built-in regex scanners + 1 AST taint analyzer + 1 RPC-specific SQLi scanner, 16 external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, …), 5 live attack probes, 4 compliance frameworks (GDPR, SOC 2, ISO 27001, PCI-DSS), an MCP Server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
 
 ---
 
@@ -138,50 +138,55 @@ v0.8 closes the four type-aware gaps from v0.7: HOC / curry consumption at bindi
 
 ---
 
-## Scanners (59 total)
+## Scanners (60 total)
 
-### Built-in (39 scanners: 38 regex + 1 AST taint analyzer)
+> Authoritative registration: `getAllScanners()` + `getAttackScanners()` in
+> [`packages/scanners/src/index.ts`](./packages/scanners/src/index.ts). Counts
+> below are re-verified at every release per the release checklist.
 
-| Scanner | Category | What it checks |
-|---------|----------|----------------|
-| `taint-analyzer` | Security | **AST-based data-flow analysis** — tracks user input from sources to sinks with per-CWE sanitizer awareness, cross-file propagation since v0.7 |
-| `auth-enforcer` | Security | Missing auth guards, unprotected routes, RBAC gaps |
-| `tenant-isolation-checker` | Security | Supabase queries missing `tenant_id` filters — cross-tenant data leak detection |
-| `rls-bypass-checker` | Security | Supabase `.rpc()` and `service_role` usage bypassing Row Level Security |
-| `crypto-auditor` | Security | Weak algorithms, hardcoded secrets, insecure RNG, eval() injection |
-| `zod-enforcer` | Security | Missing Zod validation on mutation routes, missing `.strict()` |
-| `sql-concat-checker` | Security | SQL via string concatenation instead of parameterized queries |
-| `xss-checker` | Security | Unsanitized user input in HTML responses |
-| `ssrf-checker` | Security | Server-side request forgery patterns |
-| `csrf-checker` | Security | Mutation handlers lacking CSRF protection |
-| `rate-limit-checker` | Security | Sensitive routes missing rate limiting |
-| `path-traversal-checker` | Security | User input flowing into file system operations (CWE-22) |
-| `prompt-injection-checker` | Security | User input in LLM prompts without sanitization (CWE-77) |
-| `redos-checker` | Security | Catastrophic backtracking patterns (CWE-1333) |
-| `rsc-data-checker` | Security | Server Components passing full DB records to client (CWE-200) |
-| `mass-assignment-checker` | Security | Unvalidated request bodies to database writes |
-| `open-redirect-checker` | Security | Redirects using unvalidated user input |
-| `cors-checker` | Security | Misconfigured CORS (wildcard / reflected origins) |
-| `header-checker` | Security | Missing security headers (CSP, HSTS, COOP, …) |
-| `config-auditor` | Security | Docker, Next.js, Firebase misconfigurations |
-| `cookie-checker` | Security | Missing `Secure` / `HttpOnly` / `SameSite` flags |
-| `entropy-scanner` | Security | High-entropy strings (leaked secrets) via Shannon entropy |
-| `timing-safe-checker` | Security | Secret comparisons using `===` instead of constant-time |
-| `upload-validator` | Security | File uploads without magic-byte validation |
-| `error-leakage-checker` | Security | Stack traces leaked to client responses |
-| `env-validation-checker` | Security | Missing central environment-variable validation |
-| `http-timeout-checker` | Security | HTTP calls without timeouts |
-| `jwt-checker` | Quality | JWT implementation issues, weak signing |
-| `logging-checker` | Quality | Missing structured logging |
-| `console-checker` | Quality | Debug artifacts in production code |
-| `gdpr-engine` | Compliance | GDPR/DSGVO: privacy page, consent, PII, Google Fonts, double-opt-in |
-| `soc2-checker` | Compliance | SOC 2 Type II control gaps |
-| `iso27001-checker` | Compliance | ISO 27001 control mapping |
-| `pci-dss-checker` | Compliance | PCI DSS cardholder-data exposure |
-| `pagination-checker` | Security | Database queries without row limits |
-| `i18n-quality` | i18n | Hardcoded UI strings, missing locale keys |
-| `supply-chain` | Dependencies | Dependency confusion, typosquatting, lockfile integrity |
-| `dep-confusion-checker` | Dependencies | Scoped packages without private registry mapping |
+### Built-in (40 scanners: 39 regex + 1 AST taint analyzer)
+
+| Scanner | Category | CWE(s) | What it checks |
+|---------|----------|--------|----------------|
+| `taint-analyzer` | Security | 22, 78, 79, 89, 94, 601, 918, 1321 | **AST-based data-flow analysis** — tracks user input from sources to sinks with per-CWE sanitizer awareness, cross-file propagation since v0.7 |
+| `auth-enforcer` | Security | 285, 306 | Missing auth guards, unprotected routes, RBAC gaps |
+| `tenant-isolation-checker` | Security | 639 | Supabase queries missing `tenant_id` filters — cross-tenant data leak detection |
+| `rls-bypass-checker` | Security | 863 | Supabase `.rpc()` and `service_role` usage bypassing Row Level Security |
+| `crypto-auditor` | Security | 326, 327, 338, 798 | Weak algorithms, hardcoded secrets, insecure RNG, eval() injection |
+| `zod-enforcer` | Security | 20 | Missing Zod validation on mutation routes, missing `.strict()` |
+| `sql-concat-checker` | Security | 89 | SQL via string concatenation instead of parameterized queries |
+| `xss-checker` | Security | 79 | Unsanitized user input in HTML responses |
+| `ssrf-checker` | Security | 918 | Server-side request forgery patterns |
+| `csrf-checker` | Security | 352 | Mutation handlers lacking CSRF protection |
+| `rate-limit-checker` | Security | 770 | Sensitive routes missing rate limiting |
+| `path-traversal-checker` | Security | 22 | User input flowing into file system operations |
+| `prompt-injection-checker` | Security | 77 | User input in LLM prompts without sanitization |
+| `redos-checker` | Security | 1333 | Catastrophic backtracking patterns |
+| `rsc-data-checker` | Security | 200 | Server Components passing full DB records to client |
+| `mass-assignment-checker` | Security | 915 | Unvalidated request bodies to database writes |
+| `open-redirect-checker` | Security | 601 | Redirects using unvalidated user input |
+| `cors-checker` | Security | 346 | Misconfigured CORS (wildcard / reflected origins) |
+| `header-checker` | Security | 693 | Missing security headers (CSP, HSTS, COOP, …) |
+| `config-auditor` | Security | 16 | Docker, Next.js, Firebase misconfigurations |
+| `cookie-checker` | Security | 614, 1004 | Missing `Secure` / `HttpOnly` / `SameSite` flags |
+| `entropy-scanner` | Security | 798 | High-entropy strings (leaked secrets) via Shannon entropy |
+| `timing-safe-checker` | Security | 208 | Secret comparisons using `===` instead of constant-time |
+| `upload-validator` | Security | 434 | File uploads without magic-byte validation |
+| `error-leakage-checker` | Security | 209 | Stack traces leaked to client responses |
+| `env-validation-checker` | Security | 16 | Missing central environment-variable validation |
+| `http-timeout-checker` | Security | 400 | HTTP calls without timeouts |
+| `next-public-leak` | Security | 200, 798 | Secrets accidentally prefixed `NEXT_PUBLIC_*` or read in `'use client'` files |
+| `jwt-checker` | Quality | 327, 345 | JWT implementation issues, weak signing, 'none' algorithm |
+| `logging-checker` | Quality | 778 | Missing structured logging (auto-skipped on CLI tools since v0.9) |
+| `console-checker` | Quality | 532 | Debug artifacts in production code (`console.log`, `debugger;`, TODO/FIXME) |
+| `gdpr-engine` | Compliance | — | GDPR/DSGVO: privacy page, consent, PII, Google Fonts, double-opt-in |
+| `soc2-checker` | Compliance | — | SOC 2 Type II control gaps |
+| `iso27001-checker` | Compliance | — | ISO 27001 control mapping |
+| `pci-dss-checker` | Compliance | — | PCI DSS cardholder-data exposure |
+| `pagination-checker` | Security | 770 | Database queries without row limits |
+| `i18n-quality` | i18n | — | Hardcoded UI strings, missing locale keys |
+| `supply-chain` | Dependencies | 829, 1357 | Dependency confusion, typosquatting, lockfile integrity, phantom-deps (monorepo-aware since v0.9) |
+| `dep-confusion-checker` | Dependencies | 1357 | Scoped packages without private registry mapping |
 
 ### External wrappers (16 scanners, auto-skipped when not installed)
 
