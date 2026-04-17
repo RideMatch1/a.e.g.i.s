@@ -1,0 +1,9 @@
+{
+  "id": "D6",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Prisma query with workspaceId discriminant — dub-style multi-tenancy, FP post-v0.10",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "D8",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Prisma query missing any tenant discriminant — real IDOR, currently silent FN",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}
