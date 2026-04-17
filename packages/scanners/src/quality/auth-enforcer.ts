@@ -11,9 +11,33 @@ const AUTH_GUARD_PATTERNS = [
   /\bauthenticate\b/,
   /verifyToken/,
   /verifySignature/,
+  // v0.9.2: Clerk / Auth.js community AUTH helpers (distinct from the
+  // role-guard check in ROLE_GUARD_PATTERNS). currentUser() proves the
+  // request has an authenticated session; the role check is separate.
+  /\bcurrentUser\s*\(\s*\)/,
+  /auth\.protect\s*\(/,           // Clerk v5 explicit protect()
 ];
 
+/**
+ * Role / authorisation guard patterns.
+ *
+ * The original v0.7 set was tuned to the originating spa-app's custom
+ * helpers (requireRole, requireRoleOrSelf, isManager, …). Validator-
+ * report MAJOR-02 surfaced that standard next-auth / Clerk / iron-
+ * session community shapes do NOT match any of those names, so every
+ * properly-authorised next-auth route produced a "missing role guard"
+ * low-severity FP.
+ *
+ * v0.9.2 extends the list with the dominant community shapes. We match
+ * **guard shapes** where possible — structural ownership-comparison
+ * patterns like `session.user.id === post.userId` — rather than mere
+ * helper-name keywords, so a random file containing "canRead" in a
+ * comment does not falsely qualify. This is still a precision-over-
+ * recall pattern match, not full-flow AST analysis; the latter is
+ * v0.10 scope.
+ */
 const ROLE_GUARD_PATTERNS = [
+  // Original spa-app helper family (kept for backward compat).
   /requireRole/,
   /requireRoleOrSelf/,
   /isManager/,
@@ -21,6 +45,27 @@ const ROLE_GUARD_PATTERNS = [
   /hasRole/,
   /isAdmin/,
   /authorize/,
+
+  // v0.9.2: next-auth / iron-session / Clerk / Auth.js — claim comparison shapes.
+  // e.g. `if (session.user.id !== post.userId) return forbidden()`
+  /session\.user\.(id|role|email)\s*===/,
+  /session\.user\.(id|role|email)\s*!==/,
+  // Resource-ownership comparison (ownerId/authorId/createdBy etc. vs session claim).
+  /\.(userId|authorId|ownerId|createdBy)\s*===\s*session/,
+  /session\.user\.id\s*===\s*\w+\.(userId|authorId|ownerId|createdBy)/,
+
+  // Community utility-name families (taxonomy / Auth.js-style helpers).
+  // e.g. `await verifyCurrentUserHasAccessToPost(postId)`
+  /verifyCurrent(User|Member|Owner)[A-Z]\w*/,
+  /user(HasAccess|CanAccess|IsOwner|OwnsResource|CanEdit|CanRead|CanWrite|CanDelete)\w*/,
+  /\bcan(Edit|Read|Write|Delete|Access|View)[A-Z]\w*\s*\(/,
+
+  // Clerk role / permission checks (distinct from Clerk's AUTH guard
+  // which is already covered by /\bauth\(\)/ above).
+  // Matches both `auth().has({ role: 'admin' })` (member form) and the
+  // destructured `const { has } = auth(); has({ role })` form.
+  /\bhas\s*\(\s*\{\s*(?:role|permission)\s*:/,
+  /(?:public|private|unsafe)Metadata\.role/,     // Clerk metadata role claim
 ];
 
 /** Routes that are intentionally public — no auth required */

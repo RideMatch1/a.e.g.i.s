@@ -180,6 +180,131 @@ describe('authEnforcerScanner', () => {
     expect(typeof result.duration).toBe('number');
     expect(result.available).toBe(true);
   });
+
+  // v0.9.2 regression (validator MAJOR-02): next-auth / Auth.js ownership
+  // comparisons must NOT be flagged as "missing role guard". Previous
+  // ROLE_GUARD_PATTERNS set was tuned to spa-app's custom helpers and
+  // produced low-severity FPs on every properly-authorised next-auth
+  // route in the wild (validator reproduced 3 FPs on shadcn-ui/taxonomy).
+  it('does NOT flag next-auth ownership comparison (session.user.id === post.userId)', async () => {
+    createApiRoute(
+      projectPath,
+      'posts-edit',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function PATCH(request) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        const post = await db.post.findUnique({ where: { id: params.id } });
+        if (session.user.id !== post.userId) return new Response(null, { status: 403 });
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('does NOT flag taxonomy-style verifyCurrentUserHasAccessToPost', async () => {
+    createApiRoute(
+      projectPath,
+      'posts-delete',
+      `
+      import { getServerSession } from 'next-auth/next';
+      import { verifyCurrentUserHasAccessToPost } from '@/lib/api/posts';
+      export async function DELETE(_req, { params }) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        if (!(await verifyCurrentUserHasAccessToPost(params.postId))) {
+          return new Response(null, { status: 403 });
+        }
+        return new Response(null, { status: 204 });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('does NOT flag canEdit/canDelete community helper patterns', async () => {
+    createApiRoute(
+      projectPath,
+      'comments',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function DELETE(req, { params }) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        if (!canEditComment(session.user.id, params.id)) {
+          return new Response(null, { status: 403 });
+        }
+        return new Response(null, { status: 204 });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('does NOT flag Clerk role check via has({ role })', async () => {
+    createApiRoute(
+      projectPath,
+      'admin-metrics',
+      `
+      import { auth } from '@clerk/nextjs';
+      export async function GET() {
+        const { userId, has } = auth();
+        if (!userId) return new Response(null, { status: 401 });
+        if (!has({ role: 'admin' })) return new Response(null, { status: 403 });
+        return NextResponse.json({});
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('does NOT flag Clerk role check via publicMetadata.role', async () => {
+    createApiRoute(
+      projectPath,
+      'billing',
+      `
+      import { currentUser } from '@clerk/nextjs';
+      export async function GET() {
+        const user = await currentUser();
+        if (!user) return new Response(null, { status: 401 });
+        if (user.publicMetadata.role !== 'admin') {
+          return new Response(null, { status: 403 });
+        }
+        return NextResponse.json({ data: [] });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('DOES still flag a route with auth() but NO ownership / role check (baseline lock)', async () => {
+    createApiRoute(
+      projectPath,
+      'admin/promote',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function POST(request) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        // NB: no role or ownership check — low-severity finding must fire.
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const roleFinding = result.findings.find((f) =>
+      f.title.includes('role/authorisation guard'),
+    );
+    expect(roleFinding).toBeDefined();
+    expect(roleFinding!.severity).toBe('low');
+  });
 });
 
 describe('authEnforcerScanner — server components with DB access', () => {
