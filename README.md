@@ -53,6 +53,62 @@ On top of that: 38 built-in regex scanners + 1 AST taint analyzer + 1 RPC-specif
 
 ---
 
+## Architecture
+
+```
+                   ┌──────────────────┐
+                   │ aegis.config.json│ ← user config (optional)
+                   └────────┬─────────┘
+                            │
+                   ┌────────▼─────────┐
+                   │   ConfigLoader   │ (@aegis-scan/core)
+                   │  (Zod-strict)    │
+                   └────────┬─────────┘
+                            │
+                   ┌────────▼─────────┐
+                   │   Orchestrator   │ walkFiles → per-scanner dispatch
+                   └────────┬─────────┘
+                            │
+             ┌──────────────┼──────────────┐
+             ▼              ▼              ▼
+  ┌──────────────────┐  ┌────────────┐  ┌──────────────────┐
+  │ Built-in scanners│  │  Taint     │  │ External wrappers│
+  │  (39 regex rules)│  │  Analyzer  │  │  (Semgrep, ZAP, …│
+  │                  │  │  (AST +    │  │   auto-skip when │
+  │                  │  │   TS       │  │   not installed) │
+  │                  │  │   Compiler)│  │                  │
+  └─────────┬────────┘  └─────┬──────┘  └────────┬─────────┘
+            │                  │                  │
+            └─────────────┬────┴──────────────────┘
+                          ▼
+                ┌──────────────────┐
+                │     Findings     │
+                └─────────┬────────┘
+                          │
+                ┌─────────▼──────────┐
+                │ Suppression filter │ ← inline + config suppressions
+                └─────────┬──────────┘
+                          │
+                ┌─────────▼──────────┐
+                │  Score / Grade /   │ ← 0-1000, blocker override
+                │  Badge / Confidence│
+                └─────────┬──────────┘
+                          │
+              ┌───────────┼───────────┐
+              ▼           ▼           ▼
+          Terminal      JSON       SARIF 2.1.0
+          (colour)   (machine)     (GH Code
+                                    Scanning)
+                          │
+                          ▼
+                     HTML / Markdown
+                     (dashboards, PR comments)
+```
+
+The **taint analyzer** is the cross-cutting sibling to the regex scanners: it parses each file with the TypeScript Compiler API, walks the AST to find source → sink flows, consults the module-graph + function-summary cache for cross-file propagation, and emits its findings into the same pipeline. Every scanner reads from `@aegis-scan/core` and writes into the shared `Finding[]` array; the Orchestrator owns scheduling and the score aggregator owns the final verdict.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -99,6 +155,36 @@ AEGIS is not a Semgrep replacement — it's a **Semgrep multiplier**. When Semgr
 
 ---
 
+## Honest limitations
+
+Running a security tool is a trust exercise. Here is what AEGIS does **not** do well — or at all — documented up front so you can decide where AEGIS fits in your stack:
+
+- **Cross-file taint precision is unmeasured at n≥20.** The v0.8 / v0.9 Dogfood across 6 production Next.js codebases (cal-com, dub, openstatus, taxonomy, documenso, vercel/commerce) produced 2 cross-file findings total, both confirmed FP; v0.9.1's AST-precise regex-guard + URL-position filters closed them at source and now the corpus shows 0 cross-file findings. That means **0 observed FPs but also 0 observed TPs** on this sample — high precision, unknown recall. Cross-file findings still ship with `confidence: 'medium'` pending a validated n≥20 measurement. See CHANGELOG `[0.9.1]` §Cross-file precision.
+- **Not a general SAST replacement.** AEGIS is stack-specific. On a Python, Go, Rust, or Java codebase it will do nothing useful. On Node that isn't Next.js, it finds the generic classes (SQLi, SSRF, path traversal, prompt injection, crypto misuse) but skips the framework-specific ones. Use alongside Semgrep / CodeQL / njsscan, never instead.
+- **Compliance checks are pattern-based rules, not audit-grade.** The `gdpr-engine`, `soc2-checker`, `iso27001-checker`, `pci-dss-checker` scanners implement dozens of the most common pattern-level controls (GDPR: privacy page, cookie consent, PII handling, Google-Fonts self-hosting, double-opt-in, retention). They are **not** a substitute for a certified auditor. Full framework-depth integration (SCF / OSCAL mapping, evidence export) is on the v1.0 roadmap.
+- **Single-maintainer project.** Bus factor is 1. CONTRIBUTING + SECURITY + CODE_OF_CONDUCT + CODEOWNERS + issue templates are in place; contributions and review offers welcome.
+- **TypeScript / JavaScript only.** No Python, Go, Rust, Java, C#, Ruby, PHP. Cross-language support is out of scope for Festung-Mode-B (local-first, no SaaS, low-maintenance OSS).
+- **External-tool wrappers require the tool on PATH.** AEGIS's Semgrep / Gitleaks / Trivy / ZAP / OSV-Scanner / … integrations auto-skip when the underlying binary is absent. This shows up as `Confidence: LOW` with a "Missing: …" note in the terminal output; in CI comments the badge gets a `[LOW-CONFIDENCE]` prefix since v0.9.2.
+
+---
+
+## Independently validated (v0.9.1 stress-test)
+
+v0.9.1 went through an adversarial external stress-test by a fresh, no-prior-context reviewer with file-system + network access, running ≈4 hours of reproducible probes. The review confirmed the following as reproducible:
+
+- Self-scan on the AEGIS repo: `1000 / A / HARDENED`, 0 findings.
+- Benchmark `30/30 strict` (21 planted vulnerabilities + 9 clean-file FP checks) passes.
+- Test count `1386 green` across 5 packages.
+- Adversarial inputs (10k-import file, 1 MB template literal, BOM + RTL override chars, symlink loop) complete in <2 s without crash.
+- Prompt-injection hardening on `aegis fix` — per-invocation random hex sentinel holds against escape attempts.
+- Prototype-pollution via config rejected by the Zod-strict schema; JSON-only config parser is immune to arbitrary-code execution.
+- Real TP captured externally: open-redirect pattern in the official `vercel/next.js` `with-supabase` example (`searchParams.get('next') → redirect()`).
+- Forensic leak check (`git log`, `git grep`) on published tarballs and `main` — clean of any private-identity / private-repo references.
+
+The review also surfaced 5 MAJOR + 5 MINOR findings, all closed in v0.9.2 (see CHANGELOG `[0.9.2]`). What is written here is what the reviewer verified reproducibly; honest-score discipline applied to the positive side as well as the negative.
+
+---
+
 ## Taint Analysis Engine
 
 The AST-based taint tracker uses the TypeScript Compiler API to follow user input through your code — within a single file and across module boundaries.
@@ -121,7 +207,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 - Barrel re-exports up to depth 5.
 - Cross-file sanitizer recognition — imports of a function that wraps its arg through a known sanitizer suppress the finding.
 
-v0.8 closes the four type-aware gaps from v0.7: HOC / curry consumption at binding sites (policy §9), generic pass-through return-taint via `summary.returnsTainted`, method-call cross-file via TypeChecker symbol resolution, and conditional-import confidence downgrade. Known limitations (scoped to v0.9+): regex-guard awareness inside cross-file callee bodies, SSRF URL-arg vs header-arg distinction for `fetch(url, {headers})`, cross-file precision measurement (pending n≥20 emissions). See [CHANGELOG](./CHANGELOG.md).
+v0.8 closed the four type-aware gaps from v0.7: HOC / curry consumption at binding sites (policy §9), generic pass-through return-taint via `summary.returnsTainted`, method-call cross-file via TypeChecker symbol resolution, and conditional-import confidence downgrade. v0.9.1 closed two additional cross-file FP classes with AST-precise filters in `paramReachesSink`: regex-guard awareness inside cross-file callee bodies (cal-com `isValidCalURL` pattern) and SSRF URL-position vs header-position distinction for `fetch(url, {headers})` shapes (dub `bitly rate-limit` pattern). See [CHANGELOG](./CHANGELOG.md) `[0.9.1]` + `[0.9.2]` for details. Known limitation: cross-file precision measurement still unvalidated at n≥20 — see the **Honest limitations** section above.
 
 ---
 
