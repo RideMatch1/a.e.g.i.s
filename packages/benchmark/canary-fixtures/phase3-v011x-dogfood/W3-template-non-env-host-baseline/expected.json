@@ -1,0 +1,9 @@
+{
+  "id": "W3",
+  "cwe": 918,
+  "type": "TP",
+  "description": "TP baseline for FP #2 regression — template-literal fetch where the first interpolation is NOT env-assigned. User-controllable host. Must still emit after FP #2 fix — the env-assignment heuristic must not accidentally suppress genuine SSRFs.",
+  "expected": [
+    { "scanner": "ssrf-checker", "cwe": 918 }
+  ]
+}

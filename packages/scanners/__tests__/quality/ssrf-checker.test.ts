@@ -109,6 +109,104 @@ export async function POST(req) {
     expect(result.findings.filter((f) => f.cwe === 918).length).toBeGreaterThan(0);
   });
 
+  it('v0.11.x FP #1: suppresses fetch(url) inside NON-exported internal wrapper', async () => {
+    // Real-world shape (dogfood): an internal `apiFetch` helper called
+    // from exported apiGet/apiPost. The Day-1 Z4 regex gated on `export`
+    // and missed this shape. The v0.11.x widening drops the gate —
+    // wrapper semantics apply equally to non-exported helpers.
+    writeFile(
+      projectPath,
+      'lib/api/client.ts',
+      `
+async function apiFetch(url, options = {}) {
+  return fetch(url, { ...options, headers: { 'Content-Type': 'application/json' } });
+}
+
+export function apiGet(url) { return apiFetch(url); }
+export function apiPost(url, data) { return apiFetch(url, { method: 'POST', body: JSON.stringify(data) }); }
+`,
+    );
+    const result = await ssrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.cwe === 918)).toHaveLength(0);
+  });
+
+  it('v0.11.x FP #1: suppresses wrapper with TypeScript generics `function f<T>(url)`', async () => {
+    // The original Z4 regex required `\w+\s*\(` — literal whitespace or
+    // nothing between the function name and the opening paren. A generic
+    // type parameter list (`<T>`) between them broke the match entirely.
+    // Widened regex uses `\w+[^(]*\(` to tolerate any non-paren chars.
+    writeFile(
+      projectPath,
+      'lib/api/client.ts',
+      `
+export async function apiFetch<T>(
+  url: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const res = await fetch(url, options);
+  return res.json() as Promise<T>;
+}
+`,
+    );
+    const result = await ssrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.cwe === 918)).toHaveLength(0);
+  });
+
+  it('v0.11.x FP #2: suppresses `fetch(`${X}/path`)` when X is env-assigned in same file', async () => {
+    // Dogfood shape: env-loaded host templated into the fetch URL. The
+    // Day-1 pattern `/fetch\s*\(\s*\`\$\{/` fires on every template-literal
+    // shape; the v0.11.x env-host heuristic suppresses when the first
+    // interpolation variable is assigned from process.env in the file.
+    writeFile(
+      projectPath,
+      'lib/auth/generate-link.ts',
+      `
+export async function generateAuthLink() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const res = await fetch(\`\${supabaseUrl}/auth/v1/admin/generate_link\`, {
+    method: 'POST',
+  });
+  return res.json();
+}
+`,
+    );
+    const result = await ssrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.cwe === 918)).toHaveLength(0);
+  });
+
+  it('v0.11.x FP #2: STILL flags `fetch(`${X}/path`)` when X is NOT env-assigned', async () => {
+    // Regression pin — env-host heuristic must not silence genuine SSRFs
+    // where the template host is user-controllable.
+    writeFile(
+      projectPath,
+      'app/api/proxy/route.ts',
+      `
+export async function POST(req) {
+  const { host } = await req.json();
+  const res = await fetch(\`\${host}/api/data\`, { method: 'GET' });
+  return Response.json(await res.json());
+}
+`,
+    );
+    const result = await ssrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.cwe === 918).length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.x FP #2: accepts `const X = process.env.Y ?? "default"` fallback shape', async () => {
+    writeFile(
+      projectPath,
+      'lib/config.ts',
+      `
+const apiBase = process.env.API_BASE_URL ?? 'https://api.example.com';
+export async function call() {
+  return fetch(\`\${apiBase}/v1/ping\`);
+}
+`,
+    );
+    const result = await ssrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.cwe === 918)).toHaveLength(0);
+  });
+
   it('v0.11 Z4: still flags when wrapper has different param name than fetched var', async () => {
     // If the function parameter is `target` but the code fetches `url`
     // (derived elsewhere), the heuristic should not silence — the fetched

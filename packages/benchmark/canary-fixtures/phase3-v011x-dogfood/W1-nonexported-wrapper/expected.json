@@ -1,0 +1,9 @@
+{
+  "id": "W1",
+  "cwe": 918,
+  "type": "FP",
+  "description": "FP #1 — non-exported internal library wrapper. `async function apiFetch(url, options) { return fetch(url, options); }` is called from exported apiGet/apiPost but itself is non-exported. Z4 Day-1 heuristic gated on `export` keyword — this wrapper is missed. SSRF risk materialises at consumer call site (caught by taint-analyzer), not at the wrapper itself. Must NOT emit after FP #1 fix widens the wrapper-heuristic regex.",
+  "expected": [
+    { "scanner": "ssrf-checker", "cwe": 918 }
+  ]
+}

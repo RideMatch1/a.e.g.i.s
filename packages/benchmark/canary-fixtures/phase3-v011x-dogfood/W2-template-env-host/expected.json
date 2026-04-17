@@ -1,0 +1,9 @@
+{
+  "id": "W2",
+  "cwe": 918,
+  "type": "FP",
+  "description": "FP #2 — template-literal fetch where the host is an env-assigned variable. `const X = process.env.Y; fetch(\\`${X}/path\\`)` is a config-loaded host, not user-controllable. Current regex fires on any template-literal-first shape. Suppression via per-file env-var assignment detection.",
+  "expected": [
+    { "scanner": "ssrf-checker", "cwe": 918 }
+  ]
+}

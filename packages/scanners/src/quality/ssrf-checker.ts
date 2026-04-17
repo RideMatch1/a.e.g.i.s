@@ -11,7 +11,7 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
 /** Patterns indicating a potentially unsafe fetch with a variable URL */
 const UNSAFE_FETCH_PATTERNS = [
   /fetch\s*\(\s*(?!['"`]https?:\/\/)(\w+)/,                    // fetch(variable) — not a literal URL
-  /fetch\s*\(\s*`\$\{/,                                         // fetch(`${url}...`)
+  /fetch\s*\(\s*`\$\{([A-Za-z_]\w*)/,                          // fetch(`${var}...`) — capture host-var
   /fetch\s*\(\s*new\s+URL\s*\(\s*(?!['"`])\w+/,                // fetch(new URL(variable...))
   /axios\s*\.\s*(?:get|post|put|delete|patch)\s*\(\s*(?!['"`]https?:\/\/)(\w+)/, // axios.get(variable)
   /got\s*\(\s*(?!['"`]https?:\/\/)(\w+)/,                       // got(variable)
@@ -49,11 +49,11 @@ function shouldSkipFile(filePath: string): boolean {
 /**
  * v0.11 Z4 — library wrapper heuristic.
  *
- * Returns true when `fetch(varName, …)` is inside an enclosing exported
- * function whose parameter list contains `varName`. That is the shape of
- * a library HTTP wrapper:
+ * Returns true when `fetch(varName, …)` is inside an enclosing function
+ * whose parameter list contains `varName`. That is the shape of a
+ * library HTTP wrapper:
  *
- *   export async function fetchFrom(url: string, opts?) {
+ *   async function apiFetch(url: string, opts?) {
  *     return fetch(url, opts);       // ← varName = 'url' is a parameter
  *   }
  *
@@ -62,12 +62,18 @@ function shouldSkipFile(filePath: string): boolean {
  * taint-analyzer catches that cross-file flow; ssrf-checker firing on the
  * wrapper produces noise.
  *
- * Regex approximation (no AST): find an `export (async )? function` whose
- * parameter list contains `varName`, starting BEFORE the fetch. Scope is
- * one level of nesting — if the fetch is inside a nested lambda, the
- * heuristic will over-skip in rare cases. That is the same trade-off all
- * the other regex-based scanners make; precision-over-recall and a known
- * limit for v0.11.
+ * v0.11.x FP #1: the original v0.11 heuristic required `export` before the
+ * function keyword. Real-world codebases frequently structure wrappers as
+ * non-exported internal helpers (`apiFetch`) called from exported wrappers
+ * (`apiGet`/`apiPost`). The SSRF reasoning is identical — the wrapper
+ * itself has no user input, the call site does. Dropping the `export`
+ * gate covers the internal-helper case without expanding risk.
+ *
+ * Regex approximation (no AST): find an `(async )? function` declaration
+ * whose parameter list contains `varName`, starting BEFORE the fetch. The
+ * nearest-preceding declaration is treated as the enclosing function. The
+ * `[^)]*` capture prevents body-bleed from the pre-tighten `[\s\S]*?`
+ * shape (the Z4 Day-1 lesson that over-silenced true positives).
  */
 function isWrapperParameterFetch(
   content: string,
@@ -76,14 +82,14 @@ function isWrapperParameterFetch(
 ): boolean {
   if (!varName) return false;
   const before = content.slice(0, matchIndex);
-  // Capture the parameter lists (without crossing `)`) of every
-  // `export (async )? function <name>(…)` declaration that appears
-  // before the fetch. The nearest-preceding declaration is treated as
-  // the enclosing function; its parameter list is checked for varName.
-  // Using `[^)]*` for the capture prevents body-bleed (the pre-tighten
-  // version used `[\s\S]*?` which spuriously matched varNames that were
-  // local body variables — that over-silenced true positives).
-  const wrapperRe = /export\s+(?:async\s+)?function\s+\w+\s*\(([^)]*)\)/g;
+  // Capture the parameter lists of every `(async )? function <name>(…)`
+  // declaration before the fetch. Covers both exported and non-exported
+  // wrappers (v0.11.x FP #1 widening).
+  // `\w+[^(]*\(` tolerates TypeScript generics between the name and
+  // the opening paren — `function apiFetch<T>(url)` is a common real-
+  // world shape the original Day-1 regex missed (the `\w+\s*\(` form
+  // expected literal whitespace between the name and `(`, no generic).
+  const wrapperRe = /(?:^|\n|\s|;)(?:export\s+)?(?:async\s+)?function\s+\w+[^(]*\(([^)]*)\)/g;
   let lastParams: string | null = null;
   let m: RegExpExecArray | null;
   while ((m = wrapperRe.exec(before)) !== null) {
@@ -92,6 +98,33 @@ function isWrapperParameterFetch(
   if (lastParams === null) return false;
   const varBoundary = new RegExp(`\\b${varName}\\b`);
   return varBoundary.test(lastParams);
+}
+
+/**
+ * v0.11.x FP #2 — env-assigned-host heuristic.
+ *
+ * Suppresses `fetch(\`${X}/...\`)` when X is assigned from `process.env`
+ * somewhere in the same file:
+ *
+ *   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+ *   // …
+ *   const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, …);
+ *
+ * Env-loaded hosts are config-fixed at deployment time and not user-
+ * controllable, so the SSRF concern doesn't apply — the template-
+ * literal regex otherwise fires on every such shape (dominant idiom
+ * in Next.js + Supabase codebases). Destructure-from-env is out of
+ * scope for v0.11.x and will still emit (conservative).
+ *
+ * Also accepts the `??` / `||` fallback shape commonly seen in config
+ * modules: `const X = process.env.Y ?? 'default-host'`.
+ */
+function isTemplateEnvHostFetch(content: string, varName: string): boolean {
+  if (!varName) return false;
+  const envRe = new RegExp(
+    `\\b(?:const|let|var)\\s+${varName}\\b[^;\\n=]*=\\s*process\\.env\\.`,
+  );
+  return envRe.test(content);
 }
 
 function findLineNumber(content: string, index: number): number {
@@ -141,10 +174,19 @@ export const ssrfCheckerScanner: Scanner = {
             if (constAssignPattern.test(content)) continue;
           }
 
-          // v0.11 Z4: skip fetch() when the URL is a parameter of an
-          // enclosing exported function (library-wrapper shape). See
-          // `isWrapperParameterFetch` for detailed rationale.
+          // v0.11 Z4 + v0.11.x FP #1: skip fetch() when the URL is a
+          // parameter of any enclosing function (library-wrapper shape
+          // — exported or internal helper). See `isWrapperParameterFetch`
+          // for the full rationale + widening history.
           if (matchedVar && isWrapperParameterFetch(content, match.index, matchedVar)) {
+            continue;
+          }
+
+          // v0.11.x FP #2: skip template-literal fetch when the host
+          // variable is assigned from process.env in this file — env-
+          // loaded hosts are config-fixed at deployment, not user-
+          // controllable.
+          if (matchedVar && isTemplateEnvHostFetch(content, matchedVar)) {
             continue;
           }
 
