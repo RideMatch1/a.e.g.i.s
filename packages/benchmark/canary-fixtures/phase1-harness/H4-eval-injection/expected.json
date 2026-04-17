@@ -1,0 +1,9 @@
+{
+  "id": "H4",
+  "cwe": 95,
+  "type": "TP",
+  "description": "Code injection via eval(userInput)",
+  "expected": [
+    { "scanner": "crypto-auditor", "cwe": 95 }
+  ]
+}

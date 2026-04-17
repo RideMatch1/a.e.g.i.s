@@ -1,0 +1,9 @@
+{
+  "id": "H2",
+  "cwe": 79,
+  "type": "TP",
+  "description": "XSS via innerHTML assignment of variable",
+  "expected": [
+    { "scanner": "xss-checker", "cwe": 79 }
+  ]
+}

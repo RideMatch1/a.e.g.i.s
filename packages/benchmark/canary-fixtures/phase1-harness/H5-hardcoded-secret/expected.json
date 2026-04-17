@@ -1,0 +1,9 @@
+{
+  "id": "H5",
+  "cwe": 798,
+  "type": "TP",
+  "description": "Hardcoded high-entropy credential in source",
+  "expected": [
+    { "scanner": "entropy-scanner", "cwe": 798 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "H1",
+  "cwe": 89,
+  "type": "TP",
+  "description": "SQL injection via template-literal concatenation",
+  "expected": [
+    { "scanner": ["sql-concat-checker", "taint-analyzer"], "cwe": 89 }
+  ]
+}

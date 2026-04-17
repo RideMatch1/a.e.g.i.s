@@ -1,0 +1,9 @@
+{
+  "id": "H3",
+  "cwe": 601,
+  "type": "TP",
+  "description": "Open redirect via NextResponse.redirect(new URL(userInput, req.url))",
+  "expected": [
+    { "scanner": "open-redirect-checker", "cwe": 601 }
+  ]
+}
