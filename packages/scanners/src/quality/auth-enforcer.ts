@@ -16,6 +16,11 @@ const AUTH_GUARD_PATTERNS = [
   // request has an authenticated session; the role check is separate.
   /\bcurrentUser\s*\(\s*\)/,
   /auth\.protect\s*\(/,           // Clerk v5 explicit protect()
+  // v0.9.3: tRPC / Hono / Elysia context-based auth. The framework
+  // produces `ctx.session` (or `ctx.user`) from its createContext
+  // function which already verified the request. A procedure checking
+  // `if (!ctx.session)` / `if (!ctx.user)` is the idiomatic auth gate.
+  /\bctx\.(?:session|user)\b/,
 ];
 
 /**
@@ -46,13 +51,22 @@ const ROLE_GUARD_PATTERNS = [
   /isAdmin/,
   /authorize/,
 
-  // v0.9.2: next-auth / iron-session / Clerk / Auth.js — claim comparison shapes.
-  // e.g. `if (session.user.id !== post.userId) return forbidden()`
-  /session\.user\.(id|role|email)\s*===/,
-  /session\.user\.(id|role|email)\s*!==/,
-  // Resource-ownership comparison (ownerId/authorId/createdBy etc. vs session claim).
-  /\.(userId|authorId|ownerId|createdBy)\s*===\s*session/,
-  /session\.user\.id\s*===\s*\w+\.(userId|authorId|ownerId|createdBy)/,
+  // v0.9.2 / v0.9.3: next-auth / iron-session / Clerk / Auth.js — claim
+  // comparison shapes. The regexes below uniformly handle:
+  //   - Optional chaining on `session` and/or `.user` (session?.user.id,
+  //     session.user?.id, session?.user?.id) — common post-null-check shape.
+  //   - Both equality operators (`===` and `!==`) — the negated form is
+  //     the canonical "forbidden unless matching" early-exit.
+  //   - Either operand order: session-on-left AND resource-on-left.
+  //   - tRPC-style `ctx.session.user.id` via the optional prefix.
+  //
+  // v0.9.3 closes the reviewer's residual MAJOR-02 FP classes (optional
+  // chaining breaking literal-dot matches; reversed-operand not-equals
+  // ownership checks) surfaced against a vanilla shadcn-ui/taxonomy scan.
+  /(?:\bctx\.)?session\??\.user\??\.(?:id|role|email)\s*[!=]==/,
+  /[!=]==\s*(?:\bctx\.)?session\??\.user\??\.(?:id|role|email)/,
+  /\.(?:userId|authorId|ownerId|createdBy|user_id)\s*[!=]==\s*(?:\bctx\.)?session\??\.user/,
+  /(?:\bctx\.)?session\??\.user\??\.id\s*[!=]==\s*\w+\.(?:userId|authorId|ownerId|createdBy|user_id)/,
 
   // Community utility-name families (taxonomy / Auth.js-style helpers).
   // e.g. `await verifyCurrentUserHasAccessToPost(postId)`

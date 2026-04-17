@@ -284,6 +284,110 @@ describe('authEnforcerScanner', () => {
     expect(result.findings).toHaveLength(0);
   });
 
+  // v0.9.3 regression (validator MAJOR-02 residual): the v0.9.2 patterns
+  // used literal `session\.user\.` which does NOT match `session?.user.`
+  // under optional chaining. Every post-null-check ownership comparison
+  // in a vanilla next-auth codebase was FP'd. The new patterns accept
+  // optional chaining on BOTH the session and the .user segment, as well
+  // as reversed operand order and tRPC-style ctx.session prefix.
+  it('does NOT flag session?.user.id !== post.userId (optional chaining + !==)', async () => {
+    createApiRoute(
+      projectPath,
+      'posts-optional-chain',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function PATCH(request, { params }) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        const post = await db.post.findUnique({ where: { id: params.id } });
+        if (params.userId !== session?.user.id) return new Response(null, { status: 403 });
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('does NOT flag resource-on-left reversed-operand ownership (params.userId !== session?.user.id)', async () => {
+    createApiRoute(
+      projectPath,
+      'users-userid-reversed',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function GET(req, { params }) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        if (params.userId !== session?.user.id && session?.user.role !== 'admin') {
+          return new Response(null, { status: 403 });
+        }
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('does NOT flag tRPC ctx.session.user.id comparison', async () => {
+    createApiRoute(
+      projectPath,
+      'trpc-like',
+      `
+      export async function POST(ctx, { params }) {
+        if (!ctx.session) return new Response(null, { status: 401 });
+        if (ctx.session.user.id !== params.ownerId) {
+          return new Response(null, { status: 403 });
+        }
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('does NOT flag double-optional chaining session?.user?.id', async () => {
+    createApiRoute(
+      projectPath,
+      'double-optional',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function DELETE(req, { params }) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        if (session?.user?.id !== params.authorId) {
+          return new Response(null, { status: 403 });
+        }
+        return new Response(null, { status: 204 });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('does NOT flag snake_case user_id column (common in Supabase/Postgres)', async () => {
+    createApiRoute(
+      projectPath,
+      'snake-case-userid',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function PATCH(request, { params }) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        const row = await supabase.from('posts').select().eq('id', params.id).single();
+        if (row.user_id !== session?.user.id) {
+          return new Response(null, { status: 403 });
+        }
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
   it('DOES still flag a route with auth() but NO ownership / role check (baseline lock)', async () => {
     createApiRoute(
       projectPath,
