@@ -98,11 +98,6 @@
       "reason": "redos-checker contains nested-quantifier regex LITERALS used to DETECT catastrophic-backtracking patterns. The detection regex IS the thing redos-checker matches on."
     },
     {
-      "file": "packages/scanners/src/attacks/redos-probe.ts",
-      "rule": "redos-checker",
-      "reason": "redos-probe contains regex-pattern literals used to DETECT catastrophic-backtracking regex. The detection regex IS the thing redos-checker matches on."
-    },
-    {
       "file": "packages/scanners/src/quality/logging-checker.ts",
       "rule": "logging-checker",
       "reason": "logging-checker defines LOGGER_PACKAGES and LOG_CALL_PATTERNS as detection literals. Self-match is structural."
