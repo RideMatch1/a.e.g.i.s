@@ -399,6 +399,74 @@ describe('function-summary — sink registry coverage (validator-audit fixes)', 
     expect(summary.params[0].sinkCwes).toContain(79);
   });
 
+  // v0.9.1 regex-guard cross-file: when the fn body guards an SSRF
+  // sink with `<regex>.test(param)` (either a positive if-then wrap or
+  // a negated-early-exit), CWE_SSRF is dropped from the summary. The
+  // cal-com isValidCalURL pattern is the canonical case.
+  it('regex-guard cross-file: `if (!regex.test(param)) return; fetch(param)` → sinkCwes excludes 918', () => {
+    const { program, paths } = buildProgramFor({
+      'safe-fetch.ts':
+        'export async function isValidCalURL(url: string) {\n' +
+        '  const regex = /^https:\\/\\/api\\.example\\.com\\//;\n' +
+        '  if (!regex.test(url)) return null;\n' +
+        '  return fetch(url);\n' +
+        '}',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'isValidCalURL');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'isValidCalURL', program, null, cache)!;
+    expect(summary.params[0].sinkCwes).not.toContain(918);
+  });
+
+  it('regex-guard cross-file: positive if-then wrap `if (regex.test(p)) fetch(p)` also drops 918', () => {
+    const { program, paths } = buildProgramFor({
+      'positive-guard.ts':
+        'export async function positivelyGuarded(url: string) {\n' +
+        '  const ALLOW = /^https:/;\n' +
+        '  if (ALLOW.test(url)) {\n' +
+        '    return fetch(url);\n' +
+        '  }\n' +
+        '  return null;\n' +
+        '}',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'positivelyGuarded');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'positivelyGuarded', program, null, cache)!;
+    expect(summary.params[0].sinkCwes).not.toContain(918);
+  });
+
+  it('regex-guard cross-file: unguarded SSRF sink still reports CWE-918', () => {
+    const { program, paths } = buildProgramFor({
+      'unguarded.ts':
+        'export async function unguarded(url: string) {\n' +
+        '  return fetch(url);\n' +
+        '}',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'unguarded');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'unguarded', program, null, cache)!;
+    expect(summary.params[0].sinkCwes).toContain(918);
+  });
+
+  it('regex-guard cross-file: mixed guarded + unguarded → unguarded defeats, CWE-918 kept', () => {
+    const { program, paths } = buildProgramFor({
+      'mixed.ts':
+        'export async function mixed(url: string) {\n' +
+        '  const ALLOW = /^https:/;\n' +
+        '  if (ALLOW.test(url)) { await fetch(url); }\n' +
+        '  return fetch(url);\n' +     // this one is unguarded
+        '}',
+    });
+    const sf = program!.getSourceFile(paths[0])!;
+    const fn = findFn(sf, 'mixed');
+    const cache = new SummaryCache();
+    const summary = buildSummary(fn, 'mixed', program, null, cache)!;
+    expect(summary.params[0].sinkCwes).toContain(918);
+  });
+
   it('conservativeSummary includes every CWE in the sink registry', () => {
     // Guardrail: if a new sink class is added to sinks.ts but the
     // conservative-summary constant is hardcoded elsewhere, this test

@@ -454,7 +454,184 @@ function paramReachesSink(fn: SummarizableFn, paramName: string): number[] {
     }
   }
 
+  // v0.9.1 polish: regex-guard cross-file — if the function contains
+  // SSRF-class sink calls on this param AND every such call is guarded
+  // by a `<regex>.test(paramName)` check (either as an enclosing if-
+  // then-branch or as a preceding `if (!regex.test(param)) return/throw`
+  // early-exit), drop CWE_SSRF from the summary. Closes the v0.8-corpus
+  // cal-com isValidCalURL FP: `if (!regex.test(url)) return; fetch(url)`.
+  if (cwes.has(918) && allSsrfSinkCallsGuardedByRegex(body, paramName)) {
+    cwes.delete(918);
+  }
+
   return [...cwes].sort((a, b) => a - b);
+}
+
+/**
+ * v0.9.1 regex-guard helper. Returns true when the function body
+ * contains at least one SSRF-class sink call on `paramName` AND
+ * every such call is protected by a `<regex>.test(paramName)` guard.
+ * Conservative: any single unguarded SSRF sink call defeats the check
+ * and the CWE stays. No sink calls found → returns false (nothing to
+ * suppress; shouldn't be reached because the text-match already
+ * confirmed at least one before this helper fires).
+ */
+function allSsrfSinkCallsGuardedByRegex(body: ts.Node, paramName: string): boolean {
+  const ssrfCallNames = new Set(
+    Object.entries(TAINT_SINKS)
+      .filter(([, meta]) => meta.cwe === 918)
+      .map(([name]) => name),
+  );
+
+  const sinkCalls: ts.CallExpression[] = [];
+  const collect = (n: ts.Node): void => {
+    if (ts.isCallExpression(n)) {
+      const calleeText = n.expression.getText();
+      if (ssrfCallNames.has(calleeText) && callPassesIdentifier(n, paramName)) {
+        sinkCalls.push(n);
+      }
+    }
+    ts.forEachChild(n, collect);
+  };
+  collect(body);
+
+  if (sinkCalls.length === 0) return false;
+  for (const call of sinkCalls) {
+    if (!isCallGuardedByRegexTest(call, body, paramName)) return false;
+  }
+  return true;
+}
+
+/** Does the call pass `paramName` as any argument (direct identifier or mentioned in a template literal)? */
+function callPassesIdentifier(call: ts.CallExpression, paramName: string): boolean {
+  for (const arg of call.arguments) {
+    if (ts.isIdentifier(arg) && arg.text === paramName) return true;
+    // Template literals / concatenations / property access that mentions the identifier:
+    if (identRegex(paramName).test(arg.getText())) return true;
+  }
+  return false;
+}
+
+/**
+ * Is the given sink CallExpression guarded by `<regex>.test(paramName)`?
+ * Two shapes qualify:
+ *
+ *   1. Inside an if-statement's then-branch whose condition contains
+ *      `<something>.test(paramName)` (positive guard).
+ *   2. Preceded in the same enclosing block by
+ *      `if (!<something>.test(paramName)) return ...;` or
+ *      `if (!<something>.test(paramName)) throw ...;`
+ *      (negated-early-exit guard).
+ */
+function isCallGuardedByRegexTest(
+  call: ts.CallExpression,
+  fnBody: ts.Node,
+  paramName: string,
+): boolean {
+  // Case 1: ancestor IfStatement with positive .test(param) and call is in then-branch.
+  let anc: ts.Node | undefined = call.parent;
+  while (anc !== undefined && anc !== fnBody.parent) {
+    if (ts.isIfStatement(anc)) {
+      if (exprHasRegexTestOn(anc.expression, paramName, false)) {
+        if (isNodeContained(call, anc.thenStatement)) return true;
+      }
+    }
+    anc = anc.parent;
+  }
+
+  // Case 2: preceding early-exit in the same block.
+  const block = enclosingBlock(call);
+  if (block === null) return false;
+  const sinkStmt = statementContaining(block, call);
+  if (sinkStmt === null) return false;
+  const idx = block.statements.indexOf(sinkStmt);
+  for (let i = 0; i < idx; i++) {
+    const stmt = block.statements[i];
+    if (!ts.isIfStatement(stmt)) continue;
+    if (!exprHasRegexTestOn(stmt.expression, paramName, true)) continue;
+    if (thenTerminates(stmt.thenStatement)) return true;
+  }
+  return false;
+}
+
+/**
+ * Does the expression contain `<anything>.test(<paramName>)` with the
+ * requested negation status? `wantNegated: true` means the .test(...)
+ * must be the operand of a `!` PrefixUnaryExpression; `false` means
+ * it must NOT be negated.
+ */
+function exprHasRegexTestOn(expr: ts.Node, paramName: string, wantNegated: boolean): boolean {
+  let found = false;
+  const visit = (n: ts.Node): void => {
+    if (found) return;
+    if (
+      ts.isCallExpression(n) &&
+      ts.isPropertyAccessExpression(n.expression) &&
+      ts.isIdentifier(n.expression.name) &&
+      n.expression.name.text === 'test' &&
+      n.arguments.length > 0 &&
+      ts.isIdentifier(n.arguments[0]) &&
+      n.arguments[0].text === paramName
+    ) {
+      const negated =
+        n.parent !== undefined &&
+        ts.isPrefixUnaryExpression(n.parent) &&
+        n.parent.operator === ts.SyntaxKind.ExclamationToken;
+      if (negated === wantNegated) {
+        found = true;
+        return;
+      }
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(expr);
+  return found;
+}
+
+/** Does the then-statement unconditionally exit (return or throw)? */
+function thenTerminates(stmt: ts.Statement): boolean {
+  if (ts.isReturnStatement(stmt) || ts.isThrowStatement(stmt)) return true;
+  if (ts.isBlock(stmt)) {
+    return stmt.statements.some(
+      (s) => ts.isReturnStatement(s) || ts.isThrowStatement(s),
+    );
+  }
+  return false;
+}
+
+function enclosingBlock(node: ts.Node): ts.Block | null {
+  let p: ts.Node | undefined = node.parent;
+  while (p !== undefined) {
+    if (ts.isBlock(p)) return p;
+    p = p.parent;
+  }
+  return null;
+}
+
+function statementContaining(block: ts.Block, target: ts.Node): ts.Statement | null {
+  for (const stmt of block.statements) {
+    let hit = false;
+    const visit = (n: ts.Node): void => {
+      if (hit) return;
+      if (n === target) {
+        hit = true;
+        return;
+      }
+      ts.forEachChild(n, visit);
+    };
+    visit(stmt);
+    if (hit) return stmt;
+  }
+  return null;
+}
+
+function isNodeContained(target: ts.Node, container: ts.Node): boolean {
+  let p: ts.Node | undefined = target;
+  while (p !== undefined) {
+    if (p === container) return true;
+    p = p.parent;
+  }
+  return false;
 }
 
 /**
