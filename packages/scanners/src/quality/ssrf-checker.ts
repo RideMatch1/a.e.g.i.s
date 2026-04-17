@@ -38,6 +38,54 @@ function shouldSkipFile(filePath: string): boolean {
     /service[-_]?worker\.(ts|js)$/.test(filePath);
 }
 
+/**
+ * v0.11 Z4 — library wrapper heuristic.
+ *
+ * Returns true when `fetch(varName, …)` is inside an enclosing exported
+ * function whose parameter list contains `varName`. That is the shape of
+ * a library HTTP wrapper:
+ *
+ *   export async function fetchFrom(url: string, opts?) {
+ *     return fetch(url, opts);       // ← varName = 'url' is a parameter
+ *   }
+ *
+ * The wrapper itself is not a CWE-918 risk — any SSRF exposure materialises
+ * at the consumer's call site where user input may reach `url`. The
+ * taint-analyzer catches that cross-file flow; ssrf-checker firing on the
+ * wrapper produces noise.
+ *
+ * Regex approximation (no AST): find an `export (async )? function` whose
+ * parameter list contains `varName`, starting BEFORE the fetch. Scope is
+ * one level of nesting — if the fetch is inside a nested lambda, the
+ * heuristic will over-skip in rare cases. That is the same trade-off all
+ * the other regex-based scanners make; precision-over-recall and a known
+ * limit for v0.11.
+ */
+function isWrapperParameterFetch(
+  content: string,
+  matchIndex: number,
+  varName: string,
+): boolean {
+  if (!varName) return false;
+  const before = content.slice(0, matchIndex);
+  // Capture the parameter lists (without crossing `)`) of every
+  // `export (async )? function <name>(…)` declaration that appears
+  // before the fetch. The nearest-preceding declaration is treated as
+  // the enclosing function; its parameter list is checked for varName.
+  // Using `[^)]*` for the capture prevents body-bleed (the pre-tighten
+  // version used `[\s\S]*?` which spuriously matched varNames that were
+  // local body variables — that over-silenced true positives).
+  const wrapperRe = /export\s+(?:async\s+)?function\s+\w+\s*\(([^)]*)\)/g;
+  let lastParams: string | null = null;
+  let m: RegExpExecArray | null;
+  while ((m = wrapperRe.exec(before)) !== null) {
+    lastParams = m[1];
+  }
+  if (lastParams === null) return false;
+  const varBoundary = new RegExp(`\\b${varName}\\b`);
+  return varBoundary.test(lastParams);
+}
+
 function findLineNumber(content: string, index: number): number {
   return content.slice(0, index).split('\n').length;
 }
@@ -83,6 +131,13 @@ export const ssrfCheckerScanner: Scanner = {
               `(?:const|let)\\s+${matchedVar}\\s*=\\s*['"\`]https?://`,
             );
             if (constAssignPattern.test(content)) continue;
+          }
+
+          // v0.11 Z4: skip fetch() when the URL is a parameter of an
+          // enclosing exported function (library-wrapper shape). See
+          // `isWrapperParameterFetch` for detailed rationale.
+          if (matchedVar && isWrapperParameterFetch(content, match.index, matchedVar)) {
+            continue;
           }
 
           const id = `SSRF-${String(idCounter.value++).padStart(3, '0')}`;
