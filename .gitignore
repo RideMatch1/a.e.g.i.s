@@ -13,3 +13,8 @@ coverage/
 # via `pnpm dogfood:annotate`.
 aegis-precision/
 ~/aegis-corpus/
+
+# VS Code extension build artefact — .vsix is produced on-demand by
+# `npm run package` inside packages/vscode-extension/ and uploaded as
+# a release asset by .github/workflows/release.yml. Do NOT commit.
+*.vsix

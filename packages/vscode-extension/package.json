@@ -1,10 +1,35 @@
 {
   "name": "aegis-vscode",
   "displayName": "AEGIS Security Audit",
-  "description": "Run AEGIS security scans directly in VS Code",
+  "description": "Run AEGIS security scans directly from VS Code — 0-1000 score, inline diagnostics on findings, score status bar, one-click scan on save.",
   "version": "0.2.0",
   "publisher": "aegis-security",
-  "engines": { "vscode": "^1.90.0" },
+  "license": "MIT",
+  "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
+  "homepage": "https://github.com/RideMatch1/a.e.g.i.s#vs-code-extension",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "packages/vscode-extension"
+  },
+  "bugs": {
+    "url": "https://github.com/RideMatch1/a.e.g.i.s/issues"
+  },
+  "keywords": [
+    "security",
+    "sast",
+    "audit",
+    "scanner",
+    "nextjs",
+    "supabase",
+    "linter",
+    "diagnostics",
+    "aegis"
+  ],
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=20"
+  },
   "categories": ["Linters", "Testing"],
   "activationEvents": ["onCommand:aegis.scan", "onCommand:aegis.scanFile"],
   "main": "./dist/extension.js",
@@ -22,6 +47,14 @@
       }
     }
   },
-  "scripts": { "build": "tsc", "package": "vsce package" },
-  "devDependencies": { "@types/vscode": "^1.90.0", "typescript": "^5.8.0" }
+  "scripts": {
+    "build": "tsc",
+    "package": "vsce package --no-dependencies --out aegis-vscode-$npm_package_version.vsix",
+    "clean": "rm -rf dist *.vsix"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.8.0"
+  }
 }
