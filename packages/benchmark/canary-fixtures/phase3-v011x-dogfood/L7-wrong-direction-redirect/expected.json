@@ -1,0 +1,9 @@
+{
+  "id": "L7",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Layout redirects the AUTHENTICATED user (wrong-direction check: 'if (user) redirect'). Unauthenticated users sail through — FAIL-OPEN. Suppression MUST NOT engage.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

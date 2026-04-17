@@ -1,0 +1,9 @@
+{
+  "id": "L13",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Page exports `runtime = 'edge'` which changes execution context. Parent-layout guard may not apply the same way (edge vs node runtime). Suppression MUST NOT engage without deeper runtime-aware analysis (conservative).",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

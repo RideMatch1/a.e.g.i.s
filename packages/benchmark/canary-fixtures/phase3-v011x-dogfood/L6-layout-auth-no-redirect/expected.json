@@ -1,0 +1,9 @@
+{
+  "id": "L6",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Layout calls getServerSession but does NOT redirect on missing session — merely logs and continues rendering. FAIL-OPEN pattern. Suppression MUST NOT engage.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

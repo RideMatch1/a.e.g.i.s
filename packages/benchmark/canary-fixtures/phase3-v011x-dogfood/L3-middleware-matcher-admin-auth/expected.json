@@ -1,0 +1,9 @@
+{
+  "id": "L3",
+  "cwe": 306,
+  "type": "FP",
+  "description": "middleware.ts has matcher '/admin/:path*' + auth-check with redirect-to-login. Admin pages are middleware-protected even without layout guard. Must NOT emit after Bug B fix.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

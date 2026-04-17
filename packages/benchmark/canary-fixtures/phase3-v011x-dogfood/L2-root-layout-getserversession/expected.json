@@ -1,0 +1,9 @@
+{
+  "id": "L2",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Root /app/layout.tsx uses getServerSession + redirect('/login') on negative branch. Any page under the root is transitively protected. Must NOT emit after Bug B fix.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "L11",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Layout wraps requireAuth() in try/catch and swallows exceptions with no-op catch block. The guard can throw but the layout renders anyway — FAIL-OPEN. Suppression MUST NOT engage.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

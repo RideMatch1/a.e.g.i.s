@@ -1,0 +1,9 @@
+{
+  "id": "L1",
+  "cwe": 306,
+  "type": "FP",
+  "description": "page.tsx with direct supabase.from access is protected by /admin/layout.tsx using hasAccessToPath + redirect on !userId. Must NOT emit after Bug B fix (layout-aware suppression).",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

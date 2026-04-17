@@ -1,0 +1,9 @@
+{
+  "id": "L10",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Baseline: page.tsx with direct DB access, no layouts anywhere in the chain, no middleware.ts. Genuinely unguarded — must emit. Protects against suppression-logic accidentally silencing unprotected pages.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "A2",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Line comment 'Stats query (separat, ...)' accidentally matches DB_ACCESS_PATTERNS regex \\bquery\\s*\\( in natural-language prose. Z2-comment-leak class applied to auth-enforcer. Must NOT emit after comment-strip fix. (Mirrors a real-world admin/audit-log pattern surfaced during post-v0.11.0 dogfood.)",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

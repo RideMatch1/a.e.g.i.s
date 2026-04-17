@@ -1,0 +1,9 @@
+{
+  "id": "A3",
+  "cwe": 306,
+  "type": "FP",
+  "description": "JSDoc block comment contains 'query (race-free pattern)' prose — matches DB_ACCESS_PATTERNS regex despite being documentation. Z2-comment-leak class, block-comment variant. Must NOT emit after comment-strip fix.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

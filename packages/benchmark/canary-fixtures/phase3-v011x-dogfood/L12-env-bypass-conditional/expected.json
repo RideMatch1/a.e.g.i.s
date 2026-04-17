@@ -1,0 +1,9 @@
+{
+  "id": "L12",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Layout auth check is gated on process.env.BYPASS_AUTH — at deployment-time the var can disable the guard entirely. Conditional guard = no guarantee. Suppression MUST NOT engage (conservative fail-closed on dynamic conditional).",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "L15",
+  "cwe": 306,
+  "type": "TP",
+  "description": "middleware matcher is ['/'] — exact match on the root path only. Page at /admin/reports is NOT covered (no prefix semantic without :path* or wildcard). Suppression MUST NOT engage.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

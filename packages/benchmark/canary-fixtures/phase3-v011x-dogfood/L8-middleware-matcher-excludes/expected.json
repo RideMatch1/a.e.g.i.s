@@ -1,0 +1,9 @@
+{
+  "id": "L8",
+  "cwe": 306,
+  "type": "TP",
+  "description": "middleware.ts has auth + redirect but matcher is ['/api/:path*'] — does NOT cover /admin/*. Page under /admin lacks middleware protection. Suppression MUST NOT engage.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

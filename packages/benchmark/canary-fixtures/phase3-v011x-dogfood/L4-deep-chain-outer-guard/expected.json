@@ -1,0 +1,9 @@
+{
+  "id": "L4",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Deeply-nested page /admin/reports/[id]/page.tsx. No local layout, but /admin/layout.tsx (2 levels up) has hasAccessToPath guard. Edge-propagation must walk full chain. Must NOT emit after Bug B fix.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "L5",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Parent layout has 'use client' directive — auth check runs client-side and is cosmetic from a security standpoint. Suppression MUST NOT engage; auth-enforcer must still emit on the server-component page.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "L9",
+  "cwe": 306,
+  "type": "TP",
+  "description": "middleware.ts matcher covers /admin/* but the middleware body only implements rate-limiting, no auth patterns. Path match without auth pattern = no real protection. Suppression MUST NOT engage.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

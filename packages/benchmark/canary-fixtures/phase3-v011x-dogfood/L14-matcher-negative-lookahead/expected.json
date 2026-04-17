@@ -1,0 +1,9 @@
+{
+  "id": "L14",
+  "cwe": 306,
+  "type": "TP",
+  "description": "middleware matcher uses regex negative-lookahead '/((?!public|login).*)' — complex pattern AEGIS can't confidently evaluate without full regex semantics. Suppression MUST NOT engage (conservative: ambiguous matcher does not prove coverage).",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

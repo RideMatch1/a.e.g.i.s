@@ -1,0 +1,9 @@
+{
+  "id": "A1",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Baseline: genuine pool.query(...) in page.tsx with no auth guard — auth-enforcer MUST emit. Protects against regex over-tightening (Bug A fix) accidentally silencing real DB access.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}
