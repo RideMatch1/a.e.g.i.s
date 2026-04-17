@@ -54,7 +54,11 @@ new false-negative classes introduced.
 
 ### Test counts
 
-- Tests: **1023 → 1030 green** (+7: 4 regex-guard, 3 URL-position).
+- Tests: **1023 → 1030 scanners-package** (+7: 4 regex-guard, 3
+  URL-position); **total across all 5 packages 1379 → 1386 green**.
+  _(Format note amended in v0.9.2 to match the v0.9.0 all-packages-
+  total reporting and avoid the apparent regression caused by the
+  scanners-only delta — validator MAJOR-03.)_
 - Benchmark: **30/30 strict unchanged**.
 - Self-scan: **1000/A/0-findings unchanged**.
 
