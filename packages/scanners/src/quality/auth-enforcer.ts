@@ -1,6 +1,8 @@
+import ts from 'typescript';
 import { walkFiles, readFileSafe } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { existsSync } from 'fs';
+import { parseFile, walkAst } from '../ast/parser.js';
 
 const AUTH_GUARD_PATTERNS = [
   /secureApiRouteWithTenant/,
@@ -41,44 +43,52 @@ const AUTH_GUARD_PATTERNS = [
  * recall pattern match, not full-flow AST analysis; the latter is
  * v0.10 scope.
  */
-const ROLE_GUARD_PATTERNS = [
-  // Original tuning set (kept for backward compat).
-  /requireRole/,
-  /requireRoleOrSelf/,
-  /isManager/,
-  /checkRole/,
-  /hasRole/,
-  /isAdmin/,
-  /authorize/,
+/**
+ * Role-guard patterns recognised as function-call / throw-based helpers.
+ *
+ * Presence anywhere in the file content is accepted — these helpers throw
+ * on missing-role, so merely being called is enough to serve as a guard.
+ *
+ * v0.10 Z1: the bare `/authorize/` regex previously substring-matched
+ * inside `"unauthorized"` / `"authorization"` strings in error responses,
+ * silencing the CWE-285 emission on every route with a 401 response
+ * body. Replaced with `/\bauthorize\s*\(/` to require the word boundary
+ * plus opening paren — function-call shape only.
+ */
+const ROLE_GUARD_CALL_PATTERNS = [
+  /\brequireRole\b/,
+  /\brequireRoleOrSelf\b/,
+  /\bisManager\b/,
+  /\bcheckRole\b/,
+  /\bhasRole\b/,
+  /\bisAdmin\b/,
+  /\bauthorize\s*\(/,                // v0.10 Z1 — word-bound + call shape
+  /verifyCurrent(User|Member|Owner)[A-Z]\w*/,
+  /user(HasAccess|CanAccess|IsOwner|OwnsResource|CanEdit|CanRead|CanWrite|CanDelete)\w*/,
+  /\bcan(Edit|Read|Write|Delete|Access|View)[A-Z]\w*\s*\(/,
+  // Clerk role / permission via has({ role:.. }) — call form.
+  /\bhas\s*\(\s*\{\s*(?:role|permission)\s*:/,
+];
 
-  // v0.9.2 / v0.9.3: next-auth / iron-session / Clerk / Auth.js — claim
-  // comparison shapes. The regexes below uniformly handle:
-  //   - Optional chaining on `session` and/or `.user` (session?.user.id,
-  //     session.user?.id, session?.user?.id) — common post-null-check shape.
-  //   - Both equality operators (`===` and `!==`) — the negated form is
-  //     the canonical "forbidden unless matching" early-exit.
-  //   - Either operand order: session-on-left AND resource-on-left.
-  //   - tRPC-style `ctx.session.user.id` via the optional prefix.
-  //
-  // v0.9.3 closes the reviewer's residual MAJOR-02 FP classes (optional
-  // chaining breaking literal-dot matches; reversed-operand not-equals
-  // ownership checks) surfaced against a vanilla shadcn-ui/taxonomy scan.
+/**
+ * Role-guard patterns that are comparison expressions (session equality
+ * or Clerk metadata-role equality).
+ *
+ * v0.10 D1 (full-flow): a comparison like `session.user.id === params.id`
+ * only counts as a guard when it is used as a gating condition — inside
+ * an IfStatement / ConditionalExpression test / loop condition. A
+ * value-capture such as `const isOwn = session.user.id === params.id`
+ * does NOT guard subsequent writes. The AST helper `collectGatingText`
+ * below returns only the text of gating-position expressions; these
+ * patterns are tested against that text, not the whole file.
+ *
+ * v0.9.3 closed the optional-chaining + reversed-operand + tRPC variants.
+ */
+const ROLE_GUARD_COMPARISON_PATTERNS = [
   /(?:\bctx\.)?session\??\.user\??\.(?:id|role|email)\s*[!=]==/,
   /[!=]==\s*(?:\bctx\.)?session\??\.user\??\.(?:id|role|email)/,
   /\.(?:userId|authorId|ownerId|createdBy|user_id)\s*[!=]==\s*(?:\bctx\.)?session\??\.user/,
   /(?:\bctx\.)?session\??\.user\??\.id\s*[!=]==\s*\w+\.(?:userId|authorId|ownerId|createdBy|user_id)/,
-
-  // Community utility-name families (taxonomy / Auth.js-style helpers).
-  // e.g. `await verifyCurrentUserHasAccessToPost(postId)`
-  /verifyCurrent(User|Member|Owner)[A-Z]\w*/,
-  /user(HasAccess|CanAccess|IsOwner|OwnsResource|CanEdit|CanRead|CanWrite|CanDelete)\w*/,
-  /\bcan(Edit|Read|Write|Delete|Access|View)[A-Z]\w*\s*\(/,
-
-  // Clerk role / permission checks (distinct from Clerk's AUTH guard
-  // which is already covered by /\bauth\(\)/ above).
-  // Matches both `auth().has({ role: 'admin' })` (member form) and the
-  // destructured `const { has } = auth(); has({ role })` form.
-  /\bhas\s*\(\s*\{\s*(?:role|permission)\s*:/,
   /(?:public|private|unsafe)Metadata\.role/,     // Clerk metadata role claim
 ];
 
@@ -152,16 +162,71 @@ function isPublicRoute(filePath: string): boolean {
   return PUBLIC_ROUTE_PATTERNS.some((p) => p.test(filePath));
 }
 
-/** Patterns in file content that indicate intentional public access */
+/** Patterns in file content that indicate intentional public access.
+ *  Matching any of these suppresses BOTH the missing-auth and the
+ *  missing-role-guard emissions — the route is considered fully
+ *  exempted. */
 const PUBLIC_CONTENT_PATTERNS = [
-  /\/\*\*?\s*@public\b/,           // JSDoc @public annotation
-  /\/\/\s*@public\b/,              // Line comment @public
-  /requireAuth:\s*false/,          // Explicit opt-out
-  /stripe\.webhooks\.constructEvent/, // Stripe webhook signature verification
-  /verifyWebhookSignature/,        // Generic webhook signature
-  /createHmac\b.*\bdigest\b/,     // HMAC comparison (webhook signature verification)
-  /timingSafeEqual\b.*\bhmac\b/i, // Timing-safe HMAC comparison
+  /\/\*[\s\S]*?@public\b[\s\S]*?\*\//,       // JSDoc block with @public
+  /\/\/[^\n]*@public\b/,                     // Line comment @public
+  /requireAuth:\s*false/,                    // Explicit opt-out
+  /stripe\.webhooks\.constructEvent/,        // Stripe webhook signature verification
+  /verifyWebhookSignature/,                  // Generic webhook signature
+  /createHmac\b.*\bdigest\b/,                // HMAC comparison (webhook signature verification)
+  /timingSafeEqual\b.*\bhmac\b/i,            // Timing-safe HMAC comparison
 ];
+
+/** v0.10 D3 — `@self-only` annotation. Route is authenticated (auth
+ *  guard still required) but intentionally has no role-guard: every
+ *  user acts on their own resources, no admin / moderator separation.
+ *  Suppresses CWE-285 only; CWE-306 still fires if auth is missing.
+ *  Distinct from @public which suppresses both. */
+const SELF_ONLY_CONTENT_PATTERNS = [
+  /\/\*[\s\S]*?@self-only\b[\s\S]*?\*\//,
+  /\/\/[^\n]*@self-only\b/,
+];
+
+/**
+ * v0.10 D1 — collect text of expressions used as gating conditions.
+ *
+ * Only expressions in these positions count:
+ *   - IfStatement.expression      — `if (COND) { ... }`
+ *   - ConditionalExpression.cond  — `COND ? a : b`
+ *   - While/Do loop .expression   — `while (COND) { ... }`
+ *   - ForStatement.condition      — `for (init; COND; update) { ... }`
+ *   - Logical-AND / Logical-OR / Nullish-coalescing left operand
+ *       — `COND && sink()` / `COND || throwFn()` are guard shapes.
+ *
+ * Value-captures such as `const isOwn = session.user.id === params.id`
+ * are NOT in this list; the comparison lives inside a VariableDeclaration
+ * initializer which never runs as a control-flow gate.
+ */
+function collectGatingText(sf: ts.SourceFile): string {
+  const parts: string[] = [];
+  walkAst(sf, (node) => {
+    if (ts.isIfStatement(node)) {
+      parts.push(node.expression.getText(sf));
+    } else if (ts.isConditionalExpression(node)) {
+      parts.push(node.condition.getText(sf));
+    } else if (ts.isWhileStatement(node) || ts.isDoStatement(node)) {
+      parts.push(node.expression.getText(sf));
+    } else if (ts.isForStatement(node) && node.condition) {
+      parts.push(node.condition.getText(sf));
+    } else if (ts.isBinaryExpression(node)) {
+      // Left operand of && / || / ?? when the RHS is an effectful
+      // statement-expression — guard-short-circuit shape.
+      const kind = node.operatorToken.kind;
+      if (
+        kind === ts.SyntaxKind.AmpersandAmpersandToken ||
+        kind === ts.SyntaxKind.BarBarToken ||
+        kind === ts.SyntaxKind.QuestionQuestionToken
+      ) {
+        parts.push(node.left.getText(sf));
+      }
+    }
+  });
+  return parts.join('\n');
+}
 
 function checkFile(
   content: string,
@@ -174,7 +239,28 @@ function checkFile(
   if (PUBLIC_CONTENT_PATTERNS.some((p) => p.test(content))) return;
 
   const hasAuthGuard = AUTH_GUARD_PATTERNS.some((p) => p.test(content));
-  const hasRoleGuard = ROLE_GUARD_PATTERNS.some((p) => p.test(content));
+
+  // v0.10 D1 full-flow: comparison-based role-guards only count when
+  // they appear in gating positions (if / ternary / loop / logical-
+  // short-circuit). Call-based role-guards (requireRole, hasRole,
+  // isAdmin, etc.) count anywhere because those helpers throw on
+  // failure and are guards regardless of surrounding syntax.
+  let hasRoleGuard = ROLE_GUARD_CALL_PATTERNS.some((p) => p.test(content));
+  if (!hasRoleGuard) {
+    let sf: ts.SourceFile | null = null;
+    try {
+      sf = parseFile(file, content);
+    } catch {
+      // Fallback: if AST parse fails (malformed source), fall back to
+      // the old full-content comparison check so this scanner still
+      // emits conservatively. Tolerates partial-source edge cases.
+      hasRoleGuard = ROLE_GUARD_COMPARISON_PATTERNS.some((p) => p.test(content));
+    }
+    if (sf) {
+      const gatingText = collectGatingText(sf);
+      hasRoleGuard = ROLE_GUARD_COMPARISON_PATTERNS.some((p) => p.test(gatingText));
+    }
+  }
 
   if (!hasAuthGuard) {
     const id = `AUTH-${String(idCounter.value++).padStart(3, '0')}`;
@@ -191,14 +277,22 @@ function checkFile(
       owasp: 'A07:2021',
       cwe: 306,
     });
-  } else if (!hasRoleGuard) {
+    return;
+  }
+
+  if (!hasRoleGuard) {
+    // v0.10 D3 — `@self-only` suppresses CWE-285 but requires AUTH
+    // (already verified above). @public would have suppressed both
+    // earlier in the function.
+    if (SELF_ONLY_CONTENT_PATTERNS.some((p) => p.test(content))) return;
+
     const id = `AUTH-${String(idCounter.value++).padStart(3, '0')}`;
     findings.push({
       id,
       scanner: 'auth-enforcer',
       severity: 'low',  // Auth exists, just missing explicit role check — defense-in-depth suggestion
       title: 'Route missing role/authorisation guard',
-      description: `API route has auth but no role check. Consider adding requireRole or requireRoleOrSelf for defense-in-depth.`,
+      description: `API route has auth but no role check in a gating position. Consider adding requireRole / requireRoleOrSelf, or move the ownership comparison inside an if-condition. Intentional self-service routes can opt out with a \`@self-only\` JSDoc or line-comment annotation.`,
       file,
       line: 1,
       fileLevel: true,

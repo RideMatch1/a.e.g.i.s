@@ -409,6 +409,114 @@ describe('authEnforcerScanner', () => {
     expect(roleFinding).toBeDefined();
     expect(roleFinding!.severity).toBe('low');
   });
+
+  // v0.10 Cluster A regression pins — full-flow + @self-only + Z1.
+
+  it('v0.10 D1: flags a route where ownership comparison is value-captured (not gating)', async () => {
+    // `session.user.id === params.id` is assigned to a variable, never
+    // used as a gate. The unguarded write then runs for every user.
+    // Pre-v0.10: pattern-list matched the equality anywhere → silent FN.
+    // Post-v0.10: AST gating-position check rejects value-captures.
+    createApiRoute(
+      projectPath,
+      'profile/[id]',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function PATCH(request, { params }) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        const isOwn = session.user.id === params.id;  // value capture, not a guard
+        const body = await request.json();
+        await prisma.profile.update({ where: { id: params.id }, data: body });
+        return NextResponse.json({ ok: true, owned: isOwn });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const roleFinding = result.findings.find((f) =>
+      f.title.includes('role/authorisation guard'),
+    );
+    expect(roleFinding).toBeDefined();
+    expect(roleFinding!.severity).toBe('low');
+  });
+
+  it('v0.10 D3: @self-only JSDoc suppresses CWE-285 but NOT CWE-306', async () => {
+    // Self-service route: authenticated, but no role-guard by design.
+    createApiRoute(
+      projectPath,
+      'billing/subscription',
+      `
+      import { getServerSession } from 'next-auth/next';
+
+      /**
+       * Self-service subscription management.
+       * @self-only
+       */
+      export async function POST(request) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        // No role guard by design — every user manages their own sub.
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('v0.10 D3: @self-only does NOT suppress missing-auth (CWE-306)', async () => {
+    // Author forgot both auth AND role guards, but added @self-only
+    // thinking it exempts. @self-only only suppresses role-guard; auth
+    // is still mandatory.
+    createApiRoute(
+      projectPath,
+      'billing/invoices',
+      `
+      /**
+       * @self-only
+       */
+      export async function GET(request) {
+        // No auth guard at all — CWE-306 must still fire.
+        return NextResponse.json({ data: 'everyone sees this' });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const authFinding = result.findings.find((f) =>
+      f.title.includes('missing authentication guard'),
+    );
+    expect(authFinding).toBeDefined();
+    expect(authFinding!.cwe).toBe(306);
+  });
+
+  it('v0.10 Z1: `error: "unauthorized"` in response body does NOT silence CWE-285', async () => {
+    // Pre-v0.10: bare `/authorize/` regex substring-matched inside
+    // `"unauthorized"` response strings and silenced the role-guard
+    // check on routes without any real ownership / role gate.
+    // Post-v0.10: `/\\bauthorize\\s*\\(/` requires a call shape.
+    createApiRoute(
+      projectPath,
+      'profile/update',
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function POST(request) {
+        const session = await getServerSession();
+        if (!session) {
+          return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+        }
+        // Unauthorized is in the error message above; no role guard exists.
+        const body = await request.json();
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const roleFinding = result.findings.find((f) =>
+      f.title.includes('role/authorisation guard'),
+    );
+    expect(roleFinding).toBeDefined();
+    expect(roleFinding!.severity).toBe('low');
+  });
 });
 
 describe('authEnforcerScanner — server components with DB access', () => {
