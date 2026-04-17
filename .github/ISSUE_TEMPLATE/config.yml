@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability in AEGIS itself
+    url: https://github.com/RideMatch1/a.e.g.i.s/security/advisories/new
+    about: >-
+      Please use GitHub Security Advisories for coordinated disclosure.
+      Do NOT open a public issue for AEGIS-internal security bugs.
+      See SECURITY.md for the full disclosure policy.
+  - name: Questions + general discussion
+    url: https://github.com/RideMatch1/a.e.g.i.s/discussions
+    about: >-
+      For general questions, feature discussions, or help using AEGIS on
+      your codebase, please use GitHub Discussions instead of issues.

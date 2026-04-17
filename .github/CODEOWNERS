@@ -1,0 +1,34 @@
+# AEGIS code owners
+#
+# GitHub uses this file to auto-request reviews from the listed owners
+# when a PR touches a matching path. Right now AEGIS is single-maintainer;
+# as the project grows, extend this file to route reviews by area.
+#
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for the entire repo.
+*                                           @RideMatch1
+
+# Security-critical paths — same owner today, but split here so future
+# maintainers can be added per-area without touching the catch-all.
+/packages/scanners/src/                     @RideMatch1
+/packages/scanners/__tests__/               @RideMatch1
+/packages/core/src/                         @RideMatch1
+/packages/core/__tests__/                   @RideMatch1
+
+# Public-contract files — any change here affects downstream consumers
+# and should be reviewed deliberately even for single-maintainer self-
+# review (forces a pause to re-read).
+/packages/cli/src/                          @RideMatch1
+/packages/mcp-server/src/                   @RideMatch1
+/packages/reporters/src/                    @RideMatch1
+
+# Release + CI surface.
+/ci/github-action/                          @RideMatch1
+/.github/workflows/                         @RideMatch1
+/packages/*/package.json                    @RideMatch1
+
+# Docs — same owner, separated so contributors can see where doc changes route.
+/README.md                                  @RideMatch1
+/CHANGELOG.md                               @RideMatch1
+/docs/                                      @RideMatch1

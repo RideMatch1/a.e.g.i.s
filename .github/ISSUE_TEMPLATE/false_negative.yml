@@ -1,0 +1,76 @@
+name: False negative
+description: AEGIS should have flagged vulnerable code but didn't
+title: "[FN] <scanner-or-class>: <short description>"
+labels:
+  - false-negative
+  - security
+body:
+  - type: markdown
+    attributes:
+      value: |
+        False negatives on a security scanner are serious — a SAST that gives
+        a false safety signal is worse than no SAST at all. We prioritise
+        these reports, especially when the missed vulnerability is a
+        high-severity class (SQLi, command injection, SSRF, RLS bypass,
+        mass assignment, etc.).
+
+        **If you're reporting a live exploitable vulnerability in a third-
+        party codebase, please coordinate with that project's security
+        team. This template is for cases where AEGIS should have caught
+        the pattern but didn't.**
+
+  - type: input
+    id: scanner-or-class
+    attributes:
+      label: Scanner (or CWE class if the scanner doesn't exist)
+      placeholder: "mass-assignment-checker / CWE-89 SQLi / taint-analyzer"
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code that AEGIS missed
+      description: Minimal reproducer — the pattern that should be flagged
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-vulnerable
+    attributes:
+      label: Why this is vulnerable
+      description: What's the attack? Which taint source, which sink, which CWE?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: AEGIS version
+      placeholder: 0.9.2
+    validations:
+      required: true
+
+  - type: textarea
+    id: scan-output
+    attributes:
+      label: Current scan output (trimmed)
+      description: The JSON or terminal output that fails to include this finding
+      render: json
+
+  - type: textarea
+    id: wider-impact
+    attributes:
+      label: Wider impact
+      description: Is this a one-codebase FN or a pattern-class gap that affects many projects?
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched existing FN issues for this pattern
+          required: true
+        - label: I have verified on the latest published AEGIS version
+          required: true

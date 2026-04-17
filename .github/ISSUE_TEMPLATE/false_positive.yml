@@ -1,0 +1,80 @@
+name: False positive
+description: AEGIS flagged code that is actually safe
+title: "[FP] <scanner>: <short description>"
+labels:
+  - false-positive
+body:
+  - type: markdown
+    attributes:
+      value: |
+        False positives are one of the primary quality signals for a SAST tool.
+        Please share a minimal reproducer so we can extend the scanner's
+        mitigation patterns or add it to the benchmark's CLEAN fixtures.
+
+        Before filing: can you suppress this via inline `// aegis-ignore`
+        or a `suppressions[]` entry in `aegis.config.json`?
+        See [docs/suppressions.md](../blob/main/docs/suppressions.md). If
+        yes, the FP may be acceptable — but we still want to know about it.
+
+  - type: input
+    id: scanner
+    attributes:
+      label: Scanner that fired
+      placeholder: "auth-enforcer / taint-analyzer / mass-assignment-checker / …"
+    validations:
+      required: true
+
+  - type: input
+    id: cwe
+    attributes:
+      label: CWE (if applicable)
+      placeholder: "CWE-78 / CWE-89 / CWE-918 / …"
+
+  - type: input
+    id: severity
+    attributes:
+      label: Severity emitted
+      placeholder: "blocker / critical / high / medium / low / info"
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Minimal code snippet that triggers the FP
+      description: Please reduce to the smallest reproducible case
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-fp
+    attributes:
+      label: Why this is a false positive
+      description: What makes this code actually safe? Is it a framework guarantee? An upstream sanitizer? A runtime check?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: AEGIS version
+      placeholder: 0.9.2
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behaviour
+    attributes:
+      label: Expected behaviour
+      description: What would you like AEGIS to recognise about this pattern?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched existing FP issues for this pattern
+          required: true
+        - label: I have confirmed this is an FP (not a pattern I need to suppress locally)
+          required: true

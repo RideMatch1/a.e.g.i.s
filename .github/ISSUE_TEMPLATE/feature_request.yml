@@ -1,0 +1,68 @@
+name: Feature request
+description: Suggest a new scanner, rule, or capability for AEGIS
+title: "[FEAT] <short description>"
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for thinking about AEGIS's future. Feature requests get evaluated against
+        the existing roadmap + Festung-Mode-B design diktate (no SaaS, no telemetry,
+        local-first, OSS-friendly). See [README](../blob/main/README.md#what-aegis-finds-that-generic-sast-tools-miss)
+        for the current scope + CHANGELOG `Known limitations` for the v0.10+ backlog.
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What pattern / vulnerability class / workflow is this for? Be concrete.
+      placeholder: "My team uses Drizzle ORM. AEGIS doesn't detect raw `.execute()` SQL concatenation in Drizzle."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed solution
+      description: How would you like AEGIS to behave? If a new scanner, what CWE? What severity?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Semgrep rules, other tools, manual review, etc.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - New scanner
+        - Extend an existing scanner
+        - New reporter / output format
+        - CLI UX / config
+        - MCP server tool
+        - GitHub Action / CI integration
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: stack
+    attributes:
+      label: Stack (if relevant)
+      placeholder: "Next.js 15 + Supabase / Drizzle / Prisma / …"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched existing issues for duplicates
+          required: true
+        - label: I have read CHANGELOG's "Known limitations" section
+          required: true
