@@ -58,6 +58,7 @@ import { privescProbeScanner } from './attacks/privesc-probe.js';
 import { raceProbeScanner } from './attacks/race-probe.js';
 import { taintAnalyzerScanner } from './ast/taint-analyzer.js';
 import { nextPublicLeakScanner } from './quality/next-public-leak.js';
+import { middlewareAuthCheckerScanner } from './quality/middleware-auth-checker.js';
 import type { Scanner } from '@aegis-scan/core';
 
 /**
@@ -121,6 +122,7 @@ export function getAllScanners(): Scanner[] {
     depConfusionCheckerScanner,
     taintAnalyzerScanner,
     nextPublicLeakScanner,
+    middlewareAuthCheckerScanner,
   ];
 }
 

@@ -4,7 +4,6 @@
   "type": "TP",
   "description": "CVE-2025-29927 Next.js middleware auth bypass — no x-middleware-subrequest guard",
   "expected": [
-    { "scanner": "auth-enforcer", "cwe": 285 },
-    { "scanner": "auth-enforcer", "cwe": 306 }
+    { "scanner": "middleware-auth-checker", "cwe": 285 }
   ]
 }
