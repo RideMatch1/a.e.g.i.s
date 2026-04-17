@@ -189,4 +189,28 @@ return <UserList data={data} />;
     expect(typeof result.duration).toBe('number');
     expect(result.available).toBe(true);
   });
+
+  // v0.10 Z6 — Prisma full-record RSC leak regression pin.
+  it('v0.10 Z6: flags Prisma findUnique passing full record into JSX prop', async () => {
+    function createPage(projectPath: string, subPath: string, content: string): void {
+      const pageDir = join(projectPath, 'src', 'app', subPath);
+      mkdirSync(pageDir, { recursive: true });
+      writeFileSync(join(pageDir, 'page.tsx'), content);
+    }
+    createPage(projectPath, 'profile', `
+import { prisma } from '@/lib/prisma';
+
+export default async function ProfilePage({ searchParams }) {
+  const user = await prisma.user.findUnique({ where: { id: searchParams.id } });
+  if (!user) return <div>not found</div>;
+  return <UserCard user={user} />;
+}
+`);
+    const result = await rscDataCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const prismaFindings = result.findings.filter((f) =>
+      f.title.includes('Prisma full-record'),
+    );
+    expect(prismaFindings.length).toBeGreaterThan(0);
+    expect(prismaFindings[0].cwe).toBe(200);
+  });
 });

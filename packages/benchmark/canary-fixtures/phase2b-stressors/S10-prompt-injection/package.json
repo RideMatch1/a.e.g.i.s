@@ -1,0 +1,9 @@
+{
+  "name": "s10-prompt-injection-canary",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "next": "^15.0.0",
+    "openai": "^4.0.0"
+  }
+}

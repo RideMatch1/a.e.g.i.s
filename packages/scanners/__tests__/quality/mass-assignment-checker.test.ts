@@ -256,4 +256,23 @@ describe('massAssignmentCheckerScanner', () => {
     const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
     expect(result.findings.filter((f) => f.title.includes('Mass assignment'))).toHaveLength(0);
   });
+
+  // v0.10 Z5 — nested-args Prisma regex regression pin.
+  it('v0.10 Z5: flags Prisma update with nested where + data:body (dub-shape)', async () => {
+    createApiRoute(projectPath, 'users', `
+      import { prisma } from '@/lib/prisma';
+      export async function PATCH(req) {
+        const body = await req.json();
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: body,
+        });
+        return Response.json({ ok: true });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const massFindings = result.findings.filter((f) => f.title.includes('Mass assignment'));
+    expect(massFindings.length).toBeGreaterThan(0);
+    expect(massFindings[0].cwe).toBe(915);
+  });
 });

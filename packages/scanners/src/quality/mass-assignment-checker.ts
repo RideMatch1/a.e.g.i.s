@@ -34,7 +34,11 @@ const RAW_DB_PATTERNS = [
   // Supabase: .insert(body|data|payload|...) / .update(...) / .upsert(...)
   /\.(insert|update|upsert)\s*\(\s*(?:body|data|payload|params|input|values)\s*\)/,
   // Prisma: prisma.*.create({ data: body|data|payload|... }) / .update / .upsert
-  /prisma\s*\.\s*\w+\s*\.\s*(?:create|update|upsert)\s*\(\s*\{[^}]*data\s*:\s*(?:body|data|payload|params|input|values)\b/,
+  // v0.10 Z5: `[^}]*` cannot cross `}` so the realistic nested shape
+  // `{ where: { id }, data: body }` escaped detection. Replaced with a
+  // balanced-brace expression that allows one level of nested objects —
+  // covers the standard `where: { ... }, data: body` Prisma mutation shape.
+  /prisma\s*\.\s*\w+\s*\.\s*(?:create|update|upsert)\s*\(\s*\{(?:[^{}]|\{[^{}]*\})*data\s*:\s*(?:body|data|payload|params|input|values)\b/,
   // Inline: .insert(await req.json()) / .update(await request.json()) / .upsert(...) — either alias
   /\.(insert|update|upsert)\s*\(\s*await\s+(?:req|request)\.json\s*\(\s*\)\s*\)/,
 ];

@@ -183,4 +183,29 @@ const result = { prompt: \`Hello \${userInput}\` };
     expect(typeof result.duration).toBe('number');
     expect(result.available).toBe(true);
   });
+
+  // v0.10 Z7 — direct-variable (non-template-literal) shape.
+  it('v0.10 Z7: flags direct-variable content in messages array (idiomatic OpenAI SDK)', async () => {
+    createFile(projectPath, 'api/chat.ts', `
+import OpenAI from 'openai';
+const openai = new OpenAI();
+
+export async function POST(req) {
+  const { message } = await req.json();
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'user', content: message },
+    ],
+  });
+  return Response.json({ reply: completion.choices[0].message.content });
+}
+`);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const directVariableFindings = result.findings.filter((f) =>
+      f.title.includes('user variable passed directly'),
+    );
+    expect(directVariableFindings.length).toBeGreaterThan(0);
+    expect(directVariableFindings[0].cwe).toBe(77);
+  });
 });

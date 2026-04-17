@@ -50,6 +50,31 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; title: string; description: s
     description:
       'A prompt property uses a template literal with variable interpolation. If the interpolated value is user-controlled, this enables prompt injection. Use a sanitization function (escapeForPrompt, sanitize) to strip control characters and markdown formatting before embedding user input in prompts.',
   },
+  {
+    // v0.10 Z7: direct-variable content assignment inside an LLM
+    // messages array — the idiomatic OpenAI SDK / Anthropic SDK shape:
+    //   messages: [{ role: 'user', content: userMessage }]
+    // The prior patterns required `${...}` interpolation; this shape
+    // carries the same risk without a template-literal, so it escaped
+    // detection.
+    pattern:
+      /messages\s*:\s*\[[\s\S]{0,300}?content\s*:\s*(?!['"`])(?!\s*[\[\{])\w+/,
+    title:
+      'Prompt injection risk — user variable passed directly as LLM message content',
+    description:
+      'An LLM messages array has a `content:` field assigned a bare variable (not a string literal). If the variable contains user input, an attacker can inject role-switch instructions ("ignore previous instructions") or extract the system prompt. Wrap the variable in a sanitizer (escapeForPrompt / sanitizePrompt) or use a system-prompt-isolation pattern: always pass the user text inside a clearly-delimited block the model is instructed to treat as data, not instructions.',
+  },
+  {
+    // v0.10 Z7: direct-variable prompt assignment (Anthropic / Google
+    // Gemini shape):
+    //   prompt: userMessage
+    // Without a template literal there is no `${…}` anchor.
+    pattern: /prompt\s*:\s*(?!['"`])(?!\s*[\[\{])\w+\b(?!\s*[\(.`])/,
+    title:
+      'Prompt injection risk — user variable passed directly as prompt parameter',
+    description:
+      'A prompt property is assigned a bare variable (not a string literal). If the variable is user-controlled, this enables prompt injection. Sanitize via escapeForPrompt / sanitizePrompt or wrap the variable inside a system-prompt-isolation template before dispatch.',
+  },
 ];
 
 /** Patterns indicating prompt sanitization is present */
