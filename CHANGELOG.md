@@ -11,6 +11,48 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.9.4] — 2026-04-17 — "Release-Workflow Bootstrap"
+
+**Honest score:** unchanged **8.3**. No code changes. Release-hygiene-only
+bump that puts the `@types/node` devDependency + Node16 tsconfig into a
+tagged commit, so the `release.yml` workflow can build the VS Code
+`.vsix` end-to-end from CI without manual local upload. Closes a process
+gap carried over from v0.9.2 and v0.9.3 (in both releases the CI fix
+landed one commit *after* the tag, so the `.vsix` was built locally and
+attached by hand; user-impact was zero, but the workflow had never been
+proven end-to-end).
+
+### Changed
+
+- **5 `@aegis-scan/*` packages** bumped 0.9.3 → 0.9.4.
+- **`ci/github-action/action.yml`** default `aegis-version` pinned to
+  `v0.9.4`. README example + pinning note updated to match.
+- **`aegis-vscode`** stays at 0.2.0 (independent versioning; the `.vsix`
+  filename reflects extension version, not release version).
+
+### Not changed
+
+- `packages/scanners` logic — no scanner edits.
+- `packages/core`, `reporters`, `cli`, `mcp-server` — version bump only.
+- Self-scan, benchmark, and test suite: **unchanged** from 0.9.3 (1402
+  tests green, benchmark 30/30 strict, self-scan 1000/A/0-findings).
+
+### Rationale
+
+Release hygiene matters for an OSS project. If the CI release workflow
+has never produced its primary artifact successfully from an actual
+tag, the project can't claim that workflow is trustworthy. This release
+is the proof-of-life attempt: the tagged commit already contains the
+`@types/node` devDep + `moduleResolution: Node16` tsconfig that the
+extension's isolated install needs. On publish, `release.yml` checks
+out at `v0.9.4`, builds cleanly, and attaches the `.vsix` automatically.
+
+If the workflow succeeds, this process gap is closed for good. If it
+fails, the diagnostic output points at whatever is still broken — the
+point is exercising the path.
+
+---
+
 ## [0.9.3] — 2026-04-17 — "Validator Residual + README Slimdown"
 
 **Honest score:** 8.2 → **8.3**. Closes the remaining v0.9.2 validator
