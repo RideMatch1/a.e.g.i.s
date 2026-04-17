@@ -11,6 +11,73 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.9.3] — 2026-04-17 — "Validator Residual + README Slimdown"
+
+**Honest score:** 8.2 → **8.3**. Closes the remaining v0.9.2 validator
+residuals (auth-enforcer optional-chaining / reversed-operand /
+tRPC-context gaps; stale suppression entry) and slims the README to
+a tool-reference document instead of a release-history narrative.
+
+### Fixed
+
+- **Auth-enforcer next-auth residual FPs (validator MAJOR-02 residual).**
+  The v0.9.2 ROLE_GUARD_PATTERNS used literal `session\.user\.` which
+  does NOT match `session?.user.` under optional chaining. Every post-
+  null-check ownership comparison in a vanilla next-auth codebase was
+  still being flagged (low-severity "missing role guard"). Two
+  additional FP classes also unfixed: reversed operand order
+  (`params.userId !== session?.user.id`) and tRPC-style
+  `ctx.session.user.id` — neither matched the v0.9.2 patterns.
+
+  New unified patterns handle all three:
+  - Optional chaining on session and/or .user accepted uniformly:
+    `session\??\.user\??\.(id|role|email)`.
+  - Both `===` and `!==` accepted in one pattern via `[!=]==`.
+  - Either operand order accepted (session on left OR resource on left).
+  - `ctx.session` prefix accepted for tRPC / Hono / Elysia procedures.
+  - snake_case resource columns (`user_id`, canonical Supabase /
+    Postgres convention) added to the ownership-ID list.
+
+  `ctx.session` / `ctx.user` added to AUTH_GUARD_PATTERNS so a
+  tRPC procedure that destructures from `ctx.session` is correctly
+  recognized as authenticated without an explicit `getServerSession`
+  call.
+
+  +5 regression tests: optional-chaining ownership, reversed-operand,
+  tRPC `ctx.session.user.id`, double-optional (`session?.user?.id`),
+  snake_case `user_id`.
+
+- **Stale redos-probe.ts suppression removed (validator NIT-02).**
+  `aegis.config.json` contained an entry for
+  `packages/scanners/src/attacks/redos-probe.ts` which does not exist
+  (only `packages/scanners/src/quality/redos-checker.ts` does; that
+  entry is retained). The dead suppression taught users that stale
+  entries are acceptable.
+
+- **README slimdown.** The release-history narrative block
+  ("Current release: v0.9.2 — validator hotfix + world-class-OSS
+  polish", "Prior release: v0.9.1 — cross-file precision", etc.)
+  removed; the "Independently validated (v0.9.1 stress-test)"
+  section removed; all "since v0.7" / "since v0.9" version-tag
+  annotations in the scanner table removed; the GitHub Action
+  example pinned to `@v0.9.3` (from the stale `@v0.7.2`). README
+  is now a capability-reference document for someone who finds
+  the repo fresh — no knowledge of prior releases required. Release
+  history remains in full detail here in CHANGELOG.md.
+
+### Test counts
+
+- Tests: **1397 → 1402 green** (+5 auth-enforcer regressions).
+- Benchmark: **30/30 strict unchanged**.
+- Self-scan: **1000/A/0-findings unchanged**.
+
+### Cross-file precision
+
+Unchanged from v0.9.2. n=0 on 6-corpus dogfood.
+`confidence: 'medium'` retained on cross-file findings.
+
+---
+
 ## [0.9.2] — 2026-04-17 — "Validator Hotfix + World-Class-OSS Polish"
 
 **Honest score:** 7.8 → **8.2** (MAJORs from an independent external
