@@ -103,7 +103,7 @@ export async function GET() {
 
     const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
     expect(result.findings.length).toBeGreaterThan(0);
-    const finding = result.findings.find(f => f.title.includes('missing tenant_id'));
+    const finding = result.findings.find(f => f.title.includes('missing tenant-boundary filter'));
     expect(finding).toBeDefined();
     expect(finding!.severity).toBe('high');
     expect(finding!.id).toMatch(/^TENANT-/);
@@ -130,7 +130,7 @@ export async function GET() {
     );
 
     const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
-    const tenantFindings = result.findings.filter(f => f.title.includes('missing tenant_id'));
+    const tenantFindings = result.findings.filter(f => f.title.includes('missing tenant-boundary filter'));
     expect(tenantFindings).toHaveLength(0);
   });
 
@@ -204,5 +204,126 @@ const { data } = await supabase.from('users').select('*');
     const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
     expect(typeof result.duration).toBe('number');
     expect(result.available).toBe(true);
+  });
+
+  // v0.10 Cluster C + Z2 regression pins — Prisma awareness + AST-based
+  // detection (no regex matching inside comment prose).
+
+  it('v0.10: does NOT flag Prisma query with workspaceId discriminant (D6 pin)', async () => {
+    createFile(
+      projectPath,
+      'app/api/links/route.ts',
+      `
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  const links = await prisma.link.findMany({
+    where: { workspaceId: 'ws_123' },
+    take: 10,
+  });
+  return NextResponse.json(links);
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const prismaFindings = result.findings.filter(f => f.title.includes('Prisma'));
+    expect(prismaFindings).toHaveLength(0);
+  });
+
+  it('v0.10: does NOT flag Prisma query with teamId discriminant (D7 pin)', async () => {
+    createFile(
+      projectPath,
+      'app/api/projects/route.ts',
+      `
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  return prisma.project.findMany({
+    where: { teamId: 'team_1', archivedAt: null },
+  });
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const prismaFindings = result.findings.filter(f => f.title.includes('Prisma'));
+    expect(prismaFindings).toHaveLength(0);
+  });
+
+  it('v0.10: flags Prisma query WITHOUT discriminant (D8 pin)', async () => {
+    createFile(
+      projectPath,
+      'app/api/documents/route.ts',
+      `
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function GET(req: Request) {
+  const name = new URL(req.url).searchParams.get('name') ?? '';
+  const docs = await prisma.document.findMany({
+    where: { name: { contains: name } },
+  });
+  return NextResponse.json(docs);
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const prismaFindings = result.findings.filter(f => f.title.includes('Prisma'));
+    expect(prismaFindings.length).toBeGreaterThan(0);
+    expect(prismaFindings[0].severity).toBe('high');
+    expect(prismaFindings[0].cwe).toBe(639);
+  });
+
+  it('v0.10: AST-based — `.from(` inside comment does NOT fire (Z2 pin)', async () => {
+    // A route file mentioning `.from(` only in prose / docstring must
+    // not trigger. The pre-v0.10 regex matched substring-inside-comment.
+    createFile(
+      projectPath,
+      'app/api/docs/route.ts',
+      `
+/**
+ * Docs for this endpoint:
+ *   supabase.from('users') — handled in a sibling handler, not here.
+ * We only serve static content; no DB calls in this file.
+ */
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  return NextResponse.json({ ok: true });
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it('v0.10: case-insensitive service_role match on UPPERCASE env var (Z8 partial pin)', async () => {
+    createFile(
+      projectPath,
+      'app/api/data/route.ts',
+      `
+import { createClient } from '@supabase/supabase-js';
+
+const admin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+
+export async function POST(req: Request) {
+  const body = await req.json();
+  return admin.from('anything').insert(body);
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const srFindings = result.findings.filter(f => f.title.includes('Service role'));
+    expect(srFindings.length).toBeGreaterThan(0);
+    expect(srFindings[0].severity).toBe('critical');
+    expect(srFindings[0].cwe).toBe(639);
   });
 });
