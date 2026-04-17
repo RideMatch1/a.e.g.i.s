@@ -1,0 +1,25 @@
+# Source (only dist/ is shipped in the .vsix)
+src/**
+tsconfig.json
+
+# Build-system noise
+.turbo/**
+node_modules/**
+package-lock.json
+*.vsix
+
+# Dev-only files
+.git/**
+.gitignore
+.vscode-test/**
+**/*.test.ts
+**/*.spec.ts
+**/__tests__/**
+
+# Editor / IDE
+.vscode/**
+.idea/**
+
+# OS
+.DS_Store
+Thumbs.db
