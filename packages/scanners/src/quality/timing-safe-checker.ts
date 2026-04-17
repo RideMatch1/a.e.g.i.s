@@ -29,6 +29,26 @@ const TIMING_VULNERABLE_PATTERNS = [
   /===\s*webhookSecret\b|\bwebhookSecret\s*===/,
   // generic process.env.*SECRET* comparison
   /===\s*process\.env\.\w*SECRET\w*|process\.env\.\w*SECRET\w*\s*===/,
+
+  // v0.11 S12: widen env-var suffix coverage from SECRET-only to the
+  // full security-adjacent set. `process.env.ADMIN_API_KEY` /
+  // `_TOKEN` / `_PASSWORD` / `_HASH` / `_CREDENTIAL` all carry the
+  // same timing-side-channel risk as `_SECRET`.
+  /===\s*process\.env\.\w*(?:KEY|TOKEN|PASSWORD|HASH|PASSCODE|CREDENTIAL|AUTH)\w*/,
+  /process\.env\.\w*(?:KEY|TOKEN|PASSWORD|HASH|PASSCODE|CREDENTIAL|AUTH)\w*\s*===/,
+  /!==\s*process\.env\.\w*(?:KEY|TOKEN|PASSWORD|HASH|PASSCODE|CREDENTIAL|AUTH)\w*/,
+  /process\.env\.\w*(?:KEY|TOKEN|PASSWORD|HASH|PASSCODE|CREDENTIAL|AUTH)\w*\s*!==/,
+
+  // v0.11 S12: UPPERCASE-named local constants with security-suffix.
+  // `const ADMIN_API_KEY = process.env.ADMIN_API_KEY!` then
+  // `if (presented === ADMIN_API_KEY)` — the comparison is against a
+  // locally-scoped constant, not directly against process.env. Pattern
+  // requires `_SUFFIX` boundary to reduce FPs on generic UPPERCASE
+  // identifiers like `USER_ID`.
+  /===\s*[A-Z][A-Z0-9_]*(?:_KEY|_TOKEN|_SECRET|_PASSWORD|_HASH|_CREDENTIAL|_AUTH|_PASSCODE)\b/,
+  /\b[A-Z][A-Z0-9_]*(?:_KEY|_TOKEN|_SECRET|_PASSWORD|_HASH|_CREDENTIAL|_AUTH|_PASSCODE)\s*===/,
+  /!==\s*[A-Z][A-Z0-9_]*(?:_KEY|_TOKEN|_SECRET|_PASSWORD|_HASH|_CREDENTIAL|_AUTH|_PASSCODE)\b/,
+  /\b[A-Z][A-Z0-9_]*(?:_KEY|_TOKEN|_SECRET|_PASSWORD|_HASH|_CREDENTIAL|_AUTH|_PASSCODE)\s*!==/,
 ];
 
 /** Patterns that indicate a constant-time comparison is in use */

@@ -232,4 +232,45 @@ describe('timingSafeCheckerScanner', () => {
     expect(typeof result.duration).toBe('number');
     expect(result.available).toBe(true);
   });
+
+  // v0.11 S12 — widen variable-name allowlist to UPPERCASE identifiers
+  // with security-suffix (_KEY / _TOKEN / _SECRET / _PASSWORD / _HASH).
+  it('v0.11 S12: flags `presented === ADMIN_API_KEY` comparison', async () => {
+    createApiRoute(
+      projectPath,
+      'admin/verify',
+      `
+      const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
+      export async function POST(request) {
+        const presented = request.headers.get('x-admin-key') ?? '';
+        if (presented === ADMIN_API_KEY) {
+          return Response.json({ ok: true });
+        }
+        return new Response('forbidden', { status: 403 });
+      }
+    `,
+    );
+    const result = await timingSafeCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.findings[0].cwe).toBe(208);
+  });
+
+  it('v0.11 S12: flags `process.env.USER_TOKEN === header` comparison', async () => {
+    createApiRoute(
+      projectPath,
+      'user/verify',
+      `
+      export async function POST(request) {
+        const header = request.headers.get('authorization') ?? '';
+        if (header === process.env.USER_TOKEN) {
+          return Response.json({ ok: true });
+        }
+        return new Response('no', { status: 401 });
+      }
+    `,
+    );
+    const result = await timingSafeCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.findings[0].cwe).toBe(208);
+  });
 });
