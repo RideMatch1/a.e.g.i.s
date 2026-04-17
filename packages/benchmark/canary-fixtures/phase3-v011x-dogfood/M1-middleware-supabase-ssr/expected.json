@@ -1,0 +1,9 @@
+{
+  "id": "M1",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Bug C regression pin — middleware using @supabase/ssr createServerClient + supabase.auth.getUser() is a recognised auth pattern (dominant Supabase ecosystem idiom surfaced during real-world dogfood). MIDDLEWARE_AUTH_PATTERNS must cover .auth.getUser()/.getSession() after widen. Must NOT emit.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

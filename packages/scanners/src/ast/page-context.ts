@@ -21,6 +21,8 @@
  * types, or taint. Scanners consume it at their emission sites.
  */
 import ts from 'typescript';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Q1: Ancestor-layout discovery
@@ -47,11 +49,39 @@ import ts from 'typescript';
  * existing `detectServerComponentDirs` assumption).
  */
 export function collectAncestorLayouts(
-  _pageFile: string,
-  _projectPath: string,
+  pageFile: string,
+  projectPath: string,
 ): string[] {
-  // TODO v0.11.x FP #4 Day 2: implement directory walk.
-  return [];
+  const layouts: string[] = [];
+
+  // Resolve app-root boundary. Next.js supports `src/app` OR `app`.
+  // We stop walking at whichever root contains the pageFile.
+  const appRoots = [
+    path.join(projectPath, 'src', 'app'),
+    path.join(projectPath, 'app'),
+  ];
+  const appRoot = appRoots.find((r) => pageFile.startsWith(r + path.sep));
+  if (appRoot === undefined) return [];
+
+  // Start one level up from the page file's directory, stop at appRoot.
+  // The page's own directory is included — a page.tsx and a sibling
+  // layout.tsx in the same folder both render; the layout still wraps.
+  let dir = path.dirname(pageFile);
+  while (true) {
+    for (const name of ['layout.tsx', 'layout.ts']) {
+      const candidate = path.join(dir, name);
+      if (fs.existsSync(candidate)) {
+        layouts.push(candidate);
+        break;
+      }
+    }
+    if (dir === appRoot) break;
+    const parent = path.dirname(dir);
+    if (parent === dir) break; // filesystem root guard — should never hit
+    dir = parent;
+  }
+
+  return layouts;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -71,8 +101,63 @@ export function collectAncestorLayouts(
  * Accepts both string-literal matchers (`'/admin/:path*'`) and their
  * array form.
  */
-export function parseMiddlewareMatchers(_middlewarePath: string): string[] | null {
-  // TODO v0.11.x FP #4 Day 2: AST parse `export const config = { matcher: [...] }`.
+export function parseMiddlewareMatchers(middlewarePath: string): string[] | null {
+  let content: string;
+  try {
+    content = fs.readFileSync(middlewarePath, 'utf-8');
+  } catch {
+    return null;
+  }
+
+  const sf = ts.createSourceFile(
+    middlewarePath,
+    content,
+    ts.ScriptTarget.Latest,
+    /*setParentNodes*/ true,
+    ts.ScriptKind.TS,
+  );
+
+  for (const stmt of sf.statements) {
+    if (!ts.isVariableStatement(stmt)) continue;
+    const mods = ts.canHaveModifiers(stmt) ? ts.getModifiers(stmt) : undefined;
+    const exported = mods?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ?? false;
+    if (!exported) continue;
+
+    for (const decl of stmt.declarationList.declarations) {
+      if (!ts.isIdentifier(decl.name) || decl.name.text !== 'config') continue;
+      if (decl.initializer === undefined || !ts.isObjectLiteralExpression(decl.initializer)) continue;
+
+      for (const prop of decl.initializer.properties) {
+        if (!ts.isPropertyAssignment(prop)) continue;
+        if (!ts.isIdentifier(prop.name) || prop.name.text !== 'matcher') continue;
+
+        // String-literal shorthand: matcher: '/admin/:path*'
+        if (ts.isStringLiteral(prop.initializer)) {
+          return [prop.initializer.text];
+        }
+
+        // Array form: matcher: ['/admin/:path*', '/api/:path*']
+        if (ts.isArrayLiteralExpression(prop.initializer)) {
+          const out: string[] = [];
+          for (const el of prop.initializer.elements) {
+            if (ts.isStringLiteral(el)) out.push(el.text);
+            else return null; // dynamic / non-static element → ambiguous, caller gets null
+          }
+          return out;
+        }
+
+        // Variable reference / template literal / conditional — ambiguous.
+        return null;
+      }
+    }
+  }
+
+  // No `export const config` at all → Next.js default (middleware runs on all routes).
+  // Conservative interpretation for the scanner: caller treats null as
+  // "ambiguous" (no suppression). A separate helper could return a sentinel
+  // `'*'` for "everything" but we do not special-case it here — the
+  // `middlewareProtects` composite handles the "no config → covers all" case
+  // by checking whether ANY middleware file exists + has auth pattern.
   return null;
 }
 
@@ -89,9 +174,44 @@ export function parseMiddlewareMatchers(_middlewarePath: string): string[] | nul
  * `false` for exclusions AND for ambiguous patterns. Caller gates
  * suppression on this.
  */
-export function matcherCoversPath(_matcher: string, _pagePath: string): boolean {
-  // TODO v0.11.x FP #4 Day 2: implement Next.js matcher semantics.
-  return false;
+export function matcherCoversPath(matcher: string, pagePath: string): boolean {
+  // Ambiguous patterns that the scanner can't confidently evaluate —
+  // regex features (lookahead / lookbehind / alternation / grouping)
+  // and character classes fall through as fail-closed (return false →
+  // no suppression).
+  if (/[()|\[\]\\]/.test(matcher)) return false;
+
+  // Normalize: strip trailing slash for comparison, except when matcher
+  // is exactly '/' (root-only).
+  const m = matcher;
+  const p = pagePath;
+
+  // Exact root '/' — matches only the root, not sub-paths.
+  if (m === '/') return p === '/';
+
+  // `:path*` trailing → prefix match (with or without the leading slash after prefix).
+  // Shapes: `/admin/:path*`, `/admin/:path+`, `/:path*`
+  const prefixStarMatch = m.match(/^(.+?)\/:[A-Za-z_][\w]*[*+]$/);
+  if (prefixStarMatch !== null) {
+    const prefix = prefixStarMatch[1];
+    return p === prefix || p.startsWith(prefix + '/');
+  }
+
+  // Bare `/:path*` → all paths.
+  if (/^\/:[A-Za-z_][\w]*[*+]$/.test(m)) return true;
+
+  // Single-segment `:slug` → matches EXACTLY one segment after prefix.
+  // `/admin/:slug` matches `/admin/x` but NOT `/admin` or `/admin/x/y`.
+  const singleSegmentMatch = m.match(/^(.+?)\/:[A-Za-z_][\w]*$/);
+  if (singleSegmentMatch !== null) {
+    const prefix = singleSegmentMatch[1];
+    if (!p.startsWith(prefix + '/')) return false;
+    const tail = p.slice(prefix.length + 1);
+    return tail.length > 0 && !tail.includes('/');
+  }
+
+  // Plain literal — exact match only.
+  return p === m;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -127,9 +247,164 @@ export function matcherCoversPath(_matcher: string, _pagePath: string): boolean 
  * `ast/dominator.ts` module. For now, semantic consistency is
  * canary-guaranteed via the L5-L12 edge-case fixtures.
  */
-export function hasLayoutAuthGuard(_layoutContent: string): boolean {
-  // TODO v0.11.x FP #4 Day 2-3: implement 3-condition check.
+export function hasLayoutAuthGuard(layoutContent: string): boolean {
+  if (isClientDirective(layoutContent)) return false;
+
+  const sf = ts.createSourceFile(
+    'layout.tsx',
+    layoutContent,
+    ts.ScriptTarget.Latest,
+    /*setParentNodes*/ true,
+    ts.ScriptKind.TSX,
+  );
+
+  const layoutBody = findDefaultExportFnBody(sf);
+  if (layoutBody === null || !ts.isBlock(layoutBody)) return false;
+
+  // Step 1: collect identifier bindings that capture an `await <call>` result
+  // at TOP LEVEL of the layout body. Nested scopes (inside IfStatement,
+  // TryStatement, etc.) are intentionally NOT walked — they represent
+  // conditional / exception-swallowing guards which do not dominate the
+  // subsequent render path (see variant matrix for L11 / L12 rationale).
+  const awaitBindings = new Set<string>();
+  for (const stmt of layoutBody.statements) {
+    collectAwaitBindings(stmt, awaitBindings);
+  }
+  if (awaitBindings.size === 0) return false;
+
+  // Step 2: find a top-level IfStatement negating any of the bindings
+  // AND whose then-branch contains a fail-closed action.
+  for (const stmt of layoutBody.statements) {
+    if (!ts.isIfStatement(stmt)) continue;
+    if (!ifNegatesAnyBinding(stmt.expression, awaitBindings)) continue;
+    if (thenContainsFailClosed(stmt.thenStatement)) return true;
+  }
   return false;
+}
+
+/** Locate the body of the default-export function in a layout / page file. */
+function findDefaultExportFnBody(sf: ts.SourceFile): ts.Node | null {
+  for (const stmt of sf.statements) {
+    if (ts.isFunctionDeclaration(stmt)) {
+      const mods = ts.canHaveModifiers(stmt) ? ts.getModifiers(stmt) : undefined;
+      const hasDefault = mods?.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword) ?? false;
+      if (hasDefault && stmt.body !== undefined) return stmt.body;
+    }
+    if (ts.isExportAssignment(stmt)) {
+      const expr = stmt.expression;
+      if (ts.isArrowFunction(expr) || ts.isFunctionExpression(expr)) {
+        return expr.body;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * From a top-level statement, collect identifiers that bind to an
+ * await-expression result. Handles plain assign, destructure, and
+ * nested destructure. Non-await initializers are ignored.
+ */
+function collectAwaitBindings(stmt: ts.Statement, out: Set<string>): void {
+  if (!ts.isVariableStatement(stmt)) return;
+  for (const decl of stmt.declarationList.declarations) {
+    if (decl.initializer === undefined) continue;
+    if (!awaitExpressionContains(decl.initializer)) continue;
+
+    if (ts.isIdentifier(decl.name)) {
+      out.add(decl.name.text);
+    } else if (ts.isObjectBindingPattern(decl.name) || ts.isArrayBindingPattern(decl.name)) {
+      collectBindingNames(decl.name, out);
+    }
+  }
+}
+
+/** Does the expression (or its property-access chain / call chain) contain an AwaitExpression? */
+function awaitExpressionContains(expr: ts.Expression): boolean {
+  if (ts.isAwaitExpression(expr)) return true;
+  if (ts.isParenthesizedExpression(expr)) return awaitExpressionContains(expr.expression);
+  if (ts.isPropertyAccessExpression(expr)) return awaitExpressionContains(expr.expression);
+  if (ts.isCallExpression(expr)) return awaitExpressionContains(expr.expression);
+  return false;
+}
+
+/** Recursive walk of binding-patterns to extract every leaf identifier. */
+function collectBindingNames(
+  pattern: ts.ObjectBindingPattern | ts.ArrayBindingPattern,
+  out: Set<string>,
+): void {
+  for (const el of pattern.elements) {
+    if (!ts.isBindingElement(el)) continue;
+    if (ts.isIdentifier(el.name)) {
+      out.add(el.name.text);
+    } else if (ts.isObjectBindingPattern(el.name) || ts.isArrayBindingPattern(el.name)) {
+      collectBindingNames(el.name, out);
+    }
+  }
+}
+
+/** Does the if-condition negate any of the tracked bindings? Supports
+ *  !x, x === null, x == null, x === undefined, and optional-chain negation. */
+function ifNegatesAnyBinding(expr: ts.Expression, bindings: Set<string>): boolean {
+  if (ts.isPrefixUnaryExpression(expr) && expr.operator === ts.SyntaxKind.ExclamationToken) {
+    const inner = expr.operand;
+    if (ts.isIdentifier(inner)) return bindings.has(inner.text);
+    // !x?.user / !x.user — walk to root identifier.
+    let e: ts.Expression = inner;
+    while (ts.isPropertyAccessExpression(e) || ts.isCallExpression(e)) {
+      e = (e as ts.PropertyAccessExpression | ts.CallExpression).expression;
+    }
+    if (ts.isIdentifier(e)) return bindings.has(e.text);
+    return false;
+  }
+
+  if (ts.isBinaryExpression(expr)) {
+    const op = expr.operatorToken.kind;
+    if (op !== ts.SyntaxKind.EqualsEqualsEqualsToken && op !== ts.SyntaxKind.EqualsEqualsToken) {
+      return false;
+    }
+    const isNullish = (e: ts.Expression): boolean => (
+      e.kind === ts.SyntaxKind.NullKeyword ||
+      (ts.isIdentifier(e) && e.text === 'undefined')
+    );
+    const identSide = isNullish(expr.right) ? expr.left : isNullish(expr.left) ? expr.right : null;
+    if (identSide !== null && ts.isIdentifier(identSide)) {
+      return bindings.has(identSide.text);
+    }
+  }
+  return false;
+}
+
+/**
+ * Does the then-branch of an if-statement unconditionally exit via a
+ * recognised fail-closed primitive? `redirect(...)` / `notFound()` /
+ * `throw ...`. Supports both a bare statement and a block-wrapped body.
+ * A trailing plain `return` does NOT count — the render path continues.
+ */
+function thenContainsFailClosed(stmt: ts.Statement): boolean {
+  const check = (s: ts.Statement): boolean => {
+    if (ts.isThrowStatement(s)) return true;
+    if (ts.isExpressionStatement(s)) {
+      const e = s.expression;
+      if (ts.isCallExpression(e) && ts.isIdentifier(e.expression)) {
+        const name = e.expression.text;
+        return name === 'redirect' || name === 'notFound';
+      }
+    }
+    if (ts.isReturnStatement(s) && s.expression !== undefined) {
+      // `return redirect(...)` is also a fail-closed primitive.
+      const e = s.expression;
+      if (ts.isCallExpression(e) && ts.isIdentifier(e.expression)) {
+        const name = e.expression.text;
+        return name === 'redirect' || name === 'notFound';
+      }
+    }
+    return false;
+  };
+  if (ts.isBlock(stmt)) {
+    return stmt.statements.some(check);
+  }
+  return check(stmt);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -145,9 +420,19 @@ export function hasLayoutAuthGuard(_layoutContent: string): boolean {
  * AST-based detection: check that the first `ts.ExpressionStatement`
  * is a `ts.StringLiteral` with value 'use client' (either quote style).
  */
-export function isClientDirective(_content: string): boolean {
-  // TODO v0.11.x FP #4 Day 2: AST-parse first-statement directive.
-  return false;
+export function isClientDirective(content: string): boolean {
+  const sf = ts.createSourceFile(
+    'check.tsx',
+    content,
+    ts.ScriptTarget.Latest,
+    /*setParentNodes*/ false,
+    ts.ScriptKind.TSX,
+  );
+  const first = sf.statements[0];
+  if (first === undefined || !ts.isExpressionStatement(first)) return false;
+  const expr = first.expression;
+  if (!ts.isStringLiteral(expr)) return false;
+  return expr.text === 'use client';
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -168,13 +453,145 @@ export function isClientDirective(_content: string): boolean {
  * — the outermost protection still applies.
  */
 export function pageIsGuardedByContext(
-  _pageFile: string,
-  _projectPath: string,
+  pageFile: string,
+  projectPath: string,
 ): boolean {
-  // TODO v0.11.x FP #4 Day 2-3: compose collectAncestorLayouts +
-  // hasLayoutAuthGuard + middleware matcher check.
+  // Edge runtime bypass: page explicitly opts into Edge runtime, which
+  // can change the layout/middleware application semantics. Conservative
+  // fail-closed — do NOT suppress without deeper runtime analysis.
+  let pageContent: string;
+  try {
+    pageContent = fs.readFileSync(pageFile, 'utf-8');
+  } catch {
+    return false;
+  }
+  if (/export\s+const\s+runtime\s*=\s*['"]edge['"]/.test(pageContent)) {
+    return false;
+  }
+
+  // Check ancestor layout chain first — cheaper than middleware matcher
+  // parsing because layouts are filesystem-adjacent to the page.
+  const layouts = collectAncestorLayouts(pageFile, projectPath);
+  for (const layoutPath of layouts) {
+    let content: string;
+    try {
+      content = fs.readFileSync(layoutPath, 'utf-8');
+    } catch {
+      continue;
+    }
+    if (hasLayoutAuthGuard(content)) return true;
+  }
+
+  // Check middleware.ts for matcher-covering + auth-pattern protection.
+  const middlewareCandidates = [
+    path.join(projectPath, 'middleware.ts'),
+    path.join(projectPath, 'middleware.js'),
+    path.join(projectPath, 'src', 'middleware.ts'),
+    path.join(projectPath, 'src', 'middleware.js'),
+  ];
+  for (const mwPath of middlewareCandidates) {
+    if (!fs.existsSync(mwPath)) continue;
+    if (middlewareProtects(mwPath, pageFile, projectPath)) return true;
+  }
+
   return false;
 }
+
+/**
+ * Known-limitations reminder (v0.12 TODO canaries):
+ *   - Nested-function auth helpers (`async function checkAuth() { … }; await checkAuth()`)
+ *     are NOT recognised — the guard statements live outside the layout body.
+ *   - try/catch with a no-op catch that swallows a throw-based auth failure
+ *     is excluded naturally because the structural walk only inspects
+ *     top-level statements; the `if (!user) redirect` pattern inside a
+ *     try-block is out of top-level scope → correctly classified as
+ *     "no guard detected" → scanner emits.
+ */
+
+/**
+ * Middleware-level protection check: does the middleware file both
+ * contain a recognised auth pattern AND have a matcher that covers
+ * the page's URL path?
+ *
+ * Uses a local copy of MIDDLEWARE_AUTH_PATTERNS kept in sync with
+ * auth-enforcer.ts. If the list diverges (unintentional drift), the
+ * canary fixtures M1 / M2 / L3 / L9 catch the regression.
+ */
+function middlewareProtects(
+  middlewarePath: string,
+  pageFile: string,
+  projectPath: string,
+): boolean {
+  let content: string;
+  try {
+    content = fs.readFileSync(middlewarePath, 'utf-8');
+  } catch {
+    return false;
+  }
+
+  // Must have a recognised auth pattern. Strip comments first so prose
+  // mentions of "auth" / "session" don't falsely qualify.
+  const sanitized = stripComments(content);
+  if (!MIDDLEWARE_AUTH_PATTERNS_LOCAL.some((p) => p.test(sanitized))) return false;
+
+  const matchers = parseMiddlewareMatchers(middlewarePath);
+  if (matchers === null) {
+    // No `export const config` at all → Next.js default runs middleware
+    // on every path. Protection is universal. Return true.
+    const hasConfigExport = /export\s+const\s+config\s*=/.test(sanitized);
+    if (!hasConfigExport) return true;
+    // Config export exists but matcher was dynamic / non-static →
+    // ambiguous. Fail-closed (don't suppress).
+    return false;
+  }
+
+  const urlPath = pagePathToUrlPath(pageFile, projectPath);
+  if (urlPath === null) return false;
+
+  return matchers.some((m) => matcherCoversPath(m, urlPath));
+}
+
+/**
+ * Convert an absolute page file path to its routed URL path.
+ *   /project/src/app/admin/reports/page.tsx  →  /admin/reports
+ *   /project/app/admin/reports/[id]/page.tsx →  /admin/reports/[id]
+ *   /project/app/layout.tsx                  →  null (not a page)
+ *
+ * Dynamic segments (`[slug]`, `[...rest]`) are preserved literally —
+ * matcher-coverage handles them on prefix-match semantics.
+ */
+function pagePathToUrlPath(pageFile: string, projectPath: string): string | null {
+  const appRoots = [
+    path.join(projectPath, 'src', 'app'),
+    path.join(projectPath, 'app'),
+  ];
+  const appRoot = appRoots.find((r) => pageFile.startsWith(r + path.sep));
+  if (appRoot === undefined) return null;
+
+  const rel = pageFile.slice(appRoot.length);
+  const dir = path.dirname(rel).replace(/\\/g, '/');
+  if (dir === '/' || dir === '') return '/';
+  return dir;
+}
+
+/**
+ * Middleware auth-pattern catalog — kept in sync with
+ * auth-enforcer.ts's MIDDLEWARE_AUTH_PATTERNS. Local copy to avoid a
+ * cross-scanner import cycle. If this list ever diverges, the canary
+ * harness (M1, M2, L3, L9) catches the regression.
+ */
+const MIDDLEWARE_AUTH_PATTERNS_LOCAL: readonly RegExp[] = [
+  /getToken/,
+  /withAuth/,
+  /\bauth\(\)/,
+  /NextAuth/,
+  /clerkMiddleware/,
+  /authMiddleware/,
+  /\bgetServerSession\s*\(/,
+  /\bgetServerAuthSession\s*\(/,
+  /\.auth\.(?:getUser|getSession)\s*\(/,
+  /\bcurrentUser\s*\(/,
+];
 
 // ─────────────────────────────────────────────────────────────────────────
 // Bug A: Comment-prose suppression on regex-based content scanners
@@ -195,12 +612,71 @@ export function pageIsGuardedByContext(
  * Will migrate to a dedicated `content-sanitize.ts` if v0.12 grows
  * more regex-scanner users.
  */
-export function stripComments(_content: string): string {
-  // TODO v0.11.x FP #4 (Bug A): preserve-length comment stripper.
-  return _content;
+export function stripComments(content: string): string {
+  const out: string[] = [];
+  let i = 0;
+  const n = content.length;
+  while (i < n) {
+    const c = content[i];
+    const next = content[i + 1];
+
+    // Line comment // … — replace through newline (keeps newline).
+    if (c === '/' && next === '/') {
+      out.push('  ');
+      i += 2;
+      while (i < n && content[i] !== '\n') {
+        out.push(content[i] === '\t' ? '\t' : ' ');
+        i++;
+      }
+      continue;
+    }
+
+    // Block comment /* … */ — replace whole span with spaces preserving
+    // newlines so line numbers downstream stay accurate.
+    if (c === '/' && next === '*') {
+      out.push('  ');
+      i += 2;
+      while (i < n) {
+        if (content[i] === '*' && content[i + 1] === '/') {
+          out.push('  ');
+          i += 2;
+          break;
+        }
+        out.push(content[i] === '\n' ? '\n' : content[i] === '\t' ? '\t' : ' ');
+        i++;
+      }
+      continue;
+    }
+
+    // String / template literals — skip so comment-like tokens inside
+    // strings (e.g., SQL `SELECT /* hint */ ...`) are preserved. Three
+    // quote styles covered with minimal escape handling. Sufficient for
+    // the `stripComments-before-regex-scan` use case where the caller
+    // is a lexical SAST pass.
+    if (c === '"' || c === "'" || c === '`') {
+      const quote = c;
+      out.push(c);
+      i++;
+      while (i < n) {
+        const ch = content[i];
+        out.push(ch);
+        if (ch === '\\' && i + 1 < n) {
+          out.push(content[i + 1]);
+          i += 2;
+          continue;
+        }
+        if (ch === quote) {
+          i++;
+          break;
+        }
+        i++;
+      }
+      continue;
+    }
+
+    out.push(c);
+    i++;
+  }
+  return out.join('');
 }
 
-// Placeholder: the TypeScript import is retained for v0.11.x FP #4
-// Day 2-3 implementation (AST helpers). Removing it here keeps the
-// skeleton's unused-import warnings quiet.
-void ts;

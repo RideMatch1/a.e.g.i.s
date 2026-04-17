@@ -3,6 +3,7 @@ import { walkFiles, readFileSafe } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { existsSync } from 'fs';
 import { parseFile, walkAst } from '../ast/parser.js';
+import { stripComments, pageIsGuardedByContext } from '../ast/page-context.js';
 
 const AUTH_GUARD_PATTERNS = [
   /secureApiRouteWithTenant/,
@@ -118,7 +119,19 @@ const EXPRESS_ROUTE_PATTERNS = [
   /\b(app|router)\s*\.\s*(get|post|put|patch|delete|all)\s*\(/,
 ];
 
-/** Middleware auth patterns (Next.js middleware.ts) */
+/**
+ * Middleware auth patterns (Next.js middleware.ts).
+ *
+ * v0.11.x Bug C: widened with data-driven additions from 9-project
+ * corpus + post-v0.11.0 real-world dogfood. Dominant real-world shapes
+ * are next-auth v4 `getServerSession` (5/9 corpus) and `@supabase/ssr`
+ * `supabase.auth.getUser()` (observed in the dogfood sample). The
+ * original 6-pattern list
+ * only covered next-auth-v4-imports (`NextAuth`) and v5-style
+ * bare `auth()` — real middleware code using helper calls was
+ * missed, producing the "Middleware exists but has no auth pattern"
+ * FP on legitimate codebases.
+ */
 const MIDDLEWARE_AUTH_PATTERNS = [
   /getToken/,
   /withAuth/,
@@ -126,6 +139,13 @@ const MIDDLEWARE_AUTH_PATTERNS = [
   /NextAuth/,
   /clerkMiddleware/,
   /authMiddleware/,
+  // v0.11.x Bug C additions — all empirically observed in corpus /
+  // dogfood scans. Regex shape mirrors the catalog in
+  // `middleware-auth-checker` for symmetry.
+  /\bgetServerSession\s*\(/,                   // next-auth v4 (5/9 corpus)
+  /\bgetServerAuthSession\s*\(/,               // T3-stack helper convention
+  /\.auth\.(?:getUser|getSession)\s*\(/,       // Supabase SSR session check
+  /\bcurrentUser\s*\(/,                        // Clerk
 ];
 
 const ROUTE_FILENAMES = ['route.ts', 'route.js'];
@@ -362,27 +382,40 @@ export const authEnforcerScanner: Scanner = {
         const content = readFileSafe(file);
         if (content === null) continue;
 
-        // Only flag if the page directly accesses a database
-        const hasDbAccess = DB_ACCESS_PATTERNS.some((p) => p.test(content));
+        // v0.11.x Bug A — strip comments before DB_ACCESS / AUTH_GUARD
+        // regex scans. Natural-language prose in comments like
+        // `// Stats query (separat, …)` accidentally matches
+        // `\bquery\s*\(` otherwise (Z2-comment-leak class applied to
+        // auth-enforcer).
+        const sanitized = stripComments(content);
+
+        const hasDbAccess = DB_ACCESS_PATTERNS.some((p) => p.test(sanitized));
         if (!hasDbAccess) continue;
 
-        const hasAuthGuard = AUTH_GUARD_PATTERNS.some((p) => p.test(content));
-        if (!hasAuthGuard) {
-          const id = `AUTH-${String(idCounter.value++).padStart(3, '0')}`;
-          findings.push({
-            id,
-            scanner: 'auth-enforcer',
-            severity: 'high',
-            title: 'Server component with DB access missing auth guard',
-            description: `Server component page directly accesses the database without any recognised auth guard. This may allow unauthenticated data access.`,
-            file,
-            line: 1,
-            fileLevel: true,
-            category: 'security',
-            owasp: 'A07:2021',
-            cwe: 306,
-          });
-        }
+        const hasAuthGuard = AUTH_GUARD_PATTERNS.some((p) => p.test(sanitized));
+        if (hasAuthGuard) continue;
+
+        // v0.11.x Bug B — App-Router parent-layout + middleware-matcher
+        // awareness. The page may be legitimately protected by a
+        // FAIL-CLOSED auth guard in a parent layout.tsx or by a
+        // middleware with a matching path-matcher. Suppress when either
+        // source confidently protects the page.
+        if (pageIsGuardedByContext(file, projectPath)) continue;
+
+        const id = `AUTH-${String(idCounter.value++).padStart(3, '0')}`;
+        findings.push({
+          id,
+          scanner: 'auth-enforcer',
+          severity: 'high',
+          title: 'Server component with DB access missing auth guard',
+          description: `Server component page directly accesses the database without any recognised auth guard. This may allow unauthenticated data access.`,
+          file,
+          line: 1,
+          fileLevel: true,
+          category: 'security',
+          owasp: 'A07:2021',
+          cwe: 306,
+        });
       }
     }
 

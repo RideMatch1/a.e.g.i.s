@@ -1,0 +1,9 @@
+{
+  "id": "M2",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Bug C regression pin — middleware using Clerk's currentUser() is a recognised auth pattern. MIDDLEWARE_AUTH_PATTERNS must cover currentUser() after widen. Must NOT emit.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}
