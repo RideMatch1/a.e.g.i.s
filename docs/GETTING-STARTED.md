@@ -19,30 +19,68 @@ npx @aegis-scan/cli scan .
 ```
 
 from the root of any Node / TypeScript project. The CLI fetches the latest
-package from npm, walks the repo, runs the scanners, and prints a score +
-grade + findings grouped by severity:
+package from npm, walks the repo, runs the 40 built-in scanners (plus 16
+external wrappers that auto-skip when their tool is not installed), and
+prints a per-category score bar, an aggregated grade + badge, and any
+findings grouped by severity. The live output is colourised with progress
+bars; the plain-text trim below reproduces the structure:
 
 ```
-AEGIS scan complete: 7/10 scanners ran (3 unavailable)
+╔════════════════════════════════════════════════════════════╗
+║ AEGIS SECURITY AUDIT                                       ║
+║ Stack: nextjs · supabase · typescript                      ║
+╚════════════════════════════════════════════════════════════╝
 
-Score: 842/1000 — GRADE A (HARDENED)
-Blockers: 0
-Critical: 2
-High: 11
-Medium: 18
-Low: 3
+  Category Scores
+  ────────────────────────────────────────────────────────────
+  security               ████████████████░░░░   820/1000
+  dast                   ████████████████████  1000/1000
+  dependencies           ██████████████████░░   910/1000
+  compliance             ████████████████████  1000/1000
+  quality                ███████████████░░░░░   780/1000
+  infrastructure         ████████████████████  1000/1000
+  accessibility          ████████████████████  1000/1000
+  performance            ████████████████████  1000/1000
+  ai-llm                 ████████████████████  1000/1000
+  i18n                   ████████████████████  1000/1000
+  runtime                ████████████████████  1000/1000
+  ────────────────────────────────────────────────────────────
 
-Top findings:
-  CRITICAL — apps/web/api/users/route.ts:42  Missing auth guard
-  CRITICAL — lib/db.ts:88                     SQLi via .rpc() template
-  HIGH     — app/api/admin/delete/route.ts:14 Mass-assignment on .insert()
-  ...
+  Total Score: 855  Grade: A  Badge: HARDENED  Confidence: MEDIUM
 
-Run `aegis audit .` for the full report, or `aegis fix <finding-id>` to auto-patch.
+  Top findings (showing 5 of 18):
+    HIGH      app/api/admin/delete/route.ts:14   Mass-assignment on .insert()
+    HIGH      lib/auth/session.ts:67             Timing-safe comparison missing
+    HIGH      middleware.ts:23                   Missing CSP, HSTS headers
+    MEDIUM    app/(auth)/signup/route.ts:31      Rate limit missing on auth endpoint
+    MEDIUM    supabase/functions/sync/index.ts:88 service_role used without RLS-bypass comment
+
+  Run `aegis audit .` for the full report + per-scanner timings, or
+  `aegis fix <finding-id>` to get an AI-assisted patch suggestion.
+
+  Note: 6/47 scanners unavailable.
+  Missing: semgrep, gitleaks, osv-scanner, trufflehog, bearer, trivy
+  Install missing tools for a more comprehensive audit.
+
+  ────────────────────────────────────────────────────────────
+  Completed in 3.2s  ·  47 scanners (41 active)
 ```
+
+The `Confidence` field reflects whether external security tools
+(`semgrep`, `gitleaks`, `trivy`, …) were available during the run.
+`LOW` means only built-in scanners ran — install the listed missing
+tools for `MEDIUM` or `HIGH` confidence. Since v0.9.2, when confidence
+is `LOW` the badge is displayed prefixed with `[LOW-CONFIDENCE]` in
+CI comments + terminal so you don't accidentally read `HARDENED` on a
+thinly-scanned project.
 
 Exit code `1` when blocker-severity findings exist (hardcoded secret,
 `eval` with user input, JWT `none` algorithm). Otherwise `0`.
+
+> The example above is illustrative (a typical mid-size Next.js +
+> Supabase project). Your first run will look structurally identical;
+> the exact score, findings, and active-scanner count depend on your
+> codebase + installed external tools.
 
 ---
 
