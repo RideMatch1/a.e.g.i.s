@@ -88,9 +88,26 @@ runs:
           DIFF_FLAG="--diff ${{ inputs.diff-against }}"
         fi
 
-        # Run scan with JSON output for machine parsing
-        node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --format json --no-color > aegis-results.json 2>/dev/null
+        # Run scan with JSON output for machine parsing.
+        # v0.9.2: capture stderr instead of discarding it — cryptic
+        # parse errors used to mask the real failure when AEGIS
+        # itself crashed. stderr is surfaced below if the JSON is
+        # malformed.
+        node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --format json --no-color > aegis-results.json 2>aegis-stderr.log
         EXIT_CODE=$?
+
+        # Validate JSON before attempting to parse (prevents the
+        # cryptic `Cannot find module` / unexpected-token errors that
+        # used to confuse users when AEGIS crashed upstream).
+        if [ ! -s aegis-results.json ] || ! node -e "JSON.parse(require('fs').readFileSync('aegis-results.json','utf8'))" 2>/dev/null; then
+          echo "::error::AEGIS scan produced empty or invalid JSON (exit $EXIT_CODE). stderr:"
+          if [ -s aegis-stderr.log ]; then
+            sed 's/^/::error::  /' aegis-stderr.log
+          else
+            echo "::error::  (empty stderr)"
+          fi
+          exit 1
+        fi
 
         # Extract metrics from JSON
         SCORE=$(node -e "const d=require('./aegis-results.json'); console.log(d.score)")
@@ -105,12 +122,13 @@ runs:
         echo "findings=${FINDINGS}" >> $GITHUB_OUTPUT
         echo "blocked=${BLOCKED}" >> $GITHUB_OUTPUT
 
-        # Terminal output for the log
-        node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --no-color 2>/dev/null || true
+        # Terminal output for the CI log (stderr kept visible so
+        # diagnostics aren't swallowed by `|| true`).
+        node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --no-color || true
 
-        # Generate SARIF if requested
+        # Generate SARIF if requested.
         if [ "${{ inputs.upload-sarif }}" = "true" ]; then
-          node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --format sarif --no-color > aegis-results.sarif 2>/dev/null
+          node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --format sarif --no-color > aegis-results.sarif
         fi
 
         # Check fail conditions
