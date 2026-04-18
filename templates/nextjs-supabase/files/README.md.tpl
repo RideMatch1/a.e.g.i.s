@@ -47,6 +47,46 @@ This scaffold ships with AEGIS security primitives pre-wired:
 - **CSRF + security headers** — enforced by `middleware.ts` with Origin/Referer validation on unsafe methods.
 - **AI-safety rules** — `CLAUDE.md` documents the conventions an AI assistant must follow when extending the project.
 
+## Enabling the full pipeline
+
+AEGIS is a **unified SAST pipeline orchestrator**. When run in audit mode
+(`aegis audit` or the GitHub Action with `mode: audit`, available from
+v0.13.0), it invokes its full set of checkers — the 41 built-in scanners
+plus up to 16 industry-standard external tools — and merges findings into
+a single normalised report with confidence scoring.
+
+### CI-installed scanners (4)
+
+The pre-wired workflow at `.github/workflows/aegis.yml` installs these
+automatically on every run:
+
+- [Semgrep](https://semgrep.dev/) — pattern-based static analysis
+- [OSV-Scanner](https://google.github.io/osv-scanner/) — dependency vulnerability detection
+- [Gitleaks](https://github.com/gitleaks/gitleaks) — secret-leak detection
+- [TruffleHog](https://github.com/trufflesecurity/trufflehog) — high-entropy secret discovery
+
+Bump the pinned versions in the `env:` block at the top of the workflow file.
+
+### Local install (full 16-tool pipeline)
+
+To run the full AEGIS audit locally, install the remaining CLI scanners per
+their official documentation. The Docker-based scanners (OWASP ZAP,
+Lighthouse CI) require a `docker-compose` overlay documented in the AEGIS
+project docs.
+
+```bash
+npx aegis install      # interactive installer (v0.13+)
+npx aegis audit .      # run the full pipeline
+```
+
+### Version requirements
+
+- `mode: audit` in the GitHub Action requires `aegis-scan@^0.13.0`.
+- For v0.12.x users: switch the workflow's `mode` field to `scan` to run
+  AEGIS built-in checkers only. The `env:` tool-version block is harmless
+  in this case — the external tools will still be installed but only
+  audit mode actually invokes them.
+
 ## Next Steps
 
 1. Edit `.env.local` with your Supabase project URL + anon key.
