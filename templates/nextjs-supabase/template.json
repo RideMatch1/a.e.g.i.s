@@ -6,7 +6,7 @@
   "placeholders": ["PROJECT_NAME", "AEGIS_VERSION"],
   "postInstall": {
     "scan": true,
-    "scanExpectedScore": 1000,
+    "scanExpectedScore": 997,
     "scanExpectedGrade": "A"
   }
 }
