@@ -344,7 +344,17 @@ export async function runNew(name: string, options: NewOptions = {}): Promise<nu
   }
 
   // 5. Build substitutions + fail-fast on unsupported placeholders
-  const selfVersion = readSelfVersion(commandDir);
+  let selfVersion: string;
+  try {
+    selfVersion = readSelfVersion(commandDir);
+  } catch (err) {
+    console.error(chalk.red(`Error: could not read AEGIS CLI version.`));
+    console.error(chalk.dim((err as Error).message));
+    if (createdTargetDir) {
+      await rm(targetDir, { recursive: true, force: true });
+    }
+    return EXIT_USER_ERROR;
+  }
   const substitutions: Record<string, string> = {
     PROJECT_NAME: name,
     AEGIS_VERSION: selfVersion,
