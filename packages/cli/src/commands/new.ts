@@ -366,7 +366,11 @@ export async function runNew(name: string, options: NewOptions = {}): Promise<nu
     if (!supported.has(p)) unsupported.push(p);
   }
   if (unsupported.length > 0) {
-    console.error(chalk.red(`Error: template declares placeholders we cannot fill: ${unsupported.join(', ')}`));
+    console.error(
+      chalk.red(
+        `Error: template "${templateName}" declares placeholder(s) we cannot fill: ${unsupported.join(', ')}. This is a template-author bug — please file an issue against the template.`,
+      ),
+    );
     if (createdTargetDir) {
       await rm(targetDir, { recursive: true, force: true });
     }
