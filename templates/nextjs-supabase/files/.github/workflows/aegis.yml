@@ -9,17 +9,56 @@ permissions:
   pull-requests: write
   security-events: write
 
+# External scanner versions — pinned for CI reproducibility.
+# Bump here when an upstream fix is needed. These four are AEGIS's
+# CI-installable defaults; the full 16-tool pipeline includes
+# Docker-based scanners (ZAP, Lighthouse) — see the README
+# "Enabling the full pipeline" section for local install.
+env:
+  SEMGREP_VERSION: "1.94.0"
+  OSV_SCANNER_VERSION: "v1.9.2"
+  GITLEAKS_VERSION: "v8.19.0"
+  TRUFFLEHOG_VERSION: "v3.82.0"
+
 jobs:
-  aegis-scan:
+  aegis-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Run AEGIS
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install Semgrep
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
+      - name: Install OSV-Scanner
+        run: go install "github.com/google/osv-scanner/cmd/osv-scanner@${{ env.OSV_SCANNER_VERSION }}"
+      - name: Install Gitleaks
+        run: |
+          V="${GITLEAKS_VERSION#v}"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_${V}_linux_x64.tar.gz" \
+            | tar -xz -C /tmp/ gitleaks
+          sudo mv /tmp/gitleaks /usr/local/bin/
+      - name: Install TruffleHog
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
+            | sh -s -- -b /usr/local/bin "${TRUFFLEHOG_VERSION}"
+
+      # `mode: audit` is available in aegis-scan >= 0.13.0 and unifies
+      # AEGIS's 41 built-in checkers with the four external tools
+      # installed above. If the aegis-version below is pinned to v0.12.x
+      # or earlier, change `mode: audit` to `mode: scan` — audit mode
+      # is a no-op on unsupported versions.
+      - name: Run AEGIS (audit mode)
         uses: RideMatch1/a.e.g.i.s/ci/github-action@v{{AEGIS_VERSION}}
         with:
-          mode: scan
+          mode: audit
           fail-on-blocker: 'true'
           comment-on-pr: 'true'
           diff-against: ${{ github.base_ref && format('origin/{0}', github.base_ref) || '' }}
