@@ -162,7 +162,7 @@ describe('middleware', () => {
     // Without XFF the rate-limiter cannot key the caller, but CSRF origin-check
     // still applies — otherwise a misconfigured proxy chain silently drops CSRF
     // and an attacker forging a cross-origin POST succeeds. Pins the null-IP
-    // branch-fix discovered by code-review on commit d5976eb.
+    // code-path as a regression-guard.
     const res = await middleware(
       makeRequest({
         method: 'POST',
