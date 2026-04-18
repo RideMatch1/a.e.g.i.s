@@ -1,0 +1,9 @@
+{
+  "id": "T17",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part C body-shadow regression pin (N-C-10) — route signature has params.slug type annotation, but handler body destructures slug from req.json() NOT from params. Attacker supplies body.slug, scoping is user-controlled. Purely lexical name-match on 'slug' would falsely suppress; binding-origin check detects that slug's VariableDeclaration initializer is await req.json(), not await params. Must still emit after Part C.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

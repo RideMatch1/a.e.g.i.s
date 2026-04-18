@@ -1,0 +1,9 @@
+{
+  "id": "T14",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part C regression pin — two .from() chains in same handler, first scoped (.eq('slug', slug) URL-param), second unscoped (.select('*') on treatments with no discriminant). Real-world shape: fetch tenant then list treatments across ALL tenants. Must still emit after Part C: suppression requires EVERY .from chain URL-scoped; second chain without .eq defeats.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

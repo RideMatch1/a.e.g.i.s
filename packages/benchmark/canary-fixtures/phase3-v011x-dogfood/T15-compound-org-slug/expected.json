@@ -1,0 +1,9 @@
+{
+  "id": "T15",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Part C compound-route — /[org]/[slug]/tenant with BOTH segments destructured and BOTH bound in .eq chain (org → .eq('org_slug', org), slug → .eq('slug', slug)). MVP rule: suppression accepts ANY URL-param .eq per .from chain (not strict all-segments). Known-limitation: compound-route strict enforcement deferred to v0.12 (N-C-8). Today emits service_role + .from(); must NOT emit after Part C.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

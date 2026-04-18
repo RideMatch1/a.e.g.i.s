@@ -1,0 +1,9 @@
+{
+  "id": "T16",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Part C different-field — .eq('id', slug) where URL-param slug is used to look up by id column (primary key) instead of slug column. Semantically a primary-key lookup is still a scoped query: each id belongs to exactly one tenant. MVP rule: accept ANY .eq whose arg is URL-param as sufficient, regardless of column name. Today emits service_role + .from() (id not in TENANT_DISCRIMINANTS); must NOT emit after Part C.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

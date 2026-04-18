@@ -1,0 +1,9 @@
+{
+  "id": "T7",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Part C happy-path — dynamic [slug] route + helper + single .from() chain scoped by .eq('slug', slug) where slug is URL-param from params destructure. Real-world shape from post-v0.11.1 dogfood: public endpoint uses service_role to RLS-bypass a tenants-table read filtered by tenant slug. Today emits 1x service_role (critical, Part B helper-detect) + 1x .from() missing-discriminant (high, because 'slug' is not in TENANT_DISCRIMINANTS). Must NOT emit either finding after Part C: scope-check recognises URL-param binding and suppresses both.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

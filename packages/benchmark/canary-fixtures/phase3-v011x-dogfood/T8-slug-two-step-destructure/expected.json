@@ -1,0 +1,9 @@
+{
+  "id": "T8",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Part C two-step destructure — handler awaits params into intermediate const `p`, then destructures slug from p. Exercises AST walker's transitive-binding resolution: slug's VariableDeclaration traces through p's VariableDeclaration back to `await params`. Today emits service_role + .from() (slug not in TENANT_DISCRIMINANTS). Must NOT emit after Part C: binding-origin tracking recognises slug as URL-param via transitive chain.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

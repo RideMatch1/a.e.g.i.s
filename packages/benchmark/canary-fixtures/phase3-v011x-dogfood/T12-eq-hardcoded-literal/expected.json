@@ -1,0 +1,9 @@
+{
+  "id": "T12",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part C regression pin — .eq('slug', 'production') where arg is a hardcoded string literal. Not a scoping at all (returns only one specific tenant, ignores request context). Likely dev bug or test code pushed to prod. Must still emit after Part C: binding-origin check requires Identifier-arg that traces to URL-param, StringLiteral-arg never matches.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

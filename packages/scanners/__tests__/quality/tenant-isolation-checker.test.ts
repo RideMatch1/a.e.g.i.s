@@ -513,4 +513,362 @@ export async function GET() {
     const srFindings = result.findings.filter(f => f.title.includes('Service role'));
     expect(srFindings).toHaveLength(0);
   });
+
+  // ==========================================================================
+  // v0.11.2 Part C — Scope-aware service_role suppression.
+  //
+  // Unit tests mirror canary fixtures T7-T17 under
+  // packages/benchmark/canary-fixtures/phase3-v011x-dogfood/. Canaries
+  // prove end-to-end behavior on a Next.js-shaped project; unit tests pin
+  // the narrower property that suppression is only applied when a specific
+  // binding-origin chain holds, not lexical name-match.
+  // ==========================================================================
+
+  it('v0.11.2 Part C (T7): [slug] route + helper + .eq(\'slug\', slug) → suppress', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/tenant/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('slug', slug).single();
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings).toHaveLength(0);
+  });
+
+  it('v0.11.2 Part C (T8): two-step destructure `const p = await params; const { slug } = p;` → suppress', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/two-step/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const p = await params;
+  const { slug } = p;
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('slug', slug).single();
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings).toHaveLength(0);
+  });
+
+  it('v0.11.2 Part C (T9): service_role + no .eq() discriminant → still emit (N-C-1)', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/tenants-unscoped/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET() {
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*');
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part C (T10): .eq(\'slug\', body.slug) — body-param not URL → still emit (N-C-2)', async () => {
+    // Attacker controls body.slug. Binding-origin check rejects because
+    // slug's declaration initializer is await req.json(), not await params.
+    createFile(
+      projectPath,
+      'app/api/public/tenant-by-body/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function POST(req: Request) {
+  const body = (await req.json()) as { slug: string };
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('slug', body.slug).single();
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part C (T11): .eq arg via helper `normalize(slug)` → still emit (N-C-3)', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/normalized/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+function normalize(s: string): string { return s.toLowerCase().trim(); }
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+  const normalized = normalize(slug);
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('slug', normalized).single();
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part C (T12): .eq(\'slug\', \'hardcoded\') literal → still emit (N-C-4)', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/tenant-hardcoded/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET() {
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('slug', 'production').single();
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part C (T13): scoped read + unscoped .insert write → still emit (N-C-5)', async () => {
+    // Presence of any write in the handler defeats the scoped-read
+    // suppression: service_role stays emitting even though the read
+    // chain is URL-param-scoped.
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/audit-write/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+  const body = (await req.json()) as { action: string };
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  await supabase.from('audit_log').insert({ tenant_id: data?.id, action: body.action });
+  return Response.json({ ok: true });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part C (T14): two .from() chains, second unscoped → still emit (N-C-6)', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/two-fetches/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+  const supabase = createAdminSupabaseClient();
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  const { data: treatments } = await supabase.from('treatments').select('*');
+  return Response.json({ tenant, treatments });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part C (T15): compound [org]/[slug] + at-least-one URL-param .eq → suppress (MVP)', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/[org]/[slug]/tenant/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ org: string; slug: string }> },
+) {
+  const { org, slug } = await params;
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase
+    .from('tenants')
+    .select('*')
+    .eq('org_slug', org)
+    .eq('slug', slug)
+    .single();
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings).toHaveLength(0);
+  });
+
+  it('v0.11.2 Part C (T16): .eq(\'id\', slug) different-field but URL-param → suppress (MVP)', async () => {
+    // The column name ('id') is not a TENANT_DISCRIMINANT, but the
+    // .eq arg is a URL-param — still a scoped primary-key lookup.
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/by-id/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('id', slug).single();
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings).toHaveLength(0);
+  });
+
+  it('v0.11.2 Part C (T17): body-shadow `const { slug } = await req.json()` → still emit (N-C-10)', async () => {
+    // Pure lexical name-match would mis-suppress because the signature
+    // TYPE annotation says `params: Promise<{ slug: string }>` — but
+    // the body never destructures from await params. slug's binding
+    // origin is req.json(), not params → binding-origin check emits.
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/body-shadow/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function POST(
+  req: Request,
+  _ctx: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = (await req.json()) as { slug: string };
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('slug', slug).single();
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part C internal: GET scoped + POST unscoped → file not scoped, emit', async () => {
+    // File-level suppression requires EVERY handler to be safe-scoped.
+    // Mixed files — one GET with .eq(URL-param), one POST with bare
+    // .from() — must keep emitting because POST exposes a cross-tenant
+    // path even if GET is safe.
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/mixed/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('slug', slug);
+  return Response.json(data);
+}
+
+export async function POST() {
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('treatments').select('*');
+  return Response.json(data);
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part C internal: arrow handler `export const GET = async (…) => {}` supported', async () => {
+    // Route handlers declared as exported arrow-function consts must be
+    // recognised identically to `export async function GET`.
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/arrow/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export const GET = async (
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) => {
+  const { slug } = await params;
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase.from('tenants').select('*').eq('slug', slug).single();
+  return Response.json(data);
+};
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings).toHaveLength(0);
+  });
+
+  it('v0.11.2 Part C internal: helper-only file (no .from() anywhere) → emit (no false suppression)', async () => {
+    // A handler with no database queries shouldn't earn scope-based
+    // suppression just by virtue of having a URL param in the sig —
+    // that would silently suppress service_role helpers in files that
+    // never prove scoping.
+    createFile(
+      projectPath,
+      'app/api/public/[slug]/helper-only/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET(
+  _req: Request,
+  _ctx: { params: Promise<{ slug: string }> },
+) {
+  const supabase = createAdminSupabaseClient();
+  return Response.json({ ok: true, client: supabase });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
+    expect(tenantFindings.length).toBeGreaterThan(0);
+  });
 });

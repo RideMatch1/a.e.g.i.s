@@ -1,0 +1,9 @@
+{
+  "id": "T11",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part C regression pin — .eq('slug', normalized) where normalized is helper-output (normalize(slug)). Without taint-flow tracking the scanner cannot verify the helper preserves tenant boundary (may strip, pad, hash arbitrarily). Must still emit after Part C: binding-origin check rejects normalized because its VariableDeclaration initializer is a function call, not a params chain.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

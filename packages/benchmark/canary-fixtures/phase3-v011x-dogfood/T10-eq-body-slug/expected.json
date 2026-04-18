@@ -1,0 +1,9 @@
+{
+  "id": "T10",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part C regression pin — .eq('slug', body.slug) where body is request-body JSON, not URL-param. Attacker-controlled input: body.slug lets caller pick any tenant. Must still emit after Part C: binding-origin check rejects body.slug because its VariableDeclaration initializer is await req.json(), not await params.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

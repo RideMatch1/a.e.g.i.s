@@ -1,0 +1,9 @@
+{
+  "id": "T13",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part C regression pin — scoped read (.eq('slug', slug) URL-param) followed by unscoped write (.insert() on audit_log). Write-after-scoped-read pattern: the initial read is tenant-boundary safe, but the subsequent insert may place data in the wrong tenant. Must still emit after Part C: presence of ANY .insert/.update/.delete in the handler defeats suppression (rule 5 in handover Step 5c).",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

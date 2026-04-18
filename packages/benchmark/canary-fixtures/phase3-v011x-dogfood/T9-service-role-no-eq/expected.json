@@ -1,0 +1,9 @@
+{
+  "id": "T9",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part C regression pin — service_role helper + .from() with NO .eq() at all. Genuine cross-tenant leak: every request returns ALL tenants. Must still emit after Part C (suppression requires ≥1 URL-param .eq per .from chain). Today emits service_role + .from() missing-discriminant; Part C must not accidentally silence either.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}
