@@ -49,11 +49,11 @@ This scaffold ships with AEGIS security primitives pre-wired:
 
 ## Enabling the full pipeline
 
-AEGIS is a **unified SAST pipeline orchestrator**. When run in audit mode
-(`aegis audit` or the GitHub Action with `mode: audit`, available from
-v0.13.0), it invokes its full set of checkers — the 41 built-in scanners
-plus up to 16 industry-standard external tools — and merges findings into
-a single normalised report with confidence scoring.
+AEGIS is a **unified SAST pipeline orchestrator**. Running `aegis audit`
+(or the GitHub Action with `mode: audit`) invokes AEGIS's 41 built-in
+scanners today; v0.13+ extends audit to unify findings from up to 16
+industry-standard external tools in a single normalised report with
+confidence scoring.
 
 ### CI-installed scanners (4)
 
@@ -75,17 +75,16 @@ Lighthouse CI) require a `docker-compose` overlay documented in the AEGIS
 project docs.
 
 ```bash
-npx aegis install      # interactive installer (v0.13+)
-npx aegis audit .      # run the full pipeline
+npx aegis audit .      # run the audit (built-ins today; unified with externals from v0.13+)
 ```
 
 ### Version requirements
 
-- `mode: audit` in the GitHub Action requires `aegis-scan@^0.13.0`.
-- For v0.12.x users: switch the workflow's `mode` field to `scan` to run
-  AEGIS built-in checkers only. The `env:` tool-version block is harmless
-  in this case — the external tools will still be installed but only
-  audit mode actually invokes them.
+- `mode: audit` runs AEGIS's 41 built-in scanners today (v0.12+).
+- The external tools installed by the workflow become part of audit's
+  unified finding-pipeline from `aegis-scan@^0.13.0`. Until then, the
+  binaries are on PATH but not invoked automatically — the scaffold is
+  forward-compat, so upgrading aegis-scan needs no workflow changes.
 
 ## Next Steps
 

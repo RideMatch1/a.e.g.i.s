@@ -54,11 +54,11 @@ jobs:
             | tar -xz -C "$HOME/bin" trufflehog
           echo "$HOME/bin" >> "$GITHUB_PATH"
 
-      # `mode: audit` is available in aegis-scan >= 0.13.0 and unifies
-      # AEGIS's 41 built-in checkers with the four external tools
-      # installed above. If the aegis-version below is pinned to v0.12.x
-      # or earlier, change `mode: audit` to `mode: scan` — audit mode
-      # is a no-op on unsupported versions.
+      # `mode: audit` runs AEGIS's 41 built-in scanners today (v0.12+).
+      # The four external tools installed above (Semgrep, OSV-Scanner,
+      # Gitleaks, TruffleHog) are integrated into audit's unified finding-
+      # pipeline in v0.13+. On v0.12.x, audit runs built-ins only — the
+      # external binaries are present on PATH but not invoked automatically.
       - name: Run AEGIS (audit mode)
         uses: RideMatch1/a.e.g.i.s/ci/github-action@v{{AEGIS_VERSION}}
         with:
