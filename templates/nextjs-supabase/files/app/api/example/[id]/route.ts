@@ -5,6 +5,7 @@ import { secureApiRouteWithTenant } from '@/lib/api/tenant-guard';
 import { requireRole } from '@/lib/api/require-role';
 import { isValidUUID } from '@/lib/validation/input';
 import { logger } from '@/lib/logger';
+import { ForbiddenError } from '@/lib/errors';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -32,7 +33,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (!isValidUUID(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
   const { context, supabase } = await secureApiRouteWithTenant(request, { requireAuth: true });
   if (!context.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  requireRole({ userId: context.userId, role: context.role }, ['admin', 'manager']);
+  try { requireRole({ userId: context.userId, role: context.role }, ['admin', 'manager']); }
+  catch (e) { if (e instanceof ForbiddenError) return NextResponse.json({ error: 'Forbidden' }, { status: 403 }); throw e; }
   const body = PutBodySchema.parse(await request.json());
   const { data, error } = await supabase
     .from('examples')
