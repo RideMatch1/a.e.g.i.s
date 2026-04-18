@@ -137,7 +137,7 @@ program
 program
   .command('init [path]')
   .description('Create aegis.config.json + CI workflow + CLAUDE.md + husky pre-push hook')
-  .option('--force', 'Overwrite existing extension files (workflow, CLAUDE.md, husky hook)')
+  .option('--force', 'Destructive — overwrite existing workflow + CLAUDE.md + husky hook (replaces user content)')
   .option('--skip-ci', 'Do not write .github/workflows/aegis.yml')
   .option('--skip-claude', 'Do not write CLAUDE.md')
   .option('--skip-husky', 'Do not write .husky/pre-push')
