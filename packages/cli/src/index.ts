@@ -8,6 +8,7 @@ import { runSiege } from './commands/siege.js';
 import { runFix } from './commands/fix.js';
 import { runHistory } from './commands/history.js';
 import { runInit } from './commands/init.js';
+import { runNew } from './commands/new.js';
 import { runPrecisionAnnotate, runPrecisionReport } from './commands/precision.js';
 import { showVersion } from './commands/version.js';
 import { readFileSync } from 'node:fs';
@@ -139,6 +140,22 @@ program
   .action(async (path: string | undefined) => {
     await runInit(path ?? '.');
   });
+
+program
+  .command('new <name>')
+  .description('Scaffold a new project from a template (default: nextjs-supabase)')
+  .option('-t, --template <name>', 'Template to use', 'nextjs-supabase')
+  .option('--target <dir>', 'Target directory (default: ./<name>)')
+  .option('--skip-install', 'Skip npm install after scaffold')
+  .option('--skip-scan', 'Skip aegis scan after npm install')
+  .action(
+    async (
+      name: string,
+      options: { template: string; target?: string; skipInstall?: boolean; skipScan?: boolean },
+    ) => {
+      process.exit(await runNew(name, options));
+    },
+  );
 
 program
   .command('version')
