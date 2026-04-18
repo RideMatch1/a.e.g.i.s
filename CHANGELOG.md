@@ -11,6 +11,111 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.11.2] — 2026-04-18 — "Dogfood-Driven Precision Part 2"
+
+**Honest score:** **8.8** (up from 8.7 at v0.11.1). Patch release
+continuing the v0.11.1 dogfood theme — the post-v0.11.1 scan of the
+same real-world Next.js+Supabase project surfaced a single remaining
+FP class (`tenant-isolation-checker` service_role over-emission) that
+analysis revealed to contain TWO orthogonal bugs plus the originally-
+scoped scope-aware suppression concern. All three sub-parts ship with
+canary-pinned RED → GREEN transitions.
+
+**Canary tally:** `phase3-v011x-dogfood` grows 29/29 → **40/40** (+11
+Part C canaries: 4 FP pinning the happy-path / two-step destructure /
+compound `[org]/[slug]` route / different-field `.eq('id', slug)`
+shapes; 7 TP pinning the N-C-1..N-C-6 + N-C-10 regression negatives).
+`phase1` + `phase2a` + `phase2b` unchanged at 27/27.
+
+**Full test suite:** 1504 → **1518** (+14 Part C tests: T7-T17
+mirrors + 3 internal helper cases for file-level scope + arrow-handler
+recognition + helper-only false-suppression guard). Benchmark 30/30
+unchanged. Self-scan 1000/A/0.
+
+**Real-world corpus (8 projects):** `|Δ|` max = **0 points**, 0 grade
+shifts. Part C suppression is intentionally narrow — the URL-param
+binding-origin check only fires on a specific route-handler AST shape,
+so broad real-world scans show strictly unchanged scores. The dogfood
+project itself is the only beneficiary, with its remaining 8
+`tenant-isolation-checker` FPs dropping to 0.
+
+### Fixed — 3 empirical FP classes
+
+**Bug X — `tenant-isolation-checker` comment-prose suppression (Part A, commit `33f0ccc`).**
+
+The Day-0 `/service_role/gi` regex fired on comment prose describing
+WHY the admin-helper is used, e.g. `// service_role: public endpoint,
+no user session`. Devs could "fix" findings by removing their
+architecture-decision comments — a worst-case signal inversion where
+documenting intent increased noise.
+
+Fix: `stripComments` from v0.11.1's `ast/page-context.ts` is now
+applied before the regex scan. String literals (`'service_role'` as
+value) and env-var names (`SUPABASE_SERVICE_ROLE_KEY`) survive
+stripping and still fire — canary T3 regression-pins this.
+
+**Bug Y — `tenant-isolation-checker` recall widening (Part B, commit `48c24a6`).**
+
+The same Day-0 regex missed the dominant real-world shape: a route
+using a `createAdminSupabaseClient()` helper with no literal
+"service_role" text in the file. Files that used the helper without
+descriptive comments were silently ignored — the inverse FP where
+removing comments REDUCED detection signal.
+
+Fix: pattern-set expansion from a single regex to a 4-entry set
+covering (a) literal / env-var text, (b) `create(Admin|ServiceRole|ServerService)(Supabase)?Client`
+helper names, (c) `getServiceClient` / (d) `getAdminClient` alt
+conventions. Per-line dedup prevents double-emit when helper-call and
+env-var sit on adjacent tokens. `SUPABASE_SIGNAL` activation gate also
+widened so files using only the helper activate the scanner.
+
+**Scope-aware service_role suppression (Part C, commit `fee7bdd`).**
+
+The remaining FP class: a route correctly scoped by a URL-parameter
+`.eq()` with a service_role helper should not emit a critical
+tenant-isolation finding. Pure lexical name-match risks a catastrophic
+mis-suppression on body-shadow patterns (`const { slug } = await req.json()`),
+so the implementation uses **binding-origin tracking** — a URL-param
+binding is a declaration whose initializer traces back (via a fixed-
+point propagation) to `await params` / `params.<X>`, not mere name
+collision.
+
+Suppression fires file-level when EVERY exported handler in the route
+file is safe-scoped: every `.from(...)` chain has ≥1 `.eq(<col>, <arg>)`
+where `<arg>` resolves (by lexical scope) to a URL-param declaration,
+AND the handler body has 0 write calls (`.insert/.update/.delete/.upsert`
+on a `supabase.from(…)` chain). Any single unscoped chain OR any write
+defeats the file-level scoping and emits normally. The `.from()`-per-
+call URL-param check also runs independently: T13 (scoped read
+followed by an unscoped audit-write) keeps its read-chain suppressed
+while the write-chain still emits.
+
+Negative canary matrix — each edge-case explicitly pinned in scanner
+JSDoc (Flag-1 pattern):
+  - **N-C-1** (T9): service_role + no `.eq()`         → emit
+  - **N-C-2** (T10): `.eq('slug', body.slug)`         → emit
+  - **N-C-3** (T11): `.eq` arg via `normalize(slug)`  → emit
+  - **N-C-4** (T12): `.eq` arg hardcoded literal      → emit
+  - **N-C-5** (T13): scoped read + unscoped write     → emit
+  - **N-C-6** (T14): two `.from()`, second unscoped   → emit
+  - **N-C-10** (T17): body-shadow same-name via binding-origin → emit
+
+### Known limitations (deferred to v0.12)
+
+  - **N-C-7**: RLS-permissive table policy (`CREATE POLICY allow_all USING (true)`)
+    — structurally scoped but functionally unguarded. Detection
+    requires migration-file cross-reference.
+  - **N-C-8**: Compound-route strict all-segments matching — current
+    MVP accepts ANY URL-param `.eq` as sufficient for a compound route
+    (`[org]/[slug]`), not EACH segment matched.
+  - **N-C-9**: Query-builder variable with mid-chain conditional
+    scoping (`let q = supabase.from(...); if (cond) q = q.eq(...); return q`).
+  - Ctx-style signature `(req, ctx: { params: ... })` not yet
+    recognised; only `{ params }` / `{ params: { … } }` destructure in
+    the 2nd parameter triggers the URL-param analysis.
+
+---
+
 ## [0.11.1] — 2026-04-17 — "Dogfood-Driven Precision"
 
 **Honest score:** **8.7** (up from 8.6 at v0.11.0). Patch release driven

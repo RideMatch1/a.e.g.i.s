@@ -144,18 +144,25 @@ AEGIS is not a Semgrep replacement — it's a **Semgrep multiplier**. When Semgr
 
 AEGIS is tuned against an 8-project public-source corpus. Each finding
 is manually annotated TP/FP and the recurring FP patterns are pinned
-as regression tests. Scores below are post-v0.11.1:
+as regression tests. Scores below are post-v0.11.2:
 
-| Project | Stack | v0.9.5 | v0.10.0 | v0.11.0 | v0.11.1 |
-|---|---|---|---|---|---|
-| shadcn/taxonomy | Next.js + next-auth | 985 A | 984 A | 984 A | 984 A |
-| formbricks | Next.js + Prisma | 968 A | 967 A | 967 A | 966 A |
-| midday | Next.js + Supabase | 957 A | 958 A | 957 A | 954 A |
-| dub | Next.js + Prisma | 956 A | 951 A | 950 A | 950 A |
-| documenso | Next.js + Prisma | 956 A | 956 A | 956 A | 956 A |
-| trigger.dev | Next.js + Prisma | 953 A | 953 A | 952 A | 952 A |
-| cal.com | Next.js + Prisma | 947 A | 947 A | 947 A | 947 A |
-| supabase-studio | Next.js + Supabase | 0 F* | 0 F* | 0 F* | 0 F* |
+| Project | Stack | v0.9.5 | v0.10.0 | v0.11.0 | v0.11.1 | v0.11.2 |
+|---|---|---|---|---|---|---|
+| shadcn/taxonomy | Next.js + next-auth | 985 A | 984 A | 984 A | 984 A | 984 A |
+| formbricks | Next.js + Prisma | 968 A | 967 A | 967 A | 966 A | 966 A |
+| midday | Next.js + Supabase | 957 A | 958 A | 957 A | 954 A | 954 A |
+| dub | Next.js + Prisma | 956 A | 951 A | 950 A | 950 A | 950 A |
+| documenso | Next.js + Prisma | 956 A | 956 A | 956 A | 956 A | 956 A |
+| trigger.dev | Next.js + Prisma | 953 A | 953 A | 952 A | 952 A | 952 A |
+| cal.com | Next.js + Prisma | 947 A | 947 A | 947 A | 947 A | 947 A |
+| supabase-studio | Next.js + Supabase | 0 F* | 0 F* | 0 F* | 0 F* | 0 F* |
+
+**v0.11.2 movement vs v0.11.1: `|Δ|` max = 0 points, 0 grade shifts.**
+The change set is a narrow scanner-precision fix (tenant-isolation-checker
+comment-prose strip + recall widen + URL-param-scope suppression). The
+suppression branches only fire on a specific AST shape not present in
+these projects — corpus scores are strictly unchanged. The dogfood
+project driving the release: 8 `tenant-isolation-checker` FPs → 0.
 
 **v0.11.1 movement vs v0.11.0: `|Δ|` max = 3 points, 0 grade shifts.**
 The change set is dogfood-driven — a real-world Next.js+Supabase scan
@@ -433,7 +440,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.11.1  # pin to a specific release tag
+      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.11.2  # pin to a specific release tag
         with:
           mode: scan           # 'scan' (quick) or 'audit' (full)
           path: .              # project to scan (default: '.')
@@ -441,7 +448,7 @@ jobs:
           comment-on-pr: true  # post PR comment with findings table
 ```
 
-**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.11.1`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
+**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.11.2`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
 
 ---
 
