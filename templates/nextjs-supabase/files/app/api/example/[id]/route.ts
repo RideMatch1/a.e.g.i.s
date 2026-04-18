@@ -1,4 +1,5 @@
-// Replace 'examples' with your real table when extending this demo.
+// Adapt this demo: rename 'examples' (table), 'id, name' (columns),
+// 'example.get'/'example.put' (log labels), and PutBodySchema fields.
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { secureApiRouteWithTenant } from '@/lib/api/tenant-guard';
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (!isValidUUID(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
   const { context, supabase } = await secureApiRouteWithTenant(request, { requireAuth: true });
   if (!context.userId || !context.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // No role-check on GET: any authenticated tenant-member may read. Add requireRole for role-gated resources.
   const { data, error } = await supabase
     .from('examples')
     .select('id, name')
@@ -34,7 +36,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const { context, supabase } = await secureApiRouteWithTenant(request, { requireAuth: true });
   if (!context.userId || !context.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try { requireRole({ userId: context.userId, role: context.role }, ['admin', 'manager']); }
-  catch (e) { if (e instanceof ForbiddenError) return NextResponse.json({ error: 'Forbidden' }, { status: 403 }); throw e; }
+  catch (e) {
+    if (e instanceof ForbiddenError) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    throw e; // re-throw unexpected
+  }
   const rawBody = await request.json().catch(() => undefined);
   if (rawBody === undefined) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   const parsed = PutBodySchema.safeParse(rawBody);
