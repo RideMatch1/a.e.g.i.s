@@ -41,10 +41,24 @@ const SENSITIVE_KEY_PATTERNS: readonly string[] = [
 
 const MAX_DEPTH = 5;
 
+// Normalize key and patterns by stripping underscores / hyphens before
+// substring match. Without this, snake_case patterns (first_name) would
+// miss camelCase keys (firstName) — a silent under-redaction of PII in
+// TypeScript codebases where camelCase is the cultural default.
+// Pre-normalize patterns once at module load so runtime cost is O(n)
+// single scan per isSensitiveKey call.
+const NORMALIZED_PATTERNS: readonly string[] = SENSITIVE_KEY_PATTERNS.map(
+  (p) => p.replace(/[_-]/g, ''),
+);
+
+function normalizeKey(key: string): string {
+  return key.toLowerCase().replace(/[_-]/g, '');
+}
+
 export function isSensitiveKey(key: string): boolean {
   if (!key) return false;
-  const lower = key.toLowerCase();
-  return SENSITIVE_KEY_PATTERNS.some((p) => lower.includes(p));
+  const normalized = normalizeKey(key);
+  return NORMALIZED_PATTERNS.some((p) => normalized.includes(p));
 }
 
 export function redactValue(value: unknown): unknown {
