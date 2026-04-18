@@ -119,6 +119,59 @@ aegis init .
 
 ---
 
+## Scaffold a new project
+
+Starting a Next.js + Supabase project? Skip the security-retrofit
+phase — let AEGIS lay down a production-ready foundation from commit 0.
+
+```bash
+aegis new my-saas
+```
+
+The scaffold ships with:
+
+- **11 clean-room security primitives** — `secureApiRouteWithTenant`,
+  `requireRole` (RBAC), rate-limit (X-Forwarded-For-aware), SSRF-safe
+  `fetch`, AES-256-GCM crypto, Zod-strict schemas, PII-sanitizing
+  logger (50+ redaction patterns), AppError hierarchy.
+- **RLS bootstrap migration** — `tenants` + `profiles` tables with
+  strict policies + auto-profile-on-signup trigger.
+- **Hardened middleware** — CSRF + 9 security headers
+  (incl. COEP / COOP / CORP) + rate-limit.
+- **Exemplary API route** (59 LoC) composing all 6 primitives — teaches
+  the composition pattern at scale, with correct error-mapping
+  (`ForbiddenError` → 403, `ZodError` / `SyntaxError` → 400).
+- **GitHub Action PR-gate** with `mode: audit` + pinned Semgrep /
+  OSV-Scanner / Gitleaks / TruffleHog pre-installs (SHA-256 verified).
+- **AI-safety rules** (`CLAUDE.md`) for AI coding assistants.
+- **Husky pre-push hook** running `aegis scan --fail-on-blocker`.
+
+**Baseline:** a fresh scaffold scores **997/A HARDENED** with
+**0 BLOCKER** (empirically verified — `npm install` + `aegis scan`
+end-to-end). The 5 MEDIUM baseline findings — 2 scanner-FPs (scheduled
+for v0.13 scanner-fixes) + 3 Next.js-ecosystem-inherent supply-chain
+items — are documented in the scaffold's own README under "Known
+baseline findings": pedagogy, not suppression.
+
+**Retrofit an existing project:**
+
+```bash
+aegis init
+```
+
+Writes `aegis.config.json` + `.github/workflows/aegis.yml` +
+`CLAUDE.md` + `.husky/pre-push` into the current directory.
+Skip-if-exists by default (never clobbers user files). Use `--force`
+to overwrite the three extension files uniformly, or `--skip-ci` /
+`--skip-claude` / `--skip-husky` to opt out per file. Partial-write-
+safe: successful writes stay on disk if a later write fails — the
+command modifies the user's project, so it never rolls back.
+
+See the [v0.12 scaffolding-pivot design spec](./docs/design/2026-04-18-v0.12-scaffolding-pivot.md)
+for template structure, primitive source-strategy, and exit criteria.
+
+---
+
 ## What AEGIS finds that generic SAST tools miss
 
 These are **stack-specific** vulnerabilities in Next.js + Supabase apps. Generic tools don't have rules for them because they're framework-specific patterns:
