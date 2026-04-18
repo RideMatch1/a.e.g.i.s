@@ -35,7 +35,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (!context.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try { requireRole({ userId: context.userId, role: context.role }, ['admin', 'manager']); }
   catch (e) { if (e instanceof ForbiddenError) return NextResponse.json({ error: 'Forbidden' }, { status: 403 }); throw e; }
-  const body = PutBodySchema.parse(await request.json());
+  const rawBody = await request.json().catch(() => undefined);
+  if (rawBody === undefined) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+  const parsed = PutBodySchema.safeParse(rawBody);
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+  const body = parsed.data;
   const { data, error } = await supabase
     .from('examples')
     .update({ name: body.name })
