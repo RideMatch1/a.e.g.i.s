@@ -4,8 +4,7 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   // Strict by default — disable only if a build genuinely needs to
-  // emit despite eslint/typescript errors (rare, intentional).
-  eslint: { ignoreDuringBuilds: false },
+  // emit despite typescript errors (rare, intentional).
   typescript: { ignoreBuildErrors: false },
 };
 
