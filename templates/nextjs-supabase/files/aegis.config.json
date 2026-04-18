@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/RideMatch1/a.e.g.i.s/main/packages/core/schema/aegis.config.schema.json",
+  "stack": {
+    "framework": "nextjs",
+    "database": "supabase",
+    "auth": "supabase",
+    "language": "typescript"
+  },
+  "ignore": [
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    "out",
+    "coverage",
+    ".turbo",
+    "public",
+    "static",
+    "assets"
+  ],
+  "suppressions": []
+}
