@@ -11,6 +11,133 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.12.0] — Unreleased — "Scaffolding Pivot"
+
+**Honest score:** **8.9** (up from 8.8 at v0.11.2). First scope-pivot
+release: AEGIS adds project-lifecycle commands (`aegis new`, `aegis
+init`) and ships a Next.js + Supabase starter template with 11 security
+primitives, RLS bootstrap migration, strict PR-gate workflow, and
+AI-safety rules pre-wired from commit 0. Scanner layer unchanged —
+corpus scores stable; the bump is a capability addition, not precision
+tuning.
+
+**Canary tally:** 67/67 unchanged across 4 phases (template work does
+not affect scanner canaries).
+
+**Full test suite:** 1518 → **1567** (+49: 14 Phase-1 template-machinery
+tests + 22 `aegis new` tests + 13 `aegis init` tests). Main-suite
+regression-free. Benchmark 30/30 unchanged. Self-scan 1000/A/0.
+
+**Real-world corpus (8 projects):** strictly unchanged vs v0.11.2 —
+no scanner changes in v0.12.
+
+**Scaffold baseline:** a fresh `aegis new` scaffold scores **997/A
+HARDENED, 5 MEDIUM, 0 BLOCKER** (empirically verified end-to-end via
+`npm install` + `aegis scan`). The 5 baseline findings are documented
+in the scaffold's own README under "Known baseline findings" — pedagogy,
+not suppression:
+
+- `AUTH-001` (middleware.ts) — template uses per-route auth via
+  `secureApiRouteWithTenant`, not middleware-level auth. Scanner FP.
+- `HDR-001` (next.config.ts) — deprecated `X-XSS-Protection` header
+  check; the scaffold's Content-Security-Policy supersedes it. Scanner
+  FP.
+- `SUPPLY-001/002/003` — Next.js ecosystem inherent (`esbuild`
+  postinstall + `@next/swc` + `@rollup` native binaries). Unavoidable
+  without replacing Next.js.
+
+All three scanner-FP classes are scheduled for v0.13 scanner-fixes.
+
+### Added — project-lifecycle commands
+
+**`aegis new <name>` — scaffold generator.**
+
+Generates a new Next.js + Supabase project from the bundled
+`nextjs-supabase` template. Applies `{{PLACEHOLDER}}` substitution
+(`PROJECT_NAME`, `AEGIS_VERSION`), strips `.tpl` suffixes, runs
+`npm install` + `aegis scan` as a post-install verification, and
+reports the measured score against the template's declared
+`scanExpectedScore`. Options: `--template <name>`, `--target <dir>`,
+`--skip-install`, `--skip-scan`. Name validation
+(`^[a-z][a-z0-9-]*$`, max 64 chars, reserved-names rejected)
+prevents path-traversal. Multi-template ready — the `--template`
+flag + candidate-chain resolver support future `templates/<stack>/`
+additions in v0.14+ without CLI rewrite. Partial-write-on-failure
+cleans up mid-scaffold state so an interrupted run leaves the target
+dir empty (when it was empty to begin with) rather than partially
+populated.
+
+**`aegis init` — retrofit extension.**
+
+Extends the pre-existing `aegis init` (which generates
+`aegis.config.json`) with three onboarding files: the PR-gate
+workflow, `CLAUDE.md`, and a husky pre-push hook. Skip-if-exists by
+default — user files are never silently clobbered. Per-file skip
+flags (`--skip-ci`, `--skip-claude`, `--skip-husky`) and a repo-wide
+`--force` to overwrite. Partial-write policy: the command modifies
+the user's project, so it never rolls back successful writes.
+CI-friendly (non-interactive).
+
+### Added — template + infrastructure
+
+- **11 clean-room security primitives** at
+  `templates/nextjs-supabase/files/lib/`: safe-fetch (SSRF-safe),
+  crypto (AES-256-GCM + timing-safe compare), rate-limit
+  (X-Forwarded-For-aware + in-memory limiter), input validation
+  (UUID + `sanitizeString` + `escapePostgrestLike`), `requireRole`
+  + `requireRoleOrSelf` + `isManager`, AppError hierarchy. Plus
+  extracted-and-scrubbed: Zod-strict schema wrapper, tenant-guard
+  (`secureApiRouteWithTenant`), Supabase server-client, CSRF + 9
+  security headers + rate-limit middleware, PII-sanitizing logger
+  (50+ redaction patterns).
+- **RLS bootstrap migration**
+  (`supabase/migrations/0000_rls_bootstrap.sql`): `tenants` +
+  `profiles` tables with strict RLS policies + auto-profile-on-signup
+  trigger.
+- **Exemplary API route** (`app/api/example/[id]/route.ts`, 59 LoC)
+  — composes all 6 primitives (tenant-guard, require-role,
+  `isValidUUID`, Zod-strict, logger, Supabase reuse) with correct
+  error-mapping pattern (`ForbiddenError` → 403, `ZodError` /
+  `SyntaxError` → 400).
+- **PR-gate GitHub Action workflow**
+  (`templates/nextjs-supabase/files/.github/workflows/aegis.yml`):
+  `mode: audit` + pinned external-tool pre-installs (Semgrep 1.94.0,
+  OSV-Scanner v1.9.2, Gitleaks v8.19.0, TruffleHog v3.82.0) with
+  SHA-256 checksum verification. Python 3.11 for Semgrep-classifier
+  compatibility. Permissions scoped minimum: `contents: read` +
+  `pull-requests: write`.
+- **Template-machinery** at `packages/cli/src/template/`: Zod-strict
+  manifest schema (semver `aegisVersion` + placeholder regex +
+  strict `postInstall`), loader with file enumeration,
+  placeholder-substitution utility. Enables future templates without
+  CLI rewrite.
+- **AI-safety rules template** (`CLAUDE.md`) — project instructions
+  for AI assistants, templated with `PROJECT_NAME` + `AEGIS_VERSION`.
+
+### Deferred to v0.13
+
+Dogfood-discovered from the Phase-4 exit-criterion scan of the fresh
+scaffold — three scanner improvements that each prevent the scaffold
+from reaching `1000/A/0`:
+
+1. `auth-enforcer` — recognize auth-per-route pattern (middleware
+   that delegates auth to route handlers via
+   `secureApiRouteWithTenant` is currently flagged as "missing auth
+   pattern").
+2. `header-checker` — remove `X-XSS-Protection` rule (MDN-deprecated;
+   modern Content-Security-Policy supersedes it).
+3. `supply-chain` — Next.js-ecosystem allowlist for `@next/swc`,
+   `@rollup` native binaries and `esbuild` postinstall scripts.
+
+v0.13 is also the dedicated **pipeline-orchestration** release:
+`aegis install` + unified finding-normalization across the 16
+external tools + confidence-merge layer. The scaffold's pre-installed
+external tools become integrated into `aegis audit` at v0.13 (today
+they install successfully but are not invoked by audit — the scaffold
+is forward-compat).
+
+---
+
 ## [0.11.2] — 2026-04-18 — "Dogfood-Driven Precision Part 2"
 
 **Honest score:** **8.8** (up from 8.7 at v0.11.1). Patch release
