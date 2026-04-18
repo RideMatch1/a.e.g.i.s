@@ -41,8 +41,14 @@ const DISCRIMINANT_RE = new RegExp(
 /** Prisma client usage signal — import or method-call chain. */
 const PRISMA_SIGNAL = /\bfrom\s+['"]@prisma\/client['"]|prisma\s*\.\s*\w+\s*\.\s*(?:find|create|update|delete|upsert)/;
 
-/** Supabase client usage signal. */
-const SUPABASE_SIGNAL = /\bfrom\s+['"]@supabase\/|createClient\s*\(|supabase\s*\.\s*(?:from|rpc)\s*\(/;
+/** Supabase client usage signal.
+ *  v0.11.2 Part B: widened to recognise common admin-helper wrappers
+ *  (createAdminSupabaseClient, createServiceRoleClient, …) so projects
+ *  that only use the helper — without importing @supabase/* directly —
+ *  still activate the scanner. Without this, a route file that uses
+ *  `import { createAdminSupabaseClient } from '@/lib/supabase/admin'`
+ *  would be silently ignored by activation. */
+const SUPABASE_SIGNAL = /\bfrom\s+['"]@supabase\/|createClient\s*\(|supabase\s*\.\s*(?:from|rpc)\s*\(|\bcreate(?:Admin|ServiceRole|ServerService)(?:Supabase)?Client\b/;
 
 function shouldSkipFile(filePath: string): boolean {
   return (
@@ -304,23 +310,49 @@ export const tenantIsolationCheckerScanner: Scanner = {
       // content, so literal string references like `'service_role'` and
       // real env-var names like `SUPABASE_SERVICE_ROLE_KEY` still fire.
       const sanitized = stripComments(content);
-      const serviceRoleRe = /service_role/gi;
-      let srMatch: RegExpExecArray | null;
-      while ((srMatch = serviceRoleRe.exec(sanitized)) !== null) {
-        const id = `TENANT-${String(idCounter++).padStart(3, '0')}`;
-        findings.push({
-          id,
-          scanner: 'tenant-isolation-checker',
-          severity: 'critical',
-          title: 'Service role key used in route — bypasses all RLS policies',
-          description:
-            'The service_role key bypasses Row Level Security entirely. If used in an API route without extremely careful manual filtering, any user can access data from any tenant. Use the anon/user key with RLS policies, or add explicit tenant_id filtering with secureApiRouteWithTenant.',
-          file,
-          line: getLineNumber(sf, srMatch.index),
-          category: 'security',
-          owasp: 'A01:2021',
-          cwe: 639,
-        });
+      // v0.11.2 Part B (Bug Y — recall widening): the original single
+      // regex `/service_role/gi` caught env-var references and literal
+      // strings but NOT the dominant real-world shape where devs wrap
+      // the admin-client creation in a named helper (e.g.
+      // `createAdminSupabaseClient()` in the project's `lib/` tree).
+      // Files using the helper with no local "service_role" mention
+      // were silent-missed entirely — incentivising devs to remove
+      // descriptive comments to reduce noise (signal-inversion).
+      //
+      // Fix: detect both shapes via a pattern set. Each pattern fires
+      // independently; a file mixing helper-call AND env-var reference
+      // emits twice by design (high-confidence signal).
+      const SERVICE_ROLE_PATTERNS: readonly RegExp[] = [
+        /service_role/gi,                                           // literal + env-var names
+        /\bcreate(?:Admin|ServiceRole|ServerService)(?:Supabase)?Client\b/g, // common helper wrappers
+        /\bgetServiceClient\b/g,                                    // alt helper convention
+        /\bgetAdminClient\b/g,                                      // alt helper convention
+      ];
+      const emittedLines = new Set<number>();
+      for (const pattern of SERVICE_ROLE_PATTERNS) {
+        const re = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        let srMatch: RegExpExecArray | null;
+        while ((srMatch = re.exec(sanitized)) !== null) {
+          const lineNum = getLineNumber(sf, srMatch.index);
+          // Per-line dedup — avoids double-emit when helper-call and
+          // env-var sit on adjacent tokens of the same line.
+          if (emittedLines.has(lineNum)) continue;
+          emittedLines.add(lineNum);
+          const id = `TENANT-${String(idCounter++).padStart(3, '0')}`;
+          findings.push({
+            id,
+            scanner: 'tenant-isolation-checker',
+            severity: 'critical',
+            title: 'Service role key used in route — bypasses all RLS policies',
+            description:
+              'The service_role key bypasses Row Level Security entirely. If used in an API route without extremely careful manual filtering, any user can access data from any tenant. Use the anon/user key with RLS policies, or add explicit tenant_id filtering with secureApiRouteWithTenant.',
+            file,
+            line: lineNum,
+            category: 'security',
+            owasp: 'A01:2021',
+            cwe: 639,
+          });
+        }
       }
 
       // AST walk: find every Supabase `.from(<literal>)` and every

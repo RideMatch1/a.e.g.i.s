@@ -1,0 +1,9 @@
+{
+  "id": "T6",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Part B regression pin — route uses anon client only (createBrowserClient/createClient with ANON_KEY). Zero service_role in file. Must NOT emit — Part B must not over-widen and catch anon-only routes.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

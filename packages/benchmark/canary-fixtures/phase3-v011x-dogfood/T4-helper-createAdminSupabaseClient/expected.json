@@ -1,0 +1,9 @@
+{
+  "id": "T4",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part B — route uses `createAdminSupabaseClient()` helper (no literal 'service_role' in route file). Current scanner misses this entirely (Bug Y signal-inversion: helper-based usage with no comment = zero scanner signal). Must emit after Part B adds helper-name detection.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

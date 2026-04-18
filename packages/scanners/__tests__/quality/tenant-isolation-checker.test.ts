@@ -448,4 +448,69 @@ export async function POST(req: Request) {
     const srFindings = result.findings.filter(f => f.title.includes('Service role'));
     expect(srFindings.length).toBeGreaterThan(0);
   });
+
+  it('v0.11.2 Part B: `createAdminSupabaseClient()` helper-call emits (Bug Y signal-inversion)', async () => {
+    // Routes using a wrapper helper without any literal "service_role"
+    // in the file were silent-missed by the Day-0 single-regex check.
+    // Part B adds helper-name patterns so the signal fires on idiomatic
+    // helper invocations.
+    createFile(
+      projectPath,
+      'app/api/public/tenant-lookup/route.ts',
+      `
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+
+export async function GET() {
+  const supabase = createAdminSupabaseClient();
+  return Response.json({ ok: true, client: supabase });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const srFindings = result.findings.filter(f => f.title.includes('Service role'));
+    expect(srFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part B: alt helper names `createServiceRoleClient` / `getServiceClient` also emit', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/lookup/route.ts',
+      `
+import { createServiceRoleClient } from '@/lib/supabase';
+import { getServiceClient } from '@/lib/supabase-service';
+
+export async function GET() {
+  const a = createServiceRoleClient();
+  const b = getServiceClient();
+  return Response.json({ a, b });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const srFindings = result.findings.filter(f => f.title.includes('Service role'));
+    expect(srFindings.length).toBeGreaterThan(0);
+  });
+
+  it('v0.11.2 Part B: anon-only `createClient(URL, ANON_KEY)` does NOT emit (regression pin)', async () => {
+    // Part B widening must not over-match on anon usage. A file with
+    // `createClient` + the ANON key has no service_role exposure.
+    createFile(
+      projectPath,
+      'app/api/public/health/route.ts',
+      `
+import { createClient } from '@supabase/supabase-js';
+
+export async function GET() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+  return Response.json({ ok: true, client: supabase });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const srFindings = result.findings.filter(f => f.title.includes('Service role'));
+    expect(srFindings).toHaveLength(0);
+  });
 });

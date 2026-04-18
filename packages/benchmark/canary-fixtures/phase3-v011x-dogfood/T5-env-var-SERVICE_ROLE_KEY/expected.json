@@ -1,0 +1,9 @@
+{
+  "id": "T5",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part B regression pin — `process.env.SUPABASE_SERVICE_ROLE_KEY` env-var reference in code. Current scanner catches this via case-insensitive match on 'SERVICE_ROLE'. Must continue to emit after Part B widening (must not accidentally lose env-var coverage).",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}
