@@ -1,0 +1,26 @@
+name: AEGIS
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  aegis-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run AEGIS
+        uses: RideMatch1/a.e.g.i.s/ci/github-action@v{{AEGIS_VERSION}}
+        with:
+          mode: scan
+          fail-on-blocker: 'true'
+          comment-on-pr: 'true'
+          diff-against: ${{ github.base_ref && format('origin/{0}', github.base_ref) || '' }}
+          aegis-version: v{{AEGIS_VERSION}}
