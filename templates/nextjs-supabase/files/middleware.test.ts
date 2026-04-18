@@ -122,6 +122,10 @@ describe('middleware', () => {
       }),
     );
     expect(res.status).toBe(429);
+    // Security headers apply uniformly, even on rate-limit rejection.
+    for (const name of SECURITY_HEADER_NAMES) {
+      expect(res.headers.get(name)).toBeTruthy();
+    }
   });
 
   it('rejects POST with mismatched Origin as 403 (below the limit)', async () => {
@@ -151,5 +155,24 @@ describe('middleware', () => {
       }),
     );
     expect(res.status).toBe(403);
+  });
+
+  it('rejects POST with mismatched Origin even when IP cannot be identified (null-IP CSRF enforcement)', async () => {
+    // Without XFF the rate-limiter cannot key the caller, but CSRF origin-check
+    // still applies — otherwise a misconfigured proxy chain silently drops CSRF
+    // and an attacker forging a cross-origin POST succeeds. Pins the null-IP
+    // branch-fix discovered by code-review on commit d5976eb.
+    const res = await middleware(
+      makeRequest({
+        method: 'POST',
+        url: 'http://localhost/api/foo',
+        origin: 'https://evil.example',
+        host: 'localhost',
+      }),
+    );
+    expect(res.status).toBe(403);
+    for (const name of SECURITY_HEADER_NAMES) {
+      expect(res.headers.get(name)).toBeTruthy();
+    }
   });
 });

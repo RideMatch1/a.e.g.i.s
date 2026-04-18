@@ -53,8 +53,12 @@ export async function middleware(request: NextRequest): Promise<Response> {
   const pathname = new URL(request.url).pathname;
 
   // 1. Static-asset skip (defensive — matcher excludes most already).
+  // Security headers still applied so a loosened matcher can't silently
+  // drop CSP / X-Content-Type-Options / etc. on static responses.
   if (isStaticPath(pathname)) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    applySecurityHeaders(res);
+    return res;
   }
 
   // 2. Trusted client IP — key for rate-limiting.
@@ -67,6 +71,18 @@ export async function middleware(request: NextRequest): Promise<Response> {
   const windowMs = 60_000;
 
   if (ip === null) {
+    // No rate-limit possible (can't key unidentified IP), but CSRF
+    // STILL applies. Without this check, a POST with no XFF header
+    // would bypass origin-validation entirely — a silent CSRF hole
+    // whenever a proxy chain drops or omits the X-Forwarded-For
+    // header. Rate-limit-dominates-CSRF ordering is preserved on
+    // the IP-identified path below; on this path CSRF is the only
+    // perimeter defense we have left.
+    if (MUTATION_METHODS.has(request.method) && isCrossOrigin(request)) {
+      const res = new NextResponse('Forbidden', { status: 403 });
+      applySecurityHeaders(res);
+      return res;
+    }
     const res = NextResponse.next();
     applySecurityHeaders(res);
     res.headers.set('X-RateLimit-Status', 'ip-not-identified');
