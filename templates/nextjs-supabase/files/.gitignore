@@ -1,0 +1,37 @@
+# Next.js
+.next
+out
+build
+dist
+
+# Dependencies
+node_modules
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editors
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage
+
+# Build tools
+.turbo
+
+# AEGIS
+.aegis-cache
