@@ -17,7 +17,9 @@ env:
   SEMGREP_VERSION: "1.94.0"
   OSV_SCANNER_VERSION: "v1.9.2"
   GITLEAKS_VERSION: "v8.19.0"
+  GITLEAKS_CHECKSUM: "b7ac0aa997f6cee6e12b006a1ce5aae9f62357fa952a9b9c3449f0549798d7f9"
   TRUFFLEHOG_VERSION: "v3.82.0"
+  TRUFFLEHOG_CHECKSUM: "2332b24d85154dee2d1f6ccad4561a622a6086d36214af274336c927b74daf33"
 
 jobs:
   aegis-audit:
@@ -42,15 +44,17 @@ jobs:
         run: |
           V="${GITLEAKS_VERSION#v}"
           mkdir -p "$HOME/bin"
-          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_${V}_linux_x64.tar.gz" \
-            | tar -xz -C "$HOME/bin" gitleaks
+          curl -sSL -o /tmp/gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_${V}_linux_x64.tar.gz"
+          echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          tar -xz -C "$HOME/bin" -f /tmp/gitleaks.tar.gz gitleaks
           echo "$HOME/bin" >> "$GITHUB_PATH"
       - name: Install TruffleHog
         run: |
           V="${TRUFFLEHOG_VERSION#v}"
           mkdir -p "$HOME/bin"
-          curl -sSL "https://github.com/trufflesecurity/trufflehog/releases/download/${TRUFFLEHOG_VERSION}/trufflehog_${V}_linux_amd64.tar.gz" \
-            | tar -xz -C "$HOME/bin" trufflehog
+          curl -sSL -o /tmp/trufflehog.tar.gz "https://github.com/trufflesecurity/trufflehog/releases/download/${TRUFFLEHOG_VERSION}/trufflehog_${V}_linux_amd64.tar.gz"
+          echo "${TRUFFLEHOG_CHECKSUM}  /tmp/trufflehog.tar.gz" | sha256sum -c -
+          tar -xz -C "$HOME/bin" -f /tmp/trufflehog.tar.gz trufflehog
           echo "$HOME/bin" >> "$GITHUB_PATH"
 
       # `mode: audit` runs AEGIS's 41 built-in scanners today (v0.12+).
