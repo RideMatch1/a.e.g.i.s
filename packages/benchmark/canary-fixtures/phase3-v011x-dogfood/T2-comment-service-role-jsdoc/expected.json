@@ -1,0 +1,9 @@
+{
+  "id": "T2",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Part A — JSDoc block comment mentions `service_role` prose describing architecture rationale. Block-comment variant of Z2-comment-leak. Must NOT emit after stripComments applied (block-comment stripping must preserve line numbers but drop content).",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

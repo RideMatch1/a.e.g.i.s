@@ -1,0 +1,9 @@
+{
+  "id": "T3",
+  "cwe": 639,
+  "type": "TP",
+  "description": "Part A regression pin — literal string `'service_role'` as value in code (e.g. role classification). Even after stripComments, the literal survives because strings are preserved. Must still emit to prevent Part A over-suppressing real code references.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

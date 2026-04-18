@@ -371,4 +371,81 @@ export async function POST(req: Request) {
     expect(srFindings[0].severity).toBe('critical');
     expect(srFindings[0].cwe).toBe(639);
   });
+
+  it('v0.11.2 Part A: line comment `// service_role: …` does NOT emit (Z2-comment-leak)', async () => {
+    // Bug X: devs commenting WHY a helper is used was mis-flagged as
+    // real service_role usage. stripComments runs before the regex —
+    // the route below uses only the anon client in code; the prose in
+    // the comment must not fire.
+    createFile(
+      projectPath,
+      'app/api/public/info/route.ts',
+      `
+import { createClient } from '@supabase/supabase-js';
+
+export async function GET() {
+  // service_role: public endpoint, no user session
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+  return Response.json({ status: 'ok', client: supabase });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const srFindings = result.findings.filter(f => f.title.includes('Service role'));
+    expect(srFindings).toHaveLength(0);
+  });
+
+  it('v0.11.2 Part A: JSDoc block mentioning service_role does NOT emit', async () => {
+    createFile(
+      projectPath,
+      'app/api/public/info/route.ts',
+      `
+/**
+ * Public endpoint.
+ * @description Uses service_role for slug resolution because tenants
+ *   table RLS blocks anonymous SELECT. Downstream queries scoped.
+ */
+import { createClient } from '@supabase/supabase-js';
+
+export async function GET() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+  return Response.json({ status: 'ok', client: supabase });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const srFindings = result.findings.filter(f => f.title.includes('Service role'));
+    expect(srFindings).toHaveLength(0);
+  });
+
+  it('v0.11.2 Part A: literal `\'service_role\'` in code STILL emits (regression pin)', async () => {
+    // Strings are preserved by stripComments so legitimate literal
+    // references survive. Used as an over-suppression regression guard.
+    createFile(
+      projectPath,
+      'app/api/public/role-check/route.ts',
+      `
+import { createClient } from '@supabase/supabase-js';
+
+export async function POST(req: Request) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+  const body = (await req.json()) as { role: string };
+  const expected = 'service_role';
+  return Response.json({ match: body.role === expected, client: supabase });
+}
+`,
+    );
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const srFindings = result.findings.filter(f => f.title.includes('Service role'));
+    expect(srFindings.length).toBeGreaterThan(0);
+  });
 });

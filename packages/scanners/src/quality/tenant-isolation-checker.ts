@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { walkFiles, readFileSafe } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { parseFile, getLineNumber, walkAst } from '../ast/parser.js';
+import { stripComments } from '../ast/page-context.js';
 
 /**
  * Tenant Isolation Checker — detects multi-tenant database queries
@@ -291,11 +292,21 @@ export const tenantIsolationCheckerScanner: Scanner = {
         continue;
       }
 
-      // service_role usage (scanner still catches it here as a companion
-      // to rls-bypass-checker; case-insensitive to catch env-var names).
+      // service_role usage detection. Scanner runs as companion to
+      // rls-bypass-checker; case-insensitive to catch env-var names.
+      //
+      // v0.11.2 Part A (Bug X): comments describing WHY the helper is
+      // used are not code usage. The original `/service_role/gi` fired
+      // on prose like `// service_role required: tenants-RLS blocks anon`,
+      // producing high-severity noise on every route that documented
+      // its architecture decisions. `stripComments` removes line and
+      // block comments while preserving line numbers and string-literal
+      // content, so literal string references like `'service_role'` and
+      // real env-var names like `SUPABASE_SERVICE_ROLE_KEY` still fire.
+      const sanitized = stripComments(content);
       const serviceRoleRe = /service_role/gi;
       let srMatch: RegExpExecArray | null;
-      while ((srMatch = serviceRoleRe.exec(content)) !== null) {
+      while ((srMatch = serviceRoleRe.exec(sanitized)) !== null) {
         const id = `TENANT-${String(idCounter++).padStart(3, '0')}`;
         findings.push({
           id,

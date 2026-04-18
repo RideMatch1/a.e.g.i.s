@@ -1,0 +1,9 @@
+{
+  "id": "T1",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Part A — Line comment `// service_role: public endpoint, no user session` describes WHY the helper is used. Current scanner fires on comment prose via `/service_role/gi` regex (Z2-comment-leak class). Must NOT emit after stripComments applied before regex.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}
