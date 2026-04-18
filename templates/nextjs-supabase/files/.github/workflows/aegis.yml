@@ -7,7 +7,6 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  security-events: write
 
 # External scanner versions — pinned for CI reproducibility.
 # Bump here when an upstream fix is needed. These four are AEGIS's
