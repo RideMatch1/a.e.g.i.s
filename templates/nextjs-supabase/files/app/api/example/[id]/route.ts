@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   const { id } = await params;
   if (!isValidUUID(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
   const { context, supabase } = await secureApiRouteWithTenant(request, { requireAuth: true });
-  if (!context.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!context.userId || !context.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { data, error } = await supabase
     .from('examples')
     .select('id, name')
@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const { id } = await params;
   if (!isValidUUID(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
   const { context, supabase } = await secureApiRouteWithTenant(request, { requireAuth: true });
-  if (!context.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!context.userId || !context.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try { requireRole({ userId: context.userId, role: context.role }, ['admin', 'manager']); }
   catch (e) { if (e instanceof ForbiddenError) return NextResponse.json({ error: 'Forbidden' }, { status: 403 }); throw e; }
   const rawBody = await request.json().catch(() => undefined);
