@@ -15,13 +15,22 @@
  *     and the user gets a warning, never a non-zero exit.
  */
 import { readFile, writeFile, mkdir, access, readdir, rm, rmdir, unlink } from 'node:fs/promises';
-import { existsSync, statSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import chalk from 'chalk';
 import { loadTemplate, type LoadedTemplate } from '../template/loader.js';
 import { substitute } from '../template/substitute.js';
+import {
+  resolveTemplateRoot,
+  defaultTemplateSearchPaths,
+  readSelfVersion,
+} from '../template/paths.js';
+
+// Re-exports so existing imports in `__tests__/new.test.ts` (which pull
+// `resolveTemplateRoot` out of this module) keep working without churn.
+export { resolveTemplateRoot, defaultTemplateSearchPaths };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -65,51 +74,6 @@ export function validateProjectName(name: string): { ok: true } | { ok: false; r
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Template-root resolver
-
-/**
- * Resolve a template root by name against a list of candidate base directories.
- * Returns the first candidate that contains a readable `template.json`.
- */
-export function resolveTemplateRoot(
-  templateName: string,
-  candidates: readonly string[],
-): { ok: true; root: string } | { ok: false; tried: string[] } {
-  const tried: string[] = [];
-  for (const base of candidates) {
-    const root = join(base, templateName);
-    tried.push(root);
-    try {
-      const manifest = join(root, 'template.json');
-      if (existsSync(manifest) && statSync(manifest).isFile()) {
-        return { ok: true, root };
-      }
-    } catch {
-      // keep trying
-    }
-  }
-  return { ok: false, tried };
-}
-
-/**
- * Default candidate-chain for template roots. Order:
- *   1. Published-package: `<cli-root>/templates/`
- *      (published tarball will need `templates/` in `files` — v0.13 packaging task)
- *   2. Dev-monorepo: `<repo-root>/templates/` — up 4 levels from
- *      `dist/commands/` (or `src/commands/` when running via tsx).
- */
-export function defaultTemplateSearchPaths(commandDir: string): string[] {
-  // `commandDir` is the directory of the compiled `new.js` (dist/commands/)
-  // or `new.ts` under ts-node / vitest (src/commands/).
-  const cliRoot = resolve(commandDir, '..', '..'); // dist/ or src/ -> cli package root
-  const repoRoot = resolve(commandDir, '..', '..', '..', '..'); // up to repo root
-  return [
-    join(cliRoot, 'templates'),
-    join(repoRoot, 'templates'),
-  ];
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Target-dir validation
 
 async function isDirEmpty(path: string): Promise<boolean> {
@@ -140,24 +104,6 @@ function modeFor(relPath: string): number {
 
 function stripTplSuffix(relPath: string): string {
   return relPath.endsWith('.tpl') ? relPath.slice(0, -'.tpl'.length) : relPath;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Self-version read (for AEGIS_VERSION placeholder)
-
-function readSelfVersion(commandDir: string): string {
-  // commandDir is dist/commands/ or src/commands/, pkg.json is 2 levels up.
-  const pkgPath = resolve(commandDir, '..', '..', 'package.json');
-  try {
-    const raw = readFileSync(pkgPath, 'utf-8');
-    const parsed = JSON.parse(raw) as { version?: string };
-    if (typeof parsed.version !== 'string') {
-      throw new Error('package.json missing version');
-    }
-    return parsed.version;
-  } catch (err) {
-    throw new Error(`Could not read AEGIS CLI version from ${pkgPath}: ${(err as Error).message}`);
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
