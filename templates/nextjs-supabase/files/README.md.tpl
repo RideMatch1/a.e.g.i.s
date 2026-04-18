@@ -86,6 +86,23 @@ npx aegis audit .      # run the audit (built-ins today; unified with externals 
   binaries are on PATH but not invoked automatically — the scaffold is
   forward-compat, so upgrading aegis-scan needs no workflow changes.
 
+### Known baseline findings
+
+When scanned fresh, this scaffold produces 5 known MEDIUM findings
+(score 997/A/0-BLOCKER). Each is intentional — review rather than suppress:
+
+- **AUTH-001 (middleware.ts):** Template uses per-route auth via
+  `secureApiRouteWithTenant`, not middleware-level auth. Scanner limitation
+  — tracked for v0.13.
+- **HDR-001 (X-XSS-Protection):** Deprecated per MDN; the Content-Security-
+  Policy this scaffold sets replaces it. Scanner rule scheduled for removal
+  in v0.13.
+- **SUPPLY-001/002/003:** Next.js ecosystem (esbuild postinstall + @next/swc
+  + @rollup native binaries). Unavoidable without replacing Next.js.
+
+These findings are documented visibility — the scaffold does not suppress
+them. Upgrading AEGIS may reduce this set as scanner rules evolve.
+
 ## Next Steps
 
 1. Edit `.env.local` with your Supabase project URL + anon key.
