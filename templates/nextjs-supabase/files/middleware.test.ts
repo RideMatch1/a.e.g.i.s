@@ -48,6 +48,9 @@ const SECURITY_HEADER_NAMES = [
   'x-content-type-options',
   'referrer-policy',
   'permissions-policy',
+  'cross-origin-embedder-policy',
+  'cross-origin-opener-policy',
+  'cross-origin-resource-policy',
 ];
 
 describe('middleware', () => {

@@ -30,6 +30,12 @@ function applySecurityHeaders(res: Response): void {
   res.headers.set('X-Content-Type-Options', 'nosniff');
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // Cross-origin isolation (strong default). require-corp blocks 3rd-party
+  // resources without a CORP header — if you embed CDN images or iframes,
+  // downgrade to 'credentialless' (loads without credentials) or drop COEP.
+  res.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  res.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  res.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
 }
 
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
