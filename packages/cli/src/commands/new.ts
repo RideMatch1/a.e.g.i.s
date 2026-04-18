@@ -14,7 +14,7 @@
  *   - Post-install errors are soft-fails — the scaffold itself stays on disk
  *     and the user gets a warning, never a non-zero exit.
  */
-import { readFile, writeFile, mkdir, access, readdir, rm, unlink } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, access, readdir, rm, rmdir, unlink } from 'node:fs/promises';
 import { existsSync, statSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -171,9 +171,10 @@ interface ScaffoldContext {
 }
 
 async function writeScaffold(
-  ctx: ScaffoldContext,
-): Promise<{ written: string[] }> {
-  const written: string[] = [];
+  ctx: ScaffoldContext & { written: string[] },
+): Promise<void> {
+  // Caller supplies `written` so mid-loop failures can read the partial list
+  // in their catch-block and clean up — see runNew step 6 cleanup path.
   for (const rel of ctx.loaded.files) {
     const sourcePath = join(ctx.templateRoot, 'files', rel);
     const targetRel = stripTplSuffix(rel);
@@ -184,9 +185,8 @@ async function writeScaffold(
 
     await mkdir(dirname(targetPath), { recursive: true });
     await writeFile(targetPath, content, { mode: modeFor(targetRel) });
-    written.push(targetPath);
+    ctx.written.push(targetPath);
   }
-  return { written };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -363,28 +363,42 @@ export async function runNew(name: string, options: NewOptions = {}): Promise<nu
     return EXIT_SUBSTITUTION_ERROR;
   }
 
-  // 6. Write pipeline
-  let writtenPaths: string[] = [];
+  // 6. Write pipeline — `writtenPaths` is populated incrementally by
+  // writeScaffold so the catch-block sees the partial list on mid-write
+  // failure (fixes a cleanup no-op when target dir pre-existed empty).
+  const writtenPaths: string[] = [];
   try {
-    const result = await writeScaffold({
+    await writeScaffold({
       templateRoot,
       loaded,
       targetDir,
       substitutions,
+      written: writtenPaths,
     });
-    writtenPaths = result.written;
   } catch (err) {
     console.error(chalk.red(`Error: scaffold write failed.`));
     console.error(chalk.dim((err as Error).message));
     if (createdTargetDir) {
       await rm(targetDir, { recursive: true, force: true });
     } else {
-      // only remove the files we wrote, leave the user's empty dir intact
+      // Remove the files we wrote, leave the user's empty dir intact.
       for (const p of writtenPaths) {
         try {
           await unlink(p);
         } catch {
           /* best-effort cleanup */
+        }
+      }
+      // Remove empty subdirs we created (deepest-first). Skip targetDir
+      // itself — user owned it before we arrived.
+      const subDirs = [...new Set(writtenPaths.map((p) => dirname(p)))].filter(
+        (d) => d !== targetDir,
+      );
+      for (const d of subDirs.sort((a, b) => b.length - a.length)) {
+        try {
+          await rmdir(d);
+        } catch {
+          /* non-empty or already gone — skip */
         }
       }
     }

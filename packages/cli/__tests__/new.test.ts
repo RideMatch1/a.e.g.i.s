@@ -6,7 +6,7 @@
  * so we never shell out to npm/aegis during the suite.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, statSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, statSync, chmodSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -16,6 +16,7 @@ import {
   EXIT_OK,
   EXIT_USER_ERROR,
   EXIT_SUBSTITUTION_ERROR,
+  EXIT_WRITE_FAILURE,
 } from '../src/commands/new.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -351,6 +352,44 @@ describe('runNew (integration with fixture template)', () => {
     expect(errs.join('\n')).toMatch(/UNKNOWN_ONE/);
     // dir we created must be cleaned up
     expect(existsSync(targetDir)).toBe(false);
+  });
+
+  it('cleans up partial writes when mid-scaffold fails in a pre-existing empty target', async () => {
+    // Regression for Pass-3 Blocker: writtenPaths was `[]` in the catch
+    // when createdTargetDir was false, leaving partial files on disk.
+    if (process.platform === 'win32') return;
+
+    createFixtureTemplate(tmpBase, 'midfail', {
+      fileContents: {
+        'a.txt': 'a',
+        'b.txt': 'b',
+        'c.txt': 'c',
+        'd.txt': 'd',
+      },
+    });
+    // Break c.txt source so readFile fails mid-iteration (after a + b
+    // have written successfully — files are processed in sorted order).
+    const brokenPath = join(tmpBase, 'midfail', 'files', 'c.txt');
+    chmodSync(brokenPath, 0o000);
+
+    const targetDir = join(tmpBase, 'midfail-target');
+    mkdirSync(targetDir, { recursive: true }); // pre-existing + empty
+
+    const exit = await runNew('midfail-target', {
+      template: 'midfail',
+      target: targetDir,
+      skipInstall: true,
+      _templateSearchPaths: [tmpBase],
+    });
+
+    // Restore perms so afterEach rmSync can proceed.
+    chmodSync(brokenPath, 0o644);
+
+    expect(exit).toBe(EXIT_WRITE_FAILURE);
+    // Target dir is preserved (we didn't create it) …
+    expect(existsSync(targetDir)).toBe(true);
+    // … but it's empty again — a.txt + b.txt were cleaned up.
+    expect(readdirSync(targetDir).length).toBe(0);
   });
 
   it('leaves unknown placeholders literal in file content (no crash)', async () => {
