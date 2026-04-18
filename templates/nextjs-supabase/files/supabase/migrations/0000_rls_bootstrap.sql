@@ -14,8 +14,7 @@ CREATE TABLE IF NOT EXISTS public.tenants (
   slug       text UNIQUE NOT NULL,
   name       text NOT NULL,
   is_active  boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 -- profiles — user ↔ tenant membership (no PII; email stays in auth.users).
@@ -23,8 +22,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   tenant_id  uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   role       text NOT NULL CHECK (role IN ('admin', 'manager', 'member')),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_profiles_tenant_id ON public.profiles(tenant_id);
 
