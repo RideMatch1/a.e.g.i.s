@@ -1,5 +1,6 @@
 // Reference-implementation extract — generic Next.js+Supabase primitive.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { NextRequest } from 'next/server';
 
 // Mock next/server — vitest can't resolve the real package at aegis root.
 // Keep the shim minimal: Response-based NextResponse with static next()/json(),
@@ -29,7 +30,7 @@ function makeRequest(opts: {
   origin?: string;
   host?: string;
   xff?: string | null;
-}): Request {
+}): NextRequest {
   const headers: Record<string, string> = {};
   if (opts.origin !== undefined) headers.origin = opts.origin;
   if (opts.host !== undefined) headers.host = opts.host;
@@ -37,7 +38,7 @@ function makeRequest(opts: {
   return new Request(opts.url ?? 'http://localhost/api/foo', {
     method: opts.method ?? 'GET',
     headers,
-  });
+  }) as unknown as NextRequest;
 }
 
 const SECURITY_HEADER_NAMES = [
