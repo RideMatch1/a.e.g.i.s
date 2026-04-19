@@ -11,6 +11,30 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.12.1] — 2026-04-19 — "workspace: protocol hotfix"
+
+### Fixed
+
+- Published v0.12.0 shipped literal `workspace:*` protocol strings in the
+  internal dependencies of `@aegis-scan/{scanners,reporters,cli,mcp-server}`,
+  causing `EUNSUPPORTEDPROTOCOL` on any `npm install`. Root cause: the
+  Phase-8 publish sequence used `npm publish` per-directory, which does not
+  rewrite the pnpm-specific `workspace:*` protocol at pack-time. v0.12.1
+  republishes via `pnpm -r publish`, which rewrites `workspace:*` to the
+  concrete `^0.12.1` version specifiers expected by npm.
+
+### Action required
+
+- The npm `latest` dist-tag was reverted to `0.11.2` during the hotfix
+  window so that unpinned installs did not hit the broken 0.12.0. After
+  0.12.1 publishes, `latest` advances to `0.12.1`.
+- v0.12.0 is deprecated on npm. Any consumer pinned to `0.12.0` must
+  upgrade to `0.12.1`.
+- No source / scanner / template changes vs 0.12.0. The fix lives entirely
+  in the publish tooling + packed dependency specifiers.
+
+---
+
 ## [0.12.0] — 2026-04-19 — "Scaffolding Pivot"
 
 **Honest score:** **8.9** (up from 8.8 at v0.11.2). First scope-pivot
