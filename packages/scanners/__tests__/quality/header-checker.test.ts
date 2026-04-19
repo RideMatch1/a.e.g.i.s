@@ -36,7 +36,6 @@ const ALL_HEADERS = [
   'X-Content-Type-Options',
   'Referrer-Policy',
   'Permissions-Policy',
-  'X-XSS-Protection',
   'Cross-Origin-Embedder-Policy',
   'Cross-Origin-Resource-Policy',
   'Cross-Origin-Opener-Policy',
@@ -83,9 +82,9 @@ describe('headerCheckerScanner', () => {
     expect(await headerCheckerScanner.isAvailable(projectPath)).toBe(true);
   });
 
-  it('reports all 10 headers missing when no config file exists', async () => {
+  it('reports all 9 headers missing when no config file exists', async () => {
     const result = await headerCheckerScanner.scan(projectPath, MOCK_CONFIG);
-    expect(result.findings).toHaveLength(10);
+    expect(result.findings).toHaveLength(9);
     for (const header of ALL_HEADERS) {
       const finding = result.findings.find((f) => f.title.includes(header));
       expect(finding, `Expected finding for ${header}`).toBeDefined();
@@ -107,7 +106,6 @@ describe('headerCheckerScanner', () => {
               { key: 'X-Content-Type-Options', value: 'nosniff' },
               { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
               { key: 'Permissions-Policy', value: 'camera=()' },
-              { key: 'X-XSS-Protection', value: '1; mode=block' },
               { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
               { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
               { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
@@ -134,8 +132,8 @@ describe('headerCheckerScanner', () => {
     writeFileSync(join(projectPath, 'next.config.js'), config);
 
     const result = await headerCheckerScanner.scan(projectPath, MOCK_CONFIG);
-    // Should be missing: CSP, Referrer-Policy, Permissions-Policy, X-XSS-Protection, COEP, CORP, COOP
-    expect(result.findings).toHaveLength(7);
+    // Should be missing: CSP, Referrer-Policy, Permissions-Policy, COEP, CORP, COOP
+    expect(result.findings).toHaveLength(6);
     expect(result.findings.find((f) => f.title.includes('Content-Security-Policy'))).toBeDefined();
     expect(result.findings.find((f) => f.title.includes('Referrer-Policy'))).toBeDefined();
     expect(result.findings.find((f) => f.title.includes('Cross-Origin-Embedder-Policy'))).toBeDefined();
@@ -154,7 +152,6 @@ describe('headerCheckerScanner', () => {
         response.headers.set('X-Content-Type-Options', 'nosniff');
         response.headers.set('Referrer-Policy', 'no-referrer');
         response.headers.set('Permissions-Policy', 'camera=()');
-        response.headers.set('X-XSS-Protection', '1; mode=block');
         response.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
         response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
         response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
@@ -185,7 +182,6 @@ describe('headerCheckerScanner', () => {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'no-referrer' },
           { key: 'Permissions-Policy', value: 'camera=()' },
-          { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
           { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },

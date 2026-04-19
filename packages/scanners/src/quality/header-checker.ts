@@ -47,12 +47,6 @@ const SECURITY_HEADERS: HeaderSpec[] = [
     patterns: [/Permissions-Policy/i, /permissionsPolicy/i, /Feature-Policy/i],
   },
   {
-    name: 'X-XSS-Protection',
-    description:
-      'X-XSS-Protection enables the browser\'s built-in XSS filter (legacy but still useful).',
-    patterns: [/X-XSS-Protection/i, /xssProtection/i],
-  },
-  {
     name: 'Cross-Origin-Embedder-Policy',
     description:
       'COEP prevents loading cross-origin resources without explicit permission, mitigating Spectre-class side-channel attacks.',

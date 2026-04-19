@@ -88,15 +88,12 @@ npx aegis audit .      # run the audit (built-ins today; unified with externals 
 
 ### Known baseline findings
 
-When scanned fresh, this scaffold produces 5 known MEDIUM findings
-(score 997/A/0-BLOCKER). Each is intentional — review rather than suppress:
+When scanned fresh, this scaffold produces 4 known MEDIUM findings
+(score 998/S/0-BLOCKER). Each is intentional — review rather than suppress:
 
 - **AUTH-001 (middleware.ts):** Template uses per-route auth via
   `secureApiRouteWithTenant`, not middleware-level auth. Scanner limitation
   — tracked for v0.13.
-- **HDR-001 (X-XSS-Protection):** Deprecated per MDN; the Content-Security-
-  Policy this scaffold sets replaces it. Scanner rule scheduled for removal
-  in v0.13.
 - **SUPPLY-001/002/003:** Next.js ecosystem (esbuild postinstall + @next/swc
   + @rollup native binaries). Unavoidable without replacing Next.js.
 

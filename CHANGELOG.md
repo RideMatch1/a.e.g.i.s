@@ -11,6 +11,24 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [Unreleased] — v0.13 (in progress)
+
+### Fixed
+
+- `header-checker` no longer flags missing `X-XSS-Protection`. The
+  header is deprecated per MDN (modern browsers ignore it, legacy
+  implementations carried XSS bugs) and its job is better served by
+  Content-Security-Policy, which the AEGIS scaffold already sets. The
+  rule therefore fired as a false-positive on every AEGIS-scaffolded
+  project. Closes scaffold finding `HDR-001`.
+- Scaffold empirical baseline moves 997/A/5-MEDIUM → **998/S/4-MEDIUM**
+  (verified by local-build audit of a fresh `aegis new` scaffold with
+  deps installed). Grade crosses the A→S boundary at 998; the
+  4 remaining MEDIUM are `AUTH-001` + `SUPPLY-001..003`, all tracked
+  for v0.13 follow-up work.
+
+---
+
 ## [0.12.2] — 2026-04-19 — "templates-bundling hotfix"
 
 ### Fixed
