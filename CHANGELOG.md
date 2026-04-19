@@ -24,6 +24,37 @@ Next.js default.
 
 ### Fixed
 
+- `tenant-isolation-checker` accepts per-project boundary-column
+  configuration via `aegis.config.json`. Projects using a multi-tenancy
+  model other than the built-in six discriminants (`tenant_id` /
+  `tenantId` / `workspaceId` / `teamId` / `orgId` / `organizationId`)
+  can now declare their own boundary columns without being drowned in
+  false-positives. Default semantics is MERGE (declared columns are
+  ADDED to the built-ins); set `replaceBoundaryColumns: true` to use
+  only the declared list. Invalid column names (non-SQL-identifier
+  shape) are warn-logged and dropped — config typos remain debuggable
+  instead of turning into silent FPs.
+
+  Example — user-scoped multi-tenancy (rows belong to users, RLS
+  policies use `auth.uid() = user_id`):
+
+  ```jsonc
+  {
+    "scanners": {
+      "tenantIsolation": {
+        "additionalBoundaryColumns": ["user_id"]
+      }
+    }
+  }
+  ```
+
+  With no config set, behavior is byte-identical to v0.13 — the six
+  built-in discriminants only. Activation-gate, AST analysis, emit
+  sites, and severity distribution are all unchanged beyond the column
+  list that feeds them. Dogfood on a production user-scoped codebase
+  cleared a dominant portion of tenant-isolation false-positives with
+  a single line of config.
+
 - `auth-enforcer` now recognises the Supabase-SSR route-level auth
   primitive (`supabase.auth.getUser()` / `supabase.auth.getSession()`).
   The middleware-level shape was already matched by

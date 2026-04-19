@@ -871,4 +871,161 @@ export async function GET(
     const tenantFindings = result.findings.filter(f => f.scanner === 'tenant-isolation-checker');
     expect(tenantFindings.length).toBeGreaterThan(0);
   });
+
+  // v0.14 DO-3 — config-based additionalBoundaryColumns.
+  //
+  // Architecture-awareness: projects using a non-tenant_id multi-tenancy
+  // model (e.g. user-scoped with `user_id`) can declare their boundary
+  // columns via aegis.config.json. Default behavior (no config) is
+  // identical to v0.13 — the six built-in discriminants only.
+  describe('v0.14 config-based additionalBoundaryColumns', () => {
+    function createTenantScopedRoute(dir: string, subPath: string): void {
+      const routeDir = join(dir, 'src', 'app', 'api', subPath);
+      mkdirSync(routeDir, { recursive: true });
+      writeFileSync(join(routeDir, 'route.ts'), `
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+export async function GET() {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase.from('posts').select('*').eq('tenant_id', '123');
+  return Response.json(data);
+}
+`);
+    }
+
+    function createUserScopedRoute(dir: string, subPath: string): void {
+      const routeDir = join(dir, 'src', 'app', 'api', subPath);
+      mkdirSync(routeDir, { recursive: true });
+      writeFileSync(join(routeDir, 'route.ts'), `
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+export async function GET() {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase.from('posts').select('*').eq('user_id', 'abc');
+  return Response.json(data);
+}
+`);
+    }
+
+    const missingBoundaryTitle = 'Supabase query missing tenant-boundary filter';
+
+    it('default config + tenant_id query → NO finding (backward-compat with v0.13)', async () => {
+      createTenantScopedRoute(projectPath, 'posts');
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const boundary = result.findings.filter((f) =>
+        f.title.includes(missingBoundaryTitle),
+      );
+      expect(boundary).toHaveLength(0);
+    });
+
+    it('default config + user_id query → FINDING fires (pre-v0.14 behavior preserved)', async () => {
+      createUserScopedRoute(projectPath, 'posts');
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const boundary = result.findings.filter((f) =>
+        f.title.includes(missingBoundaryTitle),
+      );
+      expect(boundary.length).toBeGreaterThan(0);
+    });
+
+    it('additionalBoundaryColumns=["user_id"] + user_id query → NO finding (DO-3 fix)', async () => {
+      createUserScopedRoute(projectPath, 'posts');
+      const configWithUserId = {
+        scanners: {
+          tenantIsolation: { additionalBoundaryColumns: ['user_id'] },
+        },
+      } as unknown as AegisConfig;
+      const result = await tenantIsolationCheckerScanner.scan(
+        projectPath,
+        configWithUserId,
+      );
+      const boundary = result.findings.filter((f) =>
+        f.title.includes(missingBoundaryTitle),
+      );
+      expect(boundary).toHaveLength(0);
+    });
+
+    it('additionalBoundaryColumns=["user_id"] + workspace_id query (not configured) → FINDING fires', async () => {
+      const routeDir = join(projectPath, 'src', 'app', 'api', 'posts');
+      mkdirSync(routeDir, { recursive: true });
+      writeFileSync(join(routeDir, 'route.ts'), `
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+export async function GET() {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase.from('posts').select('*').eq('workspace_id', 'x');
+  return Response.json(data);
+}
+`);
+      const configWithUserId = {
+        scanners: {
+          tenantIsolation: { additionalBoundaryColumns: ['user_id'] },
+        },
+      } as unknown as AegisConfig;
+      const result = await tenantIsolationCheckerScanner.scan(
+        projectPath,
+        configWithUserId,
+      );
+      const boundary = result.findings.filter((f) =>
+        f.title.includes(missingBoundaryTitle),
+      );
+      // workspace_id is NOT in defaults (only workspaceId — camelCase) and NOT
+      // in the config — the finding fires. Note: `workspaceId` (camelCase) IS
+      // a default discriminant, so the scanner must not over-match on the
+      // snake-case sibling.
+      expect(boundary.length).toBeGreaterThan(0);
+    });
+
+    it('replaceBoundaryColumns=true + user_id config + tenant_id query → FINDING fires (opt-in replace works)', async () => {
+      createTenantScopedRoute(projectPath, 'posts');
+      const configReplace = {
+        scanners: {
+          tenantIsolation: {
+            additionalBoundaryColumns: ['user_id'],
+            replaceBoundaryColumns: true,
+          },
+        },
+      } as unknown as AegisConfig;
+      const result = await tenantIsolationCheckerScanner.scan(
+        projectPath,
+        configReplace,
+      );
+      const boundary = result.findings.filter((f) =>
+        f.title.includes(missingBoundaryTitle),
+      );
+      // Replacement list is ONLY ["user_id"] — tenant_id is no longer
+      // recognized, so the query is counted as missing-boundary and fires.
+      expect(boundary.length).toBeGreaterThan(0);
+    });
+
+    it('invalid boundary column names are dropped with a warn-log (not silently)', async () => {
+      createUserScopedRoute(projectPath, 'posts');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const configBadCol = {
+          scanners: {
+            tenantIsolation: {
+              // '1bad' starts with digit — invalid SQL identifier shape.
+              // 'user_id; DROP TABLE' — injection attempt.
+              // 'user_id' — valid, should land.
+              additionalBoundaryColumns: ['1bad', 'user_id; DROP TABLE', 'user_id'],
+            },
+          },
+        } as unknown as AegisConfig;
+        const result = await tenantIsolationCheckerScanner.scan(
+          projectPath,
+          configBadCol,
+        );
+        // Only 'user_id' survived validation — user_id query should NOT fire.
+        const boundary = result.findings.filter((f) =>
+          f.title.includes(missingBoundaryTitle),
+        );
+        expect(boundary).toHaveLength(0);
+        // Warn-log fired for each of the 2 invalid entries.
+        const warnMessages = warnSpy.mock.calls.map((c) => String(c[0]));
+        const droppedMessages = warnMessages.filter((m) =>
+          m.includes('[tenant-isolation]') && m.includes('dropped'),
+        );
+        expect(droppedMessages.length).toBe(2);
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+  });
 });

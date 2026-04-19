@@ -23,9 +23,26 @@ import { stripComments } from '../ast/page-context.js';
  * CWE-639 — Authorization Bypass Through User-Controlled Key
  */
 
-/** Tenant-boundary discriminant column / property names recognised.
- *  Each entry is treated as an equivalent multi-tenancy marker. */
-const TENANT_DISCRIMINANTS: readonly string[] = [
+/** Tenant-boundary discriminant column / property names recognised by
+ *  default. Each entry is treated as an equivalent multi-tenancy marker.
+ *
+ *  v0.14 DO-3: projects using an alternative multi-tenancy model
+ *  (e.g. user-scoped with `user_id`, or custom names like `account_id`)
+ *  can extend this list via `aegis.config.json`:
+ *
+ *    "scanners": {
+ *      "tenantIsolation": {
+ *        "additionalBoundaryColumns": ["user_id", "account_id"]
+ *      }
+ *    }
+ *
+ *  Default semantics is MERGE — the provided columns are ADDED to this
+ *  built-in list. Set `replaceBoundaryColumns: true` to use only the
+ *  provided list (opt-in; useful for projects that genuinely have no
+ *  tenant_id-style column and want to suppress spurious matches on
+ *  FK names like `organization_id` in an unrelated table).
+ */
+const DEFAULT_TENANT_DISCRIMINANTS: readonly string[] = [
   'tenant_id',
   'tenantId',
   'workspaceId',
@@ -34,9 +51,57 @@ const TENANT_DISCRIMINANTS: readonly string[] = [
   'organizationId',
 ];
 
-const DISCRIMINANT_RE = new RegExp(
-  TENANT_DISCRIMINANTS.map((d) => `\\b${d}\\b`).join('|'),
-);
+/** Strict SQL-identifier shape for user-provided column names. */
+const VALID_BOUNDARY_COL_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+interface TenantIsolationConfig {
+  additionalBoundaryColumns?: readonly string[];
+  replaceBoundaryColumns?: boolean;
+}
+
+function readTenantConfig(config: AegisConfig): TenantIsolationConfig {
+  const raw = config.scanners?.tenantIsolation;
+  if (!raw || typeof raw !== 'object') return {};
+  const rec = raw as Record<string, unknown>;
+  const out: TenantIsolationConfig = {};
+  if (Array.isArray(rec.additionalBoundaryColumns)) {
+    out.additionalBoundaryColumns = rec.additionalBoundaryColumns.filter(
+      (s): s is string => typeof s === 'string',
+    );
+  }
+  if (typeof rec.replaceBoundaryColumns === 'boolean') {
+    out.replaceBoundaryColumns = rec.replaceBoundaryColumns;
+  }
+  return out;
+}
+
+/** Resolve the effective discriminant list from config (merged by default,
+ *  replaced when `replaceBoundaryColumns: true`). Invalid column names
+ *  (non-identifier shape) are warn-logged and dropped, not silent-dropped
+ *  — silent-drop turns config typos into mysterious FPs.
+ */
+function effectiveDiscriminants(config: AegisConfig): readonly string[] {
+  const cfg = readTenantConfig(config);
+  const additional = (cfg.additionalBoundaryColumns ?? []).filter((col) => {
+    if (!VALID_BOUNDARY_COL_RE.test(col)) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[tenant-isolation] invalid boundary column "${col}"; dropped. ` +
+          `Column names must match /^[a-zA-Z_][a-zA-Z0-9_]*$/.`,
+      );
+      return false;
+    }
+    return true;
+  });
+  if (cfg.replaceBoundaryColumns === true && additional.length > 0) {
+    return additional;
+  }
+  return [...DEFAULT_TENANT_DISCRIMINANTS, ...additional];
+}
+
+function buildDiscriminantRe(cols: readonly string[]): RegExp {
+  return new RegExp(cols.map((d) => `\\b${d}\\b`).join('|'));
+}
 
 /** Prisma client usage signal — import or method-call chain. */
 const PRISMA_SIGNAL = /\bfrom\s+['"]@prisma\/client['"]|prisma\s*\.\s*\w+\s*\.\s*(?:find|create|update|delete|upsert)/;
@@ -146,7 +211,10 @@ function asSupabaseFromCall(node: ts.CallExpression): ts.CallExpression | null {
 /** Walk up the call-chain from a Supabase `.from('x')` call. Returns true
  *  if any `.eq('<discriminant>', ...)` / `.filter('<discriminant>', ...)` /
  *  `.match({ <discriminant>: ... })` appears upstream. */
-function supabaseChainHasDiscriminant(fromCall: ts.CallExpression): boolean {
+function supabaseChainHasDiscriminant(
+  fromCall: ts.CallExpression,
+  discriminants: readonly string[],
+): boolean {
   let cursor: ts.Node = fromCall;
   // Walk up through chained property-access + call expressions.
   while (cursor.parent) {
@@ -165,7 +233,7 @@ function supabaseChainHasDiscriminant(fromCall: ts.CallExpression): boolean {
           if (
             (ts.isStringLiteral(arg0) ||
               ts.isNoSubstitutionTemplateLiteral(arg0)) &&
-            TENANT_DISCRIMINANTS.includes(arg0.text)
+            discriminants.includes(arg0.text)
           ) {
             return true;
           }
@@ -175,7 +243,7 @@ function supabaseChainHasDiscriminant(fromCall: ts.CallExpression): boolean {
           if (
             arg0 &&
             ts.isObjectLiteralExpression(arg0) &&
-            objectLiteralHasDiscriminant(arg0)
+            objectLiteralHasDiscriminant(arg0, discriminants)
           ) {
             return true;
           }
@@ -191,8 +259,12 @@ function supabaseChainHasDiscriminant(fromCall: ts.CallExpression): boolean {
 }
 
 /** Return true if the object-literal has a property whose key name matches
- *  any TENANT_DISCRIMINANT. Supports both identifier and string-literal keys. */
-function objectLiteralHasDiscriminant(obj: ts.ObjectLiteralExpression): boolean {
+ *  any discriminant in the supplied list. Supports both identifier and
+ *  string-literal keys. */
+function objectLiteralHasDiscriminant(
+  obj: ts.ObjectLiteralExpression,
+  discriminants: readonly string[],
+): boolean {
   for (const prop of obj.properties) {
     if (ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop)) {
       const name = prop.name;
@@ -200,7 +272,7 @@ function objectLiteralHasDiscriminant(obj: ts.ObjectLiteralExpression): boolean 
         ts.isIdentifier(name) ? name.text :
         ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name) ? name.text :
         null;
-      if (key && TENANT_DISCRIMINANTS.includes(key)) {
+      if (key && discriminants.includes(key)) {
         return true;
       }
     }
@@ -211,7 +283,10 @@ function objectLiteralHasDiscriminant(obj: ts.ObjectLiteralExpression): boolean 
 /** Prisma: find the `where: { ... }` property inside the first-argument
  *  object and check its keys for a discriminant. If there is no first arg
  *  or no where-clause, treat as NO discriminant (emit). */
-function prismaCallHasDiscriminant(firstArg: ts.Expression | undefined): boolean {
+function prismaCallHasDiscriminant(
+  firstArg: ts.Expression | undefined,
+  discriminants: readonly string[],
+): boolean {
   if (!firstArg) return false;
   if (!ts.isObjectLiteralExpression(firstArg)) return false;
   for (const prop of firstArg.properties) {
@@ -223,7 +298,7 @@ function prismaCallHasDiscriminant(firstArg: ts.Expression | undefined): boolean
       null;
     // `where: { discriminant: ... }` is the canonical multi-tenant filter.
     if ((key === 'where' || key === 'data') && ts.isObjectLiteralExpression(prop.initializer)) {
-      if (objectLiteralHasDiscriminant(prop.initializer)) return true;
+      if (objectLiteralHasDiscriminant(prop.initializer, discriminants)) return true;
     }
   }
   return false;
@@ -917,6 +992,15 @@ export const tenantIsolationCheckerScanner: Scanner = {
     const defaultIgnore = ['node_modules', 'dist', '.next', '.git'];
     const ignore = [...new Set([...defaultIgnore, ...(config.ignore ?? [])])];
 
+    // v0.14 DO-3: resolve the effective discriminant list once per scan
+    // (built-ins + any `additionalBoundaryColumns` from config, or the
+    // replacement list when `replaceBoundaryColumns: true`). Threaded
+    // through all AST helpers in place of the old module-level
+    // TENANT_DISCRIMINANTS / DISCRIMINANT_RE. Default behavior without
+    // config is identical to v0.13.0 (built-ins only).
+    const discriminants = effectiveDiscriminants(config);
+    const discriminantRe = buildDiscriminantRe(discriminants);
+
     const allFiles = walkFiles(projectPath, ignore, ['ts', 'js']);
 
     // v0.10: widened activation gate. Scan if ANY tenant discriminant
@@ -927,7 +1011,7 @@ export const tenantIsolationCheckerScanner: Scanner = {
     for (const f of allFiles) {
       const c = readFileSafe(f);
       if (c === null) continue;
-      if (DISCRIMINANT_RE.test(c) || PRISMA_SIGNAL.test(c) || SUPABASE_SIGNAL.test(c)) {
+      if (discriminantRe.test(c) || PRISMA_SIGNAL.test(c) || SUPABASE_SIGNAL.test(c)) {
         activate = true;
         break;
       }
@@ -1050,7 +1134,7 @@ export const tenantIsolationCheckerScanner: Scanner = {
 
         const fromCall = asSupabaseFromCall(node);
         if (fromCall) {
-          if (supabaseChainHasDiscriminant(fromCall)) return;
+          if (supabaseChainHasDiscriminant(fromCall, discriminants)) return;
           // v0.11.2 Part C: per-`.from()` URL-param scope check. When
           // the chain's `.eq()` arg resolves (by binding-origin, not
           // lexical name) to a URL-param declaration in the enclosing
@@ -1086,7 +1170,7 @@ export const tenantIsolationCheckerScanner: Scanner = {
 
         const prisma = asPrismaCall(node);
         if (prisma) {
-          if (prismaCallHasDiscriminant(prisma.firstArg)) return;
+          if (prismaCallHasDiscriminant(prisma.firstArg, discriminants)) return;
           const id = `TENANT-${String(idCounter++).padStart(3, '0')}`;
           findings.push({
             id,
