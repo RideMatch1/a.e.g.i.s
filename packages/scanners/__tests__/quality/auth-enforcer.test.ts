@@ -144,6 +144,81 @@ describe('authEnforcerScanner', () => {
     expect(result.findings).toHaveLength(0);
   });
 
+  // v0.14 Architecture-Awareness — Supabase-SSR route-level auth recognition.
+  // The canonical @supabase/ssr pattern inside a route handler is:
+  //   const supabase = await createServerSupabaseClient();
+  //   const { data: { user } } = await supabase.auth.getUser();
+  //   if (!user) return 401;
+  // Pre-v0.14, AUTH_GUARD_PATTERNS only included `/getSession/` and
+  // the middleware-level shapes, so supabase.auth.getUser() on a
+  // route produced a false "missing authentication guard" finding.
+  it('does NOT flag a route using supabase.auth.getUser() (Supabase-SSR route-level)', async () => {
+    createApiRoute(
+      projectPath,
+      'profile',
+      `
+      import { createServerSupabaseClient } from '@/lib/supabase/server';
+      export async function GET() {
+        const supabase = await createServerSupabaseClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return new Response(null, { status: 401 });
+        return Response.json({ id: user.id });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const authFinding = result.findings.find((f) =>
+      f.title.includes('missing authentication guard'),
+    );
+    expect(authFinding).toBeUndefined();
+  });
+
+  it('does NOT flag a route using supabase.auth.getSession() (Supabase-SSR route-level)', async () => {
+    createApiRoute(
+      projectPath,
+      'refresh',
+      `
+      import { createServerSupabaseClient } from '@/lib/supabase/server';
+      export async function GET() {
+        const supabase = await createServerSupabaseClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return new Response(null, { status: 401 });
+        return Response.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const authFinding = result.findings.find((f) =>
+      f.title.includes('missing authentication guard'),
+    );
+    expect(authFinding).toBeUndefined();
+  });
+
+  // Regression-guard for the new pattern — a route that has NO auth
+  // primitive at all (and no `.auth.` shape either) must still fire
+  // the missing-authentication-guard finding. Pins that the v0.14
+  // addition doesn't over-suppress.
+  it('STILL flags a route with no auth primitive (v0.14 pattern does not over-suppress)', async () => {
+    createApiRoute(
+      projectPath,
+      'v14-regression',
+      `
+      import { NextResponse } from 'next/server';
+      export async function GET() {
+        // No auth primitive. Scanner must still flag.
+        return NextResponse.json({ data: 'public leak' });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const authFinding = result.findings.find((f) =>
+      f.title.includes('missing authentication guard'),
+    );
+    expect(authFinding).toBeDefined();
+    expect(authFinding!.severity).toBe('high');
+    expect(authFinding!.cwe).toBe(306);
+  });
+
   it('detects getServerSession as a valid auth guard', async () => {
     createApiRoute(
       projectPath,

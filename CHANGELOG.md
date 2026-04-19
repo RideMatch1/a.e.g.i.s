@@ -11,6 +11,32 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [Unreleased] — v0.14 "Architecture-Awareness" (in progress)
+
+Scope is anchored on real-world dogfood: running AEGIS v0.13.0 against
+a large-scale production Next.js + Supabase SaaS codebase surfaced a
+cluster of FP-classes caused by AEGIS's opinionated-on-one-convention
+scanner design. v0.14 broadens the scanner surface from
+"scaffold-convention-only" to "recognise multiple valid architectures"
+— Supabase-SSR alongside NextAuth and Clerk, user-scoped multi-tenancy
+alongside tenant_id, configurable middleware-file names alongside the
+Next.js default.
+
+### Fixed
+
+- `auth-enforcer` now recognises the Supabase-SSR route-level auth
+  primitive (`supabase.auth.getUser()` / `supabase.auth.getSession()`).
+  The middleware-level shape was already matched by
+  `MIDDLEWARE_AUTH_PATTERNS`; this symmetric extension to
+  `AUTH_GUARD_PATTERNS` covers route handlers and server components
+  using the canonical `@supabase/ssr` pattern
+  (`const { data: { user } } = await supabase.auth.getUser()`).
+  Empirical dogfood on a real-world Next.js + Supabase production
+  codebase revealed that this recognition gap dominated the
+  auth-enforcer false-positive class on Supabase-SSR codebases.
+
+---
+
 ## [0.13.0] — 2026-04-19 — "Dogfood Precision"
 
 Every item in this release was discovered through empirical dogfood,

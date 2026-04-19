@@ -24,6 +24,16 @@ const AUTH_GUARD_PATTERNS = [
   // function which already verified the request. A procedure checking
   // `if (!ctx.session)` / `if (!ctx.user)` is the idiomatic auth gate.
   /\bctx\.(?:session|user)\b/,
+  // v0.14: Supabase-SSR route-level auth primitive. The pattern
+  //   const supabase = await createServerSupabaseClient();
+  //   const { data: { user } } = await supabase.auth.getUser();
+  // is the canonical @supabase/ssr convention inside route handlers
+  // and server components. MIDDLEWARE_AUTH_PATTERNS already recognised
+  // the middleware-level shape; this symmetric extension covers
+  // route-level usage. The bare `/getSession/` above matches
+  // `.getSession()` incidentally, but does not cover the dominant
+  // `.getUser()` call — hence the explicit alternation here.
+  /\.auth\.(?:getUser|getSession)\s*\(/,
 ];
 
 /**
