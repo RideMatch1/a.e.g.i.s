@@ -26,6 +26,23 @@ shown with the reason the target wasn't met.
   deps installed). Grade crosses the A→S boundary at 998; the
   4 remaining MEDIUM are `AUTH-001` + `SUPPLY-001..003`, all tracked
   for v0.13 follow-up work.
+- `.gitignore` packaging — template source renamed to `_gitignore`;
+  scaffold write-pipeline translates on emit. `npm pack` strips
+  `.gitignore` from tarballs by convention, which caused v0.12.x
+  scaffolds to ship without one, leading users to commit
+  `node_modules/`, `.next/`, and `.env.local` secrets on first
+  `git add`. Pack-install-smoke verifies the emitted scaffold now
+  contains a real `.gitignore` with the expected ignore-patterns.
+
+### Changed
+
+- Template manifest schema now accepts `S` for `scanExpectedGrade`
+  (in addition to A-F), matching the `Grade` enum exported by
+  `@aegis-scan/core` (where `S` is emitted for score ≥ 950 with
+  confidence `high`). Schema-forward-compat only — no template.json
+  data update yet; the nextjs-supabase template's declared
+  `scanExpectedScore`/`scanExpectedGrade` will be re-measured
+  against the packaged v0.13 tarball and advanced before tag-cut.
 
 ---
 
