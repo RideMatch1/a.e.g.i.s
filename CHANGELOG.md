@@ -50,6 +50,22 @@ shown with the reason the target wasn't met.
   unprotected route handlers are still flagged HIGH (CWE-306) even
   when another route's auth primitive triggers middleware suppression
   — per-route findings continue to fire independently.
+- `logging-checker` `isAuthFile` now matches the auth-keyword
+  (`login`/`logout`/`signin`/`signout`/`auth`/`session`/`password`)
+  only against the file's own basename OR the immediate parent
+  directory segment — never an ancestor further up the tree. The
+  previous regex `/\/(?:login|logout|…)\b.*\.(ts|js)$/` matched any
+  ancestor segment, so monorepo files like `auth-service/admin/errors.ts`
+  or a scratch path under `/tmp/auth-verify/` produced phantom
+  LOG-001/002/003 findings on files that have nothing to do with
+  authentication. The new matcher is case-insensitive and normalises
+  Windows-style backslashes; word-boundary `\b` after the keyword
+  rejects coincidental prefixes (`authentication.ts`, `authors.ts`).
+  Dogfood-discovered during Task-3 verification when the scratch
+  directory name alone caused three spurious findings on scaffold
+  lib files. Regression-tests pin both positive (`auth.ts`,
+  `api/auth/route.ts`, camelCase `signIn.ts`) and negative
+  (ancestor-only, FP-class) cases.
 - `aegis init` now detects whether the target project has `husky`
   installed (dep + `prepare` script referencing husky) before writing
   `.husky/pre-push`. When the signals are absent the hook is skipped

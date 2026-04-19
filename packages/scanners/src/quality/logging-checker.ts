@@ -100,12 +100,33 @@ function hasMutationMethod(content: string): boolean {
   );
 }
 
-/** Check if a file looks like an auth handler */
-function isAuthFile(filePath: string): boolean {
-  return (
-    /\/(?:login|logout|signin|signout|auth|session|password)\b.*\.(ts|js)$/.test(filePath) ||
-    filePath.includes('/auth/')
-  );
+const AUTH_KEYWORD_PATTERN =
+  /^(?:login|logout|signin|signout|auth|session|password)\b/i;
+
+/**
+ * Check if a file looks like an auth handler.
+ *
+ * v0.13 (dogfood Task 5.5): match the keyword only against the file's
+ * own basename OR the immediate parent directory segment — never an
+ * ancestor further up the tree. The previous regex
+ * `/\/(?:login|logout|...)\b.*\.(ts|js)$/` matched any ancestor
+ * segment, which produced phantom LOG findings on monorepo paths
+ * where an unrelated file lived under an ancestor like
+ * `auth-service/admin/errors.ts`. Discovered during Task 3
+ * verification when the scratch dir `/tmp/auth-verify/` alone caused
+ * three spurious LOG findings on scaffold lib files.
+ *
+ * Normalization: convert backslashes to forward-slashes first so the
+ * scope holds on Windows too. Case-insensitive so camelCase
+ * (`signIn.ts`) and typical repo-casing variations still match.
+ */
+export function isAuthFile(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, '/');
+  const parts = normalized.split('/').filter(Boolean);
+  const last = parts[parts.length - 1] ?? '';
+  const parent = parts[parts.length - 2] ?? '';
+  if (!/\.(ts|js)$/i.test(last)) return false;
+  return AUTH_KEYWORD_PATTERN.test(last) || AUTH_KEYWORD_PATTERN.test(parent);
 }
 
 /** Known centralized logger packages */

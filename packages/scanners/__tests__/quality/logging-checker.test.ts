@@ -48,10 +48,74 @@ vi.mock('@aegis-scan/core', () => {
   };
 });
 
-import { loggingCheckerScanner } from '../../src/quality/logging-checker.js';
+import { loggingCheckerScanner, isAuthFile } from '../../src/quality/logging-checker.js';
 import type { AegisConfig } from '@aegis-scan/core';
 
 const MOCK_CONFIG = {} as AegisConfig;
+
+// v0.13 dogfood Task 5.5 — basename+parent-only auth-file detection.
+// Previous regex `/\/(?:login|logout|...)\b.*\.(ts|js)$/` matched any
+// ancestor segment, causing monorepo files like
+// `auth-service/admin/errors.ts` to produce phantom LOG findings.
+describe('isAuthFile (basename + parent-only matching)', () => {
+  describe('positive cases — files that ARE auth handlers', () => {
+    it('matches basename auth.ts', () => {
+      expect(isAuthFile('auth.ts')).toBe(true);
+    });
+    it('matches basename login.ts at project root', () => {
+      expect(isAuthFile('login.ts')).toBe(true);
+    });
+    it('matches basename session.js with absolute path', () => {
+      expect(isAuthFile('/home/user/project/src/session.js')).toBe(true);
+    });
+    it('matches when immediate parent dir is auth', () => {
+      expect(isAuthFile('api/auth/route.ts')).toBe(true);
+    });
+    it('matches when immediate parent dir is signin', () => {
+      expect(isAuthFile('app/api/signin/page.ts')).toBe(true);
+    });
+    it('matches camelCase signIn.ts (case-insensitive)', () => {
+      expect(isAuthFile('src/lib/signIn.ts')).toBe(true);
+    });
+    it('matches .js extension (not only .ts)', () => {
+      expect(isAuthFile('app/auth.js')).toBe(true);
+    });
+    it('matches Windows-style backslash paths (normalization)', () => {
+      expect(isAuthFile('C:\\project\\api\\auth\\route.ts')).toBe(true);
+    });
+  });
+
+  describe('negative cases — regression guard against the ancestor-path FP class', () => {
+    it('does NOT match when "auth" appears only in an ancestor dir (core FP case)', () => {
+      // /tmp/auth-verify/check/lib/errors.ts — the dogfood trigger
+      expect(isAuthFile('/tmp/auth-verify/check/lib/errors.ts')).toBe(false);
+    });
+    it('does NOT match when "auth" is a grandparent segment', () => {
+      expect(isAuthFile('auth-service/admin/errors.ts')).toBe(false);
+    });
+    it('does NOT match when keyword appears 3 ancestors up', () => {
+      expect(isAuthFile('apps/auth/shared/tools/random.ts')).toBe(false);
+    });
+    it('does NOT match deeply-nested non-auth file', () => {
+      expect(isAuthFile('deeply/nested/authenticator/foo.ts')).toBe(false);
+    });
+    it('does NOT match unrelated files', () => {
+      expect(isAuthFile('lib/utils/helpers.ts')).toBe(false);
+    });
+    it('does NOT match basename that only starts with "author" (word-boundary)', () => {
+      // ^auth\b — "authors" has \b after "auth"? No, "r" is a word-char.
+      // "auth" followed by "o" means no word-boundary at that position.
+      // So "authors.ts" is rejected — acceptable per the threat-model
+      // analysis. Users with a file genuinely named `authors.ts` that
+      // IS an auth handler can rename to `auth.ts` or `auth-handlers.ts`.
+      expect(isAuthFile('authors.ts')).toBe(false);
+    });
+    it('does NOT match non-ts/js extensions', () => {
+      expect(isAuthFile('auth.md')).toBe(false);
+      expect(isAuthFile('auth.json')).toBe(false);
+    });
+  });
+});
 
 function makeTempProject(): string {
   return mkdtempSync(join(tmpdir(), 'aegis-logging-test-'));
