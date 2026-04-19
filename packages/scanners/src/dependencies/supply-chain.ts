@@ -24,6 +24,37 @@ const POPULAR_PACKAGES = [
   'sharp', 'jimp', 'multer',
 ];
 
+/**
+ * v0.13: packages whose install-script + native-binary shape is an
+ * unavoidable consequence of a parent framework, not a supply-chain
+ * concern users can act on. Findings on these still emit (pedagogy —
+ * the user should know their supply-chain surface) but at `info`
+ * severity so they don't deduct from the score.
+ *
+ * Trust-root: each pattern is anchored to an exact name or a scope
+ * owned by a specific upstream vendor on the npm registry. Attackers
+ * cannot introduce a malicious package matching these without first
+ * compromising the registry-level scope ownership.
+ *
+ * Drift-risk: if a framework swaps its build-tool vendor in a major
+ * version (e.g. Next.js 17 moves from swc to a different compiler),
+ * the replacement's platform-native packages would re-surface as
+ * MEDIUM until this list is updated. Expected cadence: re-audit per
+ * major Next.js / Rollup / esbuild upgrade.
+ */
+const ECOSYSTEM_INHERENT_PATTERNS: readonly RegExp[] = [
+  /^esbuild$/,                       // postinstall — ecosystem-standard build tool
+  /^@next\/swc-[a-z0-9-]+$/,         // Next.js SWC platform-native compiler
+  /^@rollup\/rollup-[a-z0-9-]+$/,    // Rollup platform-native binary (transitive via Next.js / Vite)
+];
+
+function isEcosystemInherent(pkgName: string): boolean {
+  return ECOSYSTEM_INHERENT_PATTERNS.some((p) => p.test(pkgName));
+}
+
+const ECOSYSTEM_INHERENT_NOTE =
+  ' Ecosystem-inherent pattern; unavoidable without removing the parent framework. Informational only.';
+
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length;
   const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
@@ -355,13 +386,14 @@ export const supplyChainScanner: Scanner = {
         } catch {
           return;
         }
+        const inherent = isEcosystemInherent(pkgName);
         for (const entry of entries) {
           for (const ext of binaryExtensions) {
             if (entry.endsWith(ext)) {
               addFinding(
-                'medium',
+                inherent ? 'info' : 'medium',
                 `Native binary in dependency: "${pkgName}/${entry}"`,
-                `Package "${pkgName}" contains a native binary file "${entry}". Native binaries can execute arbitrary code and bypass JavaScript sandboxing.`,
+                `Package "${pkgName}" contains a native binary file "${entry}". Native binaries can execute arbitrary code and bypass JavaScript sandboxing.${inherent ? ECOSYSTEM_INHERENT_NOTE : ''}`,
                 829,
               );
             }
@@ -521,10 +553,11 @@ function checkInstallScripts(
 
   if (pkg.scripts?.preinstall || pkg.scripts?.postinstall) {
     const scriptType = pkg.scripts.preinstall ? 'preinstall' : 'postinstall';
+    const inherent = isEcosystemInherent(pkgName);
     addFinding(
-      'medium',
+      inherent ? 'info' : 'medium',
       `Install script detected: "${pkgName}" (${scriptType})`,
-      `Package "${pkgName}" has a ${scriptType} script that runs automatically during installation. This is a common supply chain attack vector. Script: "${pkg.scripts[scriptType]}".`,
+      `Package "${pkgName}" has a ${scriptType} script that runs automatically during installation. This is a common supply chain attack vector. Script: "${pkg.scripts[scriptType]}".${inherent ? ECOSYSTEM_INHERENT_NOTE : ''}`,
       829,
     );
   }

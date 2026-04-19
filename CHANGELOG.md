@@ -60,6 +60,23 @@ shown with the reason the target wasn't met.
   data update yet; the nextjs-supabase template's declared
   `scanExpectedScore`/`scanExpectedGrade` will be re-measured
   against the packaged v0.13 tarball and advanced before tag-cut.
+- `supply-chain` scanner now emits ecosystem-inherent findings at
+  `info` severity instead of `medium`. Covered patterns:
+  `esbuild` (postinstall), `@next/swc-*` (platform-native compiler),
+  `@rollup/rollup-*` (platform-native bundler). Findings remain
+  visible in the report for pedagogy — the user should know their
+  real supply-chain surface — but the `info` severity is score-neutral
+  (zero base deduction per `scoring.ts`), so these unavoidable patterns
+  no longer drag the scaffold baseline below 1000. Trust-root: each
+  pattern is anchored to an npm scope owned by a specific upstream
+  vendor, so attackers cannot match without first compromising
+  registry-level scope ownership. Threat-model regression-test pins
+  that non-ecosystem packages with postinstall or native binaries
+  continue to emit at `medium`. Closes scaffold findings
+  `SUPPLY-001..003`.
+- Scaffold empirical baseline moves 999/S/3-MEDIUM → **1000/S/0-MEDIUM**
+  (3 INFO findings remain visible). Score category: `security` +
+  `dependencies` both at 1000/1000.
 
 ---
 
