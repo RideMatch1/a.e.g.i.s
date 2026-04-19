@@ -11,7 +11,7 @@ shown with the reason the target wasn't met.
 
 ---
 
-## [0.12.0] — Unreleased — "Scaffolding Pivot"
+## [0.12.0] — 2026-04-19 — "Scaffolding Pivot"
 
 **Honest score:** **8.9** (up from 8.8 at v0.11.2). First scope-pivot
 release: AEGIS adds project-lifecycle commands (`aegis new`, `aegis
