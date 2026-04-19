@@ -11,7 +11,16 @@ shown with the reason the target wasn't met.
 
 ---
 
-## [Unreleased] — v0.13 (in progress)
+## [0.13.0] — 2026-04-19 — "Dogfood Precision"
+
+Every item in this release was discovered through empirical dogfood,
+not roadmap speculation: four scanner FPs surfaced during the Phase-4
+exit-criterion scan and the Task-3 auth-verify trigger, one UX-bug
+surfaced during retrofit-dogfood on a real production project, one
+packaging ship-blocker surfaced during the v0.12 publish sequence,
+and the release discipline gate codifies the lessons of the three
+v0.12 publish attempts. Scaffold baseline moves from 997/A/5-MEDIUM
+(v0.12.2) to **1000/S/0-BLOCKER/0-MEDIUM + 3 INFO** (v0.13.0).
 
 ### Fixed
 

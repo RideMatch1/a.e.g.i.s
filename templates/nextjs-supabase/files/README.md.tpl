@@ -89,16 +89,19 @@ npx aegis audit .      # run the audit (built-ins today; unified with externals 
 ### Known baseline findings
 
 When scanned fresh, this scaffold produces 3 known INFO findings
-(score 1000/S/0-BLOCKER). They appear in the report for pedagogy —
-this is your real supply-chain surface — but do not deduct from the
-score because they are unavoidable without removing the parent framework:
+(score **1000/S/0-BLOCKER/0-MEDIUM**). Supply-chain findings are
+preserved at INFO severity for transparency — they are unavoidable
+in the Next.js ecosystem and do not reduce your score:
 
-- **SUPPLY-001/002/003:** Next.js ecosystem (esbuild postinstall + @next/swc
-  + @rollup native binaries). Ecosystem-inherent; review on major
-  Next.js / Rollup / esbuild upgrades in case the vendor set shifts.
+- **SUPPLY-001/002/003 (informational — ecosystem-inherent):**
+  Next.js ecosystem (esbuild postinstall + @next/swc + @rollup native
+  binaries). Review on major Next.js / Rollup / esbuild upgrades in
+  case the vendor set shifts — new platform-native packages would
+  re-surface at MEDIUM until the allowlist is updated.
 
-These findings are documented visibility — the scaffold does not suppress
-them. Upgrading AEGIS may reduce this set as scanner rules evolve.
+These findings are documented for visibility — the scaffold does not
+suppress them. Upgrading AEGIS may further narrow the surface as
+scanner rules evolve.
 
 ## Next Steps
 

@@ -1,12 +1,12 @@
 {
   "name": "nextjs-supabase",
   "stack": "nextjs-supabase",
-  "aegisVersion": "0.12.0",
+  "aegisVersion": "0.13.0",
   "description": "Next.js 16 + Supabase SaaS starter with AEGIS security primitives pre-wired (tenant-guard, RBAC, rate-limit, RLS, CSRF/headers middleware, PII-safe logger, Zod-strict schemas, crypto, AppError hierarchy, safe-fetch).",
   "placeholders": ["PROJECT_NAME", "AEGIS_VERSION"],
   "postInstall": {
     "scan": true,
-    "scanExpectedScore": 997,
-    "scanExpectedGrade": "A"
+    "scanExpectedScore": 1000,
+    "scanExpectedGrade": "S"
   }
 }
