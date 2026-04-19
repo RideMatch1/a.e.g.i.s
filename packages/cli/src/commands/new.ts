@@ -106,6 +106,20 @@ function stripTplSuffix(relPath: string): string {
   return relPath.endsWith('.tpl') ? relPath.slice(0, -'.tpl'.length) : relPath;
 }
 
+// npm pack strips `.gitignore` files from tarballs by convention (treating
+// `.gitignore` as a proxy for `.npmignore`). Template sources ship the file
+// as `_gitignore` to survive the pack step; we rewrite on scaffold-emit so
+// the user's project receives a real `.gitignore`.
+function rewriteUnderscoreDotfile(relPath: string): string {
+  const segments = relPath.split('/');
+  const last = segments[segments.length - 1];
+  if (last === '_gitignore') {
+    segments[segments.length - 1] = '.gitignore';
+    return segments.join('/');
+  }
+  return relPath;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Core scaffold
 
@@ -123,7 +137,7 @@ async function writeScaffold(
   // in their catch-block and clean up — see runNew step 6 cleanup path.
   for (const rel of ctx.loaded.files) {
     const sourcePath = join(ctx.templateRoot, 'files', rel);
-    const targetRel = stripTplSuffix(rel);
+    const targetRel = rewriteUnderscoreDotfile(stripTplSuffix(rel));
     const targetPath = join(ctx.targetDir, targetRel);
 
     const raw = await readFile(sourcePath, 'utf-8');

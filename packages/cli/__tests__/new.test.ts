@@ -392,6 +392,48 @@ describe('runNew (integration with fixture template)', () => {
     expect(readdirSync(targetDir).length).toBe(0);
   });
 
+  it('renames _gitignore to .gitignore in the scaffold output', async () => {
+    // npm pack strips `.gitignore` from tarballs. Template sources ship
+    // the file as `_gitignore` and the scaffolder rewrites it on emit.
+    createFixtureTemplate(tmpBase, 'gitignore-tpl', {
+      fileContents: {
+        'package.json.tpl': '{"name": "{{PROJECT_NAME}}"}\n',
+        '_gitignore': 'node_modules\n.env\n',
+      },
+    });
+    const targetDir = join(tmpBase, 'gitignore-proj');
+    const exit = await runNew('gitignore-proj', {
+      template: 'gitignore-tpl',
+      target: targetDir,
+      skipInstall: true,
+      _templateSearchPaths: [tmpBase],
+    });
+
+    expect(exit).toBe(EXIT_OK);
+    expect(existsSync(join(targetDir, '.gitignore'))).toBe(true);
+    expect(existsSync(join(targetDir, '_gitignore'))).toBe(false);
+  });
+
+  it('preserves _gitignore source content verbatim under the .gitignore target name', async () => {
+    const expected = '# managed by aegis\nnode_modules\n.next\n.env.local\ncoverage\n';
+    createFixtureTemplate(tmpBase, 'gitignore-content-tpl', {
+      fileContents: {
+        'package.json.tpl': '{"name": "{{PROJECT_NAME}}"}\n',
+        '_gitignore': expected,
+      },
+    });
+    const targetDir = join(tmpBase, 'gitignore-content-proj');
+    const exit = await runNew('gitignore-content-proj', {
+      template: 'gitignore-content-tpl',
+      target: targetDir,
+      skipInstall: true,
+      _templateSearchPaths: [tmpBase],
+    });
+
+    expect(exit).toBe(EXIT_OK);
+    expect(readFileSync(join(targetDir, '.gitignore'), 'utf-8')).toBe(expected);
+  });
+
   it('leaves unknown placeholders literal in file content (no crash)', async () => {
     createFixtureTemplate(tmpBase, 'unknown-in-file', {
       placeholders: ['PROJECT_NAME'], // declared subset
