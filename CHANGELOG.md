@@ -50,6 +50,21 @@ shown with the reason the target wasn't met.
   unprotected route handlers are still flagged HIGH (CWE-306) even
   when another route's auth primitive triggers middleware suppression
   — per-route findings continue to fire independently.
+- `aegis init` now detects whether the target project has `husky`
+  installed (dep + `prepare` script referencing husky) before writing
+  `.husky/pre-push`. When the signals are absent the hook is skipped
+  and init emits an actionable three-step hint (`pnpm add -D husky` →
+  `pnpm exec husky init` → re-run). Pre-v0.13 init blind-wrote the
+  hook on every project; the file sat as dead-code because git's
+  default `core.hooksPath` is `.git/hooks/` and husky's `prepare`
+  script is what redirects it. Retrofit-dogfood on a real
+  production target (no husky configured) empirically confirmed
+  the prior behavior produced false-confidence. `--force` does
+  NOT bypass the
+  precondition — writing dead-code with an override flag is still
+  silent-bad. Users on non-standard setups (yarn-pnp, custom
+  hooksPath) can skip the gate via `--skip-husky` and wire their
+  own hook. Closes retrofit-dogfood finding N1.
 
 ### Changed
 

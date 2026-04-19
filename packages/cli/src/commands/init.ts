@@ -81,6 +81,10 @@ type InitFileSpec =
       mode: number;            // octal mode (e.g. 0o755)
       skipFlag: InitOptionSkipFlag;
       label: string;
+      // v0.13 N1: require husky setup in the target project before
+      // writing. When false/absent, the file is written unconditionally
+      // (pre-v0.13 behavior).
+      requiresHuskySetup?: boolean;
     };
 
 const INIT_FILE_SPECS: readonly InitFileSpec[] = [
@@ -109,8 +113,48 @@ const INIT_FILE_SPECS: readonly InitFileSpec[] = [
     mode: 0o755,
     skipFlag: 'skipHusky',
     label: 'Husky pre-push hook',
+    requiresHuskySetup: true,
   },
 ];
+
+// v0.13 N1: detect whether the target project has husky installed AND the
+// standard `prepare` activation hook. Without both, writing `.husky/pre-push`
+// is dead-code — git's default `core.hooksPath` is `.git/hooks/` and husky's
+// `prepare` script is what redirects it to `.husky/`. Retrofit-dogfood on a
+// real production target surfaced this as a false-confidence UX-bug (user
+// sees hook file on disk but git never fires it).
+//
+// Detection is deliberately strict (dep + prepare-script together) to avoid
+// re-introducing the dead-code class via edge cases. Users with non-standard
+// setups (yarn-pnp, custom husky-like tooling) can always skip the gate with
+// `--skip-husky` and wire their own hook manually.
+async function isHuskyReady(targetDir: string): Promise<boolean> {
+  const pkgPath = join(targetDir, 'package.json');
+  if (!existsSync(pkgPath)) return false;
+  try {
+    const raw = await readFile(pkgPath, 'utf-8');
+    const pkg = JSON.parse(raw) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      scripts?: Record<string, string>;
+    };
+    const hasDep = !!(pkg.devDependencies?.husky || pkg.dependencies?.husky);
+    const prepare = pkg.scripts?.prepare;
+    const hasPrepare =
+      typeof prepare === 'string' && prepare.toLowerCase().includes('husky');
+    return hasDep && hasPrepare;
+  } catch {
+    return false;
+  }
+}
+
+const HUSKY_HINT = [
+  'Husky not detected in package.json (missing dep or prepare-script).',
+  'To enable the pre-push scan-gate:',
+  '  1. pnpm add -D husky   (or npm install --save-dev husky)',
+  '  2. pnpm exec husky init   (creates .husky/ and wires prepare-script)',
+  '  3. Re-run `aegis init` — the hook will then be written.',
+].join('\n  ');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-file write-outcome
@@ -120,6 +164,7 @@ type WriteOutcome =
   | { status: 'overwritten'; target: string; label: string }
   | { status: 'skipped-exists'; target: string; label: string }
   | { status: 'skipped-flag'; target: string; label: string }
+  | { status: 'skipped-prereq'; target: string; label: string; hint: string }
   | { status: 'failed'; target: string; label: string; error: string };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,6 +182,15 @@ async function applyFileSpec(args: {
 
   if (options[spec.skipFlag]) {
     return { status: 'skipped-flag', target, label: spec.label };
+  }
+
+  // v0.13 N1: precondition gates run BEFORE the existing-file check so
+  // we don't silently drop a hint on a re-run where the hook is already
+  // on disk from a previous husky-ready install that's since regressed.
+  if (spec.kind === 'inline' && spec.requiresHuskySetup) {
+    if (!(await isHuskyReady(resolvedPath))) {
+      return { status: 'skipped-prereq', target, label: spec.label, hint: HUSKY_HINT };
+    }
   }
 
   const fileExists = existsSync(target);
@@ -289,6 +343,11 @@ export async function runInit(path: string, options: InitOptions = {}): Promise<
         break;
       case 'skipped-flag':
         // Silent — user explicitly asked to skip.
+        break;
+      case 'skipped-prereq':
+        console.log(
+          chalk.yellow(`⚠ Skipping ${outcome.target} — ${outcome.hint}`),
+        );
         break;
       case 'failed':
         console.error(chalk.red(`✗ Failed to write ${outcome.target}: ${outcome.error}`));

@@ -93,6 +93,23 @@ let tmpBase: string;
 let templateBases: string;
 let targetDir: string;
 
+/**
+ * v0.13 N1: init now requires husky setup (devDep + prepare-script) before
+ * writing `.husky/pre-push`. The baseline tests below assume both signals
+ * are present; individual tests that exercise the skip/hint path overwrite
+ * this package.json to simulate an un-set-up project.
+ */
+function seedHuskyReadyPackageJson(dir: string): void {
+  writeFileSync(
+    join(dir, 'package.json'),
+    JSON.stringify({
+      name: 'my-project',
+      devDependencies: { husky: '^9.0.0' },
+      scripts: { prepare: 'husky install' },
+    }),
+  );
+}
+
 beforeEach(() => {
   tmpBase = mkdtempSync(join(tmpdir(), 'aegis-init-test-'));
   templateBases = join(tmpBase, 'templates-base');
@@ -100,6 +117,7 @@ beforeEach(() => {
   createInitFixtureTemplate(templateBases);
   targetDir = join(tmpBase, 'my-project');
   mkdirSync(targetDir, { recursive: true });
+  seedHuskyReadyPackageJson(targetDir);
 });
 
 afterEach(() => {
@@ -339,5 +357,94 @@ describe('runInit — template resolution failure', () => {
     } finally {
       rmSync(emptyBase, { recursive: true, force: true });
     }
+  });
+});
+
+// v0.13 N1: retrofit-dogfood discovered that init blind-wrote .husky/pre-push
+// even when the target project had no husky installed. The hook sat on disk
+// as dead code (git's default hooksPath is .git/hooks/), giving the user
+// false-confidence that a scan-gate was active when none was.
+describe('runInit — husky-aware detection (v0.13 N1)', () => {
+  it('skips .husky/pre-push when package.json is missing entirely', async () => {
+    // Simulate a pre-configuration project root — no package.json at all.
+    rmSync(join(targetDir, 'package.json'));
+
+    const exit = await runInit(targetDir, { _templateSearchPaths: [templateBases] });
+    expect(exit).toBe(EXIT_OK);
+    expect(existsSync(join(targetDir, '.husky', 'pre-push'))).toBe(false);
+    expect(logs.join('\n')).toMatch(/Skipping .*pre-push.*Husky not detected/);
+    // Other files still wrote
+    expect(existsSync(join(targetDir, 'aegis.config.json'))).toBe(true);
+    expect(existsSync(join(targetDir, 'CLAUDE.md'))).toBe(true);
+  });
+
+  it('skips .husky/pre-push when husky is absent from deps (even if prepare-script mentions husky)', async () => {
+    writeFileSync(
+      join(targetDir, 'package.json'),
+      JSON.stringify({
+        name: 'my-project',
+        devDependencies: { 'lint-staged': '^15.0.0' },
+        scripts: { prepare: 'husky install' }, // aspirational but no dep
+      }),
+    );
+
+    const exit = await runInit(targetDir, { _templateSearchPaths: [templateBases] });
+    expect(exit).toBe(EXIT_OK);
+    expect(existsSync(join(targetDir, '.husky', 'pre-push'))).toBe(false);
+    expect(logs.join('\n')).toMatch(/Husky not detected/);
+  });
+
+  it('skips .husky/pre-push when prepare-script is missing', async () => {
+    writeFileSync(
+      join(targetDir, 'package.json'),
+      JSON.stringify({
+        name: 'my-project',
+        devDependencies: { husky: '^9.0.0' },
+        scripts: { build: 'tsc' }, // no prepare script at all
+      }),
+    );
+
+    const exit = await runInit(targetDir, { _templateSearchPaths: [templateBases] });
+    expect(exit).toBe(EXIT_OK);
+    expect(existsSync(join(targetDir, '.husky', 'pre-push'))).toBe(false);
+    expect(logs.join('\n')).toMatch(/Husky not detected/);
+  });
+
+  it('skips .husky/pre-push when prepare-script does not mention husky', async () => {
+    writeFileSync(
+      join(targetDir, 'package.json'),
+      JSON.stringify({
+        name: 'my-project',
+        devDependencies: { husky: '^9.0.0' },
+        scripts: { prepare: 'lint-staged' }, // prepare exists but wrong tool
+      }),
+    );
+
+    const exit = await runInit(targetDir, { _templateSearchPaths: [templateBases] });
+    expect(exit).toBe(EXIT_OK);
+    expect(existsSync(join(targetDir, '.husky', 'pre-push'))).toBe(false);
+    expect(logs.join('\n')).toMatch(/Husky not detected/);
+  });
+
+  it('writes .husky/pre-push when BOTH husky dep and prepare-script with "husky" are present', async () => {
+    // beforeEach seeded husky-ready state — this asserts the positive path.
+    const exit = await runInit(targetDir, { _templateSearchPaths: [templateBases] });
+    expect(exit).toBe(EXIT_OK);
+    expect(existsSync(join(targetDir, '.husky', 'pre-push'))).toBe(true);
+    // Hint must NOT appear when husky is ready
+    expect(logs.join('\n')).not.toMatch(/Husky not detected/);
+  });
+
+  it('--force does not bypass husky detection — precondition still applies', async () => {
+    // Even with --force, writing a dead-code hook is silent-bad.
+    rmSync(join(targetDir, 'package.json'));
+
+    const exit = await runInit(targetDir, {
+      force: true,
+      _templateSearchPaths: [templateBases],
+    });
+    expect(exit).toBe(EXIT_OK);
+    expect(existsSync(join(targetDir, '.husky', 'pre-push'))).toBe(false);
+    expect(logs.join('\n')).toMatch(/Husky not detected/);
   });
 });
