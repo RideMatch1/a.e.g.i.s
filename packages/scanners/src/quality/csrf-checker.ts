@@ -1,7 +1,63 @@
 import { walkFiles, readFileSafe } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
+import { join } from 'node:path';
 
 const ROUTE_FILENAMES = ['route.ts', 'route.js'];
+
+/** v0.14: middleware-file candidates probed for SameSite=Lax|Strict
+ *  cookie declarations. Configurable via
+ *  `scanners.csrf.middlewareFiles`. Default covers the Next.js
+ *  convention at root and src/. Other non-default names
+ *  (e.g. `gateway.ts`) can be declared explicitly. */
+const DEFAULT_MIDDLEWARE_FILES: readonly string[] = [
+  'middleware.ts',
+  'middleware.js',
+  'src/middleware.ts',
+  'src/middleware.js',
+];
+
+/** SameSite=Lax|Strict cookie declaration. SameSite=None is NOT matched
+ *  — `None` provides no cross-site CSRF mitigation. */
+const SAMESITE_PROTECTION_PATTERN = /sameSite\s*:\s*['"](?:lax|strict)['"]/i;
+
+interface CsrfScannerConfig {
+  middlewareFiles?: readonly string[];
+}
+
+function readCsrfConfig(config: AegisConfig): CsrfScannerConfig {
+  const raw = config.scanners?.csrf;
+  if (!raw || typeof raw !== 'object') return {};
+  const rec = raw as Record<string, unknown>;
+  const out: CsrfScannerConfig = {};
+  if (Array.isArray(rec.middlewareFiles)) {
+    out.middlewareFiles = rec.middlewareFiles.filter(
+      (s): s is string => typeof s === 'string',
+    );
+  }
+  return out;
+}
+
+/** v0.14 DO-4: returns true when at least one configured middleware-file
+ *  declares a SameSite=Lax|Strict cookie. A hit downgrades per-route
+ *  csrf-checker findings from high to info — the SameSite cookie
+ *  already blocks cross-site mutations at the browser layer, so the
+ *  absence of explicit per-route CSRF tokens is pedagogy, not an
+ *  actionable high-severity gap.
+ *
+ *  Called once per scan (single regex-test per configured file). */
+function detectMiddlewareSameSite(
+  projectPath: string,
+  config: AegisConfig,
+): boolean {
+  const cfg = readCsrfConfig(config);
+  const candidates = cfg.middlewareFiles ?? DEFAULT_MIDDLEWARE_FILES;
+  for (const rel of candidates) {
+    const content = readFileSafe(join(projectPath, rel));
+    if (content === null) continue;
+    if (SAMESITE_PROTECTION_PATTERN.test(content)) return true;
+  }
+  return false;
+}
 
 /** Mutating HTTP methods that need CSRF protection */
 const MUTATING_HANDLER_PATTERN = /export\s+(?:async\s+)?function\s+(POST|PUT|PATCH|DELETE)\b/;
@@ -80,6 +136,14 @@ export const csrfCheckerScanner: Scanner = {
     const defaultIgnore = ['node_modules', 'dist', '.next', '.git'];
     const ignore = [...new Set([...defaultIgnore, ...(config.ignore ?? [])])];
 
+    // v0.14 DO-4: detect whether the project's middleware-file declares
+    // a SameSite=Lax|Strict cookie. When it does, route-level CSRF
+    // findings below are downgraded from `high` to `info` because
+    // SameSite=Lax already blocks cross-site mutations at the browser
+    // layer — the absence of an explicit per-route CSRF token is
+    // pedagogy, not an actionable high-severity gap.
+    const middlewareHasSameSite = detectMiddlewareSameSite(projectPath, config);
+
     const apiDirs = detectApiDirs(projectPath);
 
     for (const apiDir of apiDirs) {
@@ -114,13 +178,18 @@ export const csrfCheckerScanner: Scanner = {
           }
 
           const id = `CSRF-${String(idCounter++).padStart(3, '0')}`;
+          const severity: Finding['severity'] = middlewareHasSameSite ? 'info' : 'high';
+          const sameSiteNote = middlewareHasSameSite
+            ? ' Middleware declares SameSite=Lax|Strict on session cookies — severity downgraded to info (SameSite already blocks cross-site mutations at the browser layer). Adding an explicit CSRF token remains best-practice for defense-in-depth.'
+            : '';
           findings.push({
             id,
             scanner: 'csrf-checker',
-            severity: 'high',
+            severity,
             title: 'Mutating route handler missing CSRF protection',
             description:
-              'This API route handles POST/PUT/PATCH/DELETE requests but does not implement CSRF protection. Add Origin header validation, a CSRF token, SameSite cookie flags, or use secureApiRouteWithTenant (which includes Origin checking). JSON-only APIs checking Content-Type are also acceptable.',
+              'This API route handles POST/PUT/PATCH/DELETE requests but does not implement CSRF protection. Add Origin header validation, a CSRF token, SameSite cookie flags, or use secureApiRouteWithTenant (which includes Origin checking). JSON-only APIs checking Content-Type are also acceptable.' +
+              sameSiteNote,
             file,
             line: mutatingLine,
             category: 'security',

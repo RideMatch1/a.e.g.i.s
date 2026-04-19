@@ -24,6 +24,33 @@ Next.js default.
 
 ### Fixed
 
+- `csrf-checker` now recognises `SameSite=Lax|Strict` cookie
+  declarations in the project's middleware-file. When detected,
+  per-route "missing CSRF protection" findings are severity-downgraded
+  from `high` to `info` — SameSite already blocks cross-site mutations
+  at the browser layer, so the absence of an explicit per-route CSRF
+  token is pedagogy rather than an actionable high-severity gap. The
+  finding itself is preserved (users remain aware; adding explicit
+  tokens is still best-practice for defense-in-depth), but the score
+  no longer deducts. `SameSite=None` is NOT recognized (it provides
+  no cross-site protection).
+
+- `csrf-checker` `middlewareFiles` config option allows projects using
+  a non-standard middleware filename (e.g., `gateway.ts`) to be
+  recognized. Defaults — `["middleware.ts", "middleware.js",
+  "src/middleware.ts", "src/middleware.js"]` — match the Next.js
+  convention at root and src/ level. Example:
+
+  ```jsonc
+  {
+    "scanners": {
+      "csrf": {
+        "middlewareFiles": ["gateway.ts"]
+      }
+    }
+  }
+  ```
+
 - `tenant-isolation-checker` accepts per-project boundary-column
   configuration via `aegis.config.json`. Projects using a multi-tenancy
   model other than the built-in six discriminants (`tenant_id` /

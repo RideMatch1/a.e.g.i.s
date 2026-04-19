@@ -282,4 +282,106 @@ describe('csrfCheckerScanner', () => {
     const result = await csrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
     expect(result.findings).toHaveLength(0);
   });
+
+  // v0.14 DO-4 — middleware-file SameSite recognition + severity-downgrade.
+  //
+  // Routes that lack per-route CSRF primitives but live under a middleware
+  // declaring `sameSite: 'lax' | 'strict'` on its session cookie are
+  // implicitly protected against cross-site mutations at the browser layer.
+  // The finding is preserved (pedagogy) but downgraded from high to info
+  // so it no longer deducts from the score and triage-signal is accurate.
+  describe('v0.14 middleware SameSite recognition', () => {
+    function createMutatingRoute(dir: string, subPath: string): void {
+      createApiRoute(dir, subPath, `
+export async function POST(request: Request) {
+  const body = await request.json();
+  return Response.json({ ok: true, body });
+}
+`);
+    }
+
+    function writeMiddleware(dir: string, relPath: string, body: string): void {
+      const full = join(dir, relPath);
+      const parent = full.split('/').slice(0, -1).join('/');
+      mkdirSync(parent, { recursive: true });
+      writeFileSync(full, body);
+    }
+
+    it('default config, no SameSite declared anywhere → finding fires HIGH (backward-compat)', async () => {
+      createMutatingRoute(projectPath, 'posts');
+      const result = await csrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      expect(result.findings).toHaveLength(1);
+      expect(result.findings[0].severity).toBe('high');
+    });
+
+    it('default config, SameSite=Lax in middleware.ts → finding downgraded to INFO', async () => {
+      createMutatingRoute(projectPath, 'posts');
+      writeMiddleware(projectPath, 'middleware.ts', `
+import { NextResponse } from 'next/server';
+export function middleware(request) {
+  const res = NextResponse.next();
+  res.cookies.set({ name: 'session', value: 'x', sameSite: 'lax' });
+  return res;
+}
+`);
+      const result = await csrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      expect(result.findings).toHaveLength(1);
+      expect(result.findings[0].severity).toBe('info');
+      expect(result.findings[0].description).toContain('downgraded to info');
+    });
+
+    it('config middlewareFiles=["gateway.ts"], SameSite=Lax in gateway.ts → finding downgraded', async () => {
+      createMutatingRoute(projectPath, 'posts');
+      writeMiddleware(projectPath, 'gateway.ts', `
+import { NextResponse } from 'next/server';
+export function middleware(request) {
+  const res = NextResponse.next();
+  res.cookies.set({ name: 'session', value: 'x', sameSite: 'lax' });
+  return res;
+}
+`);
+      const configProxy = {
+        scanners: {
+          csrf: { middlewareFiles: ['gateway.ts'] },
+        },
+      } as unknown as AegisConfig;
+      const result = await csrfCheckerScanner.scan(projectPath, configProxy);
+      expect(result.findings).toHaveLength(1);
+      expect(result.findings[0].severity).toBe('info');
+    });
+
+    it('config middlewareFiles=["gateway.ts"], SameSite absent from gateway.ts → finding fires HIGH', async () => {
+      createMutatingRoute(projectPath, 'posts');
+      writeMiddleware(projectPath, 'gateway.ts', `
+import { NextResponse } from 'next/server';
+export function middleware(request) {
+  return NextResponse.next();
+}
+`);
+      const configProxy = {
+        scanners: {
+          csrf: { middlewareFiles: ['gateway.ts'] },
+        },
+      } as unknown as AegisConfig;
+      const result = await csrfCheckerScanner.scan(projectPath, configProxy);
+      expect(result.findings).toHaveLength(1);
+      expect(result.findings[0].severity).toBe('high');
+    });
+
+    it('default config, SameSite=None in middleware → finding fires HIGH (None = no CSRF protection)', async () => {
+      createMutatingRoute(projectPath, 'posts');
+      writeMiddleware(projectPath, 'middleware.ts', `
+import { NextResponse } from 'next/server';
+export function middleware(request) {
+  const res = NextResponse.next();
+  res.cookies.set({ name: 'session', value: 'x', sameSite: 'none' });
+  return res;
+}
+`);
+      const result = await csrfCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      expect(result.findings).toHaveLength(1);
+      // 'none' does not match /sameSite\s*:\s*['"](?:lax|strict)['"]/i
+      expect(result.findings[0].severity).toBe('high');
+    });
+  });
 });
