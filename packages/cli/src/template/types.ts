@@ -9,7 +9,7 @@ export const TemplateManifestSchema = z.object({
   postInstall: z.object({
     scan: z.boolean(),
     scanExpectedScore: z.number().int().min(0).max(1000),
-    scanExpectedGrade: z.enum(['A', 'B', 'C', 'D', 'F']),
+    scanExpectedGrade: z.enum(['S', 'A', 'B', 'C', 'D', 'F']),
   }).strict(),
 }).strict();
 

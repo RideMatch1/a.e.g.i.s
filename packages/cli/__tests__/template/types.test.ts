@@ -31,11 +31,20 @@ describe('TemplateManifestSchema', () => {
     expect(() => TemplateManifestSchema.parse(invalid)).toThrow();
   });
 
-  it('scanExpectedGrade is one of A/B/C/D/F', () => {
+  it('scanExpectedGrade is one of S/A/B/C/D/F', () => {
     const base = {
       name: 'x', stack: 'y', aegisVersion: '0.12.0', description: 'd',
       placeholders: [], postInstall: { scan: false, scanExpectedScore: 0, scanExpectedGrade: 'Z' },
     };
     expect(() => TemplateManifestSchema.parse(base)).toThrow();
+  });
+
+  it("accepts 'S' as scanExpectedGrade (matches core's Grade enum)", () => {
+    const valid = {
+      name: 'x', stack: 'y', aegisVersion: '0.13.0', description: 'd',
+      placeholders: [],
+      postInstall: { scan: true, scanExpectedScore: 998, scanExpectedGrade: 'S' },
+    };
+    expect(() => TemplateManifestSchema.parse(valid)).not.toThrow();
   });
 });
