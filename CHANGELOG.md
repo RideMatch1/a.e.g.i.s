@@ -11,16 +11,21 @@ shown with the reason the target wasn't met.
 
 ---
 
-## [Unreleased] — v0.14 "Architecture-Awareness" (in progress)
+## [0.14.0] — 2026-04-19 — "Architecture-Awareness"
 
-Scope is anchored on real-world dogfood: running AEGIS v0.13.0 against
-a large-scale production Next.js + Supabase SaaS codebase surfaced a
-cluster of FP-classes caused by AEGIS's opinionated-on-one-convention
-scanner design. v0.14 broadens the scanner surface from
-"scaffold-convention-only" to "recognise multiple valid architectures"
-— Supabase-SSR alongside NextAuth and Clerk, user-scoped multi-tenancy
-alongside tenant_id, configurable middleware-file names alongside the
-Next.js default.
+Broadens AEGIS scanner recognition beyond scaffold-convention to
+multiple valid real-world architectures. Six dogfood-driven fixes
+close systematic FP-classes discovered during content-inspection of
+a user-scoped multi-tenancy production codebase. Projects can now
+declare their conventions via `scanners.*` config in
+`aegis.config.json`: custom boundary-columns (tenant_id / user_id /
+workspace_id / organization_id), custom role-guard helpers,
+non-standard middleware-file-names. SameSite-cookie awareness
+downgrades csrf findings where the compensating-control is present.
+Service-role finding deduplicated across scanners. Generic `.rpc()`
+findings downgraded to INFO absent SQL body-parsing (deferred to
+v0.15). Scaffold baseline unchanged (1000/S/FORTRESS) — v0.14 helps
+existing heterogeneous codebases, not the scaffold ceiling.
 
 ### Fixed
 

@@ -1,6 +1,6 @@
 {
   "name": "@aegis-scan/cli",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "AEGIS CLI — paranoid stack-specific security scanner for Next.js + Supabase. 0-1000 score, 41 built-in checkers (+16 external-tool wrappers), AST-based cross-file taint analysis, 4 compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), inline + config suppressions, JSON / SARIF / HTML / Markdown reporters. Use alongside Semgrep, not instead of it.",
   "license": "MIT",
   "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
