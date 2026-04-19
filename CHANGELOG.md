@@ -82,6 +82,18 @@ shown with the reason the target wasn't met.
   hooksPath) can skip the gate via `--skip-husky` and wire their
   own hook. Closes retrofit-dogfood finding N1.
 
+### Added
+
+- `scripts/release-smoke.sh` + `pnpm release:smoke` npm-script — a
+  mandatory pre-publish installability gate. Packs all 5 packages,
+  extracts the `cli` tarball to verify `templates/` bundling and
+  absence of `workspace:*` protocol leaks in the published `package.json`,
+  scratch-installs the tarballs into a clean `node_modules`, then runs
+  `aegis new` and verifies the emitted scaffold has a real `.gitignore`,
+  zero unsubstituted `{{placeholders}}`, and zero `.tpl` leftovers.
+  Would have caught all three publish-breakages during v0.12. Now
+  documented as step 6 of the release sequence in `docs/release.md`.
+
 ### Changed
 
 - Template manifest schema now accepts `S` for `scanExpectedGrade`

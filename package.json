@@ -13,7 +13,8 @@
     "dogfood:setup": "bash scripts/dogfood-corpus.sh",
     "dogfood:scan": "bash scripts/dogfood-scan.sh",
     "dogfood:annotate": "bash scripts/dogfood-annotate.sh",
-    "dogfood:report": "node packages/cli/dist/index.js precision report"
+    "dogfood:report": "node packages/cli/dist/index.js precision report",
+    "release:smoke": "bash scripts/release-smoke.sh"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
