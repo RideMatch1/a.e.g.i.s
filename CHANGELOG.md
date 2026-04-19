@@ -11,6 +11,53 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.12.2] — 2026-04-19 — "templates-bundling hotfix"
+
+### Fixed
+
+- Published v0.12.1 shipped `@aegis-scan/cli` with `files: ["dist",
+  "README.md"]` — the repo-root `templates/` directory was NOT bundled
+  into the cli tarball. Users running `aegis new <name>` after
+  `npm install @aegis-scan/cli@0.12.1` hit `Error: template
+  "nextjs-supabase" not found. Tried: node_modules/@aegis-scan/cli/templates/…`.
+- Root cause was flagged during Task 5a Pass-1 ("packaging gap") and
+  deferred to "Phase 6/7" — the deferral slipped through all Phase-8
+  release-gates because Phase-6 smoke-test only exercised the local
+  dev-build path (`node packages/cli/dist/index.js new …`) where the
+  template-resolver's monorepo-fallback candidate finds repo-root
+  `templates/`. The published-package path hits the `<cli-root>/templates/`
+  primary candidate, which was missing.
+- Fix: new `packages/cli/scripts/copy-templates.cjs` prepack hook copies
+  repo-root `templates/` → `packages/cli/templates/` at pack time.
+  `packages/cli/package.json` `files` field extended to include
+  `templates`. `packages/cli/templates/` is gitignored (staged copy, not
+  source-of-truth).
+
+### New release-gate — `pre-publish installability smoke-test`
+
+The v0.12.0 workspace:* bug + v0.12.1 missing-templates bug were both
+caught by the SAME missing release-gate: real `npm install` from packed
+tarball into a scratch directory followed by the primary user-facing
+command (`aegis new`). Every future release MUST run this before
+`pnpm -r publish`:
+
+```bash
+pnpm pack (for each package → /tmp/pack-test/)
+cd /tmp/pack-test/smoke && npm init -y
+npm install /tmp/pack-test/aegis-scan-{core,scanners,reporters,cli}-*.tgz
+npx aegis new test-app --skip-install
+# must succeed + generate scaffold dir
+```
+
+### Action required
+
+- npm `latest` reverted to 0.11.2 during this hotfix window; advances to
+  0.12.2 post-publish.
+- Both v0.12.0 and v0.12.1 are deprecated. Any consumer pinned to either
+  must upgrade to v0.12.2.
+
+---
+
 ## [0.12.1] — 2026-04-19 — "workspace: protocol hotfix"
 
 ### Fixed
