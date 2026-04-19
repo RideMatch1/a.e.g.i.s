@@ -81,6 +81,57 @@ const ROLE_GUARD_CALL_PATTERNS = [
   /\bhas\s*\(\s*\{\s*(?:role|permission)\s*:/,
 ];
 
+/** Valid JavaScript-identifier shape for user-provided custom role-guard
+ *  helper names. Blocks injection attempts (strings with punctuation or
+ *  metacharacters that would break the generated RegExp). */
+const VALID_HELPER_NAME_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+
+interface AuthEnforcerConfig {
+  customRoleGuards?: readonly string[];
+}
+
+function readAuthEnforcerConfig(config: AegisConfig): AuthEnforcerConfig {
+  const raw = config.scanners?.authEnforcer;
+  if (!raw || typeof raw !== 'object') return {};
+  const rec = raw as Record<string, unknown>;
+  const out: AuthEnforcerConfig = {};
+  if (Array.isArray(rec.customRoleGuards)) {
+    out.customRoleGuards = rec.customRoleGuards.filter(
+      (s): s is string => typeof s === 'string',
+    );
+  }
+  return out;
+}
+
+/** v0.14 DO-2: build an optional call-shape regex from a list of
+ *  user-declared role-guard helper names. Merged (not replaced) with
+ *  ROLE_GUARD_CALL_PATTERNS at check-time. Invalid entries (non-JS
+ *  identifier shape) are warn-logged and dropped — config typos stay
+ *  debuggable instead of becoming silent FPs. Returns null when there
+ *  are no valid custom helpers (no additional regex to compose). */
+function buildCustomRoleGuardRe(config: AegisConfig): RegExp | null {
+  const cfg = readAuthEnforcerConfig(config);
+  const custom = cfg.customRoleGuards ?? [];
+  const valid = custom.filter((name) => {
+    if (!VALID_HELPER_NAME_RE.test(name)) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[auth-enforcer] invalid customRoleGuard "${name}"; dropped. ` +
+          `Helper names must match /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.`,
+      );
+      return false;
+    }
+    return true;
+  });
+  if (valid.length === 0) return null;
+  // Call-shape wrapping: \b<name>\s*\( — matches the helper as a call,
+  // not as a string-literal or comment occurrence. Safe regex: helper
+  // names are validated above to be bare JS identifiers, so no escape
+  // needed, but the alternation still benefits from grouping.
+  const alternation = valid.join('|');
+  return new RegExp(`\\b(?:${alternation})\\s*\\(`);
+}
+
 /**
  * Role-guard patterns that are comparison expressions (session equality
  * or Clerk metadata-role equality).
@@ -263,6 +314,7 @@ function checkFile(
   file: string,
   findings: Finding[],
   idCounter: { value: number },
+  customRoleGuardRe: RegExp | null,
 ): void {
   // Skip intentionally public routes
   if (isPublicRoute(file)) return;
@@ -275,7 +327,14 @@ function checkFile(
   // short-circuit). Call-based role-guards (requireRole, hasRole,
   // isAdmin, etc.) count anywhere because those helpers throw on
   // failure and are guards regardless of surrounding syntax.
-  let hasRoleGuard = ROLE_GUARD_CALL_PATTERNS.some((p) => p.test(content));
+  //
+  // v0.14 DO-2: also match project-declared custom role-guard helpers
+  // via `scanners.authEnforcer.customRoleGuards` config. Merge with
+  // built-ins (never replace) — avoids the footgun of a misconfigured
+  // project suppressing the well-known names.
+  let hasRoleGuard =
+    ROLE_GUARD_CALL_PATTERNS.some((p) => p.test(content)) ||
+    (customRoleGuardRe !== null && customRoleGuardRe.test(content));
   if (!hasRoleGuard) {
     let sf: ts.SourceFile | null = null;
     try {
@@ -364,6 +423,13 @@ export const authEnforcerScanner: Scanner = {
     // middleware reminder in an app that already has some auth plumbing.
     let hasAnyRouteAuth = false;
 
+    // v0.14 DO-2: build the optional custom-role-guard regex once per
+    // scan from `scanners.authEnforcer.customRoleGuards` config, and
+    // thread it through every checkFile() call. Default (no config)
+    // keeps behavior identical to v0.13 — built-in role-guard patterns
+    // only.
+    const customRoleGuardRe = buildCustomRoleGuardRe(config);
+
     // --- 1. Classic Next.js/App Router route.ts files ---
     const apiDirs = detectApiDirs(projectPath);
 
@@ -386,7 +452,7 @@ export const authEnforcerScanner: Scanner = {
         if (!hasAnyRouteAuth && AUTH_GUARD_PATTERNS.some((p) => p.test(content))) {
           hasAnyRouteAuth = true;
         }
-        checkFile(content, file, findings, idCounter);
+        checkFile(content, file, findings, idCounter, customRoleGuardRe);
       }
     }
 
@@ -474,7 +540,7 @@ export const authEnforcerScanner: Scanner = {
         if (!hasAnyRouteAuth && AUTH_GUARD_PATTERNS.some((p) => p.test(content))) {
           hasAnyRouteAuth = true;
         }
-        checkFile(content, file, findings, idCounter);
+        checkFile(content, file, findings, idCounter, customRoleGuardRe);
       }
     }
 

@@ -24,6 +24,30 @@ Next.js default.
 
 ### Fixed
 
+- `auth-enforcer` accepts project-specific role-guard helpers via
+  `aegis.config.json`. Projects using a custom role-guard convention
+  (e.g. `requirePermission`, `assertRole`, `checkAccess`) can declare
+  the names so the scanner recognises the call and suppresses the
+  low-severity "missing role/authorisation guard" finding. The config
+  extends, never replaces, the built-in `ROLE_GUARD_CALL_PATTERNS`
+  — typos in custom-helper names cannot silently suppress recognition
+  of the well-known built-ins. Example:
+
+  ```jsonc
+  {
+    "scanners": {
+      "authEnforcer": {
+        "customRoleGuards": ["requirePermission", "assertRole"]
+      }
+    }
+  }
+  ```
+
+  Invalid helper names (non-JS-identifier shape) are warn-logged and
+  dropped, not silent-dropped — config typos remain debuggable. Custom
+  helpers are matched in call-shape only (`\bname\s*\(`), so a mere
+  string literal or comment containing the helper name doesn't qualify.
+
 - `csrf-checker` now recognises `SameSite=Lax|Strict` cookie
   declarations in the project's middleware-file. When detected,
   per-route "missing CSRF protection" findings are severity-downgraded

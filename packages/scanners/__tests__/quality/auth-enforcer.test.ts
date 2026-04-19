@@ -875,3 +875,119 @@ describe('authEnforcerScanner — middleware.ts auth patterns', () => {
     }
   });
 });
+
+// v0.14 DO-2 — customRoleGuards config recognition.
+//
+// Projects using their own role-guard helper convention (e.g. a helper
+// named `requirePermission` that returns a 403-NextResponse or throws
+// on deny) can declare the name in aegis.config.json so the scanner
+// recognises the call and suppresses the low-severity "missing role
+// guard" finding.
+//
+// The config extends, never replaces, ROLE_GUARD_CALL_PATTERNS —
+// typos in custom-helper names can't silently suppress recognition of
+// the well-known built-ins.
+describe('authEnforcerScanner — v0.14 customRoleGuards', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  function createAuthedRouteWithHelper(subPath: string, helperCall: string): void {
+    createApiRoute(
+      projectPath,
+      subPath,
+      `
+      import { getServerSession } from 'next-auth/next';
+      export async function POST(request) {
+        const session = await getServerSession();
+        if (!session) return new Response(null, { status: 401 });
+        ${helperCall}
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+  }
+
+  it('default config: requireRole(...) call → no role-guard finding (backward-compat)', async () => {
+    createAuthedRouteWithHelper('admin-users', `requireRole(session.user, ['admin']);`);
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const roleFinding = result.findings.find((f) =>
+      f.title.includes('role/authorisation guard'),
+    );
+    expect(roleFinding).toBeUndefined();
+  });
+
+  it('default config: requirePermission(...) call → LOW finding fires (not in defaults)', async () => {
+    createAuthedRouteWithHelper('admin-content', `await requirePermission(supabase, user.id, 'moderate');`);
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const roleFinding = result.findings.find((f) =>
+      f.title.includes('role/authorisation guard'),
+    );
+    expect(roleFinding).toBeDefined();
+    expect(roleFinding!.severity).toBe('low');
+  });
+
+  it('customRoleGuards=["requirePermission"]: requirePermission call → no finding', async () => {
+    createAuthedRouteWithHelper('admin-content', `await requirePermission(supabase, user.id, 'moderate');`);
+    const configWithHelper = {
+      scanners: {
+        authEnforcer: { customRoleGuards: ['requirePermission'] },
+      },
+    } as unknown as AegisConfig;
+    const result = await authEnforcerScanner.scan(projectPath, configWithHelper);
+    const roleFinding = result.findings.find((f) =>
+      f.title.includes('role/authorisation guard'),
+    );
+    expect(roleFinding).toBeUndefined();
+  });
+
+  it('customRoleGuards=["requirePermission"]: someUnrelatedCall() → finding STILL fires (no over-match)', async () => {
+    createAuthedRouteWithHelper('admin-metrics', `await someUnrelatedCall();`);
+    const configWithHelper = {
+      scanners: {
+        authEnforcer: { customRoleGuards: ['requirePermission'] },
+      },
+    } as unknown as AegisConfig;
+    const result = await authEnforcerScanner.scan(projectPath, configWithHelper);
+    const roleFinding = result.findings.find((f) =>
+      f.title.includes('role/authorisation guard'),
+    );
+    expect(roleFinding).toBeDefined();
+    expect(roleFinding!.severity).toBe('low');
+  });
+
+  it('invalid customRoleGuards entries are warn-logged and dropped; valid entries still apply', async () => {
+    createAuthedRouteWithHelper('admin-valid', `await requirePermission(supabase, user.id, 'moderate');`);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const configBad = {
+        scanners: {
+          authEnforcer: {
+            customRoleGuards: [
+              'requirePermission',     // valid — should apply
+              '1badStart',              // invalid — starts with digit
+              'bad name with spaces',   // invalid — contains spaces
+              'normal_snake_case',      // valid — but not used by our fixture
+            ],
+          },
+        },
+      } as unknown as AegisConfig;
+      const result = await authEnforcerScanner.scan(projectPath, configBad);
+      const roleFinding = result.findings.find((f) =>
+        f.title.includes('role/authorisation guard'),
+      );
+      // valid `requirePermission` still recognised → no finding
+      expect(roleFinding).toBeUndefined();
+      // two invalid entries → two warn-log lines
+      const warnMessages = warnSpy.mock.calls.map((c) => String(c[0]));
+      const dropped = warnMessages.filter((m) =>
+        m.includes('[auth-enforcer]') && m.includes('dropped'),
+      );
+      expect(dropped.length).toBe(2);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+});
