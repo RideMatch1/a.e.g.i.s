@@ -34,6 +34,23 @@ shown with the reason the target wasn't met.
   `git add`. Pack-install-smoke verifies the emitted scaffold now
   contains a real `.gitignore` with the expected ignore-patterns.
 
+- `auth-enforcer` now recognises per-route auth as a compensating
+  control and suppresses the middleware-missing-auth finding when
+  ≥1 route handler / server component / express handler uses a
+  known auth primitive (`secureApiRouteWithTenant`, `getServerSession`,
+  `auth()`, `currentUser()`, layout-level guards via
+  `pageIsGuardedByContext`, etc.). Closes scaffold finding `AUTH-001`.
+- Scaffold empirical baseline moves 998/S/4-MEDIUM → **999/S/3-MEDIUM**
+  (verified by local-build audit of a fresh `aegis new` scaffold with
+  deps installed). Security category now 1000/1000. The 3 remaining
+  MEDIUM are `SUPPLY-001..003` (Next.js ecosystem native binaries +
+  esbuild postinstall), all tracked for the supply-chain allowlist
+  work in the remaining v0.13 scope.
+- Threat-model Pass-2: over-suppression regression-test confirms that
+  unprotected route handlers are still flagged HIGH (CWE-306) even
+  when another route's auth primitive triggers middleware suppression
+  — per-route findings continue to fire independently.
+
 ### Changed
 
 - Template manifest schema now accepts `S` for `scanExpectedGrade`

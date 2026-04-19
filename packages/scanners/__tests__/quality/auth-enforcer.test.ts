@@ -681,6 +681,97 @@ describe('authEnforcerScanner — middleware.ts auth patterns', () => {
     expect(finding).toBeUndefined();
   });
 
+  // v0.13 AUTH-001 FP fix: middleware that does CSRF / rate-limit / CSP
+  // but delegates auth to route handlers via secureApiRouteWithTenant is
+  // the AEGIS-scaffold architecture. Scanner now recognises ≥1 route
+  // with an auth primitive as a compensating control and suppresses the
+  // middleware-missing-auth finding.
+  it('does NOT flag middleware.ts when ≥1 API route uses per-route auth (compensating control)', async () => {
+    writeFileSync(
+      join(projectPath, 'middleware.ts'),
+      `
+      import { NextResponse } from 'next/server';
+      export function middleware(request) {
+        // CSRF + rate-limit + security headers — no auth on purpose
+        return NextResponse.next();
+      }
+    `,
+    );
+    createApiRoute(
+      projectPath,
+      'bookings',
+      `
+      import { secureApiRouteWithTenant } from '@/lib/api/tenant-guard';
+      import { requireRole } from '@/lib/api/require-role';
+      export async function GET(request) {
+        const { context } = await secureApiRouteWithTenant(request, { requireAuth: true });
+        requireRole(context, ['admin']);
+        return Response.json({ ok: true });
+      }
+    `,
+    );
+
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const mwFinding = result.findings.find((f) => f.title.includes('Middleware'));
+    expect(mwFinding).toBeUndefined();
+  });
+
+  // v0.13 AUTH-001 FP fix — threat-model Pass-2 adversarial test.
+  // Over-suppression guard: an app with a mix of auth-protected and
+  // unprotected routes must still have unprotected routes flagged
+  // per-file. The middleware-suppression compensating-control MUST NOT
+  // silence CWE-306 findings on the unprotected handler.
+  it('flags unprotected route handlers even when middleware-suppression kicks in (no over-suppression)', async () => {
+    writeFileSync(
+      join(projectPath, 'middleware.ts'),
+      `
+      import { NextResponse } from 'next/server';
+      export function middleware(request) {
+        return NextResponse.next();
+      }
+    `,
+    );
+    // Route A: fully authenticated (triggers middleware suppression)
+    createApiRoute(
+      projectPath,
+      'secure',
+      `
+      import { secureApiRouteWithTenant } from '@/lib/api/tenant-guard';
+      import { requireRole } from '@/lib/api/require-role';
+      export async function GET(request) {
+        const { context } = await secureApiRouteWithTenant(request, { requireAuth: true });
+        requireRole(context, ['admin']);
+        return Response.json({ ok: true });
+      }
+    `,
+    );
+    // Route B: no auth — per-route finding must still fire HIGH
+    createApiRoute(
+      projectPath,
+      'unprotected',
+      `
+      import { NextResponse } from 'next/server';
+      export async function GET() {
+        return NextResponse.json({ data: 'leaky' });
+      }
+    `,
+    );
+
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+
+    // Middleware FP suppressed (compensating control in route A)
+    const mwFinding = result.findings.find((f) => f.title.includes('Middleware'));
+    expect(mwFinding).toBeUndefined();
+
+    // Route B (unprotected) still flagged HIGH — CWE-306
+    const routeBFinding = result.findings.find(
+      (f) => f.file?.includes('unprotected') && f.title.includes('authentication guard'),
+    );
+    expect(routeBFinding, 'unprotected route handler must still be flagged').toBeDefined();
+    expect(routeBFinding!.severity).toBe('high');
+    expect(routeBFinding!.cwe).toBe(306);
+  });
+
   it('emits fileLevel:true on all line=1 findings (Bug 2 schema contract)', async () => {
     // All auth-enforcer findings are about the file as a whole (missing guard,
     // missing role, etc.) — line:1 is a convention, not a location. The

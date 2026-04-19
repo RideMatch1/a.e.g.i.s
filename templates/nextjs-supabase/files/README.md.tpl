@@ -88,12 +88,9 @@ npx aegis audit .      # run the audit (built-ins today; unified with externals 
 
 ### Known baseline findings
 
-When scanned fresh, this scaffold produces 4 known MEDIUM findings
-(score 998/S/0-BLOCKER). Each is intentional — review rather than suppress:
+When scanned fresh, this scaffold produces 3 known MEDIUM findings
+(score 999/S/0-BLOCKER). Each is intentional — review rather than suppress:
 
-- **AUTH-001 (middleware.ts):** Template uses per-route auth via
-  `secureApiRouteWithTenant`, not middleware-level auth. Scanner limitation
-  — tracked for v0.13.
 - **SUPPLY-001/002/003:** Next.js ecosystem (esbuild postinstall + @next/swc
   + @rollup native binaries). Unavoidable without replacing Next.js.
 

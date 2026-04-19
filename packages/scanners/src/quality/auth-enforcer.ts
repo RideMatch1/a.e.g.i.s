@@ -339,6 +339,21 @@ export const authEnforcerScanner: Scanner = {
     const defaultIgnore = ['node_modules', 'dist', '.next', '.git'];
     const ignore = [...new Set([...defaultIgnore, ...(config.ignore ?? [])])];
 
+    // v0.13 AUTH-001 FP fix: track whether at least ONE route handler,
+    // server-component page, or express handler uses a recognised auth
+    // primitive. Presence is treated as a compensating control that
+    // suppresses the middleware-missing-auth finding emitted in step 4.
+    // Per-route findings (steps 1-3) continue to fire independently for
+    // any route lacking its own guard — over-suppression only applies
+    // to the middleware heuristic, not to per-route checks.
+    //
+    // Note: the tracking is intentionally coarse. A public endpoint like
+    // `/api/auth/login/route.ts` (classified public by PUBLIC_ROUTE_PATTERNS)
+    // may contain an `authenticate()` call — that will also flip the
+    // boolean. Acceptable: the only consequence is suppressing a
+    // middleware reminder in an app that already has some auth plumbing.
+    let hasAnyRouteAuth = false;
+
     // --- 1. Classic Next.js/App Router route.ts files ---
     const apiDirs = detectApiDirs(projectPath);
 
@@ -358,6 +373,9 @@ export const authEnforcerScanner: Scanner = {
       for (const file of routeFiles) {
         const content = readFileSafe(file);
         if (content === null) continue;
+        if (!hasAnyRouteAuth && AUTH_GUARD_PATTERNS.some((p) => p.test(content))) {
+          hasAnyRouteAuth = true;
+        }
         checkFile(content, file, findings, idCounter);
       }
     }
@@ -393,14 +411,20 @@ export const authEnforcerScanner: Scanner = {
         if (!hasDbAccess) continue;
 
         const hasAuthGuard = AUTH_GUARD_PATTERNS.some((p) => p.test(sanitized));
-        if (hasAuthGuard) continue;
+        if (hasAuthGuard) {
+          hasAnyRouteAuth = true;
+          continue;
+        }
 
         // v0.11.x Bug B — App-Router parent-layout + middleware-matcher
         // awareness. The page may be legitimately protected by a
         // FAIL-CLOSED auth guard in a parent layout.tsx or by a
         // middleware with a matching path-matcher. Suppress when either
         // source confidently protects the page.
-        if (pageIsGuardedByContext(file, projectPath)) continue;
+        if (pageIsGuardedByContext(file, projectPath)) {
+          hasAnyRouteAuth = true;
+          continue;
+        }
 
         const id = `AUTH-${String(idCounter.value++).padStart(3, '0')}`;
         findings.push({
@@ -437,6 +461,9 @@ export const authEnforcerScanner: Scanner = {
         const hasExpressRoute = EXPRESS_ROUTE_PATTERNS.some((p) => p.test(content));
         if (!hasExpressRoute) continue;
 
+        if (!hasAnyRouteAuth && AUTH_GUARD_PATTERNS.some((p) => p.test(content))) {
+          hasAnyRouteAuth = true;
+        }
         checkFile(content, file, findings, idCounter);
       }
     }
@@ -463,7 +490,14 @@ export const authEnforcerScanner: Scanner = {
       }
     }
 
-    if (!hasMiddlewareAuth && hasAnyMiddleware) {
+    // v0.13 AUTH-001 FP fix: suppress the middleware-missing-auth finding
+    // when ≥1 route / page / express handler already uses a recognised
+    // auth primitive. This is the "per-route auth architecture" pattern
+    // (e.g. auth delegated to route handlers via secureApiRouteWithTenant
+    // or layout.tsx auth-guards). Per-route findings (steps 1-3) still
+    // fire independently for handlers missing their own guard, so
+    // partial-auth apps are not silently over-suppressed.
+    if (!hasMiddlewareAuth && hasAnyMiddleware && !hasAnyRouteAuth) {
       const middlewareFile = middlewarePaths.find((p) => existsSync(p));
       const id = `AUTH-${String(idCounter.value++).padStart(3, '0')}`;
       findings.push({
