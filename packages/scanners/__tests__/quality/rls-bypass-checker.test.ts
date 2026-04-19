@@ -83,7 +83,12 @@ describe('rlsBypassCheckerScanner', () => {
     expect(result.findings).toHaveLength(0);
   });
 
-  it('flags .rpc() call without RLS comment as MEDIUM', async () => {
+  // v0.14: generic .rpc() calls downgrade MEDIUM → INFO. Without SQL
+  // function-body parsing, the scanner cannot verify whether
+  // caller-passed args are validated inside the function — MEDIUM
+  // over-weighted the conservative-truth pedagogy. INFO keeps the
+  // finding visible without score-deduction.
+  it('flags generic .rpc() call without RLS comment as INFO (v0.14 severity-downgrade)', async () => {
     createFile(
       projectPath,
       'lib/data.ts',
@@ -98,10 +103,28 @@ export async function fetchStats(supabase: any) {
     const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
     expect(result.findings.length).toBeGreaterThan(0);
     const finding = result.findings[0];
-    expect(finding.severity).toBe('medium');
+    expect(finding.severity).toBe('info');
     expect(finding.id).toMatch(/^RLS-/);
     expect(finding.owasp).toBe('A01:2021');
     expect(finding.cwe).toBe(863);
+  });
+
+  it('generic .rpc() finding description notes that AEGIS does not yet parse SQL function bodies', async () => {
+    createFile(
+      projectPath,
+      'lib/data.ts',
+      `
+export async function fetchStats(supabase: any) {
+  const { data } = await supabase.rpc('get_dashboard_stats');
+  return data;
+}
+`,
+    );
+
+    const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.title.includes('rpc'));
+    expect(finding).toBeDefined();
+    expect(finding!.description).toContain('does not yet parse SQL function bodies');
   });
 
   it('flags security-sensitive .rpc() call as HIGH', async () => {

@@ -119,6 +119,18 @@ Next.js default.
 
 ### Changed
 
+- `rls-bypass-checker` generic `.rpc()` findings downgraded from
+  `medium` to `info` severity. Sensitive-named calls (matching
+  `admin_*`, `delete_*`, `grant_*`, etc.) continue to emit at `high`.
+  Rationale: without SQL function-body parsing, the scanner cannot
+  verify whether SECURITY DEFINER functions validate caller-passed
+  arguments — so flagging every `.rpc()` at `medium` over-weighted
+  conservative-truth pedagogy. `info` keeps the finding visible
+  (user remains aware; description now explicitly notes the
+  limitation) without score-deduction. A future release may add
+  SQL body-inspection to reclassify specific findings as `high`
+  when verified vulnerable.
+
 - Scanner-dedup: `tenant-isolation-checker` is now the authoritative
   emitter for `service_role`-key usage in route handlers.
   `rls-bypass-checker` previously emitted a parallel `high`-severity

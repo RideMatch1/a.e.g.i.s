@@ -124,12 +124,25 @@ export const rlsBypassCheckerScanner: Scanner = {
         const nearbyLines = lines.slice(Math.max(0, matchLine - 4), matchLine + 3).join('\n');
         if (RLS_COMMENT_PATTERNS.some((p) => p.test(nearbyLines))) continue;
 
-        // Determine severity: sensitive function names get MEDIUM, others INFO-level but still flagged
+        // Severity split:
+        //   - sensitive-named .rpc() (admin_*, delete_*, grant_*, etc.) stay HIGH —
+        //     the name itself signals an elevated operation whose SECURITY DEFINER
+        //     usage carries real risk regardless of function-body verification.
+        //   - generic .rpc() downgraded v0.14: MEDIUM → INFO. Without SQL
+        //     function-body parsing (not yet implemented — queued for a later
+        //     release's deeper-introspection scope), the scanner cannot verify
+        //     whether caller-passed arguments are validated inside the function.
+        //     MEDIUM over-weighted conservative-truth pedagogy; INFO keeps the
+        //     finding visible without score-deduction. Matches the v0.13
+        //     ecosystem-inherent-INFO pattern for unavoidable-but-visible signal.
         const isSensitive = SENSITIVE_RPC_NAMES.test(content.slice(rpcMatch.index, rpcMatch.index + 100));
-        const severity = isSensitive ? 'high' : 'medium';
+        const severity: Finding['severity'] = isSensitive ? 'high' : 'info';
         const title = isSensitive
           ? 'Security-sensitive .rpc() call may bypass RLS via SECURITY DEFINER'
           : 'Supabase .rpc() call may bypass RLS if function uses SECURITY DEFINER';
+        const description = isSensitive
+          ? 'Supabase .rpc() calls invoke PostgreSQL functions directly. If the called function uses SECURITY DEFINER, it executes with the function owner\'s privileges, bypassing all RLS policies. This can lead to unauthorized data access. Audit the PostgreSQL function to ensure it uses SECURITY INVOKER (default) or add an RLS comment documenting why SECURITY DEFINER is needed.'
+          : 'Supabase .rpc() calls invoke PostgreSQL functions directly. If the called function uses SECURITY DEFINER, it executes with the function owner\'s privileges, bypassing all RLS policies. Verify the function body validates caller-passed arguments, or add an RLS comment documenting why SECURITY DEFINER is needed. Informational: AEGIS does not yet parse SQL function bodies to reclassify this finding — queued for a later release.';
 
         const id = `RLS-${String(idCounter++).padStart(3, '0')}`;
         findings.push({
@@ -137,8 +150,7 @@ export const rlsBypassCheckerScanner: Scanner = {
           scanner: 'rls-bypass-checker',
           severity,
           title,
-          description:
-            'Supabase .rpc() calls invoke PostgreSQL functions directly. If the called function uses SECURITY DEFINER, it executes with the function owner\'s privileges, bypassing all RLS policies. This can lead to unauthorized data access. Audit the PostgreSQL function to ensure it uses SECURITY INVOKER (default) or add an RLS comment documenting why SECURITY DEFINER is needed.',
+          description,
           file,
           line: matchLine,
           category: 'security',
