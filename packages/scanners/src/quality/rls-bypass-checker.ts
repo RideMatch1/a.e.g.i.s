@@ -3,7 +3,16 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
 
 /**
  * RLS Bypass Checker — detects Supabase .rpc() calls that may bypass
- * Row Level Security via SECURITY DEFINER functions, and service_role usage.
+ * Row Level Security via SECURITY DEFINER functions.
+ *
+ * v0.14 dedup: service_role-key usage is now emitted exclusively by
+ * tenant-isolation-checker (which runs scope-aware AST analysis and
+ * emits at `critical` severity). This scanner previously emitted a
+ * parallel `high`-severity finding on the same source lines; the
+ * duplication inflated finding-counts without adding signal. The
+ * .rpc() SECURITY-DEFINER detection below remains — it is a distinct
+ * risk class (caller-passed argument may bypass RLS inside the
+ * function body) that tenant-isolation-checker does not cover.
  *
  * OWASP A01:2021 — Broken Access Control
  * CWE-863 — Incorrect Authorization
@@ -47,14 +56,6 @@ const RLS_COMMENT_PATTERNS: RegExp[] = [
   /\/\/\s*server.only/i,
 ];
 
-/** service_role key usage.
- *  v0.10 Z8: made case-insensitive. The canonical Supabase env var is
- *  `SUPABASE_SERVICE_ROLE_KEY` (UPPERCASE) — the pre-v0.10 regex
- *  `/service_role/` without the /i flag did NOT match that name, so
- *  any codebase referencing the env var without a lowercase prose
- *  mention (e.g. `// uses service_role`) escaped detection entirely. */
-const SERVICE_ROLE_PATTERN = /service_role/i;
-
 /**
  * v0.8 Phase 8: the scanner previously fired on ANY file mentioning
  * `service_role` or `.rpc()` as a text match, including scanner/sink
@@ -77,7 +78,7 @@ const DB_CLIENT_SIGNAL = new RegExp(
 
 export const rlsBypassCheckerScanner: Scanner = {
   name: 'rls-bypass-checker',
-  description: 'Detects Supabase .rpc() calls and service_role usage that may bypass Row Level Security (CWE-863)',
+  description: 'Detects Supabase .rpc() calls that may bypass Row Level Security via SECURITY DEFINER functions (CWE-863). v0.14: service_role detection moved to tenant-isolation-checker as authoritative emitter.',
   category: 'security',
 
   async isAvailable(_projectPath: string): Promise<boolean> {
@@ -106,35 +107,10 @@ export const rlsBypassCheckerScanner: Scanner = {
 
       const lines = content.split('\n');
 
-      // Check for service_role key usage in server code. v0.10 Z8:
-      // `gi` — case-insensitive so UPPERCASE env var names
-      // (SUPABASE_SERVICE_ROLE_KEY) match the same pattern as lowercase
-      // prose references. SERVICE_ROLE_PATTERN's `/i` flag is not
-      // preserved by `.source`, so the flag is composed explicitly here.
-      const serviceRoleRe = new RegExp(SERVICE_ROLE_PATTERN.source, 'gi');
-      let serviceRoleMatch: RegExpExecArray | null;
-      while ((serviceRoleMatch = serviceRoleRe.exec(content)) !== null) {
-        const matchLine = findLineNumber(content, serviceRoleMatch.index);
-
-        // Check if RLS comment exists nearby
-        const nearbyLines = lines.slice(Math.max(0, matchLine - 4), matchLine + 3).join('\n');
-        if (RLS_COMMENT_PATTERNS.some((p) => p.test(nearbyLines))) continue;
-
-        const id = `RLS-${String(idCounter++).padStart(3, '0')}`;
-        findings.push({
-          id,
-          scanner: 'rls-bypass-checker',
-          severity: 'high',
-          title: 'service_role key usage — bypasses ALL Row Level Security policies',
-          description:
-            'The Supabase service_role key bypasses all RLS policies entirely. This means any query using this key ignores tenant isolation, access controls, and data visibility rules. Only use service_role for server-side admin operations that genuinely need to bypass RLS, and document the reason. Prefer the anon/authenticated key with properly configured RLS policies.',
-          file,
-          line: matchLine,
-          category: 'security',
-          owasp: 'A01:2021',
-          cwe: 863,
-        });
-      }
+      // v0.14 dedup: service_role-key emission removed — see file header.
+      // tenant-isolation-checker is now the authoritative emitter (it
+      // does scope-aware AST analysis and emits at `critical`). The
+      // .rpc() SECURITY-DEFINER detection below remains.
 
       // Check for .rpc() calls
       if (!RPC_PATTERN.test(content)) continue;

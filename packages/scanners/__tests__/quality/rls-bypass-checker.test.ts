@@ -139,7 +139,11 @@ export async function fetchStats(supabase: any) {
     expect(rpcFindings).toHaveLength(0);
   });
 
-  it('flags service_role usage as HIGH', async () => {
+  // v0.14 dedup: service_role detection moved to tenant-isolation-checker
+  // as the authoritative emitter (scope-aware AST analysis + critical severity).
+  // rls-bypass-checker no longer emits parallel findings on the same pattern.
+  // Regression-pin: if someone re-introduces the regex here, the dedup is broken.
+  it('v0.14 dedup: does NOT flag service_role usage (moved to tenant-isolation-checker)', async () => {
     createFile(
       projectPath,
       'lib/admin-client.ts',
@@ -150,25 +154,62 @@ const supabase = createClient(url, service_role_key);
     );
 
     const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
-    const finding = result.findings.find(f => f.title.includes('service_role'));
-    expect(finding).toBeDefined();
-    expect(finding!.severity).toBe('high');
+    const serviceRoleFindings = result.findings.filter((f) =>
+      f.title.toLowerCase().includes('service_role'),
+    );
+    expect(serviceRoleFindings).toHaveLength(0);
   });
 
-  it('does NOT flag service_role with RLS comment', async () => {
+  it('v0.14 dedup: does NOT flag SUPABASE_SERVICE_ROLE_KEY env-var reference', async () => {
     createFile(
       projectPath,
-      'lib/admin-safe.ts',
+      'lib/admin.ts',
       `
 import { createClient } from '@supabase/supabase-js';
-// RLS bypass needed for cron job — no user context available
-const supabase = createClient(url, service_role_key);
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+`,
+    );
+    const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const serviceRoleFindings = result.findings.filter((f) =>
+      f.title.toLowerCase().includes('service_role'),
+    );
+    expect(serviceRoleFindings).toHaveLength(0);
+  });
+
+  // v0.14 dedup contract — rls-bypass-side assertion. A multi-scanner
+  // project run on a file with service_role MUST see zero emissions
+  // from this scanner. (Authoritative emission from
+  // tenant-isolation-checker is verified independently in that
+  // scanner's own test file — keeping the cross-scanner coupling out
+  // of this file avoids brittle dependence on the peer's AST pipeline.)
+  it('v0.14 dedup contract: rls-bypass emits zero service_role findings on an api/route.ts with admin client', async () => {
+    const routeDir = join(projectPath, 'src', 'app', 'api', 'admin');
+    mkdirSync(routeDir, { recursive: true });
+    writeFileSync(
+      join(routeDir, 'route.ts'),
+      `
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+
+export async function GET() {
+  const { data } = await supabaseAdmin.from('users').select('*');
+  return Response.json(data);
+}
 `,
     );
 
-    const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
-    const serviceRoleFindings = result.findings.filter(f => f.title.includes('service_role'));
-    expect(serviceRoleFindings).toHaveLength(0);
+    const rlsResult = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const rlsServiceRole = rlsResult.findings.filter((f) =>
+      f.title.toLowerCase().includes('service_role'),
+    );
+    expect(rlsServiceRole).toHaveLength(0);
   });
 
   it('skips test files', async () => {
@@ -190,20 +231,4 @@ const { data } = await supabase.rpc('admin_delete_all');
     expect(result.available).toBe(true);
   });
 
-  // v0.10 Z8 — case-insensitive service_role match (UPPERCASE env var shape).
-  it('v0.10 Z8: flags SUPABASE_SERVICE_ROLE_KEY env-var reference (UPPERCASE only)', async () => {
-    createFile(projectPath, 'lib/admin.ts', `
-import { createClient } from '@supabase/supabase-js';
-
-export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
-`);
-    const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
-    const srFindings = result.findings.filter((f) => f.title.includes('service_role'));
-    expect(srFindings.length).toBeGreaterThan(0);
-    expect(srFindings[0].cwe).toBe(863);
-    expect(srFindings[0].severity).toBe('high');
-  });
 });

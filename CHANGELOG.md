@@ -35,6 +35,19 @@ Next.js default.
   codebase revealed that this recognition gap dominated the
   auth-enforcer false-positive class on Supabase-SSR codebases.
 
+### Changed
+
+- Scanner-dedup: `tenant-isolation-checker` is now the authoritative
+  emitter for `service_role`-key usage in route handlers.
+  `rls-bypass-checker` previously emitted a parallel `high`-severity
+  finding on the same source lines, producing ~20 duplicated findings
+  per production-scale codebase. `tenant-isolation-checker` stays —
+  it runs scope-aware AST analysis (v0.11.2 Part C scope-aware
+  suppression) and emits at `critical` severity, which is the stronger
+  signal. `rls-bypass-checker` retains its `.rpc()` SECURITY-DEFINER
+  detection, which is a distinct risk class (caller-passed argument
+  may bypass RLS inside the function body).
+
 ---
 
 ## [0.13.0] — 2026-04-19 — "Dogfood Precision"
