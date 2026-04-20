@@ -95,7 +95,7 @@ function renderFindingRow(finding: Finding, index: number): string {
     ? finding.line != null
       ? `${escHtml(finding.file)}:${finding.line}`
       : escHtml(finding.file)
-    : '—';
+    : '(project-level)';
 
   const detailId = `finding-detail-${index}`;
 

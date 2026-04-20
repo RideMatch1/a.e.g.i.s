@@ -95,7 +95,7 @@ function renderFindingsByGroup(findings: Finding[]): string {
     sections.push('|----|---------|-------|------|-----:|');
 
     for (const f of group) {
-      const file = f.file ? escMd(f.file) : '—';
+      const file = f.file ? escMd(f.file) : '(project-level)';
       const line = f.line != null ? String(f.line) : '—';
       sections.push(
         `| \`${escMd(f.id)}\` | ${escMd(f.scanner)} | ${escMd(f.title)} | \`${file}\` | ${line} |`,

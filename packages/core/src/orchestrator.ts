@@ -143,6 +143,7 @@ export class Orchestrator {
       duration,
       timestamp: new Date().toISOString(),
       confidence,
+      scanRoot: config.projectPath,
     };
   }
 }

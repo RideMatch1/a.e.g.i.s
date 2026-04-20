@@ -50,6 +50,8 @@ function formatFinding(finding: Finding): string {
   if (finding.file) {
     const loc = finding.line != null ? `${finding.file}:${finding.line}` : finding.file;
     lines.push(`    ${chalk.dim('at')} ${chalk.cyan(loc)}`);
+  } else {
+    lines.push(`    ${chalk.dim('at')} ${chalk.cyan('(project-level)')}`);
   }
 
   if (finding.description) {

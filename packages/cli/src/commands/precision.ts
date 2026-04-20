@@ -97,7 +97,7 @@ function shortHash(input: string): string {
  * is the correct identity.
  */
 function findingFingerprint(
-  f: { scanner: string; file?: string; line?: number; title: string; fileLevel?: boolean },
+  f: { scanner: string; file?: string | null; line?: number; title: string; fileLevel?: boolean },
   projectPath: string,
 ): string {
   if (!f.file) return `${f.scanner}|noFile|${f.title}`;
@@ -144,7 +144,7 @@ function findingFingerprint(
  * still recognized as a fallback so v0.6f-format annotations don't lose
  * verdicts after upgrading.
  */
-function legacyFindingKey(f: { scanner: string; file?: string; line?: number; title: string }): string {
+function legacyFindingKey(f: { scanner: string; file?: string | null; line?: number; title: string }): string {
   return `${f.scanner}|${f.file ?? ''}|${f.line ?? ''}|${f.title}`;
 }
 
@@ -244,7 +244,7 @@ export async function runPrecisionAnnotate(
     return {
       id: f.id,
       scanner: f.scanner,
-      file: f.file,
+      file: f.file ?? undefined,
       line: f.line,
       title: f.title,
       verdict,

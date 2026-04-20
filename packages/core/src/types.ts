@@ -29,7 +29,18 @@ export interface Finding {
   severity: Severity;
   title: string;
   description: string;
-  file?: string;
+  /**
+   * File path the finding is anchored to. v0.15.2 widens the type from
+   * `string | undefined` to `string | null | undefined` — scanners that
+   * emit a project-level finding SHOULD set `file: null` explicitly so
+   * reporters can render the `(project-level)` location placeholder
+   * rather than silently omit the key. Reporters treat `undefined` and
+   * `null` identically for render purposes; the JSON reporter also
+   * normalizes any under-scanRoot absolute path to a relative one via
+   * node path.relative semantics, falling back to process.cwd() when
+   * AuditResult.scanRoot is not set.
+   */
+  file?: string | null;
   line?: number;
   column?: number;
   /**
@@ -213,6 +224,15 @@ export interface AuditResult {
   duration: number;
   timestamp: string;
   confidence: Confidence;
+  /**
+   * Absolute path of the scan-root. v0.15.2 Item-4 surfaces this on the
+   * result object so reporters can produce consumer-stable relative file
+   * paths via `path.relative(scanRoot, finding.file)` rather than
+   * leaking caller-absolute paths that break PR-comment dedup across CI
+   * runners with different checkout locations. Optional for backward
+   * compatibility — reporters fall back to `process.cwd()` when not set.
+   */
+  scanRoot?: string;
 }
 
 export interface Reporter {
