@@ -236,3 +236,49 @@ describe('markdownReporter', () => {
     expect(output).toMatch(/AEGIS v\d+\.\d+\.\d+/);
   });
 });
+
+describe('markdownReporter fix-field union rendering', () => {
+  const baseFinding = {
+    id: 'SEC-300',
+    scanner: 'jwt-detector',
+    category: 'security' as const,
+    severity: 'critical' as const,
+    title: 'Hardcoded JWT detected',
+    description: 'JWT-shaped token found in source',
+    file: 'src/config/secrets.ts',
+    line: 3,
+  };
+
+  it('renders FixGuidance.description in the Fix markdown block', () => {
+    const result = makeResult({
+      findings: [{ ...baseFinding, fix: { description: 'Move the JWT into process.env.' } }],
+    });
+    const output = markdownReporter.format(result);
+    expect(output).toContain('**Fix:** Move the JWT into process.env.');
+  });
+
+  it('renders FixGuidance.code inside a fenced code block when present', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        fix: { description: 'Use an env-var.', code: 'const k = process.env.JWT_KEY;' },
+      }],
+    });
+    const output = markdownReporter.format(result);
+    expect(output).toMatch(/```\nconst k = process\.env\.JWT_KEY;\n```/);
+  });
+
+  it('renders FixGuidance.links as markdown links when present', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        fix: {
+          description: 'See references.',
+          links: ['https://cwe.mitre.org/data/definitions/798.html'],
+        },
+      }],
+    });
+    const output = markdownReporter.format(result);
+    expect(output).toContain('**See:** [https://cwe.mitre.org/data/definitions/798.html]');
+  });
+});

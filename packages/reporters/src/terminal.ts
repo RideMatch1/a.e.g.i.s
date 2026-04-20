@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import type { AuditResult, Finding, Reporter } from '@aegis-scan/core';
+import { normalizeFix } from './util.js';
 
 const BAR_WIDTH = 20;
 const FILLED = '█';
@@ -55,8 +56,15 @@ function formatFinding(finding: Finding): string {
     lines.push(`    ${chalk.dim(finding.description)}`);
   }
 
-  if (finding.fix) {
-    lines.push(`    ${chalk.green('fix:')} ${finding.fix}`);
+  const fix = normalizeFix(finding.fix);
+  if (fix) {
+    lines.push(`    ${chalk.green('fix:')} ${fix.description}`);
+    if (fix.code) {
+      lines.push(`         ${chalk.gray(fix.code)}`);
+    }
+    if (fix.links && fix.links.length > 0) {
+      lines.push(`         ${chalk.dim('see:')} ${fix.links.join(', ')}`);
+    }
   }
 
   lines.push(`    ${chalk.dim('id:')} ${chalk.dim(finding.id)}  ${chalk.dim('scanner:')} ${chalk.dim(finding.scanner)}`);

@@ -1,5 +1,6 @@
 import type { AuditResult, Finding, Reporter, ScanResult } from '@aegis-scan/core';
 import { getVersion } from '@aegis-scan/core';
+import { normalizeFix } from './util.js';
 
 const SEVERITY_ORDER: string[] = ['blocker', 'critical', 'high', 'medium', 'low', 'info'];
 
@@ -108,8 +109,15 @@ function renderFindingsByGroup(findings: Finding[]): string {
       if (f.description) {
         sections.push(`**Description:** ${escMd(f.description)}\n`);
       }
-      if (f.fix) {
-        sections.push(`**Fix:** ${escMd(f.fix)}\n`);
+      const fix = normalizeFix(f.fix);
+      if (fix) {
+        sections.push(`**Fix:** ${escMd(fix.description)}\n`);
+        if (fix.code) {
+          sections.push('```\n' + fix.code + '\n```\n');
+        }
+        if (fix.links && fix.links.length > 0) {
+          sections.push(`**See:** ${fix.links.map((l) => `[${escMd(l)}](${l})`).join(', ')}\n`);
+        }
       }
       if (f.owasp) {
         sections.push(`**OWASP:** ${escMd(f.owasp)}`);

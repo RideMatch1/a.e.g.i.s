@@ -1,5 +1,6 @@
 import type { AuditResult, Finding, Reporter } from '@aegis-scan/core';
 import { getVersion } from '@aegis-scan/core';
+import { normalizeFix } from './util.js';
 
 function escHtml(str: string): string {
   return str
@@ -99,6 +100,15 @@ function renderFindingRow(finding: Finding, index: number): string {
   const detailId = `finding-detail-${index}`;
 
   const extraRows: string[] = [];
+  const fix = normalizeFix(finding.fix);
+  const fixBlock = fix
+    ? `<div class="detail-block fix-block">
+                <span class="detail-label">Fix:</span>
+                <span class="detail-text fix-text">${escHtml(fix.description)}</span>
+                ${fix.code ? `<pre class="fix-code">${escHtml(fix.code)}</pre>` : ''}
+                ${fix.links && fix.links.length > 0 ? `<div class="fix-links">See: ${fix.links.map((l) => `<a href="${escHtml(l)}" rel="noopener noreferrer">${escHtml(l)}</a>`).join(', ')}</div>` : ''}
+              </div>`
+    : '';
   if (finding.description) {
     extraRows.push(`
           <tr class="detail-row" id="${detailId}-desc">
@@ -107,10 +117,7 @@ function renderFindingRow(finding: Finding, index: number): string {
                 <span class="detail-label">Description:</span>
                 <span class="detail-text">${escHtml(finding.description)}</span>
               </div>
-              ${finding.fix ? `<div class="detail-block fix-block">
-                <span class="detail-label">Fix:</span>
-                <span class="detail-text fix-text">${escHtml(finding.fix)}</span>
-              </div>` : ''}
+              ${fixBlock}
             </td>
           </tr>`);
   }

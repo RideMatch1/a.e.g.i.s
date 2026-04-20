@@ -148,3 +148,50 @@ describe('terminalReporter', () => {
     expect(typeof terminalReporter.format(makeResult())).toBe('string');
   });
 });
+
+describe('terminalReporter fix-field union rendering', () => {
+  const baseFinding = {
+    id: 'SEC-100',
+    scanner: 'jwt-detector',
+    category: 'security' as const,
+    severity: 'critical' as const,
+    title: 'Hardcoded JWT detected',
+    description: 'JWT-shaped token found in source',
+    file: 'src/config/secrets.ts',
+    line: 3,
+  };
+
+  function strip(output: string): string {
+    return output.replace(/\x1B\[[0-9;]*m/g, '');
+  }
+
+  it('renders FixGuidance.description when fix is a structured object', () => {
+    const result = makeResult({
+      findings: [{ ...baseFinding, fix: { description: 'Move the JWT into process.env.' } }],
+    });
+    expect(strip(terminalReporter.format(result))).toContain('Move the JWT into process.env.');
+  });
+
+  it('renders FixGuidance.code when present', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        fix: { description: 'Use an env-var.', code: 'const k = process.env.JWT_KEY;' },
+      }],
+    });
+    expect(strip(terminalReporter.format(result))).toContain('const k = process.env.JWT_KEY;');
+  });
+
+  it('renders FixGuidance.links when present', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        fix: {
+          description: 'See references.',
+          links: ['https://cwe.mitre.org/data/definitions/798.html'],
+        },
+      }],
+    });
+    expect(strip(terminalReporter.format(result))).toContain('cwe.mitre.org/data/definitions/798');
+  });
+});

@@ -160,3 +160,52 @@ describe('htmlReporter', () => {
     expect(output).toContain('MEDIUM');
   });
 });
+
+describe('htmlReporter fix-field union rendering', () => {
+  const baseFinding = {
+    id: 'SEC-200',
+    scanner: 'jwt-detector',
+    category: 'security' as const,
+    severity: 'critical' as const,
+    title: 'Hardcoded JWT detected',
+    description: 'JWT-shaped token found in source',
+    file: 'src/config/secrets.ts',
+    line: 3,
+  };
+
+  it('renders FixGuidance.description inside the fix-block', () => {
+    const result = makeResult({
+      findings: [{ ...baseFinding, fix: { description: 'Move the JWT into process.env.' } }],
+    });
+    const output = htmlReporter.format(result);
+    expect(output).toContain('Move the JWT into process.env.');
+    expect(output).toContain('fix-block');
+  });
+
+  it('renders FixGuidance.code inside a <pre> element when present', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        fix: { description: 'Use an env-var.', code: 'const k = process.env.JWT_KEY;' },
+      }],
+    });
+    const output = htmlReporter.format(result);
+    expect(output).toContain('<pre class="fix-code">');
+    expect(output).toContain('process.env.JWT_KEY');
+  });
+
+  it('renders FixGuidance.links as anchors when present', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        fix: {
+          description: 'See references.',
+          links: ['https://cwe.mitre.org/data/definitions/798.html'],
+        },
+      }],
+    });
+    const output = htmlReporter.format(result);
+    expect(output).toContain('href="https://cwe.mitre.org/data/definitions/798.html"');
+    expect(output).toContain('rel="noopener noreferrer"');
+  });
+});
