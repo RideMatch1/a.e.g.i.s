@@ -1,0 +1,3 @@
+# Seeded 2026-04-20 when v0.15 lockfile-drift detection landed.
+# Re-seed after every acknowledged dep-update: shasum -a 256 pnpm-lock.yaml > .aegis/lockfile-hash
+sha256:fb578f5564810682117b2ba8323b40c9661b513500ee6a07ef03478f382173ce  pnpm-lock.yaml
