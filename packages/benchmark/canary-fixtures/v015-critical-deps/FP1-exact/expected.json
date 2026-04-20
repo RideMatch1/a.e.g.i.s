@@ -1,0 +1,9 @@
+{
+  "id": "FP1",
+  "cwe": 494,
+  "type": "FP",
+  "description": "criticalDeps-listed dep pinned exactly (16.0.0) — scanner must NOT fire; exact-pin is compliant",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 494 }
+  ]
+}

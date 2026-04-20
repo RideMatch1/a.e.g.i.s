@@ -1,0 +1,7 @@
+{
+  "name": "v015-canary-tp3-range",
+  "version": "0.0.1",
+  "dependencies": {
+    "next": ">=16.0.0"
+  }
+}

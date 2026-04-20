@@ -1,0 +1,7 @@
+{
+  "name": "v015-canary-edge-empty",
+  "version": "0.0.1",
+  "dependencies": {
+    "next": "^16.0.0"
+  }
+}

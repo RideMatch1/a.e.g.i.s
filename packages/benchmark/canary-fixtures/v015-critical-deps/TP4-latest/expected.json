@@ -1,0 +1,9 @@
+{
+  "id": "TP4",
+  "cwe": 494,
+  "type": "TP",
+  "description": "criticalDeps-listed dep pinned via 'latest' tag — scanner must emit on non-exact version. Note: existing wildcard-version check also fires here with CWE-829; this fixture asserts the distinct critical-deps CWE-494 emission.",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 494 }
+  ]
+}

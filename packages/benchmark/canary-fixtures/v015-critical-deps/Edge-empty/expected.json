@@ -1,0 +1,9 @@
+{
+  "id": "Edge-empty",
+  "cwe": 494,
+  "type": "FP",
+  "description": "criticalDeps: [] (explicit empty array) — even with caret-pinned 'next', scanner must NOT fire; empty-array means explicit no-enforcement",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 494 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "FP3",
+  "cwe": 494,
+  "type": "FP",
+  "description": "No aegis.config.json present — caret-pinned 'next' must NOT fire; criticalDeps is opt-in, backward compat for unconfigured projects",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 494 }
+  ]
+}

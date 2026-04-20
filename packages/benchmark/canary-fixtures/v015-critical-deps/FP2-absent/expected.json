@@ -1,0 +1,9 @@
+{
+  "id": "FP2",
+  "cwe": 494,
+  "type": "FP",
+  "description": "criticalDeps lists 'next' but package.json doesn't declare 'next' — scanner must NOT fire; not-installed is not a violation",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 494 }
+  ]
+}

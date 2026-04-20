@@ -1,0 +1,7 @@
+{
+  "name": "v015-canary-tp4-latest",
+  "version": "0.0.1",
+  "dependencies": {
+    "next": "latest"
+  }
+}

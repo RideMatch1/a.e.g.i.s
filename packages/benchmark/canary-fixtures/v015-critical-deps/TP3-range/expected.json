@@ -1,0 +1,9 @@
+{
+  "id": "TP3",
+  "cwe": 494,
+  "type": "TP",
+  "description": "criticalDeps-listed dep pinned via comparator range (>=16.0.0) — scanner must emit on non-exact version",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 494 }
+  ]
+}

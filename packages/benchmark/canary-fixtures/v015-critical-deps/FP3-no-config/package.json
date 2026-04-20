@@ -1,0 +1,7 @@
+{
+  "name": "v015-canary-fp3-no-config",
+  "version": "0.0.1",
+  "dependencies": {
+    "next": "^16.0.0"
+  }
+}
