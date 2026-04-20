@@ -216,6 +216,28 @@ describe('runDiffDeps — integration (real git-sandbox)', () => {
     expect(combined.toLowerCase()).toMatch(/ref|reference|invalid|nonexistent/);
   });
 
+  it('invalid-ref (fully-qualified): exit 2 for refs/heads/<bogus>', async () => {
+    writeLockfile(tempDir, { next: '16.0.0' });
+    await commitAll(tempDir, 'v1');
+
+    const exitCode = await runDiffDeps(tempDir, {
+      since: 'refs/heads/does-not-exist',
+      format: 'text',
+    });
+    expect(exitCode).toBe(2);
+  });
+
+  it('invalid-ref (empty string): exit 2 when --since is blank', async () => {
+    writeLockfile(tempDir, { next: '16.0.0' });
+    await commitAll(tempDir, 'v1');
+
+    const exitCode = await runDiffDeps(tempDir, {
+      since: '',
+      format: 'text',
+    });
+    expect(exitCode).toBe(2);
+  });
+
   it('pnpm-lockfile: parses pnpm-lock.yaml and reports diff', async () => {
     const pnpmV1 = `lockfileVersion: '9.0'\n\npackages:\n\n  next@15.2.1:\n    resolution: {integrity: sha512-x}\n`;
     const pnpmV2 = `lockfileVersion: '9.0'\n\npackages:\n\n  next@16.0.0:\n    resolution: {integrity: sha512-y}\n`;
