@@ -11,7 +11,13 @@ shown with the reason the target wasn't met.
 
 ---
 
-## [Unreleased] — "Hotfix: Trust Fixes" (v0.15.1, in-progress)
+## [Unreleased]
+
+(Empty — next work lands here.)
+
+---
+
+## [0.15.1] — 2026-04-20 — "Hotfix: Trust Fixes"
 
 Trust-fixes driven by the 2026-04-20 external-review pass. Four
 scope-locked items, no feature-expansion:
