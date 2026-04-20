@@ -281,3 +281,66 @@ describe('calculateScore — confidence', () => {
     expect(['A', 'B', 'C', 'D', 'F']).toContain(result.grade);
   });
 });
+
+describe('calculateScore — severity=critical auto-promotes to blocker tier (v0.15.1)', () => {
+  // External-review 2026-04-20 flagged a cognitive-leak: a result with
+  // `severity: 'critical'` findings was being reported as grade S / badge
+  // FORTRESS / blocked: false because only `severity: 'blocker'` hit the
+  // grade-0 path. Semantically critical and blocker are equivalent highest-
+  // tier severities; either should fail the build-gate. v0.15.1 unifies
+  // their scoring treatment.
+
+  it('0 findings → grade S/A, blocked=false, score=1000 (regression guard)', () => {
+    const result = calculateScore([]);
+    expect(result.blocked).toBe(false);
+    expect(result.score).toBe(1000);
+    expect(result.grade).toBe('S');
+  });
+
+  it('1 critical finding → grade F, blocked=true, score=0', () => {
+    const result = calculateScore([
+      makeFinding({ id: 'crit-1', severity: 'critical', category: 'security', title: 'SQL Injection in login' }),
+    ]);
+    expect(result.blocked).toBe(true);
+    expect(result.score).toBe(0);
+    expect(result.grade).toBe('F');
+    expect(result.badge).toBe('CRITICAL');
+  });
+
+  it('1 blocker finding → grade F, blocked=true, score=0 (regression guard for existing behavior)', () => {
+    const result = calculateScore([
+      makeFinding({ id: 'blk-1', severity: 'blocker', category: 'security' }),
+    ]);
+    expect(result.blocked).toBe(true);
+    expect(result.score).toBe(0);
+    expect(result.grade).toBe('F');
+  });
+
+  it('1 high + 1 critical → grade F, blocked=true, score=0 (critical wins, high ignored)', () => {
+    const result = calculateScore([
+      makeFinding({ id: 'hi-1', severity: 'high', category: 'security' }),
+      makeFinding({ id: 'crit-1', severity: 'critical', category: 'security', title: 'Auth bypass' }),
+    ]);
+    expect(result.blocked).toBe(true);
+    expect(result.score).toBe(0);
+    expect(result.grade).toBe('F');
+  });
+
+  it('5 high findings (no critical/blocker) → blocked=false, grade not F (high alone does not force-fail)', () => {
+    const findings = Array.from({ length: 5 }, (_, i) =>
+      makeFinding({ id: `hi-${i}`, severity: 'high', category: 'security' }),
+    );
+    const result = calculateScore(findings);
+    expect(result.blocked).toBe(false);
+    expect(result.grade).not.toBe('F');
+  });
+
+  it('blockerReason includes critical finding title + id so CLI banner is actionable', () => {
+    const result = calculateScore([
+      makeFinding({ id: 'crit-42', severity: 'critical', category: 'security', title: 'RCE via eval()' }),
+    ]);
+    expect(result.blockerReason).toBeDefined();
+    expect(result.blockerReason).toContain('RCE via eval()');
+    expect(result.blockerReason).toContain('crit-42');
+  });
+});
