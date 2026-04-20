@@ -12,6 +12,17 @@ const FAST_CATEGORIES: ScanCategory[] = [
   'i18n',
 ];
 
+/**
+ * v0.15.2 Item-7 — denominator for the cold-install-UX banner text.
+ * AEGIS ships external-tool wrappers for roughly 16 third-party
+ * scanners (semgrep, gitleaks, trufflehog, osv-scanner, trivy,
+ * hadolint, checkov, testssl, bearer, npm-audit, axe-lighthouse,
+ * lighthouse-perf, nuclei, zap, react-doctor, supply-chain). Bump
+ * this constant when adding a new external-tool wrapper so the
+ * banner fraction stays honest.
+ */
+const TOTAL_EXTERNAL_TOOLS = 16;
+
 export interface ScanOptions {
   format?: string;
   color?: boolean;
@@ -71,6 +82,22 @@ export async function runScan(path: string, options: ScanOptions): Promise<numbe
     const result = await orchestrator.run(config);
 
     spinner.stop();
+
+    // v0.15.2 Item-7 — cold-install-UX banner. When external-tool
+    // wrappers return available:false (commandExists failed for their
+    // binary on PATH), surface a stderr-only diagnostic so human
+    // operators know the scan ran with partial coverage. Stdout stays
+    // untouched so --format json consumers piping to jq get a clean
+    // payload (JSON-purity is the non-negotiable contract).
+    const unavailable = result.scanResults.filter((s) => !s.available);
+    if (unavailable.length > 0) {
+      const names = unavailable.map((s) => s.scanner).join(', ');
+      const banner =
+        `⚠️  ${unavailable.length}/${TOTAL_EXTERNAL_TOOLS} external scanners unavailable `
+        + `(${names}). Built-in coverage is partial. Install for full audit: `
+        + `aegis doctor (v0.15.3). See .github/workflows/aegis.yml for CI-ready setup.\n`;
+      process.stderr.write(banner);
+    }
 
     // Hide info-severity findings (e.g., i18n hardcoded-text hints) from
     // human-readable output by default — they dominate the output without
