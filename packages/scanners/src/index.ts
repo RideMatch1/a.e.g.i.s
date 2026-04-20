@@ -24,6 +24,7 @@ import { massAssignmentCheckerScanner } from './quality/mass-assignment-checker.
 import { csrfCheckerScanner } from './quality/csrf-checker.js';
 import { openRedirectCheckerScanner } from './quality/open-redirect-checker.js';
 import { sqlConcatCheckerScanner } from './quality/sql-concat-checker.js';
+import { templateSqlCheckerScanner } from './quality/template-sql-checker.js';
 import { xssCheckerScanner } from './quality/xss-checker.js';
 import { tenantIsolationCheckerScanner } from './quality/tenant-isolation-checker.js';
 import { pathTraversalCheckerScanner } from './quality/path-traversal-checker.js';
@@ -89,6 +90,7 @@ export function getAllScanners(): Scanner[] {
     csrfCheckerScanner,
     openRedirectCheckerScanner,
     sqlConcatCheckerScanner,
+    templateSqlCheckerScanner,
     xssCheckerScanner,
     tenantIsolationCheckerScanner,
     pathTraversalCheckerScanner,
@@ -170,6 +172,7 @@ export {
   csrfCheckerScanner,
   openRedirectCheckerScanner,
   sqlConcatCheckerScanner,
+  templateSqlCheckerScanner,
   xssCheckerScanner,
   tenantIsolationCheckerScanner,
   pathTraversalCheckerScanner,
