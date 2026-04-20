@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -346,5 +346,112 @@ describe('loadConfig — no JS config loading (security)', () => {
     // JS config should be ignored — only JSON is supported
     expect(config.locale).toBeUndefined();
     expect(config.compliance).toBeUndefined();
+  });
+});
+
+describe('loadConfig — scanners.supplyChain.criticalDeps (v0.15)', () => {
+  // Config-file rejection logs to console.error by design; silence
+  // that noise during this block so test output stays clean. The
+  // behaviour under test is the fallback, not the log line.
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('accepts criticalDeps as non-empty string array', async () => {
+    writePkg(tmpDir, { dependencies: { next: '^14.0.0' } });
+    fs.writeFileSync(
+      path.join(tmpDir, 'aegis.config.json'),
+      JSON.stringify({
+        scanners: { supplyChain: { criticalDeps: ['next', '@supabase/ssr'] } },
+      }),
+    );
+
+    const config = await loadConfig(tmpDir);
+
+    expect(config.scanners).toBeDefined();
+    expect(config.scanners!.supplyChain).toEqual({
+      criticalDeps: ['next', '@supabase/ssr'],
+    });
+  });
+
+  it('rejects criticalDeps as non-array — config discarded, falls back to auto-detection', async () => {
+    writePkg(tmpDir, { dependencies: { next: '^14.0.0' } });
+    fs.writeFileSync(
+      path.join(tmpDir, 'aegis.config.json'),
+      JSON.stringify({
+        scanners: { supplyChain: { criticalDeps: 'next' } },
+      }),
+    );
+
+    const config = await loadConfig(tmpDir);
+
+    // Config discarded on schema violation; scanners not populated.
+    expect(config.scanners).toBeUndefined();
+    // Auto-detection still runs.
+    expect(config.stack.framework).toBe('nextjs');
+  });
+
+  it('rejects criticalDeps with non-string elements', async () => {
+    writePkg(tmpDir, { dependencies: { next: '^14.0.0' } });
+    fs.writeFileSync(
+      path.join(tmpDir, 'aegis.config.json'),
+      JSON.stringify({
+        scanners: { supplyChain: { criticalDeps: [1, 2] } },
+      }),
+    );
+
+    const config = await loadConfig(tmpDir);
+
+    expect(config.scanners).toBeUndefined();
+  });
+
+  it('rejects criticalDeps with empty-string elements', async () => {
+    writePkg(tmpDir, { dependencies: { next: '^14.0.0' } });
+    fs.writeFileSync(
+      path.join(tmpDir, 'aegis.config.json'),
+      JSON.stringify({
+        scanners: { supplyChain: { criticalDeps: ['', 'next'] } },
+      }),
+    );
+
+    const config = await loadConfig(tmpDir);
+
+    expect(config.scanners).toBeUndefined();
+  });
+
+  it('accepts empty array criticalDeps: [] (explicit no-enforcement)', async () => {
+    writePkg(tmpDir, { dependencies: { next: '^14.0.0' } });
+    fs.writeFileSync(
+      path.join(tmpDir, 'aegis.config.json'),
+      JSON.stringify({
+        scanners: { supplyChain: { criticalDeps: [] } },
+      }),
+    );
+
+    const config = await loadConfig(tmpDir);
+
+    expect(config.scanners).toBeDefined();
+    expect(config.scanners!.supplyChain).toEqual({ criticalDeps: [] });
+  });
+
+  it('missing criticalDeps field under supplyChain is accepted (backward-compat)', async () => {
+    writePkg(tmpDir, { dependencies: { next: '^14.0.0' } });
+    fs.writeFileSync(
+      path.join(tmpDir, 'aegis.config.json'),
+      JSON.stringify({
+        scanners: { supplyChain: {} },
+      }),
+    );
+
+    const config = await loadConfig(tmpDir);
+
+    expect(config.scanners).toBeDefined();
+    expect(config.scanners!.supplyChain).toEqual({});
   });
 });
