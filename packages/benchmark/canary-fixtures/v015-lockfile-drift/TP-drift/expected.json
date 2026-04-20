@@ -1,0 +1,9 @@
+{
+  "id": "TP-drift",
+  "cwe": 353,
+  "type": "TP",
+  "description": "Baseline hash in .aegis/lockfile-hash does NOT match current package-lock.json content — scanner must emit MEDIUM/CWE-353 drift",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 353 }
+  ]
+}

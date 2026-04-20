@@ -1,0 +1,9 @@
+{
+  "id": "FP-no-drift",
+  "cwe": 353,
+  "type": "FP",
+  "description": "Baseline hash matches current package-lock.json content — scanner must NOT emit (no drift to flag)",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 353 }
+  ]
+}

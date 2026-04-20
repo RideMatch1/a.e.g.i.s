@@ -1,0 +1,9 @@
+{
+  "id": "FP-no-lockfile",
+  "cwe": 353,
+  "type": "FP",
+  "description": "No lockfile and no baseline — scanner must NOT emit (non-lockfile-workflow projects are no-op)",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 353 }
+  ]
+}

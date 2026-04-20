@@ -1,0 +1,9 @@
+{
+  "id": "TP-first-scan",
+  "cwe": 353,
+  "type": "TP",
+  "description": ".aegis/lockfile-hash absent + package-lock.json present — scanner must emit INFO/CWE-353 baseline-seeding recommendation",
+  "expected": [
+    { "scanner": "supply-chain", "cwe": 353 }
+  ]
+}
