@@ -1,0 +1,9 @@
+{
+  "id": "v0152-FP-comment-jwt",
+  "cwe": 798,
+  "type": "FP",
+  "description": "JWT-shaped literals embedded inside // line-comments and /* */ block-comments — the jwt-detector reuses the existing stripComments utility from packages/scanners/src/ast/page-context.ts, which replaces comment-spans with whitespace before the regex scan, so no emission is expected. Regression-guard for the comment-awareness contract.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

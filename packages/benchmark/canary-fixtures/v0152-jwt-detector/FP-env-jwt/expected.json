@@ -1,0 +1,9 @@
+{
+  "id": "v0152-FP-env-jwt",
+  "cwe": 798,
+  "type": "FP",
+  "description": "JWT loaded from process.env at runtime — the source contains no JWT-shape literal and jwt-detector must NOT fire. This is the compliant pattern users should migrate to.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0152-FP-interpolated-template-jwt",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Template-literal JWT with ${} interpolation — the regex-only scanner naturally cannot reconstruct the composed literal because ${ breaks the [A-Za-z0-9_-] character class, so jwt-detector must NOT fire. Documents the AST-class deferral queued for v0.15.3 / semgrep-pairing.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0152-TP-hardcoded-template-jwt",
+  "cwe": 798,
+  "type": "TP",
+  "description": "Fully-static JWT inside a backtick template-literal with no ${} interpolation — regex sees the complete text and jwt-detector must emit CRITICAL/CWE-798. Covers the case where dev uses template-literals-by-habit even for constant strings.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0152-TP-hardcoded-jwt",
+  "cwe": 798,
+  "type": "TP",
+  "description": "Bare double-quoted string literal carrying a full JWT-shaped credential — jwt-detector must emit CRITICAL/CWE-798. This is the canonical leak pattern Round-2 review surfaced as a credibility gap in v0.15.1.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}
