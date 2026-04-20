@@ -59,6 +59,11 @@
       "reason": "sql-concat-checker defines SQL-injection detection patterns. The source literally contains .rpc() / .execute() template samples as documentation."
     },
     {
+      "file": "packages/scanners/src/quality/template-sql-checker.ts",
+      "rule": "sql-concat-checker",
+      "reason": "template-sql-checker defines SQL-injection detection patterns for the template-literal class. The source JSDoc documents the non-overlap contract with the older sql-concat-checker by literally citing db.query(\"SELECT ... \" + id) as the string-concat shape owned by that sibling scanner. Structural self-match — same class as the existing sql-concat-checker.ts self-suppression, and the crypto-auditor / jwt-checker / xss-checker / redos-checker source self-matches documented above."
+    },
+    {
       "file": "packages/scanners/src/quality/xss-checker.ts",
       "rule": "xss-checker",
       "reason": "xss-checker defines XSS sink patterns (innerHTML, document.write, etc.) in its regex array. Structural self-match."
