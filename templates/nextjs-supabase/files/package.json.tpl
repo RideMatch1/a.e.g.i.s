@@ -22,6 +22,6 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/node": "^22.9.0",
-    "vitest": "^2.1.0"
+    "vitest": "^3.1.0"
   }
 }

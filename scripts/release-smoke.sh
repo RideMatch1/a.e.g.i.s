@@ -72,6 +72,21 @@ fi
 FILE_COUNT=$(find smoke-test -type f | wc -l | tr -d ' ')
 echo "▸ Scaffold: $FILE_COUNT files, 0 unsubstituted, 0 .tpl leftovers, .gitignore present"
 
+# v0.15.1: block ship-time regressions of scaffolded dep-CVEs. Generates a
+# lockfile from the scaffold's package.json and runs npm audit. Uses
+# --package-lock-only so no node_modules download is needed — the audit-DB
+# only needs the resolved dep-tree. A security-tool shipping a scaffold
+# that fails "npm audit" on day 0 is self-undermining; this gate prevents
+# regression.
+echo "▸ Verifying scaffold npm audit (moderate+) clean"
+( cd smoke-test && npm install --package-lock-only --silent >/dev/null 2>&1 )
+if ! ( cd smoke-test && npm audit --audit-level=moderate ) >/dev/null 2>&1; then
+  echo "✗ FAIL: scaffold has moderate+ vulnerabilities on day 0. Inspect via:"
+  echo "   cd $SMOKE_DIR/smoke-test && npm audit"
+  exit 1
+fi
+echo "▸ Scaffold audit: 0 moderate+ vulnerabilities"
+
 echo "▸ Cleaning up"
 cd "$REPO_ROOT"
 rm -rf "$SMOKE_DIR"
