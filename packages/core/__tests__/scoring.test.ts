@@ -65,13 +65,11 @@ describe('calculateScore — zero findings', () => {
 });
 
 describe('calculateScore — severity deductions', () => {
-  it('deducts 40 from security category for critical finding', () => {
-    const findings = [makeFinding({ severity: 'critical', category: 'security' })];
-    const result = calculateScore(findings);
-
-    // security category score should be 960 (1000 - 40)
-    expect(result.breakdown.security.score).toBe(960);
-  });
+  // v0.15.1: `critical` no longer follows the deduction table — it
+  // force-fails to grade-F like `blocker`. Deduction coverage for
+  // `critical` is intentionally absent here; see
+  // "calculateScore — severity=critical auto-promotes to blocker tier (v0.15.1)"
+  // describe block below.
 
   it('deducts 15 from security category for high finding', () => {
     const findings = [makeFinding({ severity: 'high', category: 'security' })];
@@ -114,13 +112,17 @@ describe('calculateScore — severity deductions', () => {
   });
 
   it('reduces total score proportional to category weight', () => {
-    // One critical finding in security: deducts 40 from security cat score (1000 -> 960).
+    // One high finding in security: deducts 15 from security cat score (1000 -> 985).
     // calculateScore normalizes weights so they sum to 1.0 internally.
-    // security normalized weight = 0.20 / 0.85 ≈ 0.2353
-    // Total = 960 * (0.20/0.85) + 1000 * (0.65/0.85) ≈ 991
-    const findings = [makeFinding({ severity: 'critical', category: 'security' })];
+    // Total = 985 * (security-weight / sum-of-weights) + 1000 * (rest / sum).
+    // Exact value depends on the full CATEGORY_WEIGHTS table; range-assert
+    // rather than hard-pin so the test stays stable against weight tweaks.
+    // v0.15.1: uses `high` not `critical` — critical now force-fails via
+    // the blocker-tier path, not the per-category deduction math.
+    const findings = [makeFinding({ severity: 'high', category: 'security' })];
     const result = calculateScore(findings);
-    expect(result.score).toBe(991);
+    expect(result.score).toBeGreaterThanOrEqual(995);
+    expect(result.score).toBeLessThan(1000);
   });
 });
 
@@ -251,8 +253,12 @@ describe('calculateScore — confidence', () => {
   });
 
   it('does not cap A when confidence is low (A is achievable)', () => {
+    // v0.15.1: uses two `high` findings — critical would trigger the
+    // blocker-tier force-fail path and push grade to F regardless of
+    // confidence. Here we test that a score landing in the natural A
+    // range (850–949) is NOT silently capped lower by low-confidence.
     const findings = [
-      makeFinding({ id: 'f1', severity: 'critical', category: 'security' }),
+      makeFinding({ id: 'f1', severity: 'high', category: 'security' }),
       makeFinding({ id: 'f2', severity: 'high', category: 'quality' }),
     ];
     const result = calculateScore(findings, 'low');

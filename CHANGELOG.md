@@ -11,9 +11,51 @@ shown with the reason the target wasn't met.
 
 ---
 
-## [Unreleased]
+## [Unreleased] — "Hotfix: Trust Fixes" (v0.15.1, in-progress)
 
-(Empty — next work lands here.)
+Trust-fixes driven by the 2026-04-20 external-review pass. Four
+scope-locked items, no feature-expansion:
+
+### Fixed
+
+- **Scaffold ships with 0 npm audit vulnerabilities on day 0.** Bumped
+  `vitest` in `templates/nextjs-supabase/files/package.json.tpl` from
+  `^2.1.0` to `^3.1.0` to pull `esbuild >= 0.24.3`, closing
+  GHSA-67mh-4wv8-2f99 (esbuild dev-server request-origin check).
+  `npm audit --audit-level=moderate` on a fresh scaffold: 5 moderate
+  → 0. Release-smoke now runs `npm audit` on the scaffolded project
+  as a mandatory release-gate — any future transitive-CVE regression
+  fails the gate before publish.
+
+- **`severity: 'critical'` is now treated identically to `severity: 'blocker'`
+  in scoring.** Prior behavior: a scan with one critical finding could
+  return grade S / badge FORTRESS / `blocked: false` because only
+  `blocker` hit the grade-0 path. The external review flagged this as
+  a cognitive-leak — users skimming grade S would miss the critical
+  finding, eroding trust when discovered. v0.15.1 expands the
+  blocker-check to `['blocker', 'critical'].includes(severity)` so
+  either severity forces `score: 0`, `grade: 'F'`, `blocked: true`,
+  and a `blockerReason` banner in the terminal output. Scanner authors
+  continue to emit whichever label fits the finding class (scanners
+  currently emit both); the scoring engine unifies their treatment.
+
+- **Scaffold CI workflow comment refreshed** for v0.13+ external-tool
+  behavior. `templates/nextjs-supabase/files/.github/workflows/aegis.yml`
+  had a stale v0.12-era comment claiming audit runs built-ins only;
+  accurate text now describes the unified pipeline (Semgrep /
+  OSV-Scanner / Gitleaks / TruffleHog auto-invoked when on PATH).
+
+### Added
+
+- **`@aegis-scan/mcp-server` ships with a README.** The v0.15.0 npm
+  release of the MCP server landed with an empty landing page on
+  npmjs.com. New `packages/mcp-server/README.md` covers: the five
+  `aegis_*` tools exposed, install via `npx`, Claude Desktop config
+  snippet, connect-from-other-MCP-clients guidance, and the
+  thin-wrapper scope boundary relative to `@aegis-scan/core` +
+  `/scanners`.
+
+---
 
 ---
 

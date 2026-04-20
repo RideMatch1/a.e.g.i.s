@@ -415,7 +415,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 | 300-499 | D | AT_RISK |
 | 0-299 | F | CRITICAL |
 
-Certain findings (eval injection, hardcoded secrets, unauthed admin routes) are **BLOCKER** severity and force the score to 0 / F immediately.
+**BLOCKER** and **CRITICAL** severity are semantically equivalent — both represent the highest-severity tier and both force the score to 0 / grade F immediately, regardless of other findings. Scanners may emit either label; the scoring engine treats them identically (this was unified in v0.15.1 after an external review surfaced scans returning grade S with a critical finding quietly buried in the table). Examples of findings that fall into this tier: eval injection, hardcoded secrets, unauthed admin routes, service-role-key misuse, SQL injection on unscoped queries.
 
 ---
 

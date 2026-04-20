@@ -60,9 +60,15 @@ export interface ScoreResult {
 }
 
 export function calculateScore(findings: Finding[], confidence: Confidence = 'high'): ScoreResult {
-  // Check for blockers first — scanners are responsible for emitting severity: 'blocker'
+  // v0.15.1: `critical` and `blocker` are semantically equivalent —
+  // both represent the highest severity tier and both force the
+  // build-gate. Prior to v0.15.1 only `blocker` triggered this path;
+  // `critical` findings were deducted via diminishing-returns math,
+  // which could leave a score at grade S/FORTRESS even with one
+  // critical present (cognitive-leak flagged by external-review
+  // 2026-04-20). Unifying the tier closes that class.
   const blockerFinding = findings.find(
-    (f) => f.severity === 'blocker',
+    (f) => f.severity === 'blocker' || f.severity === 'critical',
   );
   if (blockerFinding) {
     const breakdown = buildBreakdown(findings);
@@ -70,12 +76,13 @@ export function calculateScore(findings: Finding[], confidence: Confidence = 'hi
     for (const cat of Object.keys(breakdown) as ScanCategory[]) {
       breakdown[cat].score = 0;
     }
+    const label = blockerFinding.severity === 'blocker' ? 'Blocker finding' : 'Critical finding';
     return {
       score: 0,
       grade: 'F',
       badge: 'CRITICAL',
       blocked: true,
-      blockerReason: `Blocker finding: ${blockerFinding.title} (${blockerFinding.id})`,
+      blockerReason: `${label}: ${blockerFinding.title} (${blockerFinding.id})`,
       breakdown,
       confidence,
     };
