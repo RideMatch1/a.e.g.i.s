@@ -12,6 +12,7 @@ import { headerCheckerScanner } from './quality/header-checker.js';
 import { zodEnforcerScanner } from './quality/zod-enforcer.js';
 import { rateLimitCheckerScanner } from './quality/rate-limit-checker.js';
 import { entropyScanner } from './quality/entropy-scanner.js';
+import { jwtDetectorScanner } from './secrets/jwt-detector.js';
 import { paginationCheckerScanner } from './quality/pagination-checker.js';
 import { timingSafeCheckerScanner } from './quality/timing-safe-checker.js';
 import { uploadValidatorScanner } from './quality/upload-validator.js';
@@ -119,6 +120,7 @@ export function getAllScanners(): Scanner[] {
     cookieCheckerScanner,
     loggingCheckerScanner,
     jwtCheckerScanner,
+    jwtDetectorScanner,
     depConfusionCheckerScanner,
     taintAnalyzerScanner,
     nextPublicLeakScanner,
@@ -156,6 +158,7 @@ export {
   zodEnforcerScanner,
   rateLimitCheckerScanner,
   entropyScanner,
+  jwtDetectorScanner,
   paginationCheckerScanner,
   timingSafeCheckerScanner,
   uploadValidatorScanner,
