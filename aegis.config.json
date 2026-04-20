@@ -39,6 +39,11 @@
       "reason": "Taint-tracker / function-summary match crypto primitive names (HMAC, digest, token-generation patterns) for taint-source / sanitizer bookkeeping. Not runtime crypto."
     },
     {
+      "file": "packages/scanners/src/dependencies/**/*.ts",
+      "rule": "crypto-auditor",
+      "reason": "Supply-chain-scanner uses createHash for lockfile-integrity-hashing (content-fingerprint of package-lock.json / pnpm-lock.yaml), not for security-token generation. Pattern consistent with existing suppressions on scanners/ast and scanners/quality/* self-matches where crypto primitives serve as detection-infrastructure."
+    },
+    {
       "file": "packages/scanners/src/quality/jwt-checker.ts",
       "rule": "crypto-auditor",
       "reason": "JWT-checker contains JWT algorithm names ('none', 'HS256', etc.) as detection literals. crypto-auditor matches the 'none' string as a structural FP on the detection source."
