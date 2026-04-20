@@ -224,6 +224,59 @@ function discoverWorkspacePackages(projectPath: string): Set<string> {
   return discoverWorkspaceDeps(projectPath).workspaceNames;
 }
 
+/**
+ * v0.15: exact-pin detection for `scanners.supplyChain.criticalDeps`.
+ *
+ * Returns true only when the version string denotes a single specific
+ * release — `"16.0.0"`, `"16.0.0-rc.1"`, `"=16.0.0"`, or an npm-alias
+ * whose target is itself exact (`"npm:other@16.0.0"`). Everything else
+ * is a range / selector and counts as non-exact: caret, tilde,
+ * comparator-range, hyphen-range, x-range, `"latest"`, `"*"`, empty
+ * string, disjunction (`||`), etc.
+ *
+ * The alias-discriminator is the version after the last `@`, not the
+ * alias target. `"npm:other@16.0.0"` IS exact (aliased-exact); the
+ * compromise risk is bounded by the exact pin regardless of which
+ * package name is used at install time. `"npm:other@^16.0.0"` is NOT.
+ */
+function isExactVersion(raw: string): boolean {
+  let version = raw.trim();
+  if (version.startsWith('npm:')) {
+    const atIdx = version.lastIndexOf('@');
+    if (atIdx > 4) return isExactVersion(version.slice(atIdx + 1));
+    return false;
+  }
+  // Leading '=' is explicit-equality; still exact if the rest is exact.
+  if (version.startsWith('=')) version = version.slice(1).trim();
+  if (version === '' || version === '*' || version === 'latest') return false;
+  // Any other leading comparator → range, non-exact
+  if (/^[\^~><]/.test(version)) return false;
+  // Whitespace → hyphen-range ("1.0.0 - 2.0.0") or alternation
+  if (/\s/.test(version)) return false;
+  if (version.includes('||')) return false;
+  // x-ranges: "16.x" / "16.*" / leading x/*
+  if (/[.\-][xX*]/.test(version) || /^[xX*]/.test(version)) return false;
+  // Fully-specified N.N.N with optional prerelease/build metadata
+  return /^\d+\.\d+\.\d+(?:[-+][0-9a-zA-Z.+-]+)?$/.test(version);
+}
+
+/**
+ * v0.15: read `scanners.supplyChain.criticalDeps` defensively.
+ *
+ * Zod validation already strips malformed data at config-load (see
+ * `packages/core/src/config.ts` — SupplyChainScannerConfigSchema with
+ * `.strict()`). This runtime read is defensive for callers that build
+ * an `AegisConfig` in-memory without going through the Zod pipeline
+ * (benchmark harnesses, direct-programmatic-use, tests).
+ */
+function readCriticalDeps(config: AegisConfig): readonly string[] {
+  const rec = config.scanners?.supplyChain;
+  if (!rec || typeof rec !== 'object') return [];
+  const raw = (rec as Record<string, unknown>).criticalDeps;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((d): d is string => typeof d === 'string' && d.length > 0);
+}
+
 export const supplyChainScanner: Scanner = {
   name: 'supply-chain',
   description: 'Supply chain security analysis — typosquatting, install scripts, phantom dependencies, and more',
@@ -365,6 +418,28 @@ export const supplyChainScanner: Scanner = {
             829,
           );
         }
+      }
+    }
+
+    // --- Check 7: criticalDeps enforcement (v0.15) ---
+    // Packages listed in scanners.supplyChain.criticalDeps must use an
+    // exact-pin version in package.json. Non-exact versions (caret,
+    // tilde, ranges, "latest", "*", empty, x-ranges) emit HIGH/CWE-494.
+    // CWE-494 is distinct from CWE-829 used by Check 4 so both can
+    // coexist on "latest"-style values without colliding in canary
+    // RED-baseline interpretation.
+    if (pkgJson) {
+      const criticalDeps = readCriticalDeps(config);
+      for (const critDep of criticalDeps) {
+        const version = allDeps[critDep];
+        if (version === undefined) continue; // dep not installed
+        if (isExactVersion(version)) continue;
+        addFinding(
+          'high',
+          `Non-exact version on critical dep: "${critDep}" (${version || '(empty)'})`,
+          `Dependency "${critDep}" is declared in scanners.supplyChain.criticalDeps but package.json uses a non-exact version "${version || '(empty)'}". An unpinned critical dep can resolve to a future upstream publish — including one pushed via a compromised publish-token — without triggering any in-repo review. Pin exactly (e.g. "${critDep}": "16.0.0") or drop from criticalDeps if this dep does not warrant pin-enforcement.`,
+          494,
+        );
       }
     }
 

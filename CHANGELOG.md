@@ -38,11 +38,18 @@ upstream release via caret-bumps.
   }
   ```
 
-  The config is the foundation for the scanner emit-logic landing in
-  the next commit (HIGH-severity, CWE-494 "Download of Code Without
-  Integrity Check" — distinct from CWE-829 used by the existing
-  wildcard-version check so the two don't collide in canary
-  RED-baseline interpretation).
+- `supply-chain-scanner` emits a HIGH-severity finding with CWE-494
+  ("Download of Code Without Integrity Check") for any package listed
+  in `scanners.supplyChain.criticalDeps` whose `package.json` version
+  is non-exact. Exact counts: `"16.0.0"`, `"=16.0.0"`, pre-release /
+  build tags (`"16.0.0-rc.1"`, `"16.0.0+build.1"`), and aliased-exact
+  (`"npm:other@16.0.0"`). Non-exact emits: caret (`^`), tilde (`~`),
+  comparator-range (`>=`, `<`), hyphen-range (`"1.0.0 - 2.0.0"`),
+  x-range (`"16.x"`), `"latest"`, `"*"`, empty string, disjunctions
+  (`||`), and aliased-non-exact (`"npm:other@^16.0.0"`). CWE-494 is
+  distinct from CWE-829 used by the existing wildcard-version check
+  so `"latest"` cleanly fires both — the two checks surface different
+  defense-in-depth concerns (unpinned-critical vs general-unpinned).
 
 ### Internal
 
