@@ -17,6 +17,129 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.15.2] — 2026-04-20 — "Detection Hardening"
+
+Detection-hardening hotfix driven by the 2026-04-20 Round-2 external
+review of v0.15.1. Seven scope-locked items close the credibility-
+critical detection-gap the review surfaced (a crafted fixture with a
+literal service-role JWT plus template-literal SQLi scanned clean at
+grade A) plus the ergonomics and supply-chain gaps around fix-guidance,
+path-format stability, and artifact provenance.
+
+### Added
+
+- **Built-in JWT-format hardcoded-credential detector** at
+  `packages/scanners/src/secrets/jwt-detector.ts`. CRITICAL severity,
+  rule-id `SECRET-JWT-NNN`, CWE-798, OWASP A02:2021. Regex pattern
+  `eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{5,}` catches
+  the canonical HS256-minimal JWT header literal plus longer shapes.
+  Comment-awareness comes free by reusing the existing `stripComments`
+  utility at `packages/scanners/src/ast/page-context.ts`. Five canary
+  fixtures in `packages/benchmark/canary-fixtures/v0152-jwt-detector/`
+  cover TP-hardcoded, TP-hardcoded-template, FP-env, FP-interpolated-
+  template (documented v0.15.3 AST deferral), and FP-comment regression-
+  guard. The detector ships with a canonical `FixGuidance` fix-field
+  from day zero.
+
+- **Template-literal SQL-injection detector** at
+  `packages/scanners/src/quality/template-sql-checker.ts`. CRITICAL
+  severity, rule-id `SQLI-TMPL-NNN`, CWE-89, OWASP A03:2021. Locates
+  `.rpc(...)` / `.execute(...)` / `.query(...)` call-sites via regex,
+  then walks the balanced-paren arg-span with string-aware skipping to
+  detect any template-literal carrying a `${...}` interpolation. Does
+  not double-fire with the older `sql-concat-checker` on plain string-
+  concat SQL — explicit non-overlap contract documented in the Edge-
+  static-literal-concat canary fixture.
+
+- **`FixGuidance` canonical remediation type** on `Finding.fix`. New
+  shape `{ description: string; code?: string; links?: string[] }` in
+  `packages/core/src/types.ts`. Replaces the legacy bare-string `fix`
+  field as the v0.15.2+ canonical form; the string arm is retained
+  through v0.15.x for backward compatibility with external scanner
+  consumers and slated for removal in v0.16 as an intentional breaking
+  change. The terminal, HTML, and Markdown reporters render all three
+  fields uniformly via a shared `normalizeFix` helper in
+  `packages/reporters/src/util.ts`; the MCP-server fix-suggestion tool
+  output flattens FixGuidance to its description string for MCP client-
+  schema stability.
+
+- **FixGuidance populated on ten top scanner-classes** — tenant-
+  isolation-checker, auth-enforcer, csrf-checker, zod-enforcer,
+  sql-concat-checker, entropy-scanner, ssrf-checker, rls-bypass-checker,
+  xss-checker, and crypto-auditor. Every high-severity-or-above finding
+  from these classes now carries a description, a short code snippet
+  illustrating the fix, and at least the CWE-MITRE plus OWASP-Top-10
+  reference URLs. The `integration.fix-guidance.test.ts` parameterized
+  suite locks the contract and flips cleanly from 10-of-10 RED baseline
+  to 10-of-10 green once the bulk populate lands.
+
+- **Cold-install-UX banner** in `aegis scan`. When one or more external-
+  tool wrapper scanners fail their `isAvailable` check because the
+  underlying binary is not on PATH, the scan command emits a stderr-only
+  diagnostic banner of the shape
+  `⚠️  N/16 external scanners unavailable (...). Built-in coverage is
+  partial. Install for full audit: aegis doctor (v0.15.3). See
+  .github/workflows/aegis.yml for CI-ready setup.` The routing contract
+  is non-negotiable stderr-only — `--format json` stdout remains a pure
+  parseable payload so consumers piping to jq see no banner interference.
+  The `scan-banner.test.ts` subprocess-spawn suite asserts the stdout-
+  purity guarantee alongside the banner-on-stderr contract.
+
+### Fixed
+
+- **JSON reporter file-paths normalize to scan-root relative.** The
+  Round-2 review flagged a Vercel-target scan with 25 absolute paths,
+  1 relative path, and 11 no-file entries in a single output, which
+  breaks PR-comment dedup across CI runners with different checkout
+  locations. `packages/reporters/src/json.ts` now collapses absolute
+  paths under `scanRoot` to relative form via `path.relative`, produces
+  a node-standard negative-relative walk (`../outer/file.ts`) for files
+  outside the scan-root, leaves already-relative paths untouched, and
+  emits an explicit `"file": null` literal for project-level findings
+  rather than omitting the key. The new `AuditResult.scanRoot` field
+  carries the absolute project-path from the orchestrator; reporters
+  fall back to `process.cwd()` when the field is absent. Terminal, HTML,
+  and Markdown reporters render `(project-level)` in the file-location
+  slot when the finding carries no file anchor.
+
+- **`aegis diff-deps --since=<bogus-ref>` exits 2, not 0** (regression-
+  guard coverage added). The exit-2 user-error contract has been in
+  place since the v0.15 P1 landing; this release extends the integration
+  suite with a fully-qualified-ref case (`refs/heads/does-not-exist`)
+  and an empty-string case so a future refactor of `validateGitRef` or
+  the CLI exit-code propagation cannot regress the contract silently.
+
+### Infrastructure
+
+- **SLSA Level-2 provenance via GitHub Actions OIDC**. New
+  `.github/workflows/publish.yml` triggers on tag-push matching `v*`,
+  uses `id-token: write` to obtain a GitHub OIDC attestation, and runs
+  `pnpm -r publish --provenance --access public --no-git-checks`.
+  Consumers can verify with `npm audit signatures` or
+  `npm view @aegis-scan/<pkg>@0.15.2 dist.attestations`. Manual-publish
+  fallback remains documented — a maintainer can still publish from
+  their laptop if the workflow fails at release time, at the cost of
+  shipping that version without provenance (documented known-gap,
+  completion moves to the next release cycle).
+
+### Discipline notes
+
+Three retrospective-fix cluster rules from v0.15.0 R7 held verbatim
+this cycle — `source .env.local ; npm config set ...` chain uses
+semicolons not pipes so env-vars persist in the parent shell, BSD-
+compatible `sed '$d'` for CHANGELOG-notes extraction, and `find -type f
+| wc -l` for scaffold file-count rather than the BSD-ls-dotfile-hiding
+pattern.
+
+Two new disciplines proved out this cycle — CHANGELOG inline per-phase
+(this very entry) rather than deferred to tag time, and eager self-
+scan after every scanner-source or config-touching commit. The eager-
+self-scan gate caught a sibling-scanner self-match on the new
+`template-sql-checker.ts` source line 35 JSDoc and forced the c7
+suppression before Item-2 could close prematurely.
+
+---
+
 ## [0.15.1] — 2026-04-20 — "Hotfix: Trust Fixes"
 
 Trust-fixes driven by the 2026-04-20 external-review pass. Four
