@@ -195,6 +195,15 @@ export const csrfCheckerScanner: Scanner = {
             category: 'security',
             owasp: 'A01:2021',
             cwe: 352,
+            fix: {
+              description:
+                'Gate every mutating handler behind the tenant-guard helper which validates Origin against the configured allowlist, or pair a double-submit token with SameSite=Lax|Strict on the session cookie. Content-Type enforcement against application/json is an acceptable substitute for pure JSON APIs.',
+              code: "const { context } = await secureApiRouteWithTenant(request, { requireAuth: true });",
+              links: [
+                'https://cwe.mitre.org/data/definitions/352.html',
+                'https://owasp.org/Top10/A01_2021-Broken_Access_Control/',
+              ],
+            },
           });
         }
       }

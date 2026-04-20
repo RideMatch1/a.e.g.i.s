@@ -280,6 +280,15 @@ export const sqlConcatCheckerScanner: Scanner = {
             category: 'security',
             owasp: 'A03:2021',
             cwe: 89,
+            fix: {
+              description:
+                'Replace the string-concat or template-interpolation with a parameterized call. For Supabase use typed RPC arg objects; for raw drivers bind values via positional placeholders so the query plan is fixed before user input is applied.',
+              code: "await pool.query('SELECT * FROM users WHERE id = $1', [id]);",
+              links: [
+                'https://cwe.mitre.org/data/definitions/89.html',
+                'https://owasp.org/Top10/A03_2021-Injection/',
+              ],
+            },
           });
         }
       }

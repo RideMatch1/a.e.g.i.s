@@ -1122,6 +1122,15 @@ export const tenantIsolationCheckerScanner: Scanner = {
             category: 'security',
             owasp: 'A01:2021',
             cwe: 639,
+            fix: {
+              description:
+                'Drop the service-role client from the request path. Use the anon-or-user-scoped server client, which binds the caller identity to RLS policies, and layer tenant-boundary filters via the tenant-guard helper so every read and write is scoped before it reaches the database.',
+              code: "const supabase = await createServerSupabaseClient();\nconst { context } = await secureApiRouteWithTenant(request, { requireAuth: true });",
+              links: [
+                'https://cwe.mitre.org/data/definitions/639.html',
+                'https://owasp.org/Top10/A01_2021-Broken_Access_Control/',
+              ],
+            },
           });
         }
       }
@@ -1164,6 +1173,15 @@ export const tenantIsolationCheckerScanner: Scanner = {
             category: 'security',
             owasp: 'A01:2021',
             cwe: 639,
+            fix: {
+              description:
+                'Add a tenant-boundary filter to every read and write. Derive the tenant id from the authenticated context, then constrain the query with the discriminant column your schema uses. Prefer the secureApiRouteWithTenant helper so the context is enforced at the route boundary.',
+              code: "const { data } = await supabase.from('users').select('*').eq('tenant_id', context.tenantId);",
+              links: [
+                'https://cwe.mitre.org/data/definitions/639.html',
+                'https://owasp.org/Top10/A01_2021-Broken_Access_Control/',
+              ],
+            },
           });
           return;
         }

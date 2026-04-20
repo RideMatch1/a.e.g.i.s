@@ -183,6 +183,15 @@ export const xssCheckerScanner: Scanner = {
             category: 'security',
             owasp: 'A03:2021',
             cwe: 79,
+            fix: {
+              description:
+                'Render user-supplied content through React text-children (automatic escaping) or pass the value through a vetted sanitizer before the sink. Avoid raw-HTML sinks unless the payload has already been sanitized on the server.',
+              code: 'const clean = DOMPurify.sanitize(userContent);',
+              links: [
+                'https://cwe.mitre.org/data/definitions/79.html',
+                'https://owasp.org/Top10/A03_2021-Injection/',
+              ],
+            },
           });
         }
       }

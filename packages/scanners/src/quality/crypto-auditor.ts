@@ -278,6 +278,15 @@ export const cryptoAuditorScanner: Scanner = {
             category: 'security',
             ...(rule.owasp ? { owasp: rule.owasp } : {}),
             ...(rule.cwe ? { cwe: rule.cwe } : {}),
+            fix: {
+              description:
+                'Use the Web Crypto API for any security-sensitive random value and pick SHA-256 or higher for digests. crypto.randomUUID and crypto.getRandomValues are available in every modern runtime (Node 19+, all evergreen browsers, edge workers).',
+              code: 'const token = crypto.randomUUID();',
+              links: [
+                'https://cwe.mitre.org/data/definitions/338.html',
+                'https://owasp.org/Top10/A02_2021-Cryptographic_Failures/',
+              ],
+            },
           });
         }
       }

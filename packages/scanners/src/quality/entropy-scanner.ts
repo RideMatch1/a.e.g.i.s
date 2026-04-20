@@ -151,6 +151,15 @@ export const entropyScanner: Scanner = {
             category: 'security',
             owasp: 'A07:2021',
             cwe: 798,
+            fix: {
+              description:
+                'If this is a real secret, rotate it immediately — once committed to a repo or shipped in a bundle it must be treated as compromised. Then move the literal into a non-committed env file and reference it at runtime, or route it through a secrets manager.',
+              code: 'const apiKey = process.env.API_KEY;',
+              links: [
+                'https://cwe.mitre.org/data/definitions/798.html',
+                'https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/',
+              ],
+            },
           });
         }
       }

@@ -365,6 +365,15 @@ function checkFile(
       category: 'security',
       owasp: 'A07:2021',
       cwe: 306,
+      fix: {
+        description:
+          'Place an auth-guard at the top of every mutating handler. Use the project helper that binds the caller identity to the request context and returns early on unauthenticated requests, then derive the user id from the verified context rather than the request body.',
+        code: "const { context } = await secureApiRouteWithTenant(request, { requireAuth: true });\nif (!context.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });",
+        links: [
+          'https://cwe.mitre.org/data/definitions/306.html',
+          'https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/',
+        ],
+      },
     });
     return;
   }

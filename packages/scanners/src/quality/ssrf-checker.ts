@@ -197,12 +197,21 @@ export const ssrfCheckerScanner: Scanner = {
             severity: 'high',
             title: 'Potential SSRF — HTTP call with variable URL',
             description:
-              'An HTTP client (fetch/axios/got) is called with a variable URL rather than a hardcoded string. If this URL originates from user input, an attacker can force the server to make requests to internal services (cloud metadata, databases, admin panels). Use a safeFetch wrapper with URL allowlisting.',
+              'An HTTP client is called with a variable URL rather than a hardcoded string. If this URL originates from user input, an attacker can force the server to make requests to internal services (cloud metadata, databases, admin panels). Use a safeFetch wrapper with URL allowlisting.',
             file,
             line: findLineNumber(content, match.index),
             category: 'security',
             owasp: 'A10:2021',
             cwe: 918,
+            fix: {
+              description:
+                'Wrap the outbound call in a safeFetch helper that validates the URL against an allowlist, blocks private-IP and loopback ranges, enforces HTTPS, caps redirects, and sets a request timeout. Never let user input reach the raw HTTP client.',
+              code: 'const res = await safeFetch(url, { allowHosts: ALLOW_HOSTS, timeoutMs: 5000 });',
+              links: [
+                'https://cwe.mitre.org/data/definitions/918.html',
+                'https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/',
+              ],
+            },
           });
           break; // One finding per file per pattern is enough
         }

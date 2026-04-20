@@ -156,6 +156,15 @@ export const rlsBypassCheckerScanner: Scanner = {
           category: 'security',
           owasp: 'A01:2021',
           cwe: 863,
+          fix: {
+            description:
+              'Audit the called Postgres function. If it is declared SECURITY DEFINER, replace it with SECURITY INVOKER so the caller RLS context applies, or document the deliberate exception with an RLS comment and verify the function body validates every argument before touching user-scoped data.',
+            code: "-- pg policy: set function SECURITY INVOKER so caller-side RLS applies\nALTER FUNCTION get_dashboard_stats() SECURITY INVOKER;",
+            links: [
+              'https://cwe.mitre.org/data/definitions/863.html',
+              'https://owasp.org/Top10/A01_2021-Broken_Access_Control/',
+            ],
+          },
         });
       }
     }

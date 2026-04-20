@@ -182,6 +182,15 @@ export const zodEnforcerScanner: Scanner = {
             category: 'security',
             owasp: 'A03:2021',
             cwe: 20,
+            fix: {
+              description:
+                'Declare a Zod schema with .strict() for the request body and parse or safeParse the payload before acting on it. Strict mode rejects unknown keys and gives you a validated, typed object downstream.',
+              code: "const Body = z.object({ title: z.string().min(1) }).strict();\nconst data = Body.parse(await request.json());",
+              links: [
+                'https://cwe.mitre.org/data/definitions/20.html',
+                'https://owasp.org/Top10/A03_2021-Injection/',
+              ],
+            },
           });
           continue; // No point checking .strict() if there's no Zod at all
         }
