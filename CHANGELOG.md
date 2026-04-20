@@ -11,6 +11,51 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [Unreleased] — "Supply-Chain-Integrity" (v0.15, in-progress)
+
+Scope: defense-in-depth against upstream-compromise of critical deps
+(Vercel/ShinyHunters class). v0.15 does NOT claim malicious-package
+detection — that's Socket.dev's niche. What it does: force users to
+see risky version-resolution surface in their own lockfile + package.json
+reviews, so a compromised publish-token cannot silently land a malicious
+upstream release via caret-bumps.
+
+### Added
+
+- `scanners.supplyChain.criticalDeps` config field (Zod-validated,
+  strict). Declare packages whose version must be exact-pinned in
+  `package.json` — no caret (`^`), tilde (`~`), comparator range, or
+  `"latest"`. Empty-string entries are rejected at schema-parse time
+  so a typo cannot silently disable an intended pin. Example:
+
+  ```jsonc
+  {
+    "scanners": {
+      "supplyChain": {
+        "criticalDeps": ["next", "@supabase/ssr", "stripe"]
+      }
+    }
+  }
+  ```
+
+  The config is the foundation for the scanner emit-logic landing in
+  the next commit (HIGH-severity, CWE-494 "Download of Code Without
+  Integrity Check" — distinct from CWE-829 used by the existing
+  wildcard-version check so the two don't collide in canary
+  RED-baseline interpretation).
+
+### Internal
+
+- `scanners` block in `aegis.config.json` now has partial structured
+  schema. Known-scanner keys (currently only `supplyChain`) validate
+  strictly; unknown keys continue to pass through as
+  `Record<string, unknown>` for backward-compat with v0.14 scanner
+  configs that haven't been migrated (tenantIsolation, authEnforcer,
+  csrf, etc.). Migration of the remaining scanners to the structured
+  shape is queued for the v0.16 polish bundle.
+
+---
+
 ## [0.14.0] — 2026-04-19 — "Architecture-Awareness"
 
 Broadens AEGIS scanner recognition beyond scaffold-convention to

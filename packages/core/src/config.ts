@@ -35,6 +35,48 @@ const SuppressionOptionsSchema = z.object({
   warnNaked: z.boolean().default(true),
 }).strict();
 
+/**
+ * v0.15: structured config for the supply-chain scanner.
+ *
+ * `criticalDeps` lists package names whose installed version MUST be
+ * exact-pinned (no `^`, `~`, range comparators, or `"latest"`). When
+ * a listed package appears in `package.json` with a non-exact version,
+ * the supply-chain scanner emits a HIGH-severity finding tagged
+ * CWE-494 (Download of Code Without Integrity Check). Rationale: an
+ * unpinned critical dep can resolve to a future upstream publish —
+ * including one pushed by a compromised publish-token — without
+ * triggering any in-repo review step.
+ *
+ * A distinct CWE (494) is used instead of CWE-829 (shared with the
+ * existing wildcard-version check) so canary-RED-baselines can
+ * discriminate between the two checks pre- vs post-impl.
+ *
+ * Empty-string entries are rejected at schema-parse time because a
+ * typo silently disabling an intended pin would defeat the purpose.
+ */
+const SupplyChainScannerConfigSchema = z.object({
+  criticalDeps: z
+    .array(
+      z.string().min(1, {
+        message: 'criticalDeps entries must be non-empty package names',
+      }),
+    )
+    .optional(),
+}).strict();
+
+/**
+ * v0.15: structured scanner-configs. Known-scanner keys get strict
+ * validation — typos in sub-keys surface as ZodError rather than
+ * silent no-ops. Unknown scanner keys pass through unstructured for
+ * backward-compat with v0.14 scanner-configs that haven't been
+ * migrated yet (tenantIsolation, authEnforcer, csrf, etc.).
+ */
+const ScannersConfigSchema = z
+  .object({
+    supplyChain: SupplyChainScannerConfigSchema.optional(),
+  })
+  .catchall(z.record(z.unknown()));
+
 const ConfigFileSchema = z.object({
   // v0.9 polish: optional human-friendly documentation fields. JSON
   // doesn't support comments, and strict-schema previously rejected the
@@ -56,7 +98,7 @@ const ConfigFileSchema = z.object({
   }).optional(),
   locale: z.string().optional(),
   compliance: z.array(z.string()).optional(),
-  scanners: z.record(z.record(z.unknown())).optional(),
+  scanners: ScannersConfigSchema.optional(),
   rules: z.record(z.string()).optional(),
   ignore: z.array(z.string()).optional(),
   target: z.string().optional(),
