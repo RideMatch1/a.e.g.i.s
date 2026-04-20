@@ -11,14 +11,22 @@ shown with the reason the target wasn't met.
 
 ---
 
-## [Unreleased] — "Supply-Chain-Integrity" (v0.15, in-progress)
+## [Unreleased]
 
-Scope: defense-in-depth against upstream-compromise of critical deps
-(Vercel/ShinyHunters class). v0.15 does NOT claim malicious-package
-detection — that's Socket.dev's niche. What it does: force users to
-see risky version-resolution surface in their own lockfile + package.json
-reviews, so a compromised publish-token cannot silently land a malicious
-upstream release via caret-bumps.
+(Empty — next work lands here.)
+
+---
+
+## [0.15.0] — 2026-04-20 — "Supply-Chain Foundation"
+
+Three defense-in-depth features against upstream-compromise of critical
+deps (Vercel/ShinyHunters incident-class). v0.15 does NOT claim
+malicious-package detection — that's Socket.dev's niche. What it does:
+force users to see risky version-resolution surface in their own
+lockfile + package.json reviews, so a compromised publish-token cannot
+silently land a malicious upstream release via caret-bumps. Cumulative
+vs v0.14.0: +64 tests (1811 → 1875), +12 canaries (67 → 79), self-scan
+unchanged 1000/A/HARDENED/0.
 
 ### Added
 
