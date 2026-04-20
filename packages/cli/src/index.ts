@@ -10,6 +10,7 @@ import { runHistory } from './commands/history.js';
 import { runInit } from './commands/init.js';
 import { runNew } from './commands/new.js';
 import { runPrecisionAnnotate, runPrecisionReport } from './commands/precision.js';
+import { runDiffDeps } from './commands/diff-deps.js';
 import { showVersion } from './commands/version.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -203,6 +204,29 @@ precision
       options: { corpus?: string[] },
     ) => {
       process.exit(await runPrecisionReport(path ?? '.', options));
+    },
+  );
+
+program
+  .command('diff-deps')
+  .description('Diff lockfile deps against a git ref; flag risky changes on criticalDeps')
+  .option('-s, --since <ref>', 'Git ref to diff against', 'HEAD~1')
+  .option('-f, --format <format>', 'Output format: text (default) or json', 'text')
+  .option('-l, --lockfile <path>', 'Explicit lockfile path (auto-detect if omitted)')
+  .option('--no-color', 'Disable colored output')
+  .action(
+    async (options: { since: string; format: string; lockfile?: string; color: boolean }) => {
+      if (!options.color) {
+        chalk.level = 0;
+      }
+      const format = options.format === 'json' ? 'json' : 'text';
+      process.exit(
+        await runDiffDeps('.', {
+          since: options.since,
+          format,
+          lockfile: options.lockfile,
+        }),
+      );
     },
   );
 

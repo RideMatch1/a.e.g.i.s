@@ -75,6 +75,35 @@ upstream release via caret-bumps.
   baseline-references-missing-file and disk-lockfile-not-in-baseline
   is intentional and documented as v0.16-queued polish.
 
+- `aegis diff-deps [--since=<git-ref>]` CLI command. Compares the
+  current working-tree lockfile (`package-lock.json` and/or
+  `pnpm-lock.yaml`) against the version stored at a git ref
+  (default `HEAD~1`). Reports added / removed deps and classifies
+  version-bumps as major / minor / patch / other. Major bumps on
+  packages listed in `scanners.supplyChain.criticalDeps` are flagged
+  risky and drive exit code 1.
+
+  Example CI usage:
+
+  ```sh
+  aegis diff-deps --since=origin/main --format=json
+  # exit 0 → no risky changes
+  # exit 1 → major bump on a criticalDep — review before merging
+  # exit 2 → user-error (no lockfile, invalid ref)
+  ```
+
+  Options: `--since <ref>` (default `HEAD~1`) · `--format text|json`
+  (default `text`) · `--lockfile <path>` (explicit override) ·
+  `--no-color`.
+
+  Scope bounds for v0.15 P1 (deferred to v0.15.1 / v0.16): no
+  network-calls — npm-registry age-detection, postinstall-script
+  sniffing, and GHSA advisory-crossref belong in a separate
+  breach-check architecture. Aliased-deps / git-URL-deps / file-URL-
+  deps fall through as `kind: "other"` without classification.
+  Non-critical major bumps are reported but NOT flagged risky
+  (risky-flagging is opt-in via `criticalDeps` config).
+
 ### Internal
 
 - `scanners` block in `aegis.config.json` now has partial structured
