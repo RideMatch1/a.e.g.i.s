@@ -51,6 +51,30 @@ upstream release via caret-bumps.
   so `"latest"` cleanly fires both — the two checks surface different
   defense-in-depth concerns (unpinned-critical vs general-unpinned).
 
+- `supply-chain-scanner` detects lockfile-drift by comparing the
+  current sha256 of `package-lock.json` / `pnpm-lock.yaml` against
+  a committed baseline at `.aegis/lockfile-hash`. Emits MEDIUM
+  CWE-353 ("Missing Support for Integrity Check") on mismatch, INFO
+  CWE-353 when a lockfile is present without a baseline (recommends
+  seeding), and MEDIUM CWE-353 if the baseline itself is malformed.
+  No-op for projects without a lockfile-workflow.
+
+  Baseline format: one `sha256:<64-hex>  <filename>` per line.
+  `shasum -a 256` output is directly compatible, so seeding is a
+  one-liner:
+
+  ```sh
+  shasum -a 256 package-lock.json > .aegis/lockfile-hash
+  # or for both:
+  shasum -a 256 package-lock.json pnpm-lock.yaml > .aegis/lockfile-hash
+  ```
+
+  Blank lines and `#`-comments are parser-skipped so the file can
+  carry a note about when/why it was seeded. v0.15 P1 scope is
+  entry-in-baseline → disk-file comparison; silent tolerance of
+  baseline-references-missing-file and disk-lockfile-not-in-baseline
+  is intentional and documented as v0.16-queued polish.
+
 ### Internal
 
 - `scanners` block in `aegis.config.json` now has partial structured

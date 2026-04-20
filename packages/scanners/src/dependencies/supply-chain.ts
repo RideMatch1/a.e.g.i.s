@@ -2,6 +2,14 @@ import { readFileSafe, walkFiles } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+
+/**
+ * v0.15: known lockfile names for Check 8 (lockfile-drift detection).
+ * Bun and Yarn v2+ lockfiles are out-of-scope until there's dogfood
+ * signal; bun.lockb is binary (different hashing semantics).
+ */
+const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml'] as const;
 
 // Top-100 popular npm packages for typosquatting detection
 const POPULAR_PACKAGES = [
@@ -598,6 +606,92 @@ export const supplyChainScanner: Scanner = {
           `Package "${imported}" is imported in source code but not declared in package.json. It may be accidentally resolved from a parent node_modules. Add it explicitly or remove the import.`,
           829,
         );
+      }
+    }
+
+    // --- Check 8: Lockfile-drift detection (v0.15) ---
+    // Compare sha256 of each present lockfile (package-lock.json /
+    // pnpm-lock.yaml) against the baseline stored at
+    // `.aegis/lockfile-hash`. Emits MEDIUM on drift, INFO when the
+    // baseline is missing but a lockfile exists (recommend seeding),
+    // and MEDIUM when the baseline itself is malformed. No-op when
+    // neither a lockfile nor a baseline exist — projects without an
+    // npm-lockfile workflow don't get spurious findings.
+    //
+    // Baseline format: one `sha256:<64-hex>  <filename>` per line.
+    // Lines starting with `#` and blank lines are skipped. The format
+    // is `shasum -a 256` output-compatible so users can seed the
+    // baseline via `shasum -a 256 package-lock.json > .aegis/lockfile-hash`.
+    //
+    // CWE-353 (Missing Support for Integrity Check) is distinct from
+    // CWE-494 (criticalDeps, Check 7) and CWE-829 (wildcard, Check 4)
+    // so the three coexist without canary-RED-baseline collision.
+    //
+    // v0.15 P1 scope: baseline-entry → disk-file-hash comparison only.
+    // Out-of-scope (v0.16): baseline-references-missing-file,
+    // disk-lockfile-not-in-baseline. Both are silently tolerated here.
+    const presentLockfiles: Array<{ name: string; content: string }> = [];
+    for (const lockName of LOCKFILE_NAMES) {
+      const lockContent = readFileSafe(join(projectPath, lockName));
+      if (lockContent !== null) {
+        presentLockfiles.push({ name: lockName, content: lockContent });
+      }
+    }
+    const baselineContent = readFileSafe(join(projectPath, '.aegis', 'lockfile-hash'));
+
+    if (presentLockfiles.length === 0 && baselineContent === null) {
+      // No-op: project has no lockfile workflow.
+    } else if (baselineContent === null) {
+      // Lockfile(s) present but no baseline: recommend seeding.
+      addFinding(
+        'info',
+        'Lockfile-drift baseline not seeded',
+        `Lockfile(s) found (${presentLockfiles.map((l) => l.name).join(', ')}) but .aegis/lockfile-hash is missing. Seed the baseline by committing the sha256 digest of each lockfile (one "sha256:<64-hex>  <filename>" line per file; shasum -a 256 output is compatible). Subsequent scans will detect tampering or unreviewed dep-updates. Blank lines and lines starting with "#" are skipped.`,
+        353,
+      );
+    } else {
+      const malformedLines: string[] = [];
+      const entries: Array<{ hex: string; filename: string }> = [];
+      for (const rawLine of baselineContent.split('\n')) {
+        const line = rawLine.trim();
+        if (line === '' || line.startsWith('#')) continue;
+        const match = line.match(/^sha256:([0-9a-f]{64})\s+(\S.*)$/i);
+        if (!match) {
+          malformedLines.push(line);
+          continue;
+        }
+        entries.push({
+          hex: match[1].toLowerCase(),
+          filename: match[2].trim(),
+        });
+      }
+
+      if (malformedLines.length > 0) {
+        const preview = malformedLines.slice(0, 3).join(' | ');
+        const more =
+          malformedLines.length > 3
+            ? ` (+${malformedLines.length - 3} more)`
+            : '';
+        addFinding(
+          'medium',
+          'Malformed .aegis/lockfile-hash baseline entry',
+          `Found ${malformedLines.length} unparseable line(s) in .aegis/lockfile-hash. Expected format per line: "sha256:<64-hex>  <filename>". Unparseable: ${preview}${more}. Regenerate the baseline (e.g. shasum -a 256 package-lock.json > .aegis/lockfile-hash) or delete .aegis/lockfile-hash to disable drift-detection.`,
+          353,
+        );
+      }
+
+      for (const entry of entries) {
+        const lock = presentLockfiles.find((l) => l.name === entry.filename);
+        if (!lock) continue; // v0.15 P1: missing-file tolerated silently
+        const currentHex = createHash('sha256').update(lock.content).digest('hex');
+        if (currentHex !== entry.hex) {
+          addFinding(
+            'medium',
+            `Lockfile-drift detected: "${entry.filename}"`,
+            `The current sha256 of ${entry.filename} (${currentHex}) does not match the baseline recorded in .aegis/lockfile-hash (${entry.hex}). Typical cause: the lockfile was modified since the baseline-commit. Review dep-changes, then re-seed the baseline when confirmed safe (e.g. shasum -a 256 ${entry.filename} > .aegis/lockfile-hash). A compromised publish-token silently bumping a dep would fire this check on the next scan.`,
+            353,
+          );
+        }
       }
     }
 
