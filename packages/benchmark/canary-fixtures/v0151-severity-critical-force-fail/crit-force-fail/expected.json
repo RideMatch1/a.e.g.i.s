@@ -1,0 +1,9 @@
+{
+  "id": "v0151-CritForceFail",
+  "cwe": 639,
+  "type": "TP",
+  "description": "v0.15.1 trust-fix: service_role-key usage emits CRITICAL/CWE-639 from tenant-isolation-checker. Downstream scoring forces grade=F, score=0, blocked=true via the blocker-tier unification (critical + blocker now semantically equivalent). The canary-matcher asserts emission-layer only; the scoring layer is unit-tested in packages/core/__tests__/scoring.test.ts.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}
