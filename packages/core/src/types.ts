@@ -5,6 +5,23 @@ export type ScanCategory =
   | 'accessibility' | 'performance' | 'infrastructure' | 'i18n' | 'ai-llm' | 'runtime'
   | 'attack';
 
+/**
+ * Structured fix-guidance for a finding.
+ * Introduced in v0.15.2 as the canonical shape. The Finding.fix field
+ * remains a union with `string` through v0.15.x for backward-compat with
+ * existing scanners that emit plain-text fix strings; the string arm is
+ * deprecated and will be dropped in v0.16 (intentional breaking change
+ * — see CHANGELOG v0.15.2 fix-field union-transition notice).
+ */
+export interface FixGuidance {
+  /** Short actionable remediation sentence (2-3 sentences max). */
+  description: string;
+  /** Optional code snippet illustrating the fix. */
+  code?: string;
+  /** Optional external reference URLs (docs, CWE, RFC, vendor advisories). */
+  links?: string[];
+}
+
 export interface Finding {
   id: string;
   scanner: string;
@@ -15,7 +32,12 @@ export interface Finding {
   file?: string;
   line?: number;
   column?: number;
-  fix?: string;
+  /**
+   * Remediation guidance. `string` = legacy plain-text (pre-v0.15.2),
+   * `FixGuidance` = canonical structured form (v0.15.2+). Union retained
+   * through v0.15.x; string arm deprecated in v0.16.
+   */
+  fix?: string | FixGuidance;
   owasp?: string;
   cwe?: number;
   reference?: string;
