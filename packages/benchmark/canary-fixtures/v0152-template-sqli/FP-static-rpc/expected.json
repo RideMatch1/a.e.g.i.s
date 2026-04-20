@@ -1,0 +1,9 @@
+{
+  "id": "v0152-FP-static-rpc",
+  "cwe": 89,
+  "type": "FP",
+  "description": "Parameterized .rpc('get_user', { id: user.id }) — values bound via a typed-RPC argument object. No template-literal in the args, so template-sql-checker must NOT fire. This is the compliant Supabase pattern users should migrate to.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

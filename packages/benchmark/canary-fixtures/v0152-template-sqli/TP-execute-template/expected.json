@@ -1,0 +1,9 @@
+{
+  "id": "v0152-TP-execute-template",
+  "cwe": 89,
+  "type": "TP",
+  "description": "Raw driver .execute(`UPDATE users SET name = '${name}'`) — template-literal-with-interpolation passed to an execute entry method. template-sql-checker must emit CRITICAL/CWE-89. Covers the raw-driver (non-Supabase) shape.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

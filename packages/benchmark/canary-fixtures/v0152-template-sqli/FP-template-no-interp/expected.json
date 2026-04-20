@@ -1,0 +1,9 @@
+{
+  "id": "v0152-FP-template-no-interp",
+  "cwe": 89,
+  "type": "FP",
+  "description": "db.query(`SELECT * FROM users`) — backtick-delimited but no ${} interpolation, so the statement is effectively a static string. template-sql-checker must NOT fire — no injection vector exists when the SQL text is constant.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

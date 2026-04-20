@@ -1,0 +1,9 @@
+{
+  "id": "v0152-TP-rpc-template",
+  "cwe": 89,
+  "type": "TP",
+  "description": "Supabase .rpc('raw', { q: `SELECT * WHERE id = '${id}'` }) — a template-literal with ${} interpolation passed into a SQL entry method. The canonical injection shape Round-2 surfaced. template-sql-checker must emit CRITICAL/CWE-89.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

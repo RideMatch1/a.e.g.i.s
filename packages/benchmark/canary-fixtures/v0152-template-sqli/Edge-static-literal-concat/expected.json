@@ -1,0 +1,9 @@
+{
+  "id": "v0152-Edge-static-literal-concat",
+  "cwe": 89,
+  "type": "FP",
+  "description": "db.query(\"SELECT * WHERE id = \" + id) — plain string-concat SQL, no template-literal. This injection class is already owned by the existing sql-concat-checker scanner; template-sql-checker must NOT also fire. Proves the non-overlap contract between the two CWE-89-adjacent detectors. sql-concat-checker firing on the same line is collateral and the canary-matcher ignores it via scanner+CWE exact-match.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}
