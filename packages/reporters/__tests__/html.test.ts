@@ -194,6 +194,18 @@ describe('htmlReporter fix-field union rendering', () => {
     expect(output).toContain('process.env.JWT_KEY');
   });
 
+  it('renders (project-level) for findings with no file (null or missing)', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        id: 'PROJ-003',
+        title: 'Project-level issue',
+        file: undefined,
+      }],
+    });
+    expect(htmlReporter.format(result)).toContain('(project-level)');
+  });
+
   it('renders FixGuidance.links as anchors when present', () => {
     const result = makeResult({
       findings: [{

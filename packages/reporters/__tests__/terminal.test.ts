@@ -182,6 +182,18 @@ describe('terminalReporter fix-field union rendering', () => {
     expect(strip(terminalReporter.format(result))).toContain('const k = process.env.JWT_KEY;');
   });
 
+  it('renders (project-level) for findings with no file (null or missing)', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        id: 'PROJ-001',
+        title: 'Project-level issue',
+        file: undefined,
+      }],
+    });
+    expect(strip(terminalReporter.format(result))).toContain('(project-level)');
+  });
+
   it('renders FixGuidance.links when present', () => {
     const result = makeResult({
       findings: [{

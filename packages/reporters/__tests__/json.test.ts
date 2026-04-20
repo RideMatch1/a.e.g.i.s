@@ -101,3 +101,122 @@ describe('jsonReporter', () => {
     expect(typeof jsonReporter.format(makeResult())).toBe('string');
   });
 });
+
+describe('jsonReporter — Item-4 path normalization and null-file handling', () => {
+  const SCAN_ROOT = '/tmp/v0152-item4-sandbox';
+
+  it('normalizes an absolute path under scanRoot to a relative path', () => {
+    const result = makeResult({
+      scanRoot: SCAN_ROOT,
+      findings: [
+        {
+          id: 'T-001',
+          scanner: 'x',
+          category: 'security',
+          severity: 'high',
+          title: 'T',
+          description: 'd',
+          file: `${SCAN_ROOT}/src/config.ts`,
+          line: 1,
+        },
+      ],
+    } as unknown as Partial<AuditResult>);
+    const parsed = JSON.parse(jsonReporter.format(result)) as AuditResult;
+    expect(parsed.findings[0].file).toBe('src/config.ts');
+  });
+
+  it('leaves an already-relative path unchanged (no double-transform)', () => {
+    const result = makeResult({
+      scanRoot: SCAN_ROOT,
+      findings: [
+        {
+          id: 'T-002',
+          scanner: 'x',
+          category: 'security',
+          severity: 'high',
+          title: 'T',
+          description: 'd',
+          file: 'src/config.ts',
+          line: 1,
+        },
+      ],
+    } as unknown as Partial<AuditResult>);
+    const parsed = JSON.parse(jsonReporter.format(result)) as AuditResult;
+    expect(parsed.findings[0].file).toBe('src/config.ts');
+  });
+
+  it('emits explicit "file": null for project-level findings where file is undefined', () => {
+    const result = makeResult({
+      findings: [
+        {
+          id: 'T-003',
+          scanner: 'x',
+          category: 'security',
+          severity: 'high',
+          title: 'Project-level issue',
+          description: 'd',
+        },
+      ],
+    });
+    const output = jsonReporter.format(result);
+    expect(output).toContain('"file": null');
+  });
+
+  it('preserves the null literal when finding.file is explicit null', () => {
+    const result = makeResult({
+      findings: [
+        {
+          id: 'T-004',
+          scanner: 'x',
+          category: 'security',
+          severity: 'high',
+          title: 'Project-level issue',
+          description: 'd',
+          file: null,
+        },
+      ],
+    } as unknown as Partial<AuditResult>);
+    const output = jsonReporter.format(result);
+    expect(output).toContain('"file": null');
+  });
+
+  it('produces a negative-relative path for a file outside the scan-root', () => {
+    const result = makeResult({
+      scanRoot: '/tmp/v0152-item4-sandbox/inner',
+      findings: [
+        {
+          id: 'T-005',
+          scanner: 'x',
+          category: 'security',
+          severity: 'high',
+          title: 'T',
+          description: 'd',
+          file: '/tmp/v0152-item4-sandbox/outer/file.ts',
+          line: 1,
+        },
+      ],
+    } as unknown as Partial<AuditResult>);
+    const parsed = JSON.parse(jsonReporter.format(result)) as AuditResult;
+    expect(parsed.findings[0].file).toBe('../outer/file.ts');
+  });
+
+  it('falls back to process.cwd() when scanRoot is missing on AuditResult', () => {
+    const absPath = `${process.cwd()}/src/x.ts`;
+    const result = makeResult({
+      findings: [
+        {
+          id: 'T-006',
+          scanner: 'x',
+          category: 'security',
+          severity: 'high',
+          title: 'T',
+          description: 'd',
+          file: absPath,
+          line: 1,
+        },
+      ],
+    });
+    const parsed = JSON.parse(jsonReporter.format(result)) as AuditResult;
+    expect(parsed.findings[0].file).toBe('src/x.ts');
+  });
+});

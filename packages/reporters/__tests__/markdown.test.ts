@@ -268,6 +268,18 @@ describe('markdownReporter fix-field union rendering', () => {
     expect(output).toMatch(/```\nconst k = process\.env\.JWT_KEY;\n```/);
   });
 
+  it('renders (project-level) for findings with no file (null or missing)', () => {
+    const result = makeResult({
+      findings: [{
+        ...baseFinding,
+        id: 'PROJ-002',
+        title: 'Project-level issue',
+        file: undefined,
+      }],
+    });
+    expect(markdownReporter.format(result)).toContain('(project-level)');
+  });
+
   it('renders FixGuidance.links as markdown links when present', () => {
     const result = makeResult({
       findings: [{
