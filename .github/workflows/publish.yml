@@ -1,0 +1,58 @@
+name: Publish
+
+# Triggered on tag-push matching v-prefix (e.g. v0.15.2). Runs the
+# monorepo publish with npm-provenance so every published package
+# carries a signed SLSA Level-2 attestation bound to this exact
+# workflow run, this exact commit, and this exact npm-registry
+# identity. Consumers can verify with `npm audit signatures` or
+# `npm view @aegis-scan/<pkg>@<version> dist.attestations`.
+#
+# Prerequisites:
+#   - Repo secret NPM_TOKEN (automation-token with publish scope on
+#     the @aegis-scan org). Configured via `gh secret set NPM_TOKEN`.
+#   - The tag being pushed matches the release-commit that bumped
+#     the five `packages/*/package.json` files to the same version.
+#
+# Fallback: If this workflow ever fails at publish-time and the
+# release window is tight, a maintainer can publish manually from
+# their laptop with `pnpm -r publish --access public --no-git-checks`
+# — that path ships without provenance, which is a documented
+# known-gap per CHANGELOG and completes in the next release cycle.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write  # required for npm --provenance (OIDC attestation)
+
+jobs:
+  publish:
+    name: Publish @aegis-scan/* with SLSA provenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout at tag
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js + npm registry auth
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shipped packages
+        run: pnpm build
+
+      - name: Publish to npm with provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm -r publish --provenance --access public --no-git-checks
