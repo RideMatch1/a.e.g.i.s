@@ -113,6 +113,29 @@ shown with the reason the target wasn't met.
   of 🟠 D-M-001 — remaining 13 scanner-classes with null-fix gaps
   queued for v0.16+ extension.
 
+### Fixed
+
+- **D-N-001 logging-checker empty-project skip (v0.15.4
+  Fertig-Patches, Round-4 audit-finding):** `logging-checker` no
+  longer fires the project-level LOG-001 "No centralized logging
+  infrastructure detected" MEDIUM finding on empty projects — defined
+  as directories where the scanner's walkFiles sweep returns zero
+  source files under the ts/tsx/js/jsx/mjs extension set. Closes
+  Round-4 audit-finding 🟡 D-N-001 where `aegis scan <empty-dir>`
+  produced a spurious MEDIUM finding despite having zero source-code
+  to assess. Guard is scope-minimal — a single source file with even
+  a bare `console.log` is enough to take the scanner through its
+  normal logger-detection path and still fire LOG-001 when no
+  centralized logger is found. Two canary fixtures under
+  `packages/benchmark/canary-fixtures/v0154-empty-dir-skip/` codify
+  the flip (FP-empty-dir-no-log001 pre-impl-RED flips GREEN, plus
+  the TP-populated-dir-still-log001 scope-guard that must stay GREEN
+  both sides of the change). One new unit-test asserts
+  `findings.length === 0` on empty-project scans; the existing
+  flags-missing-centralized-logger test's setup was updated to seed
+  a source file so the test continues to cover the has-source-but-
+  no-logger path that the guard intentionally does NOT silence.
+
 ### 🔮 Multi-Version Stability Policy (new in v0.15.4)
 
 Starting this release, every minor-release that adds a new built-in

@@ -203,6 +203,20 @@ export const loggingCheckerScanner: Scanner = {
     const ignore = [...new Set([...defaultIgnore, ...(config.ignore ?? [])])];
 
     const files = walkFiles(projectPath, ignore, ['ts', 'tsx', 'js', 'jsx', 'mjs']);
+
+    // v0.15.4 D-N-001 — skip project-level checks on empty projects.
+    // With zero source files there is no logger-behavior to assess,
+    // and emitting LOG-001 on an empty directory is pure noise.
+    if (files.length === 0) {
+      return {
+        scanner: 'logging-checker',
+        category: 'quality',
+        findings: [],
+        duration: Date.now() - start,
+        available: true,
+      };
+    }
+
     const nonTestFiles = files.filter((f) => {
       if (isTestFile(f)) return false;
       // Skip client components — security logging belongs on the server
