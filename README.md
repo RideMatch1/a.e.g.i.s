@@ -9,7 +9,7 @@
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 [![npm](https://img.shields.io/npm/v/@aegis-scan/cli?label=%40aegis-scan%2Fcli)](https://www.npmjs.com/package/@aegis-scan/cli)
 
-Stack-specific security scanner for **Next.js + Supabase + React**. 41 built-in checkers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, VS Code extension, and GitHub Action.
+Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, VS Code extension, and GitHub Action.
 
 ---
 
@@ -332,7 +332,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 > [`packages/scanners/src/index.ts`](./packages/scanners/src/index.ts). Counts
 > below are re-verified at every release per the release checklist.
 
-### Built-in (41 scanners: 40 regex + 1 AST taint analyzer)
+### Built-in (42 scanners: 41 regex + 1 AST taint analyzer)
 
 | Scanner | Category | CWE(s) | What it checks |
 |---------|----------|--------|----------------|
@@ -344,6 +344,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 | `crypto-auditor` | Security | 326, 327, 338, 798 | Weak algorithms, hardcoded secrets, insecure RNG, eval() injection |
 | `zod-enforcer` | Security | 20 | Missing Zod validation on mutation routes, missing `.strict()` |
 | `sql-concat-checker` | Security | 89 | SQL via string concatenation instead of parameterized queries |
+| `template-sql-checker` | Security | 89 | Template-literal SQL injection via `.rpc()` / `.execute()` / `.query()` / `.$queryRawUnsafe()` / `.$executeRawUnsafe()` / `.raw()` (Supabase, Prisma-raw, knex/mysql2/mongoose/sequelize sinks). v0.15.3 expanded sink-list |
 | `xss-checker` | Security | 79 | Unsanitized user input in HTML responses |
 | `ssrf-checker` | Security | 918 | Server-side request forgery patterns |
 | `csrf-checker` | Security | 352 | Mutation handlers lacking CSRF protection |

@@ -13,6 +13,27 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+(Empty — next work lands here.)
+
+---
+
+## [0.15.3] — 2026-04-21 — "Credibility Patches"
+
+Fast-hotfix driven by the 2026-04-21 Round-3 external review of
+v0.15.2. Four scope-locked items close the 1 CRITICAL + 3 MAJOR + 4
+MINOR findings the review surfaced — a credibility-critical Prisma
+`$queryRawUnsafe()` detection-gap, the shared `.raw()` ORM sink
+miss, a silent-pass regression-guard miss on `aegis diff-deps
+--since=<ref>` for shape-valid-but-absent 40-hex SHAs, a
+SOFT-MENTIONED transparency gap on v0.15.2's empty
+`dist.attestations`, and three adversarial-bypass classes now
+explicitly documented on the jwt-detector. The v0.15.2 SLSA
+provenance soft-gap (pnpm@9.15.0 still swallows `--provenance`) is
+NOT closed in this release — remediation is the v0.15.4 first-item.
+Self-scan 1000 / A / HARDENED / 0 maintained across all commits;
+canary total 98 of 98 across 11 phases; full test-suite 1945 of
+1945.
+
 ### Added
 
 - **Template-SQL-checker sink-list expansion (C-001 + M-001 from Round-3
@@ -78,6 +99,37 @@ shown with the reason the target wasn't met.
   Scanner source (regex, scan function) unchanged. AST-pass for
   concat-reconstruction and NFKD-plus-homoglyph-folding normalization
   both tracked for v0.16.
+
+- **v0.15.2 Infrastructure section — empty `dist.attestations`
+  Known-gap bullet added (N-001 from Round-3 external review).** The
+  v0.15.2 CHANGELOG describes the SLSA provenance mechanism and the
+  manual-publish fallback but did not explicitly document that the
+  automated publish workflow shipped with empty `dist.attestations`
+  because pnpm@9.15.0 silently discarded the `--provenance` flag during
+  `pnpm -r publish`. The new bullet frames this as
+  workflow-path-success-minus-provenance-outcome, distinct from the
+  manual-fallback case. GitHub release-body for v0.15.2 mirrored via
+  `gh release edit`.
+
+### Discipline notes
+
+CHANGELOG-inline-per-phase (established in v0.15.2) held partially
+this cycle — Items A and B landed without `## [Unreleased]` entries
+because the advisor-side dispatch-specs did not include the
+inline-instruction, and a retro catch-up commit (7e01351) then
+populated the Unreleased section before Items C and D landed.
+Acknowledged as advisor-slip in 7e01351's commit-body; remaining
+Item-D commits and the release-cycle applied inline-Unreleased
+on-commit.
+
+Eager-self-scan (established in v0.15.2) held — the Item-A
+template-sql-checker sink-list expansion self-matched the `.raw(`
+documentation and regex-literal text inside the sibling
+`sql-concat-checker.ts` source. Caught pre-release by the post-impl
+self-scan gate, diagnosed as the inverse-mirror of v0.15.2 commit
+56df297's stripComments-class self-match, and closed surgically via
+an `aegis.config.json` suppression entry (Commit `fd9204c`). Proper
+`stripComments` regex-literal-tokenization refactor is v0.16 scope.
 
 ---
 
