@@ -28,6 +28,27 @@ import { stripComments } from '../ast/page-context.js';
  *     not reconstructed — detection would require an AST pass. Documented
  *     in the FP-interpolated-template-jwt canary, slated for v0.15.3 /
  *     semgrep pairing.
+ *   - String-concat JWT-shape (e.g. `"eyJ…" + "." + "…" + "." + "…"`) is
+ *     not detected. The regex requires a continuous `eyJ…`-shape within
+ *     a single quoted string-literal; splitting across multiple literals
+ *     joined by `+` breaks the `{15,}` length-anchor on each segment.
+ *     Documented in the v0153-jwt-known-limitations/FP-concat-known
+ *     canary. AST-pass for concat-reconstruction tracked for v0.16.
+ *     Surfaced as Round-3 adversarial probe A1b (grade D).
+ *   - Unicode-homoglyph prefix (e.g. `"\u{FF45}yJ…"` — fullwidth Latin
+ *     small letter e U+FF45, and adjacent Cyrillic е U+0435 / Greek е
+ *     U+03B5 variants) bypasses the ASCII-exact `eyJ`-anchor. The regex
+ *     matches only the ASCII byte-sequence `e-y-J`; a visually-
+ *     indistinguishable homoglyph at position 0 defeats the match.
+ *     Documented in the v0153-jwt-known-limitations/FP-homoglyph-known
+ *     canary. Normalization-pass (NFKD plus homoglyph-folding to ASCII
+ *     before scan) tracked for v0.16. Surfaced as Round-3 adversarial
+ *     probe A1c (grade D).
+ *   - Multi-line `+`-concat (`"eyJ…" +\n"…" +\n"…"`) is a sub-class of
+ *     the string-concat bypass above — the line-wrapping makes the
+ *     continuous-match requirement even more obviously broken. Same
+ *     AST-level workaround applies. Surfaced as Round-3 adversarial
+ *     probe A1e (grade D).
  *   - Entropy-scanner may double-fire on the same hardcoded JWT at
  *     HIGH/MEDIUM severity per segment. Acceptable — different scanners
  *     surface different angles.

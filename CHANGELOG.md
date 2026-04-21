@@ -60,6 +60,25 @@ shown with the reason the target wasn't met.
   this class within two cycles — proper `stripComments`
   regex-literal-tokenization refactor tracked for v0.16.
 
+### Documentation
+
+- **JWT-detector known-limitations expanded (M-003 from Round-3
+  external review):** the JSDoc header at
+  `packages/scanners/src/secrets/jwt-detector.ts` now documents three
+  adversarial-bypass classes surfaced by Round-3 probe A1 (graded D):
+  string-concat (`"eyJ…" + "…" + "…"` — continuous-match broken by
+  quote-boundary), unicode-homoglyph prefix (fullwidth Latin small e
+  U+FF45, Cyrillic е U+0435, Greek е U+03B5 — ASCII-exact regex
+  cannot match), and multi-line `+`-concat (sub-class of
+  string-concat, line-wrap makes single-line-continuity-requirement
+  even more obviously broken). Two new FP-canary fixtures in
+  `packages/benchmark/canary-fixtures/v0153-jwt-known-limitations/`
+  codify the first two classes as silent-non-detection — they flip to
+  RED as the canary-signal when the limitations are eventually closed.
+  Scanner source (regex, scan function) unchanged. AST-pass for
+  concat-reconstruction and NFKD-plus-homoglyph-folding normalization
+  both tracked for v0.16.
+
 ---
 
 ## [0.15.2] — 2026-04-20 — "Detection Hardening"
