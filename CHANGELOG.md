@@ -13,6 +13,28 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.15.4] — 2026-04-21 — "Fertig-Patches"
+
+Round-4 external-review close-out for v0.15.3. Nine audit-findings
+closed end-to-end across four execution phases plus two Items-6+7
+bundle scope-bound edits (D-M-005 README-debt + D-N-003 Scanner
+classification) surfaced during brutal-audit. Cumulative vs v0.15.3:
+new `walkFiles` picomatch-glob-support + 2 MiB size-cap on
+candidate files, `DEFAULT_IGNORE` expansion for vendor-template /
+third-party / minified patterns, `tenant-isolation-checker`
+path-param-as-tenant-discriminant public-route heuristic,
+`Scanner.isExternal` classification field correcting the cold-
+install-UX banner, `logging-checker` empty-project skip, and
+FixGuidance populated on 12 total scanner-classes (top-3 in Item-3
+plus the remaining 9 in Phase 2) plus match-specific title
+differentiation on 8 scanners. 6 scanner-count claims across README
+and docs/GETTING-STARTED re-aligned with the ground-truth 58+5=63
+inventory. CHANGELOG retro-migration-notes added to v0.15.0 through
+v0.15.3 documenting scanner-activation / scoring-policy / scanner-
+expansion deltas. Self-scan 1000/A/HARDENED/0 maintained across all
+commits; canary total 108 of 108 across 13 phases; full scanners
+test-suite 1272 of 1272 across 77 files.
+
 ### Added
 
 - **walkFiles picomatch-based glob-support (v0.15.4 D-C-001
