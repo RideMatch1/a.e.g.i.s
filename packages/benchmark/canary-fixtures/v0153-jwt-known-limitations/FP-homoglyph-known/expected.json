@@ -1,0 +1,9 @@
+{
+  "id": "v0153-FP-homoglyph-known",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Documented known-limitation of the v0.15.2 jwt-detector: unicode-homoglyph prefix substitutes the ASCII `e` at position 0 of the JWT-shape with a visually-indistinguishable Unicode character — here fullwidth Latin small letter e (U+FF45, `\\u{FF45}`), but the class also includes Cyrillic е (U+0435) and Greek е (U+03B5). The detector's regex `eyJ` is ASCII-exact and does not match the homoglyph variants. Detector must NOT emit on this shape. Normalization-pass (NFKD + homoglyph-folding to ASCII) deferred to v0.16. Round-3 external review adversarial probe A1c graded this as a D-class known-bypass.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}
