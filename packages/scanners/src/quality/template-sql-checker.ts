@@ -5,15 +5,23 @@ import { stripComments } from '../ast/page-context.js';
 /**
  * Detects SQL-injection-prone template-literal calls to database entry
  * methods. Fires when a backtick template-literal containing `${...}`
- * interpolation is passed to `.rpc()`, `.execute()`, or `.query()` —
- * the canonical Supabase / ORM / raw-driver shape that splices user
- * input directly into SQL text, bypassing parameterization.
+ * interpolation is passed to `.rpc()`, `.execute()`, `.query()`,
+ * `.$queryRawUnsafe()`, `.$executeRawUnsafe()`, or `.raw()` — the
+ * canonical Supabase, Prisma-raw, and knex/mysql2/mongoose/sequelize
+ * shape that splices user input directly into SQL text, bypassing
+ * parameterization.
  *
  * Emits a CRITICAL finding per match with rule-id `SQLI-TMPL-NNN`,
  * OWASP A03:2021 mapping, and CWE-89 (SQL Injection). Introduced in
- * v0.15.2 Item-2 alongside the JWT-detector as the second
- * credibility-critical detection-gap surfaced by the Round-2 external
- * review of v0.15.1.
+ * v0.15.2 Item-2 after the Round-2 external review. Extended in
+ * v0.15.3 (C-001 + M-001) to close the Prisma-blind-spot surfaced
+ * by Round-3: the sink-list now covers Prisma's `$queryRawUnsafe` /
+ * `$executeRawUnsafe` and the shared `.raw()` method across knex,
+ * mysql2, mongoose, sequelize. The safe Prisma sibling `$queryRaw`
+ * (tagged-template shape) is deliberately NOT in the sink-list —
+ * the Unsafe-vs-Safe distinction is load-bearing for trust and
+ * firing on the safe variant would be a credibility-breaking
+ * false-positive class.
  *
  * Comment-aware via `stripComments`
  * (`packages/scanners/src/ast/page-context.ts`) — the same reuse-path
@@ -22,7 +30,7 @@ import { stripComments } from '../ast/page-context.js';
  *
  * Detection strategy is a regex-forward plus balanced-paren scan with
  * string-aware skipping:
- *   1. `/\.(rpc|execute|query)\s*\(/g` locates candidate call-sites
+ *   1. `/\.(rpc|execute|query|\$queryRawUnsafe|\$executeRawUnsafe|raw)\s*\(/g` locates candidate call-sites
  *   2. from the opening `(`, a depth-tracking scan walks forward until
  *      the balanced closing `)`, stepping over double/single-quoted
  *      strings and nested template-literals without letting their
@@ -41,7 +49,7 @@ import { stripComments } from '../ast/page-context.js';
  *     is information-rich even when the DB-context is implicit.
  */
 
-const CALL_SITE_REGEX = /\.(rpc|execute|query)\s*\(/g;
+const CALL_SITE_REGEX = /\.(rpc|execute|query|\$queryRawUnsafe|\$executeRawUnsafe|raw)\s*\(/g;
 
 const DEFAULT_IGNORE = ['node_modules', 'dist', '.next', '.git', 'coverage', 'build', 'out', '.turbo'];
 
@@ -121,7 +129,7 @@ function scanArgSpanForTemplateInterp(
 
 export const templateSqlCheckerScanner: Scanner = {
   name: 'template-sql-checker',
-  description: 'Detects template-literal SQL passed to rpc/execute/query calls (CWE-89). Comment-aware via stripComments.',
+  description: 'Detects template-literal SQL passed to rpc/execute/query/$queryRawUnsafe/$executeRawUnsafe/raw calls (CWE-89). Comment-aware via stripComments.',
   category: 'security',
 
   async isAvailable(_projectPath: string): Promise<boolean> {
