@@ -59,6 +59,7 @@ export const semgrepScanner: Scanner = {
   name: 'semgrep',
   description: 'Static analysis security testing via Semgrep with auto-config rule set',
   category: 'security',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('semgrep');

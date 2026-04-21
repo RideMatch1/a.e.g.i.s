@@ -30,6 +30,7 @@ export const hadolintScanner: Scanner = {
   name: 'hadolint',
   description: 'Dockerfile best-practice linting via Hadolint',
   category: 'infrastructure',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     // Only check if hadolint is installed — Dockerfile existence is checked in scan()

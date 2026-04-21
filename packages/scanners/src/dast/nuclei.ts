@@ -34,6 +34,7 @@ export const nucleiScanner: Scanner = {
   name: 'nuclei',
   description: 'Dynamic Application Security Testing via Nuclei template engine',
   category: 'dast',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('nuclei');

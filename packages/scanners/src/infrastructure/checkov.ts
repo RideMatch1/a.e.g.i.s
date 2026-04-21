@@ -62,6 +62,7 @@ export const checkovScanner: Scanner = {
   name: 'checkov',
   description: 'Infrastructure-as-Code security scanner with 1000+ policies via Checkov',
   category: 'infrastructure',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('checkov');

@@ -59,6 +59,7 @@ export const zapScanner: Scanner = {
   name: 'zap',
   description: 'Dynamic Application Security Testing via OWASP ZAP (Docker)',
   category: 'dast',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('docker');

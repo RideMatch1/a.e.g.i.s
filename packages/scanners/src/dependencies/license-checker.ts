@@ -27,6 +27,7 @@ export const licenseCheckerScanner: Scanner = {
   name: 'license-checker',
   description: 'Checks installed npm dependencies for problematic open-source licenses',
   category: 'dependencies',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     // Always available — we check for node_modules in scan() with the correct projectPath

@@ -39,6 +39,7 @@ export const lighthousePerformanceScanner: Scanner = {
   name: 'lighthouse-performance',
   description: 'Performance scanner extracting Lighthouse score and Core Web Vitals',
   category: 'performance',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('lighthouse');

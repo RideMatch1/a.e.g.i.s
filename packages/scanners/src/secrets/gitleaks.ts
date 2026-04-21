@@ -19,6 +19,7 @@ export const gitleaksScanner: Scanner = {
   name: 'gitleaks',
   description: 'Secret detection via Gitleaks — scans for hardcoded credentials and API keys',
   category: 'security',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('gitleaks');

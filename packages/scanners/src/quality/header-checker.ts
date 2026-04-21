@@ -114,6 +114,7 @@ export const headerCheckerScanner: Scanner = {
   description:
     'Verifies that security response headers are configured in next.config or middleware',
   category: 'security',
+  isExternal: false,
 
   async isAvailable(projectPath: string): Promise<boolean> {
     return looksLikeNextJsProject(projectPath);

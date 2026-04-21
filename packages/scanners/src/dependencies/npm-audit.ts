@@ -42,6 +42,7 @@ export const npmAuditScanner: Scanner = {
   name: 'npm-audit',
   description: 'Dependency vulnerability scanning via npm audit',
   category: 'dependencies',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('npm');

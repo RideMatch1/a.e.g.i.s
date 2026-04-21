@@ -47,6 +47,7 @@ export const testsslScanner: Scanner = {
   name: 'testssl',
   description: 'TLS/SSL configuration and certificate analysis via testssl.sh',
   category: 'infrastructure',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     const [testsslExists, testsslShExists] = await Promise.all([

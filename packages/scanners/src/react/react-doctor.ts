@@ -38,6 +38,7 @@ export const reactDoctorScanner: Scanner = {
   name: 'react-doctor',
   description: 'React code quality check via react-doctor (score threshold: 93)',
   category: 'quality',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     // Only check if npx is available — React dependency is checked in scan() with projectPath

@@ -65,6 +65,7 @@ export const axeLighthouseScanner: Scanner = {
   name: 'axe-lighthouse',
   description: 'Accessibility scanner using Lighthouse CLI (includes axe-core)',
   category: 'accessibility',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('lighthouse');

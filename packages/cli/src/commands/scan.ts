@@ -14,12 +14,17 @@ const FAST_CATEGORIES: ScanCategory[] = [
 
 /**
  * v0.15.2 Item-7 — denominator for the cold-install-UX banner text.
- * AEGIS ships external-tool wrappers for roughly 16 third-party
- * scanners (semgrep, gitleaks, trufflehog, osv-scanner, trivy,
- * hadolint, checkov, testssl, bearer, npm-audit, axe-lighthouse,
- * lighthouse-perf, nuclei, zap, react-doctor, supply-chain). Bump
- * this constant when adding a new external-tool wrapper so the
- * banner fraction stays honest.
+ * v0.15.4 D-N-003 — corrected inventory. AEGIS ships external-tool
+ * wrappers for 16 third-party scanners (semgrep, bearer, gitleaks,
+ * trufflehog, osv-scanner, npm-audit, license-checker, nuclei, zap,
+ * trivy, hadolint, checkov, testssl, react-doctor, axe-lighthouse,
+ * lighthouse-performance). The supply-chain scanner was previously
+ * mis-listed here — it's internal (reads lockfiles and package.json
+ * directly, no third-party binary) and must NOT count toward the
+ * denominator or the unavailable-list. Bump this constant when
+ * adding a new external-tool wrapper so the banner fraction stays
+ * honest; classification is enforced at the source by each scanner's
+ * Scanner.isExternal field (v0.15.4+).
  */
 const TOTAL_EXTERNAL_TOOLS = 16;
 
@@ -83,13 +88,19 @@ export async function runScan(path: string, options: ScanOptions): Promise<numbe
 
     spinner.stop();
 
-    // v0.15.2 Item-7 — cold-install-UX banner. When external-tool
-    // wrappers return available:false (commandExists failed for their
-    // binary on PATH), surface a stderr-only diagnostic so human
-    // operators know the scan ran with partial coverage. Stdout stays
-    // untouched so --format json consumers piping to jq get a clean
-    // payload (JSON-purity is the non-negotiable contract).
-    const unavailable = result.scanResults.filter((s) => !s.available);
+    // v0.15.2 Item-7 — cold-install-UX banner. v0.15.4 D-N-003 —
+    // classify via Scanner.isExternal so the banner only attributes
+    // unavailable-status to wrapper-scanners (binary not on PATH),
+    // never to internal stack-gated scanners whose isAvailable=false
+    // is a legitimate skip (e.g., header-checker on a non-Next.js
+    // project). Stdout stays untouched so --format json consumers
+    // piping to jq get a clean payload.
+    const externalScannerNames = new Set(
+      fastScanners.filter((s) => s.isExternal === true).map((s) => s.name),
+    );
+    const unavailable = result.scanResults.filter(
+      (s) => !s.available && externalScannerNames.has(s.scanner),
+    );
     if (unavailable.length > 0) {
       const names = unavailable.map((s) => s.scanner).join(', ');
       const banner =

@@ -115,6 +115,32 @@ shown with the reason the target wasn't met.
 
 ### Fixed
 
+- **D-N-003 Scanner.isExternal classification + cold-install-UX
+  banner accuracy (v0.15.4 Fertig-Patches, Round-4 audit-finding):**
+  `Scanner` interface in `packages/core/src/types.ts` gains an
+  optional `isExternal?: boolean` field. All 16 external-tool
+  wrappers are marked `isExternal: true` at source (semgrep, bearer,
+  gitleaks, trufflehog, osv-scanner, npm-audit, license-checker,
+  nuclei, zap, trivy, hadolint, checkov, testssl, react-doctor,
+  axe-lighthouse, lighthouse-performance), and `header-checker`
+  carries an explicit `isExternal: false` to pin its classification
+  against the forthcoming default-ignore default. The cold-install-UX
+  banner emission path in `packages/cli/src/commands/scan.ts` now
+  filters the unavailable-scanner list by `isExternal === true`
+  rather than the prior `!s.available` heuristic, so internal
+  stack-gated scanners are no longer mis-attributed to the
+  "external scanners unavailable" bucket. Closes Round-4
+  audit-finding 🟡 D-N-003 where scanning a non-Next.js project
+  surfaced `header-checker` in the banner's unavailable-list and
+  flipped the count between 5/16 and 6/16 depending on project
+  shape; post-fix the banner count is stable at the genuine
+  external-binary-absence count. The `TOTAL_EXTERNAL_TOOLS = 16`
+  inline comment was also corrected — the phantom `supply-chain`
+  entry (internal, reads lockfiles directly) was removed and the
+  previously-omitted `license-checker` was added, preserving the
+  16-count by fixing both sides of the pre-v0.15.4 arithmetic
+  accident.
+
 - **D-N-001 logging-checker empty-project skip (v0.15.4
   Fertig-Patches, Round-4 audit-finding):** `logging-checker` no
   longer fires the project-level LOG-001 "No centralized logging

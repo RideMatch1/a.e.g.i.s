@@ -20,6 +20,7 @@ export const trufflehogScanner: Scanner = {
   name: 'trufflehog',
   description: 'Secret detection via TruffleHog — scans git history for verified and unverified credentials',
   category: 'security',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('trufflehog');

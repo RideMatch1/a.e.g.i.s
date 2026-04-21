@@ -41,6 +41,7 @@ export const trivyScanner: Scanner = {
   name: 'trivy',
   description: 'Container and filesystem vulnerability scanning via Trivy',
   category: 'infrastructure',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('trivy');

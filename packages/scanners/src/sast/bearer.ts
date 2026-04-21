@@ -66,6 +66,7 @@ export const bearerScanner: Scanner = {
   name: 'bearer',
   description: 'Privacy-focused SAST — detects PII data flows via Bearer',
   category: 'compliance',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('bearer');

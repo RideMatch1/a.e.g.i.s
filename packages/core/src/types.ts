@@ -111,6 +111,17 @@ export interface Scanner {
   name: string;
   description: string;
   category: ScanCategory;
+  /**
+   * v0.15.4 D-N-003 — external-wrapper classification. When true, the
+   * scanner wraps a third-party CLI binary (Semgrep, Gitleaks, Trivy,
+   * …); its isAvailable check reflects binary-presence on PATH, and a
+   * false return feeds the cold-install-UX banner at
+   * packages/cli/src/commands/scan.ts. When false or undefined, the
+   * scanner is internal (built-in regex / AST) — its isAvailable=false
+   * means stack-gated skip, and the banner must NOT attribute the
+   * skip to a missing install.
+   */
+  isExternal?: boolean;
   isAvailable(projectPath: string): Promise<boolean>;
   scan(projectPath: string, config: AegisConfig): Promise<ScanResult>;
 }

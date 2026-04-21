@@ -44,6 +44,7 @@ export const osvScannerScanner: Scanner = {
   name: 'osv-scanner',
   description: 'Dependency vulnerability scanning via OSV-Scanner against the OSV database',
   category: 'dependencies',
+  isExternal: true,
 
   async isAvailable(_projectPath: string): Promise<boolean> {
     return commandExists('osv-scanner');
