@@ -19,7 +19,7 @@ npx @aegis-scan/cli scan .
 ```
 
 from the root of any Node / TypeScript project. The CLI fetches the latest
-package from npm, walks the repo, runs the 40 built-in scanners (plus 16
+package from npm, walks the repo, runs the 42 built-in scanners (plus 16
 external wrappers that auto-skip when their tool is not installed), and
 prints a per-category score bar, an aggregated grade + badge, and any
 findings grouped by severity. The live output is colourised with progress
@@ -297,7 +297,7 @@ integration) see the **GitHub Action** section of the
 
 ## 7. What's next
 
-- **[Full scanner list](../README.md#what-aegis-finds-that-generic-sast-tools-miss)** — 39 built-in scanners + 16 external tool wrappers
+- **[Full scanner list](../README.md#what-aegis-finds-that-generic-sast-tools-miss)** — 42 built-in scanners + 16 external tool wrappers
 - **[Scoring rules](../README.md#scoring)** — how the 0-1000 score is weighted
 - **[Custom rules](./custom-rules.md)** — project-specific sources / sinks / sanitizers
 - **[Suppression DSL](./suppressions.md)** — inline + config, all supported forms

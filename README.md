@@ -9,7 +9,7 @@
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 [![npm](https://img.shields.io/npm/v/@aegis-scan/cli?label=%40aegis-scan%2Fcli)](https://www.npmjs.com/package/@aegis-scan/cli)
 
-Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, VS Code extension, and GitHub Action.
+Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers plus 16 external-tool wrappers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, VS Code extension, and GitHub Action.
 
 ---
 
@@ -34,7 +34,7 @@ db.query(query);                                   // sink: SQL Injection (CWE-8
 
 Per-CWE sanitizer awareness: `parseInt()` blocks SQL injection but not XSS, `DOMPurify.sanitize()` blocks XSS but not SQL injection, `encodeURIComponent()` blocks SSRF but not path traversal (frameworks decode before fs access).
 
-Suite composition: **39** regex scanners + **1** AST taint analyzer + **1** RPC-specific SQLi scanner (built-in), **16** external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** live attack probes, **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
+Suite composition: **40** regex scanners + **1** AST taint analyzer + **1** RPC-specific SQLi scanner (built-in), **16** external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** live attack probes, **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
 
 ---
 
@@ -58,7 +58,7 @@ Suite composition: **39** regex scanners + **1** AST taint analyzer + **1** RPC-
              ▼              ▼              ▼
   ┌──────────────────┐  ┌────────────┐  ┌──────────────────┐
   │ Built-in scanners│  │  Taint     │  │ External wrappers│
-  │  (40 regex rules)│  │  Analyzer  │  │  (Semgrep, ZAP, …│
+  │  (41 regex rules)│  │  Analyzer  │  │  (Semgrep, ZAP, …│
   │                  │  │  (AST +    │  │   auto-skip when │
   │                  │  │   TS       │  │   not installed) │
   │                  │  │   Compiler)│  │                  │
@@ -327,7 +327,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 
 ---
 
-## Scanners (60 total)
+## Scanners (63 total)
 
 > Authoritative registration: `getAllScanners()` + `getAttackScanners()` in
 > [`packages/scanners/src/index.ts`](./packages/scanners/src/index.ts). Counts
