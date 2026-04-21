@@ -13,6 +13,52 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.16.1] — 2026-04-21 — "Test-Reliability"
+
+Single-item patch-release closing the D-T-001 turbo-parallel AST-test
+flake discovered during v0.16.0 pre-commit empirical-verify and
+queued for this cycle per Rule #10 defensive-execution. Six AST
+tests in `@aegis-scan/scanners` that build ts-morph `Program`
+instances (`function-summary`, `module-graph`, `program`,
+`taint-analyzer`, `taint-tracker`, `type-resolve`) timed out at
+vitest's default 5000ms per-test budget when `pnpm turbo test
+--force` ran all 10 packages' test-suites concurrently on multi-core
+developer hosts — an environmental flake driven by CPU contention
+during parallel ts-morph `Program` construction rather than a logic
+regression. The flake was proven pre-existing by stash-reverting to
+`a00e9a9` (pre-v0.16.0) under pnpm@9.15.0 where the same six tests
+reproduced identical 5000ms timeouts. Isolated per-package runs
+(`pnpm --filter @aegis-scan/scanners test`) were unaffected — 77 of
+77 test files / 1272 of 1272 tests green. Scanner-behavior, scoring,
+canary-results, and published-package-behavior are all unchanged by
+this release. Provenance attestations carry forward from v0.16.0
+(the fix in this release does not touch any publish-path config or
+scanner logic).
+
+### Fixed
+
+- **D-T-001 turbo-parallel AST-test flake (v0.16.1 first-item):**
+  New `packages/scanners/vitest.config.ts` sets `test.testTimeout`
+  to 15000ms (up from vitest's default 5000ms). Empirical sizing:
+  the six affected tests complete in 7-8 seconds each in isolation
+  (session-measurement: function-summary 8057ms, module-graph 7951ms,
+  program 7627ms, taint-analyzer 8002ms, taint-tracker 7405ms,
+  type-resolve 8210ms) and take ~10-12 seconds under turbo-parallel
+  CPU contention. 15000ms provides ~1.5× headroom above both the
+  isolation-time and the observed parallel-time without making the
+  timeout so loose that a real performance regression could hide
+  behind it. The config is scoped to the `scanners` package only —
+  the other four shipped packages (cli, core, reporters, mcp-server)
+  have no ts-morph-Program-building tests and continue to use
+  vitest's 5000ms default unchanged. RED-baseline captured pre-fix
+  (`pnpm turbo test --force` produced 6 × `FAIL __tests__/ast/` with
+  12 × `Error: Test timed out in 5000ms`) and GREEN-baseline
+  verified post-fix (0 timeout-hits, 10 of 10 turbo tasks
+  successful, 77 of 77 scanners test files and 1272 of 1272
+  scanners tests green, individual per-package isolated
+  test-counts unchanged). No test-file edits and no source-code
+  edits in this release — the fix is config-level only.
+
 ## [0.16.0] — 2026-04-21 — "Provenance-Integrity"
 
 Single-item minor-release closing the SLSA provenance soft-gap that
