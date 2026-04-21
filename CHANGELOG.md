@@ -57,6 +57,23 @@ maintained; canary total 110 of 110 across 14 phases (v0.15.4's
   not-matching `TemplatesTab.tsx` / `TemplatesGrid.tsx` /
   `TemplatesList.tsx` component basenames.
 
+- **D-A-002 stale cold-install-UX banner version-pin + publish-gate
+  (v0.15.4.1 hotfix):** `packages/cli/src/commands/scan.ts` banner-
+  text at line 109 dropped the `(v0.15.3)` parenthesized install-hint
+  version-pin — tool names like `aegis doctor` are stable across
+  releases and do not need a version anchor in user-facing strings.
+  The v0.15.4 tarballs shipped with the stale-by-one-version
+  `(v0.15.3)` pin as a visible example of the failure-mode. To
+  prevent recurrence, `.github/workflows/publish.yml` gains a
+  pre-publish grep-gate step that blocks install-hint-style
+  version-pins (`(v0.15.X)` embedded in string-literals) from any
+  shipped source tree. The gate is intentionally narrow — historical
+  references in comments (`// v0.15.4 D-N-003`, `* introduced in
+  v0.15.2`) are real documentation of when each change landed and
+  remain allowed. Two JSDoc historical references to v0.15.3 in
+  `template-sql-checker.ts` and `jwt-detector.ts` are preserved
+  unchanged.
+
 - **D-A-001 CHANGELOG [0.15.4] D-M-001 honesty erratum:** the
   v0.15.4 D-M-001 entry originally framed the FixGuidance work as
   "full-closure 12-of-12 Round-4-flagged scanners". Empirical

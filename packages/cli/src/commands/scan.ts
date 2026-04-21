@@ -106,7 +106,7 @@ export async function runScan(path: string, options: ScanOptions): Promise<numbe
       const banner =
         `⚠️  ${unavailable.length}/${TOTAL_EXTERNAL_TOOLS} external scanners unavailable `
         + `(${names}). Built-in coverage is partial. Install for full audit: `
-        + `aegis doctor (v0.15.3). See .github/workflows/aegis.yml for CI-ready setup.\n`;
+        + `aegis doctor. See .github/workflows/aegis.yml for CI-ready setup.\n`;
       process.stderr.write(banner);
     }
 

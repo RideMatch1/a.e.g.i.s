@@ -52,6 +52,30 @@ jobs:
       - name: Build shipped packages
         run: pnpm build
 
+      # v0.15.4.1 D-A-002 — block install-hint-style version-pins like
+      # "(v0.15.X)" embedded in string literals of shipped source. The
+      # v0.15.4 release shipped with `aegis doctor (v0.15.3)` left over
+      # from a prior release — by v0.15.4 that was stale-by-one-version
+      # install-hint text in the cold-install-UX banner. The grep
+      # targets parenthesized-version-pins inside quoted strings
+      # (single, double, or backtick) only — historical references in
+      # comments like `// v0.15.4 D-N-003` or `* introduced in v0.15.2`
+      # are intentional documentation of when each change landed and
+      # are NOT blocked. Tool names like `aegis doctor` are stable
+      # across releases and do not need version anchors in
+      # user-facing strings.
+      - name: Verify no install-hint-style version-pins in shipped src
+        run: |
+          if grep -rnE "[\"'\`][^\"'\`]*\(v0\.15\.[0-9]+\)[^\"'\`]*[\"'\`]" packages/*/src/; then
+            echo "::error::Install-hint-style version pin (v0.15.X) found in a"
+            echo "string-literal in shipped source. Remove the version-pin —"
+            echo "tool names like 'aegis doctor' are stable and do not need"
+            echo "version anchors. If a runtime version reference is genuinely"
+            echo "needed, compute it from package.json at build time rather"
+            echo "than hardcoding the literal."
+            exit 1
+          fi
+
       - name: Publish to npm with provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
