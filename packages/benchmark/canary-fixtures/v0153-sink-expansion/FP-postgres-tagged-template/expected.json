@@ -1,0 +1,9 @@
+{
+  "id": "v0153-FP-postgres-tagged-template",
+  "cwe": 89,
+  "type": "FP",
+  "description": "await sql`SELECT * FROM t WHERE id = ${id}` — postgres.js safe tagged-template-literal API. The sql`…` tag function parameterizes interpolations automatically at the driver level; it is the canonical safe shape. Verifies the call-site regex's structural guard: since the regex anchors on `.methodName(` shape, a bare tagged-template without any method-name call-site naturally doesn't match. template-sql-checker must NOT emit.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

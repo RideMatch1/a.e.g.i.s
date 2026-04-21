@@ -1,0 +1,9 @@
+{
+  "id": "v0153-TP-knex-raw",
+  "cwe": 89,
+  "type": "TP",
+  "description": "knex.raw(`SELECT * FROM ${table} WHERE id = '${id}'`) — knex's canonical template-interpolation sink. The same .raw() shape exists on mysql2, mongoose, and sequelize; a single method-name allowlist covers all four ORMs. Post-v0.15.3 sink-list expansion, template-sql-checker MUST emit CRITICAL/CWE-89.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

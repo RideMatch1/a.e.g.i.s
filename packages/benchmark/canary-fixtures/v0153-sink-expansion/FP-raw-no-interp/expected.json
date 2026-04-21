@@ -1,0 +1,9 @@
+{
+  "id": "v0153-FP-raw-no-interp",
+  "cwe": 89,
+  "type": "FP",
+  "description": "knex.raw(`SELECT * FROM users`) — .raw() with a backtick-delimited string but no ${} interpolation, so the SQL text is effectively static. Verifies the no-interpolation-guard still holds after the sink-list expansion: adding .raw() to the call-site regex must NOT cause static-literal raw() calls to fire. template-sql-checker must NOT emit.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

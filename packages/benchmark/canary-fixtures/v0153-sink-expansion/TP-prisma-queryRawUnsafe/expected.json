@@ -1,0 +1,9 @@
+{
+  "id": "v0153-TP-prisma-queryRawUnsafe",
+  "cwe": 89,
+  "type": "TP",
+  "description": "prisma.$queryRawUnsafe(`SELECT * FROM users WHERE id = ${id}`) — Prisma's canonical unsafe-raw entrypoint with template-literal interpolation. Round-3 external review surfaced this as the credibility-critical C-001 miss: $queryRawUnsafe is the documented SQL-injection shape in Next.js+Prisma stacks but the v0.15.2 regex (rpc|execute|query) doesn't match it. Post-v0.15.3 sink-list expansion, template-sql-checker MUST emit CRITICAL/CWE-89.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0153-TP-prisma-executeRawUnsafe",
+  "cwe": 89,
+  "type": "TP",
+  "description": "prisma.$executeRawUnsafe(`DELETE FROM t WHERE x = ${v}`) — Prisma's unsafe-mutation raw-entrypoint with template-interpolation. Mutation-class sibling of $queryRawUnsafe; attacker-controlled interpolation can alter or destroy rows. Post-v0.15.3 sink-list expansion, template-sql-checker MUST emit CRITICAL/CWE-89.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

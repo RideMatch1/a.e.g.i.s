@@ -1,0 +1,9 @@
+{
+  "id": "v0153-FP-prisma-queryRaw-safe",
+  "cwe": 89,
+  "type": "FP",
+  "description": "prisma.$queryRaw`SELECT * FROM t WHERE id = ${id}` — Prisma's SAFE tagged-template variant (NOT the Unsafe sibling). Two structural guards must hold simultaneously: (a) tagged-template shape has no `.methodName(` call-site match, (b) $queryRaw is DELIBERATELY excluded from the expanded sink-list while $queryRawUnsafe IS included. This dual-guard FP is a critical trust-signal: the scanner must distinguish Unsafe-vs-Safe Prisma APIs — firing on $queryRaw would be a credibility-breaking FP class. template-sql-checker must NOT emit.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}
