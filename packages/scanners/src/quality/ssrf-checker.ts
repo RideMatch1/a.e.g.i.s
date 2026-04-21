@@ -191,11 +191,16 @@ export const ssrfCheckerScanner: Scanner = {
           }
 
           const id = `SSRF-${String(idCounter.value++).padStart(3, '0')}`;
+          // v0.15.4 D-N-002 — include the matched HTTP-client call in the
+          // title so reports distinguish fetch(url) / axios.get(url) /
+          // got(url) / http.request(url) patterns rather than repeating
+          // a single generic string for every finding.
+          const matchedCall = match[0].slice(0, 60).replace(/\s+/g, ' ').trim();
           findings.push({
             id,
             scanner: 'ssrf-checker',
             severity: 'high',
-            title: 'Potential SSRF — HTTP call with variable URL',
+            title: `SSRF-class pattern — variable URL in HTTP call: ${matchedCall}`,
             description:
               'An HTTP client is called with a variable URL rather than a hardcoded string. If this URL originates from user input, an attacker can force the server to make requests to internal services (cloud metadata, databases, admin panels). Use a safeFetch wrapper with URL allowlisting.',
             file,

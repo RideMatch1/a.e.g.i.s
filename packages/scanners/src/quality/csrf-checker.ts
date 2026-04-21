@@ -182,11 +182,16 @@ export const csrfCheckerScanner: Scanner = {
           const sameSiteNote = middlewareHasSameSite
             ? ' Middleware declares SameSite=Lax|Strict on session cookies — severity downgraded to info (SameSite already blocks cross-site mutations at the browser layer). Adding an explicit CSRF token remains best-practice for defense-in-depth.'
             : '';
+          // v0.15.4 D-N-002 — include route-path in title so multi-finding
+          // reports differentiate per-route instead of repeating the same
+          // generic string for every mutating handler in the project.
+          const routePath = file.match(/\/api\/(.+?)\/route\.(?:ts|js)$/)?.[1] ?? '';
+          const titleSuffix = routePath ? ` (/api/${routePath})` : '';
           findings.push({
             id,
             scanner: 'csrf-checker',
             severity,
-            title: 'Mutating route handler missing CSRF protection',
+            title: `Mutating route handler missing CSRF protection${titleSuffix}`,
             description:
               'This API route handles POST/PUT/PATCH/DELETE requests but does not implement CSRF protection. Add Origin header validation, a CSRF token, SameSite cookie flags, or use secureApiRouteWithTenant (which includes Origin checking). JSON-only APIs checking Content-Type are also acceptable.' +
               sameSiteNote,

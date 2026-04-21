@@ -38,6 +38,33 @@ shown with the reason the target wasn't met.
 
 ### Changed
 
+- **D-N-002 scanner title specificity — per-finding differentiation
+  (v0.15.4 Fertig-Patches, Round-4 audit-finding):** Eight scanner
+  emission-sites that previously emitted an identical title across
+  every finding of the class now include match-specific context in
+  the title so multi-finding reports differentiate findings by the
+  route, pattern, or token-prefix that triggered the detection.
+  `csrf-checker`, `rate-limit-checker`, `mass-assignment-checker`,
+  and `timing-safe-checker` append the `/api/<path>` route identifier
+  extracted from the file path. `open-redirect-checker`,
+  `error-leakage-checker`, and `ssrf-checker` append the matched
+  code fragment (sanitized to a 60-80 char snippet) so the specific
+  dangerous construct is visible in the title. `rate-limit-checker`
+  additionally prefixes the title with the route category (auth /
+  payment / admin / export / sensitive) derived from the matched
+  sensitive-path pattern. `jwt-detector` appends the first 12
+  characters of the matched token (always the fixed header prefix,
+  never the signature) so a repo with multiple hardcoded tokens
+  surfaces them distinctly instead of under a single generic line.
+  Descriptions remain unchanged — the specificity is carried in the
+  title so terminal and HTML reporter summaries differentiate at a
+  glance without requiring operators to expand each finding.
+  `pagination-checker` already differentiated between Supabase
+  `.from().select()` and Prisma `findMany()` via separate titles, so
+  no change was needed there — the 8 scanners above close the
+  audit-flagged class end-to-end alongside the Phase 2
+  FixGuidance-description specificity.
+
 - **D-M-001 FixGuidance-fill on remaining 9 scanners (v0.15.4
   Fertig-Patches, Round-4 audit-finding full-closure):** Full-closes
   🟠 D-M-001 by populating structured `fix: { description, code?,

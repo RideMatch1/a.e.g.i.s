@@ -119,11 +119,16 @@ export const errorLeakageCheckerScanner: Scanner = {
             if (SAFE_PHRASES.some((phrase) => window.includes(phrase))) continue;
 
             const id = `LEAK-${String(idCounter.value++).padStart(3, '0')}`;
+            // v0.15.4 D-N-002 — include the matched error-leak construct
+            // (err.message / ${err} / etc.) in the title so reports
+            // differentiate per-pattern rather than repeating the same
+            // generic string for every finding.
+            const matchedSnippet = match[0].slice(0, 60).replace(/\s+/g, ' ').trim();
             findings.push({
               id,
               scanner: 'error-leakage-checker',
               severity: 'high',
-              title: 'Internal error detail leaked to client response',
+              title: `Internal error detail leaked to client response: ${matchedSnippet}`,
               description:
                 'This route serializes an error\'s internal detail (err.message or full error object) directly into the JSON response without a centralized error handler. This can expose stack traces, database schema, or implementation details. Use a handleError() wrapper or return generic messages.',
               file,

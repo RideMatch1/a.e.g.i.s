@@ -88,11 +88,16 @@ export const openRedirectCheckerScanner: Scanner = {
           let match: RegExpExecArray | null;
           while ((match = re.exec(content)) !== null) {
             const id = `REDIR-${String(idCounter++).padStart(3, '0')}`;
+            // v0.15.4 D-N-002 — include the matched redirect construct in
+            // the title so reports differentiate different danger-classes
+            // (redirect(req.query...), res.redirect(body...), location =
+            // userInput) instead of repeating a single generic string.
+            const matchedSnippet = match[0].slice(0, 80).replace(/\s+/g, ' ').trim();
             findings.push({
               id,
               scanner: 'open-redirect-checker',
               severity: 'medium',
-              title: 'Potential open redirect with unvalidated input',
+              title: `Open redirect with unvalidated input: ${matchedSnippet}`,
               description:
                 'A redirect using user-controlled input (query param, request body) was detected without URL allowlist validation. An attacker could redirect users to a malicious site. Validate the redirect target: ensure it starts with "/" (relative), matches an explicit allowlist, or use new URL(input, baseUrl) to enforce same-origin.',
               file,

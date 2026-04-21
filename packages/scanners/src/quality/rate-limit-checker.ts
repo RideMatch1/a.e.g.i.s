@@ -83,11 +83,23 @@ export const rateLimitCheckerScanner: Scanner = {
 
         if (!hasRateLimit(content)) {
           const id = `RATE-${String(idCounter.value++).padStart(3, '0')}`;
+          // v0.15.4 D-N-002 — classify the route by the sensitive-path
+          // pattern it matched, so the title identifies which kind of
+          // sensitive route (auth, payment, admin, export) is unprotected
+          // instead of repeating the same generic string for every hit.
+          const routeCategory =
+            /\/auth\/|\/login|\/register|\/reset-password/.test(file) ? 'auth'
+            : /\/payment|\/pay(\/|$)|\/charge|\/checkout/.test(file) ? 'payment'
+            : /\/admin\//.test(file) ? 'admin'
+            : /\/export|\/download|\/bulk/.test(file) ? 'export'
+            : 'sensitive';
+          const routePath = file.match(/\/api\/(.+?)\/route\.(?:ts|js)$/)?.[1] ?? '';
+          const titleSuffix = routePath ? ` (/api/${routePath})` : '';
           findings.push({
             id,
             scanner: 'rate-limit-checker',
             severity: 'high',
-            title: 'Sensitive route missing rate limiting',
+            title: `${routeCategory[0].toUpperCase()}${routeCategory.slice(1)} route missing rate limiting${titleSuffix}`,
             description:
               'This API route handles sensitive operations (auth, payment, admin, or export) but does not appear to use rate limiting. Without rate limiting, the endpoint is vulnerable to brute-force and abuse attacks.',
             file,

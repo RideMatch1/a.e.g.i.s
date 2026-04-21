@@ -131,11 +131,15 @@ export const timingSafeCheckerScanner: Scanner = {
         }
 
         const id = `TIMING-${String(idCounter.value++).padStart(3, '0')}`;
+        // v0.15.4 D-N-002 — include route path so reports identify which
+        // handler contains the non-constant-time comparison.
+        const routePath = file.match(/\/api\/(.+?)\/route\.(?:ts|js)$/)?.[1] ?? '';
+        const titleSuffix = routePath ? ` (/api/${routePath})` : '';
         findings.push({
           id,
           scanner: 'timing-safe-checker',
           severity: 'medium',
-          title: 'Secret comparison using === is vulnerable to timing attacks',
+          title: `Secret comparison using === is vulnerable to timing attacks${titleSuffix}`,
           description:
             'This route compares a secret, token, or API key using the === operator. Standard string equality is not constant-time and leaks information about the secret through response timing. Use timingSafeStringEqual() or crypto.timingSafeEqual() instead.',
           file,

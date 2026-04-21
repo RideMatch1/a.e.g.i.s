@@ -97,12 +97,18 @@ export const jwtDetectorScanner: Scanner = {
       const re = new RegExp(JWT_REGEX.source, JWT_REGEX.flags);
       let match: RegExpExecArray | null;
       while ((match = re.exec(sanitized)) !== null) {
+        // v0.15.4 D-N-002 — include the first 12 characters of the matched
+        // token (always starts with eyJ, followed by the deterministic
+        // base64 of the JWT header) so multi-token reports differentiate
+        // rather than listing identical titles. Never include the full
+        // token — the signature portion could be a live secret.
+        const tokenPrefix = match[0].slice(0, 12);
         findings.push({
           id: `SECRET-JWT-${String(idCounter++).padStart(3, '0')}`,
           scanner: 'jwt-detector',
           severity: 'critical',
           category: 'security',
-          title: 'Hardcoded JWT credential detected in source',
+          title: `Hardcoded JWT credential detected in source (${tokenPrefix}…)`,
           description:
             `A JWT-shaped literal was found embedded in source code. Hardcoded `
             + `credentials are vulnerable to exposure via repository access, `

@@ -124,11 +124,15 @@ export const massAssignmentCheckerScanner: Scanner = {
         }
 
         const id = `MASS-${String(idCounter.value++).padStart(3, '0')}`;
+        // v0.15.4 D-N-002 — include route path in title so multi-finding
+        // reports differentiate per-route rather than repeating.
+        const routePath = file.match(/\/api\/(.+?)\/route\.(?:ts|js)$/)?.[1] ?? '';
+        const titleSuffix = routePath ? ` (/api/${routePath})` : '';
         findings.push({
           id,
           scanner: 'mass-assignment-checker',
           severity: 'high',
-          title: 'Mass assignment: raw request body passed directly to database',
+          title: `Mass assignment: raw request body passed directly to database${titleSuffix}`,
           description:
             'The request body from request.json() is passed directly to a database insert/update/upsert without Zod validation or explicit field destructuring. This allows attackers to set arbitrary fields, including privilege columns like role, tenantId, or isAdmin. Validate with a Zod schema or destructure only the expected fields.',
           file,
