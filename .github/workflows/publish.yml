@@ -52,7 +52,7 @@ jobs:
       - name: Build shipped packages
         run: pnpm build
 
-      # v0.15.4.1 D-A-002 — block install-hint-style version-pins like
+      # v0.15.5 D-A-002 — block install-hint-style version-pins like
       # "(v0.15.X)" embedded in string literals of shipped source. The
       # v0.15.4 release shipped with `aegis doctor (v0.15.3)` left over
       # from a prior release — by v0.15.4 that was stale-by-one-version

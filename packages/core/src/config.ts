@@ -209,7 +209,7 @@ const DEFAULT_IGNORE = [
   // across nested depths and file-extensions. `Templates[0-9]*` is
   // capital-T case-sensitive on purpose — lowercase `templates/` is
   // legit-source in many projects (email / handlebars). The numeric
-  // first-character guard (v0.15.4.1 D-R-001 hotfix) prevents the
+  // first-character guard (v0.15.5 D-R-001 hotfix) prevents the
   // pattern from silently skipping component-named files that happen
   // to start with `Templates` (TemplatesTab.tsx, TemplatesGrid.tsx,
   // TemplatesList.tsx) while still matching the canonical

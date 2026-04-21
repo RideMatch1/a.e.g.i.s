@@ -1,6 +1,6 @@
 {
   "name": "@aegis-scan/mcp-server",
-  "version": "0.15.4",
+  "version": "0.15.5",
   "description": "AEGIS MCP server — exposes scan / findings / score / compliance / fix-suggestion tools to any Model Context Protocol agent (Claude Code, Cursor, Continue, Zed). Five registered tools: aegis_scan, aegis_findings, aegis_score, aegis_compliance, aegis_fix_suggestion.",
   "license": "MIT",
   "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",

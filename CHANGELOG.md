@@ -13,7 +13,20 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
-## [0.15.4.1] — 2026-04-21 — "Fertig-Patches hotfix"
+## [0.15.5] — 2026-04-21 — "Fertig-Patches hotfix"
+
+Hotfix for three defects surfaced by a brutal-audit run immediately
+after the v0.15.4 tarballs landed on npm. Originally planned and
+dispatched as v0.15.4.1 — renamed to v0.15.5 at the R2 version-bump
+gate for semver-2.0 compliance (4-part version-strings like
+`0.15.4.1` are invalid per the semver 2.0 spec and the npm semver
+parser returns `null` for them). The three hotfix commits
+(97202cc, ad69602, 45adc7c) reference "v0.15.4.1" in their bodies
+as historical documentation of the intent at commit-time — the
+actual shipping version is v0.15.5. Closes 🔴 D-R-001 Templates
+basename-silent-skip regression, 🟠 D-A-001 D-M-001 CHANGELOG
+honesty erratum, and 🟡 D-A-002 stale install-hint plus pre-publish
+grep-gate.
 
 Patch-release closing three post-v0.15.4-ship findings surfaced by a
 brutal-audit run immediately after the v0.15.4 tarballs landed on
@@ -23,7 +36,7 @@ named source files like `TemplatesTab.tsx`, `TemplatesGrid.tsx`,
 and `TemplatesList.tsx` were silently skipped by walkFiles because
 the `Templates*` picomatch pattern matched basenames as well as
 directory names, letting a hardcoded JWT in a component-named file
-go completely unreported. v0.15.4.1 narrows the pattern to
+go completely unreported. v0.15.5 narrows the pattern to
 `Templates[0-9]*` so the vendor-template directory naming
 convention (`Templates1/`, `Templates2/`, `Templates99/` — Larkon
 / dashboard-UI starter-kit class) is still matched while
@@ -34,7 +47,7 @@ maintained; canary total 110 of 110 across 14 phases (v0.15.4's
 
 ### Fixed
 
-- **D-R-001 Templates* basename-silent-skip regression (v0.15.4.1
+- **D-R-001 Templates* basename-silent-skip regression (v0.15.5
   hotfix, ship-stopper class):** `packages/core/src/config.ts`
   DEFAULT_IGNORE pattern `'Templates*'` narrowed to
   `'Templates[0-9]*'`. The numeric-first-character guard prevents
@@ -45,7 +58,7 @@ maintained; canary total 110 of 110 across 14 phases (v0.15.4's
   `src/components/NormalFile.tsx` produced jwt-detector CRITICAL
   on the latter but ZERO findings on the former — the silent-skip
   masked a real hardcoded secret. Two canary fixtures added under
-  `packages/benchmark/canary-fixtures/v01541-templates-basename-skip/`
+  `packages/benchmark/canary-fixtures/v0155-templates-basename-skip/`
   codify the flip — `TP-templates-named-component-scanned` flips
   from RED to GREEN post-fix, `FP-templates-dir-vendor-ignored`
   stays GREEN both sides as the narrowed pattern still matches the
@@ -58,7 +71,7 @@ maintained; canary total 110 of 110 across 14 phases (v0.15.4's
   `TemplatesList.tsx` component basenames.
 
 - **D-A-002 stale cold-install-UX banner version-pin + publish-gate
-  (v0.15.4.1 hotfix):** `packages/cli/src/commands/scan.ts` banner-
+  (v0.15.5 hotfix):** `packages/cli/src/commands/scan.ts` banner-
   text at line 109 dropped the `(v0.15.3)` parenthesized install-hint
   version-pin — tool names like `aegis doctor` are stable across
   releases and do not need a version anchor in user-facing strings.
@@ -90,10 +103,10 @@ maintained; canary total 110 of 110 across 14 phases (v0.15.4's
   block in this CHANGELOG carries the corrected framing — the
   v0.15.4-on-npm tarballs and the v0.15.4 GitHub release-notes
   ship with the original (incorrect) framing because those are
-  immutable post-publish; the v0.15.4.1 tarballs and onwards
+  immutable post-publish; the v0.15.5 tarballs and onwards
   carry the corrected text. Operators consuming v0.15.4 CHANGELOG
   via `npm view ... CHANGELOG` see the original; everything from
-  v0.15.4.1 forward sees the corrected. No code change required —
+  v0.15.5 forward sees the corrected. No code change required —
   CHANGELOG.md only.
 
 ## [0.15.4] — 2026-04-21 — "Fertig-Patches"
@@ -189,7 +202,7 @@ test-suite 1272 of 1272 across 77 files.
   total empirical FixGuidance coverage at v0.15.4 ship = 12
   scanner-classes with structured `fix` on at least one high+
   severity emission-site (verified post-hoc via grep matrix).
-  **Honest scope-correction (v0.15.4.1 D-A-001 erratum):** an
+  **Honest scope-correction (v0.15.5 D-A-001 erratum):** an
   earlier framing of this entry as "full-closure 12-of-12
   Round-4-flagged" was incorrect — empirical post-ship verification
   shows four Round-4-flagged scanners with high+ emissions remain
