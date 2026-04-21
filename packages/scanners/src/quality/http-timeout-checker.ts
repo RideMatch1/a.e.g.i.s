@@ -96,6 +96,15 @@ export const httpTimeoutCheckerScanner: Scanner = {
               category: 'security',
               owasp: 'A05:2021',
               cwe: 400,
+              fix: {
+                description:
+                  'Wrap the fetch in AbortSignal.timeout(ms) so hanging requests release their connection + memory instead of accumulating under slow-upstream conditions. For concurrent fan-out, use AbortSignal.any([user-cancel, timeout]) so user cancellation and timeout both release cleanly.',
+                code: "await fetch('https://api.example.com/data', { signal: AbortSignal.timeout(10_000) });",
+                links: [
+                  'https://cwe.mitre.org/data/definitions/400.html',
+                  'https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static',
+                ],
+              },
             });
           }
         }
@@ -125,6 +134,15 @@ export const httpTimeoutCheckerScanner: Scanner = {
               category: 'security',
               owasp: 'A05:2021',
               cwe: 400,
+              fix: {
+                description:
+                  'axios lets a request hang forever without an explicit timeout — one slow upstream can exhaust the pool. Set a default on the client instance so every call inherits it, then override per-call only for long-running endpoints.',
+                code: "const client = axios.create({ timeout: 10_000 });\nawait client.get(url);",
+                links: [
+                  'https://cwe.mitre.org/data/definitions/400.html',
+                  'https://axios-http.com/docs/req_config',
+                ],
+              },
             });
           }
         }
@@ -154,6 +172,15 @@ export const httpTimeoutCheckerScanner: Scanner = {
               category: 'security',
               owasp: 'A05:2021',
               cwe: 400,
+              fix: {
+                description:
+                  'got exposes a rich per-phase timeout object — use { timeout: { request: ms } } as a minimum and add connect/lookup timeouts for hostile-network scenarios. An extended instance (got.extend) lets a single declaration apply to every call in the module.',
+                code: "const http = got.extend({ timeout: { request: 10_000 } });\nawait http.get(url);",
+                links: [
+                  'https://cwe.mitre.org/data/definitions/400.html',
+                  'https://github.com/sindresorhus/got#timeout',
+                ],
+              },
             });
           }
         }

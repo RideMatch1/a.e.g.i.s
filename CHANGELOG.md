@@ -38,6 +38,32 @@ shown with the reason the target wasn't met.
 
 ### Changed
 
+- **D-M-001 FixGuidance-fill on remaining 9 scanners (v0.15.4
+  Fertig-Patches, Round-4 audit-finding full-closure):** Full-closes
+  🟠 D-M-001 by populating structured `fix: { description, code?,
+  links? }` on the remaining 9 scanner-classes that Item-3 (commit
+  bc120d0) left queued — `crypto-auditor` (14 RULES + 1 COMPOUND_RULE
+  + HMAC-truncation + prototype-pollution, ~17 emission-sites),
+  `config-auditor` (3 Docker + 1 Docker-Compose + 3 Next.js + 2
+  Firebase + 3 inline env-file findings, ~12 sites),
+  `http-timeout-checker` (3 sites — fetch/axios/got), `upload-validator`
+  (2 sites — magic-byte missing + Supabase contentType missing),
+  `header-checker` (2 emission paths — no-config and config-present),
+  `next-public-leak` (2 sites — NEXT_PUBLIC_ secret + server-secret
+  in client component), `pagination-checker` (2 sites — Supabase .from
+  and Prisma findMany), `mass-assignment-checker` (1 site — raw-body to
+  DB), and `env-validation-checker` (2 sites — no central validation
+  + empty-string default). Total ~40 new FixGuidance objects across
+  the 9 scanners, each with actionable description plus canonical
+  CWE/OWASP/vendor references. Code-snippets follow the Item-3
+  discipline — pseudo-code or literal-URL examples only, no framework
+  imports or variable-URL fetches, to prevent self-scan collateral
+  (the five supply-chain phantom-dep / SSRF / jwt-checker self-matches
+  surfaced during mid-populate verify-loop were sanitized before
+  commit). Self-scan 1000/A/HARDENED/0 preserved; full scanners
+  test-suite 1272 of 1272 green; all 108 canaries across 13 phases
+  green.
+
 - **D-C-001 DEFAULT_IGNORE expansion for vendor-template /
   third-party / minified patterns (Round-4 audit-finding):** Added
   five new entries to `packages/core/src/config.ts` DEFAULT_IGNORE —

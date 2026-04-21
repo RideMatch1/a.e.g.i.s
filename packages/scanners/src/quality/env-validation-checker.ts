@@ -157,6 +157,14 @@ export const envValidationCheckerScanner: Scanner = {
         category: 'quality',
         owasp: 'A05:2021',
         cwe: 1188,
+        fix: {
+          description:
+            'Create env.ts at the project root with a Zod schema that defines every server + client env var, their types, and whether they are required. Import it once at the edge of the app (middleware, root layout, or instrumentation.ts) so a missing value fails-fast at boot instead of surfacing as undefined deep in a request handler. The @t3-oss/env-nextjs package is the standard Next.js wrapper over this pattern.',
+          links: [
+            'https://cwe.mitre.org/data/definitions/1188.html',
+            'https://env.t3.gg/',
+          ],
+        },
       });
     }
 
@@ -175,6 +183,14 @@ export const envValidationCheckerScanner: Scanner = {
         category: 'quality',
         owasp: 'A05:2021',
         cwe: 1188,
+        fix: {
+          description:
+            'Replace the silent empty-string fallback with an explicit validation that throws on missing. A central env.ts with Zod surfaces the same error once at boot instead of every call-site re-implementing a silent fallback. Treat empty-string-as-default as a footgun — it makes misconfigured deploys look healthy until a request hits the undefined path.',
+          links: [
+            'https://cwe.mitre.org/data/definitions/1188.html',
+            'https://env.t3.gg/',
+          ],
+        },
       });
     }
 

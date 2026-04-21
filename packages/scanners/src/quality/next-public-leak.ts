@@ -182,6 +182,15 @@ export const nextPublicLeakScanner: Scanner = {
               line,
               cwe: 200, // CWE-200: Information Exposure
               owasp: 'A02:2021',
+              fix: {
+                description:
+                  'Rotate the value if it was ever deployed (it is in the client bundle, which is public). Drop the NEXT_PUBLIC_ prefix and move the read into a Server Component, Server Action, or Route Handler. If the value is genuinely public (anon DSN, analytics ID), rename it to something that does not trip a secret-scanner so operators do not flinch at every scan.',
+                code: "// server-only module (no 'use client')\nconst apiKey = process.env.STRIPE_SECRET_KEY;",
+                links: [
+                  'https://cwe.mitre.org/data/definitions/200.html',
+                  'https://nextjs.org/docs/app/building-your-application/configuring/environment-variables#bundling-environment-variables-for-the-browser',
+                ],
+              },
             });
           }
           continue;
@@ -205,6 +214,15 @@ export const nextPublicLeakScanner: Scanner = {
             line,
             cwe: 200,
             owasp: 'A02:2021',
+            fix: {
+              description:
+                "Remove the process.env read from this client file — it evaluates to undefined at runtime, and the intent to access a server-only secret from the client is a design bug. Call a Server Action or Route Handler that uses the secret server-side and returns only the data the client needs. If you genuinely need a non-secret public value, add the NEXT_PUBLIC_ prefix.",
+              code: "// client component\nconst data = await fetch('/api/stripe-session').then(r => r.json());\n// the /api/ handler reads process.env.STRIPE_SECRET_KEY server-side",
+              links: [
+                'https://cwe.mitre.org/data/definitions/200.html',
+                'https://nextjs.org/docs/app/building-your-application/rendering/server-components',
+              ],
+            },
           });
         }
       }

@@ -136,6 +136,15 @@ export const massAssignmentCheckerScanner: Scanner = {
           category: 'security',
           owasp: 'A08:2021',
           cwe: 915,
+          fix: {
+            description:
+              'Always parse the body through a Zod schema with .strict() so unknown fields throw instead of silently flowing into the database — an attacker cannot set role: "admin" or tenantId: "other" if those keys are rejected at the validation boundary. Read only the validated output into the insert, never the raw body.',
+            code: "const input = CreateOrderSchema.strict().parse(await request.json());\nawait db.insert('orders', { userId: auth.userId, productId: input.productId, qty: input.qty });",
+            links: [
+              'https://cwe.mitre.org/data/definitions/915.html',
+              'https://owasp.org/www-community/attacks/Mass_Assignment_Cheat_Sheet',
+            ],
+          },
         });
       }
     }

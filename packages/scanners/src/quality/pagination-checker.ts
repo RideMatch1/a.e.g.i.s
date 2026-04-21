@@ -137,6 +137,15 @@ export const paginationCheckerScanner: Scanner = {
             category: 'security',
             owasp: 'A05:2021',
             cwe: 770,
+            fix: {
+              description:
+                'Cap every multi-row select with .limit(N) or .range(from, to). For list views, push the page-size into a server constant (PAGE_SIZE = 50) so one place defines the bound, then pass the actual page via URL search-params. For single-result reads, use .single() so Supabase throws on multi-row results instead of silently returning all of them.',
+              code: "const { data } = await supabase.from('orders').select().eq('tenant_id', tenantId).range(offset, offset + 49);",
+              links: [
+                'https://cwe.mitre.org/data/definitions/770.html',
+                'https://supabase.com/docs/reference/javascript/limit',
+              ],
+            },
           });
         }
 
@@ -161,6 +170,15 @@ export const paginationCheckerScanner: Scanner = {
             category: 'security',
             owasp: 'A05:2021',
             cwe: 770,
+            fix: {
+              description:
+                'Add take and skip to every findMany — cursor-pagination (using cursor: { id: lastId }) is preferred for large tables since offset-based pagination becomes O(N) for deep pages. For small admin dashboards, a simple take: 50 with a page cursor is usually enough.',
+              code: "await prisma.order.findMany({ where: { tenantId }, take: 50, skip: page * 50, orderBy: { createdAt: 'desc' } });",
+              links: [
+                'https://cwe.mitre.org/data/definitions/770.html',
+                'https://www.prisma.io/docs/orm/prisma-client/queries/pagination',
+              ],
+            },
           });
         }
       }

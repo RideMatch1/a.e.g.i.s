@@ -157,6 +157,14 @@ export const uploadValidatorScanner: Scanner = {
             category: 'security',
             owasp: 'A04:2021',
             cwe: 434,
+            fix: {
+              description:
+                'Client-reported MIME types are user-controlled — a png extension can be a PHP payload. Read the first 4-32 bytes of the upload and compare against a magic-byte allowlist using a library like file-type, magic-bytes, or mmmagic, then reject anything that does not match the expected format. For images, piping through sharp also normalizes the output and strips EXIF.',
+              links: [
+                'https://cwe.mitre.org/data/definitions/434.html',
+                'https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload',
+              ],
+            },
           });
         }
 
@@ -180,6 +188,15 @@ export const uploadValidatorScanner: Scanner = {
             category: 'security',
             owasp: 'A04:2021',
             cwe: 434,
+            fix: {
+              description:
+                'Always set contentType on Supabase Storage uploads so the response carries the MIME you expect instead of whatever bytes the browser guesses. Pair with an allowlist check on the server-side (file-type magic bytes) so the client cannot lie about its own type either.',
+              code: "await supabase.storage.from('uploads').upload(path, file, { contentType: file.type, upsert: false });",
+              links: [
+                'https://cwe.mitre.org/data/definitions/434.html',
+                'https://supabase.com/docs/guides/storage/uploads#standard-uploads',
+              ],
+            },
           });
         }
       }

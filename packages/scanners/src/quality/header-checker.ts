@@ -152,6 +152,15 @@ export const headerCheckerScanner: Scanner = {
           category: 'security',
           owasp: 'A05:2021',
           cwe: 693,
+          fix: {
+            description:
+              'Add a security-headers block to next.config.js (or an edge middleware) so every response carries the baseline hardening set — CSP, HSTS, X-Content-Type-Options, Referrer-Policy, and friends. A single headers() entry under async headers() covers every route.',
+            code: "// next.config.js\nmodule.exports = {\n  async headers() {\n    return [{\n      source: '/:path*',\n      headers: [\n        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },\n        { key: 'Content-Security-Policy', value: \"default-src 'self'\" },\n        { key: 'X-Content-Type-Options', value: 'nosniff' },\n      ],\n    }];\n  },\n};",
+            links: [
+              'https://cwe.mitre.org/data/definitions/693.html',
+              'https://owasp.org/www-project-secure-headers/',
+            ],
+          },
         });
       }
       return {
@@ -179,6 +188,15 @@ export const headerCheckerScanner: Scanner = {
           category: 'security',
           owasp: 'A05:2021',
           cwe: 693,
+          fix: {
+            description:
+              "Add the missing header to the existing next.config headers() block or middleware response. OWASP's Secure Headers Project documents the recommended value for each; don't hand-roll CSP without a report-only rollout, which catches the legitimate-asset regressions before they break the app.",
+            code: "// next.config.js\nasync headers() {\n  return [{\n    source: '/:path*',\n    headers: [{ key: 'X-Content-Type-Options', value: 'nosniff' }],\n  }];\n}",
+            links: [
+              'https://cwe.mitre.org/data/definitions/693.html',
+              'https://owasp.org/www-project-secure-headers/',
+            ],
+          },
         });
       }
     }

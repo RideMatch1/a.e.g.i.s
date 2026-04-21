@@ -22,6 +22,7 @@ interface ConfigRule {
   description: string;
   owasp?: string;
   cwe?: number;
+  fix?: Finding['fix'];
 }
 
 const DOCKER_RULES: ConfigRule[] = [
@@ -33,6 +34,15 @@ const DOCKER_RULES: ConfigRule[] = [
       'Docker FROM uses :latest tag. Pin Docker image versions (e.g., node:20.11-alpine) for reproducible builds and to avoid supply chain drift.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        'Pin the base image to a specific digest or version tag — :latest lets an upstream push silently change your build output and supply-chain surface between runs. Prefer @sha256 digest-pinning for airtight reproducibility; a version-tag (node:20.11-alpine) is a looser but acceptable second-best.',
+      code: 'FROM node:20.11-alpine@sha256:...',
+      links: [
+        'https://cwe.mitre.org/data/definitions/1188.html',
+        'https://docs.docker.com/develop/develop-images/dockerfile_best-practices/',
+      ],
+    },
   },
   {
     pattern: /^ADD\s+https?:\/\//m,
@@ -42,6 +52,15 @@ const DOCKER_RULES: ConfigRule[] = [
       'Dockerfile ADD with a remote URL downloads content at build time without checksum verification. Use COPY with a prior curl/wget step and verify checksums.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        'ADD with a remote URL runs at every build without integrity verification — if the remote changes, your image changes silently. Replace with a RUN step that downloads, verifies a known SHA, then unpacks; or vendor the asset into the repo and use COPY.',
+      code: "RUN curl -fsSL https://example.com/file.tar.gz -o /tmp/file.tar.gz \\\n && echo 'abc123... /tmp/file.tar.gz' | sha256sum -c -",
+      links: [
+        'https://cwe.mitre.org/data/definitions/1188.html',
+        'https://docs.docker.com/develop/develop-images/dockerfile_best-practices/',
+      ],
+    },
   },
   {
     pattern: /^ENV\s+(?!NEXT_PUBLIC_)\S*(SECRET|PASSWORD|KEY|TOKEN|CREDENTIAL)\S*\s*[=\s]/im,
@@ -51,6 +70,15 @@ const DOCKER_RULES: ConfigRule[] = [
       'Secrets defined via ENV in a Dockerfile are visible in every image layer and to anyone with image access. Use build-time secrets (--mount=type=secret) or runtime environment variables instead.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        'Dockerfile ENV layers are readable by anyone who pulls the image (docker history -v). Rotate any secret that was built into an image, then switch the build to BuildKit secrets (--mount=type=secret) for build-time, and inject runtime secrets via the orchestrator (Kubernetes Secrets, Compose env_file, Docker Swarm secret).',
+      code: '# syntax=docker/dockerfile:1.4\nRUN --mount=type=secret,id=api_key \\\n    API_KEY=$(cat /run/secrets/api_key) ./deploy.sh',
+      links: [
+        'https://cwe.mitre.org/data/definitions/1188.html',
+        'https://docs.docker.com/build/building/secrets/',
+      ],
+    },
   },
 ];
 
@@ -63,6 +91,15 @@ const DOCKER_COMPOSE_RULES: ConfigRule[] = [
       'Privileged mode gives the container full access to the host kernel. This allows container escape and full host compromise. Remove --privileged and use specific capabilities (cap_add) instead.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        'Privileged mode disables ALL container isolation — any RCE inside the container is a root RCE on the host. Identify the specific capability the workload needs (SYS_ADMIN, NET_ADMIN, etc.), drop privileged, and grant only that capability via cap_add. If you genuinely need full host access, use a hostPID/hostNetwork pod with an explicit SCC/PSA justification.',
+      code: "services:\n  app:\n    image: app:latest\n    cap_add: ['NET_ADMIN']  # instead of privileged: true",
+      links: [
+        'https://cwe.mitre.org/data/definitions/1188.html',
+        'https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities',
+      ],
+    },
   },
 ];
 
@@ -75,6 +112,15 @@ const NEXTJS_RULES: ConfigRule[] = [
       'Wildcard (*) in Next.js image remotePatterns/domains allows the image optimizer to fetch from any host, enabling SSRF. Restrict to specific, trusted domains.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        'An unrestricted Next.js image optimizer turns your server into an open HTTP proxy — attackers pass an internal URL and exfiltrate the response through the /_next/image pipeline. List the exact hostnames you proxy from; prefer remotePatterns over the legacy domains field so you can also pin pathname and protocol.',
+      code: "images: {\n  remotePatterns: [\n    { protocol: 'https', hostname: 'cdn.example.com', pathname: '/images/**' },\n  ],\n},",
+      links: [
+        'https://cwe.mitre.org/data/definitions/918.html',
+        'https://nextjs.org/docs/app/api-reference/components/image#remotepatterns',
+      ],
+    },
   },
   {
     pattern: /poweredByHeader\s*:\s*true/,
@@ -84,6 +130,15 @@ const NEXTJS_RULES: ConfigRule[] = [
       'poweredByHeader is explicitly enabled. The X-Powered-By header reveals the framework (Next.js) and version, aiding targeted attacks. Set poweredByHeader: false.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        'X-Powered-By tells attackers exactly which framework you run, which pairs any CVE-feed with your stack for free. Disable it in next.config and audit the response for other fingerprinting headers (Server, X-AspNet-Version).',
+      code: "module.exports = { poweredByHeader: false };",
+      links: [
+        'https://cwe.mitre.org/data/definitions/200.html',
+        'https://nextjs.org/docs/app/api-reference/next-config-js/poweredByHeader',
+      ],
+    },
   },
   {
     pattern: /bodySizeLimit\s*:\s*['"](\d+)\s*mb['"]/i,
@@ -93,6 +148,15 @@ const NEXTJS_RULES: ConfigRule[] = [
       'Server Action bodySizeLimit is set above 10 MB. Large limits increase Denial-of-Service risk by allowing massive payloads. Keep the limit under 10 MB unless absolutely required.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        'Every body-size increase multiplies the RAM cost of a single abusive request. Keep Server Action bodySizeLimit at the lowest value that serves the real use-case; for genuinely large uploads use a signed direct-to-storage upload (S3 / Supabase Storage) instead of routing bytes through the Server Action.',
+      code: "experimental: { serverActions: { bodySizeLimit: '2mb' } }",
+      links: [
+        'https://cwe.mitre.org/data/definitions/400.html',
+        'https://nextjs.org/docs/app/api-reference/next-config-js/serverActions',
+      ],
+    },
   },
 ];
 
@@ -105,6 +169,15 @@ const FIREBASE_RULES: ConfigRule[] = [
       'Firestore security rules allow public read/write access. Any user can read and modify data without authentication. Implement proper authentication and authorization rules.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        '`allow read, write: if true` is a full data-exfiltration and tampering surface — anyone can read or overwrite any document. Gate access on request.auth.uid matching the document owner, then tighten further per-collection based on user roles or tenant membership.',
+      code: "match /users/{uid} {\n  allow read, write: if request.auth != null && request.auth.uid == uid;\n}",
+      links: [
+        'https://cwe.mitre.org/data/definitions/285.html',
+        'https://firebase.google.com/docs/rules/basics',
+      ],
+    },
   },
   {
     pattern: /[".']write['"]\s*:\s*true/,
@@ -114,6 +187,15 @@ const FIREBASE_RULES: ConfigRule[] = [
       'Firebase Realtime Database rules allow public writes. Any user can modify data without authentication. Implement proper auth-based rules.',
     owasp: 'A05:2021',
     cwe: 1188,
+    fix: {
+      description:
+        '"write": true lets any unauthenticated client overwrite the entire subtree. Replace with an auth-predicate that checks auth.uid against the path variable, and narrow write-scope to the specific nodes the authenticated user owns.',
+      code: '"users": { "$uid": { ".write": "auth != null && auth.uid === $uid" } }',
+      links: [
+        'https://cwe.mitre.org/data/definitions/285.html',
+        'https://firebase.google.com/docs/database/security/rules-conditions',
+      ],
+    },
   },
 ];
 
@@ -164,6 +246,7 @@ export const configAuditorScanner: Scanner = {
             category: 'security',
             ...(rule.owasp ? { owasp: rule.owasp } : {}),
             ...(rule.cwe ? { cwe: rule.cwe } : {}),
+            ...(rule.fix ? { fix: rule.fix } : {}),
           });
         }
       }
@@ -195,6 +278,7 @@ export const configAuditorScanner: Scanner = {
             category: 'security',
             ...(rule.owasp ? { owasp: rule.owasp } : {}),
             ...(rule.cwe ? { cwe: rule.cwe } : {}),
+            ...(rule.fix ? { fix: rule.fix } : {}),
           });
         }
       }
@@ -226,6 +310,7 @@ export const configAuditorScanner: Scanner = {
               category: 'security',
               ...(rule.owasp ? { owasp: rule.owasp } : {}),
               ...(rule.cwe ? { cwe: rule.cwe } : {}),
+              ...(rule.fix ? { fix: rule.fix } : {}),
             });
           }
           continue;
@@ -245,6 +330,7 @@ export const configAuditorScanner: Scanner = {
             category: 'security',
             ...(rule.owasp ? { owasp: rule.owasp } : {}),
             ...(rule.cwe ? { cwe: rule.cwe } : {}),
+            ...(rule.fix ? { fix: rule.fix } : {}),
           });
         }
       }
@@ -262,6 +348,15 @@ export const configAuditorScanner: Scanner = {
           category: 'security',
           owasp: 'A05:2021',
           cwe: 1188,
+          fix: {
+            description:
+              'Next.js ships X-Powered-By on every response by default, which pairs with any framework CVE for instant fingerprinting. Set poweredByHeader: false in next.config to silence it — one-line fix, zero runtime cost.',
+            code: "module.exports = { poweredByHeader: false };",
+            links: [
+              'https://cwe.mitre.org/data/definitions/200.html',
+              'https://nextjs.org/docs/app/api-reference/next-config-js/poweredByHeader',
+            ],
+          },
         });
       }
     }
@@ -293,6 +388,7 @@ export const configAuditorScanner: Scanner = {
             category: 'security',
             ...(rule.owasp ? { owasp: rule.owasp } : {}),
             ...(rule.cwe ? { cwe: rule.cwe } : {}),
+            ...(rule.fix ? { fix: rule.fix } : {}),
           });
         }
       }
@@ -320,6 +416,15 @@ export const configAuditorScanner: Scanner = {
           category: 'security',
           owasp: 'A05:2021',
           cwe: 1188,
+          fix: {
+            description:
+              'Add .env to .gitignore, then audit git history — if the file was ever committed, every value in it is compromised and must be rotated even after deletion. Use .env.example for documented non-secret defaults and load real values from the deployment environment.',
+            code: "echo '.env\\n.env.local\\n.env.*.local' >> .gitignore\ngit rm --cached .env",
+            links: [
+              'https://cwe.mitre.org/data/definitions/798.html',
+              'https://12factor.net/config',
+            ],
+          },
         });
       }
     }
@@ -350,6 +455,15 @@ export const configAuditorScanner: Scanner = {
           category: 'security',
           owasp: 'A05:2021',
           cwe: 1188,
+          fix: {
+            description:
+              'Production env files leak deployment secrets the moment the repo is public or shared. Add an umbrella ignore (.env*.local plus .env.production) to .gitignore, rotate any value that was already committed, and move the source-of-truth to a secrets manager (Vercel/Netlify env, AWS Secrets Manager, HashiCorp Vault).',
+              code: "echo '.env*.local\\n.env.production' >> .gitignore\ngit rm --cached .env.local",
+            links: [
+              'https://cwe.mitre.org/data/definitions/798.html',
+              'https://12factor.net/config',
+            ],
+          },
         });
       }
     }
