@@ -1,6 +1,7 @@
 import * as childProcess from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import picomatch from 'picomatch';
 
 export interface ExecOptions {
   cwd?: string;
@@ -99,6 +100,16 @@ export function clearWalkFilesCache(): void {
  * skipped any nested directory of that name too — e.g. a legitimate
  * route path `app/api/public/foo/route.ts` was dropped entirely.
  */
+/**
+ * v0.15.4 D-C-001 — detect whether a pattern contains glob-wildcards.
+ * Used to decide whether a pattern participates in file-level filtering
+ * (glob-patterns do) vs dir-only-filtering (literal strings stay dir-only
+ * for backward-compat — pre-v0.15.4 Set.has never matched files).
+ */
+function isGlobPattern(pattern: string): boolean {
+  return /[*?[{]/.test(pattern);
+}
+
 export function walkFiles(
   dir: string,
   ignore: string[] = [],
@@ -111,12 +122,30 @@ export function walkFiles(
   if (cached) return cached;
 
   // Split ignore entries into any-depth (bare) and root-only (leading `/`).
-  const anyDepthIgnore = new Set<string>();
-  const rootOnlyIgnore = new Set<string>();
-  for (const entry of ignore) {
-    if (entry.startsWith('/')) rootOnlyIgnore.add(entry.slice(1));
-    else anyDepthIgnore.add(entry);
-  }
+  // v0.15.4 D-C-001 — each bucket compiles its patterns via picomatch so
+  // literal strings stay exact-match while wildcards (Templates*,
+  // **/*.min.js, etc.) match per glob semantics. File-level matching is
+  // applied ONLY for glob-patterns to preserve backward-compat with
+  // literal-only configs (pre-v0.15.4 Set.has never matched files against
+  // any ignore entry; literal-filename entries would have been silent
+  // no-ops on files and remain so here).
+  const anyDepthPatterns = ignore.filter((e) => !e.startsWith('/'));
+  const rootOnlyPatterns = ignore.filter((e) => e.startsWith('/')).map((e) => e.slice(1));
+  const anyDepthGlobs = anyDepthPatterns.filter(isGlobPattern);
+  const rootOnlyGlobs = rootOnlyPatterns.filter(isGlobPattern);
+
+  const matchDirAnyDepth = anyDepthPatterns.length
+    ? picomatch(anyDepthPatterns, { dot: true })
+    : () => false;
+  const matchDirRootOnly = rootOnlyPatterns.length
+    ? picomatch(rootOnlyPatterns, { dot: true })
+    : () => false;
+  const matchFileAnyDepth = anyDepthGlobs.length
+    ? picomatch(anyDepthGlobs, { dot: true })
+    : () => false;
+  const matchFileRootOnly = rootOnlyGlobs.length
+    ? picomatch(rootOnlyGlobs, { dot: true })
+    : () => false;
 
   const results: string[] = [];
   const visited = new Set<string>();
@@ -141,12 +170,19 @@ export function walkFiles(
 
     for (const entry of entries) {
       const fullPath = path.join(current, entry.name);
+      const relPath = path.relative(resolvedDir, fullPath);
 
       if (entry.isDirectory()) {
-        if (anyDepthIgnore.has(entry.name)) continue;
-        if (atRoot && rootOnlyIgnore.has(entry.name)) continue;
+        // Dir-level filter — both literal and glob patterns apply to dirs.
+        if (matchDirAnyDepth(entry.name) || matchDirAnyDepth(relPath)) continue;
+        if (atRoot && (matchDirRootOnly(entry.name) || matchDirRootOnly(relPath))) continue;
         walk(fullPath, false);
       } else if (entry.isFile()) {
+        // File-level filter — only glob-patterns apply, preserving
+        // backward-compat for literal-string ignore entries.
+        if (matchFileAnyDepth(entry.name) || matchFileAnyDepth(relPath)) continue;
+        if (atRoot && (matchFileRootOnly(entry.name) || matchFileRootOnly(relPath))) continue;
+
         if (extensions.length === 0) {
           results.push(fullPath);
         } else {

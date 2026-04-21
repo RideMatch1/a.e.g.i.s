@@ -48,10 +48,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "picomatch": "^4.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/picomatch": "^3.0.0",
     "typescript": "^5.8.0",
     "vitest": "^3.1.0"
   }

@@ -76,6 +76,9 @@ importers:
 
   packages/core:
     dependencies:
+      picomatch:
+        specifier: ^4.0.0
+        version: 4.0.4
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -83,6 +86,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.17
+      '@types/picomatch':
+        specifier: ^3.0.0
+        version: 3.0.2
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
@@ -717,6 +723,9 @@ packages:
 
   '@types/node@22.19.17':
     resolution: {integrity: sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q==}
+
+  '@types/picomatch@3.0.2':
+    resolution: {integrity: sha512-n0i8TD3UDB7paoMMxA3Y65vUncFJXjcUf7lQY7YyKGl6031FNjfsLs6pdLFCy2GNFxItPJG8GvvpbZc2skH7WA==}
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -1866,6 +1875,8 @@ snapshots:
   '@types/node@22.19.17':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/picomatch@3.0.2': {}
 
   '@types/ws@8.18.1':
     dependencies:
