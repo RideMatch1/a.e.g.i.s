@@ -1,0 +1,9 @@
+{
+  "id": "v0154-FP-empty-dir-no-log001",
+  "cwe": 778,
+  "type": "FP",
+  "description": "Empty project directory (package.json only, zero source files under ts/tsx/js/jsx/mjs). Pre-v0.15.4 (RED baseline) logging-checker emits project-level LOG-001 'No centralized logging infrastructure detected' MEDIUM finding because walkFiles returns an empty file-list AND the package.json declares no logger dep, triggering the `!hasCentralizedLogger && !isCliTool` emission path. Post-v0.15.4 D-N-001 fix, the scanner early-returns on files.length === 0 — no LOG-001 on empty projects. Primary Round-4 audit-finding target fixture.",
+  "expected": [
+    { "scanner": "logging-checker", "cwe": 778 }
+  ]
+}

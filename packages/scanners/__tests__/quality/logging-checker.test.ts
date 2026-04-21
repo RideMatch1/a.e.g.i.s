@@ -141,7 +141,9 @@ describe('loggingCheckerScanner', () => {
   });
 
   it('flags missing centralized logger when no logger package or file exists', async () => {
-    // No package.json, no logger file, no imports
+    // Populated project so the v0.15.4 D-N-001 empty-project skip-guard
+    // does not apply — intent is "has source, no logger infrastructure".
+    createFile(projectPath, 'src/app.ts', 'export function app() { return "hello"; }');
     const result = await loggingCheckerScanner.scan(projectPath, MOCK_CONFIG);
     expect(result.scanner).toBe('logging-checker');
 
@@ -151,6 +153,16 @@ describe('loggingCheckerScanner', () => {
     expect(loggerFindings[0].category).toBe('quality');
     expect(loggerFindings[0].owasp).toBe('A09:2021');
     expect(loggerFindings[0].cwe).toBe(778);
+  });
+
+  it('does NOT flag LOG-001 when project is empty (0 source files detected)', async () => {
+    // v0.15.4 D-N-001 empty-project skip-guard. Previously emitted a
+    // spurious project-level MEDIUM finding on directories with zero
+    // source to check. Post-fix: scanner early-returns empty findings.
+    // Round-4 audit-finding 🟡 D-N-001.
+    const result = await loggingCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.scanner).toBe('logging-checker');
+    expect(result.findings).toHaveLength(0);
   });
 
   it('does NOT flag logger when winston is in package.json', async () => {

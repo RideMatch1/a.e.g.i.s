@@ -1,0 +1,9 @@
+{
+  "id": "v0154-TP-populated-dir-still-log001",
+  "cwe": 778,
+  "type": "TP",
+  "description": "Scope-guard canary: a populated project (single source file `src/app.ts` with a hardcoded console.log, no logger dep in package.json, no lib/logger.ts) must still fire project-level LOG-001 both pre-impl AND post-impl. The v0.15.4 D-N-001 empty-project guard must NOT over-reach and silence legitimate findings on projects that happen to contain only a single source file. Critical scope-discipline guard — if this canary flips silent post-impl, the empty-guard's file-count threshold is wrong and the fix is rejected.",
+  "expected": [
+    { "scanner": "logging-checker", "cwe": 778 }
+  ]
+}
