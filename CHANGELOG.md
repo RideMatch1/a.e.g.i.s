@@ -13,6 +13,59 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+### Fixed
+
+- **D-P-001 SLSA provenance soft-gap closed
+  (v0.16 first-item, multi-cycle deferred since v0.15.2):** Every
+  `@aegis-scan/*` tarball since v0.15.2 shipped with empty
+  `dist.attestations` on the npm registry despite the publish workflow
+  invoking `pnpm -r publish --provenance`. Root cause nailed to
+  upstream pnpm — the recursive-publish path in
+  `releasing/commands/src/publish/recursivePublish.ts` lines 99-111
+  (current `main` branch) constructs the per-package npm-invocation
+  with a hand-rolled `appendedArgs` list that includes `--access`,
+  `--dry-run`, `--force`, `--otp` and nothing else. The
+  top-level `--provenance` flag parsed into `opts.cliOptions` is
+  never forwarded to the per-package publish call and is silently
+  dropped. Confirmed-OPEN at pnpm#6607 since 2023-05-29 (contributor
+  hi-ogawa diagnosis with SHA-pinned source-reference). The pnpm team
+  replaced the `spawn(npm)` approach with `libnpmpublish` in
+  pnpm#10591 (merged 2026-02-12, shipped pnpm 10.8+), but the
+  recursive-path arg-delegation bug was not closed — issue #6607
+  remains open as of this release. AEGIS's CI ran pnpm@9.15.0 pinned
+  via the root `packageManager` field read by
+  `pnpm/action-setup@v4` via Corepack; that path uses the legacy
+  spawn-npm delegation where `--provenance` is dropped. Two-layer
+  remediation lands in this release:
+  (1) root `packageManager` bump from `pnpm@9.15.0` to `pnpm@10.33.0`
+  (latest stable) — post-libnpmpublish path where
+  `releasing/commands/src/publish/publishPackedPkg.ts` lines 125-139
+  honors `options.provenance != null` once it arrives from the
+  per-package manifest;
+  (2) `"publishConfig": { "provenance": true }` added to each of the
+  five shipped `packages/*/package.json` files (cli, core, scanners,
+  reporters, mcp-server) alongside the existing `"access": "public"`.
+  This is the canonical community-endorsed workaround documented in
+  the pnpm#6607 thread (andrskr + ndom91 comments; Nuxt's
+  `.github/workflows/release-main.yaml` references the same pattern)
+  and is layer-independent of which publish-backend pnpm uses —
+  npm reads `publishConfig.provenance` from each package's manifest
+  directly during publish. The existing `--provenance` CLI flag in
+  `.github/workflows/publish.yml` is deliberately kept as
+  defense-in-depth: if pnpm#6607 is eventually patched in a future
+  release the flag becomes authoritative; if not the publishConfig
+  keeps the contract whole. Empirical pre-R3 verification: scratch
+  two-package pnpm@10 workspace with `publishConfig.provenance: true`
+  per package, `pnpm -r publish --dry-run --no-git-checks` completes
+  both packages through to `npm notice Publishing to ... with tag
+  latest and public access (dry-run)` with no "silently-dropped"
+  warning. Final empirical seal is post-tag-push: `npm view
+  @aegis-scan/cli@0.16.0 dist.attestations` must return a non-empty
+  SLSA predicate. The `v0.15.3` CHANGELOG's documented-known-gap
+  bullet (N-001 from Round-3 external review) is now the historical
+  record of the bug that v0.16 closes. Self-scan 1000/A/HARDENED/0
+  preserved across this commit; scanner-behavior unchanged.
+
 ## [0.15.6] — 2026-04-21 — "Trust-Fixes"
 
 Emergency hotfix closing two post-v0.15.5-ship defects surfaced by the
