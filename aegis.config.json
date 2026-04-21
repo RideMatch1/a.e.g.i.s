@@ -64,6 +64,11 @@
       "reason": "template-sql-checker defines SQL-injection detection patterns for the template-literal class. The source JSDoc documents the non-overlap contract with the older sql-concat-checker by literally citing db.query(\"SELECT ... \" + id) as the string-concat shape owned by that sibling scanner. Structural self-match — same class as the existing sql-concat-checker.ts self-suppression, and the crypto-auditor / jwt-checker / xss-checker / redos-checker source self-matches documented above."
     },
     {
+      "file": "packages/scanners/src/quality/sql-concat-checker.ts",
+      "rule": "template-sql-checker",
+      "reason": "sql-concat-checker defines ORM-raw SQL-injection detection patterns as regex literals (/\\.raw\\s*\\(\\s*`[^`]*\\$\\{/) with accompanying JSDoc citations (// .raw(`...${...}...`)). After the v0.15.3 sink-list expansion added `raw` to template-sql-checker's CALL_SITE_REGEX, the expanded regex matches on the literal documentation + regex-pattern text. Structural self-match — inverse-direction-mirror of the v0.15.2 commit 56df297 precedent (template-sql-checker → sql-concat-checker). Same class as crypto-auditor, jwt-checker, xss-checker, ssrf-checker, redos-checker self-match suppressions. Root-cause: stripComments utility lacks regex-literal-awareness — 2nd recurrence within 2 cycles, arch-refactor tracked for v0.16."
+    },
+    {
       "file": "packages/scanners/src/quality/xss-checker.ts",
       "rule": "xss-checker",
       "reason": "xss-checker defines XSS sink patterns (innerHTML, document.write, etc.) in its regex array. Structural self-match."
