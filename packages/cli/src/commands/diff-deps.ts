@@ -229,8 +229,12 @@ export function formatJson(diffs: LockfileDiff[], exitCode: number): string {
 // ---------------------------------------------------------------------------
 
 async function validateGitRef(projectPath: string, ref: string): Promise<boolean> {
+  // git cat-file -t resolves the object; git rev-parse --verify --quiet
+  // accepts shape-valid-but-absent 40-hex SHAs at exit 0 without actually
+  // dereferencing them. cat-file fails (exit 128) when the object is not
+  // present, catching the Round-3 M-002 silent-pass class.
   try {
-    const result = await exec('git', ['rev-parse', '--verify', '--quiet', ref], {
+    const result = await exec('git', ['cat-file', '-t', ref], {
       cwd: projectPath,
     });
     return result.exitCode === 0;
