@@ -1,0 +1,9 @@
+{
+  "id": "v01541-TP-templates-named-component-scanned",
+  "cwe": 798,
+  "type": "TP",
+  "description": "Component file `src/components/TemplatesTab.tsx` carries a hardcoded JWT-format literal. Pre-v0.15.4.1 (RED-baseline) the v0.15.4 D-C-001 'Templates*' DEFAULT_IGNORE pattern matched basenames as well as directory names via picomatch, silently skipping every file whose basename starts with 'Templates' (TemplatesTab.tsx, TemplatesGrid.tsx, TemplatesList.tsx, etc.). The synthetic probe confirmed jwt-detector fired on NormalFile.tsx but NOT on TemplatesTab.tsx with identical content. Post-v0.15.4.1 D-R-001 fix narrows the pattern to 'Templates[0-9]*' so vendor-dir intent (Templates1/, Templates99/) is preserved while component-name false-positive-skip is closed. Critical fertig-grade hotfix.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

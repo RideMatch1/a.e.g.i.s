@@ -1,0 +1,9 @@
+{
+  "id": "v01541-FP-templates-dir-vendor-ignored",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Scope-guard for the v0.15.4.1 D-R-001 fix. A vendor-template directory `Templates1/Larkon-*` (the canonical Round-4 D-C-001 dogfood-target naming) carries a hardcoded JWT in demo code. The narrower pattern 'Templates[0-9]*' must still match this directory and skip it via DEFAULT_IGNORE — preserving the original D-C-001 vendor-template-noise close. If this fixture flips to FAIL post-hotfix, the new pattern broke the v0.15.4 vendor-dir intent and the fix is rejected.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

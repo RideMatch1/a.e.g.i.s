@@ -13,6 +13,50 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.15.4.1] — 2026-04-21 — "Fertig-Patches hotfix"
+
+Patch-release closing three post-v0.15.4-ship findings surfaced by a
+brutal-audit run immediately after the v0.15.4 tarballs landed on
+npm. The 🔴 D-R-001 regression introduced by v0.15.4's own D-C-001
+DEFAULT_IGNORE expansion was the ship-stopper class — component-
+named source files like `TemplatesTab.tsx`, `TemplatesGrid.tsx`,
+and `TemplatesList.tsx` were silently skipped by walkFiles because
+the `Templates*` picomatch pattern matched basenames as well as
+directory names, letting a hardcoded JWT in a component-named file
+go completely unreported. v0.15.4.1 narrows the pattern to
+`Templates[0-9]*` so the vendor-template directory naming
+convention (`Templates1/`, `Templates2/`, `Templates99/` — Larkon
+/ dashboard-UI starter-kit class) is still matched while
+component-names are preserved. Self-scan 1000/A/HARDENED/0
+maintained; canary total 110 of 110 across 14 phases (v0.15.4's
+108 + 2 new hotfix fixtures); full scanners test-suite
+1272 of 1272 green.
+
+### Fixed
+
+- **D-R-001 Templates* basename-silent-skip regression (v0.15.4.1
+  hotfix, ship-stopper class):** `packages/core/src/config.ts`
+  DEFAULT_IGNORE pattern `'Templates*'` narrowed to
+  `'Templates[0-9]*'`. The numeric-first-character guard prevents
+  silent-skip of component-named source files whose basenames
+  happen to start with "Templates". Empirical repro pre-fix: a
+  synthetic probe with identical JWT content in
+  `src/components/TemplatesTab.tsx` and
+  `src/components/NormalFile.tsx` produced jwt-detector CRITICAL
+  on the latter but ZERO findings on the former — the silent-skip
+  masked a real hardcoded secret. Two canary fixtures added under
+  `packages/benchmark/canary-fixtures/v01541-templates-basename-skip/`
+  codify the flip — `TP-templates-named-component-scanned` flips
+  from RED to GREEN post-fix, `FP-templates-dir-vendor-ignored`
+  stays GREEN both sides as the narrowed pattern still matches the
+  canonical `Templates1/` vendor-dir convention. Picomatch
+  empirical testing rejected the first-attempt fix
+  `'Templates*/'` (matches nothing, would break D-C-001's original
+  vendor-dir intent) and confirmed `'Templates[0-9]*'` matches
+  `Templates1` / `Templates99` directory names while correctly
+  not-matching `TemplatesTab.tsx` / `TemplatesGrid.tsx` /
+  `TemplatesList.tsx` component basenames.
+
 ## [0.15.4] — 2026-04-21 — "Fertig-Patches"
 
 Round-4 external-review close-out for v0.15.3. Nine audit-findings
