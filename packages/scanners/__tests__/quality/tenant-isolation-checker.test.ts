@@ -1028,4 +1028,89 @@ export async function GET() {
       }
     });
   });
+
+  describe('v0.15.4 D-C-002 public-route-heuristic — path-param-as-tenant-discriminant', () => {
+    function serviceRoleRouteFile(path: string): void {
+      createFile(
+        projectPath,
+        path,
+        `
+import { createClient } from '@supabase/supabase-js';
+export async function GET() {
+  const supabase = createClient('url', process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const { data } = await supabase.from('bookings').select('*');
+  return Response.json(data);
+}
+`,
+      );
+    }
+
+    it('TP-public-slug-downgraded: /api/public/spa/[slug]/route.ts → severity info', async () => {
+      serviceRoleRouteFile('app/api/public/spa/[slug]/route.ts');
+
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const finding = result.findings.find((f) => f.title.includes('Service role key'));
+      expect(finding).toBeDefined();
+      expect(finding!.severity).toBe('info');
+      expect(finding!.description).toMatch(/public.route|path-discriminant|\[slug\]/i);
+    });
+
+    it('TP-public-tenant-downgraded: /api/public/[tenant]/data/route.ts → severity info', async () => {
+      serviceRoleRouteFile('app/api/public/[tenant]/data/route.ts');
+
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const finding = result.findings.find((f) => f.title.includes('Service role key'));
+      expect(finding).toBeDefined();
+      expect(finding!.severity).toBe('info');
+      expect(finding!.description).toMatch(/public.route|path-discriminant|\[tenant\]/i);
+    });
+
+    it('TP-nested-multi-bracket: /api/public/spa/[slug]/booking/[token]/route.ts → severity info', async () => {
+      serviceRoleRouteFile('app/api/public/spa/[slug]/booking/[token]/route.ts');
+
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const finding = result.findings.find((f) => f.title.includes('Service role key'));
+      expect(finding).toBeDefined();
+      expect(finding!.severity).toBe('info');
+    });
+
+    it('FP-non-public-prefix-still-critical: /api/reports/[id]/route.ts (non-public prefix, bracket-param) → severity critical preserved', async () => {
+      // Note: /api/admin/ was the original dispatch-fixture but the scanner pre-skips /admin/
+      // per v0.10 dub-corpus-calibration, so admin-routes never reach the severity-assignment.
+      // Using /api/reports/ instead — non-public prefix that isn't in any pre-existing skip-list.
+      serviceRoleRouteFile('app/api/reports/[id]/route.ts');
+
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const finding = result.findings.find((f) => f.title.includes('Service role key'));
+      expect(finding).toBeDefined();
+      expect(finding!.severity).toBe('critical');
+    });
+
+    it('FP-public-no-bracket-still-critical: /api/public/settings/route.ts (no bracket) → severity critical preserved', async () => {
+      serviceRoleRouteFile('app/api/public/settings/route.ts');
+
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const finding = result.findings.find((f) => f.title.includes('Service role key'));
+      expect(finding).toBeDefined();
+      expect(finding!.severity).toBe('critical');
+    });
+
+    it('FP-non-discriminant-bracket-still-critical: /api/public/items/[itemId]/route.ts ([itemId] not allowlisted) → severity critical preserved', async () => {
+      serviceRoleRouteFile('app/api/public/items/[itemId]/route.ts');
+
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const finding = result.findings.find((f) => f.title.includes('Service role key'));
+      expect(finding).toBeDefined();
+      expect(finding!.severity).toBe('critical');
+    });
+
+    it('FP-normal-authenticated-route: /api/bookings/route.ts (no public-prefix) → severity critical preserved', async () => {
+      serviceRoleRouteFile('app/api/bookings/route.ts');
+
+      const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+      const finding = result.findings.find((f) => f.title.includes('Service role key'));
+      expect(finding).toBeDefined();
+      expect(finding!.severity).toBe('critical');
+    });
+  });
 });
