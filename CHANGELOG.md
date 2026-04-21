@@ -122,6 +122,24 @@ path-format stability, and artifact provenance.
   shipping that version without provenance (documented known-gap,
   completion moves to the next release cycle).
 
+- **Known-gap — v0.15.2 published with empty `dist.attestations`.**
+  The automated publish workflow on 2026-04-20 fired correctly on
+  tag-push, authenticated via OIDC, and invoked `pnpm -r publish
+  --provenance --access public --no-git-checks` to publish all five
+  `@aegis-scan/*@0.15.2` tarballs. Workflow concluded success. But
+  pnpm@9.15.0 silently discarded the `--provenance` flag during the
+  recursive-publish path — no warning, no error, no indication in
+  the workflow log. `npm view @aegis-scan/cli@0.15.2 dist.attestations`
+  returns empty; no SLSA Level-2 attestation is attached to any of
+  the five shipped tarballs. Workflow-path-success-minus-provenance-
+  outcome is the accurate framing, distinct from the manual-publish-
+  fallback case described in the bullet above. Round-3 external
+  review on 2026-04-21 classified this as N-001 SOFT-MENTIONED.
+  Remediation is the v0.15.3 first-item — switch `publish.yml` to
+  `npm publish --workspaces --provenance`, or upgrade pnpm to a
+  version where the flag round-trips through the workspace-publish
+  path.
+
 ### Discipline notes
 
 Three retrospective-fix cluster rules from v0.15.0 R7 held verbatim
