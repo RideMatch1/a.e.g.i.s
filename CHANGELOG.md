@@ -81,6 +81,40 @@ release touches no publish-path config.
 
 ### Fixed
 
+- **D-CA-002 `pnpm lint` NO-OP replaced with real type-drift gate
+  (v0.16.3, quality-gate-theater fix):** Round-7 comprehensive
+  audit flagged that the root `pnpm lint` script was a facade —
+  `package.json` invoked `turbo lint`, the turbo pipeline had
+  `"lint": {}` declared, and every one of the five shipped
+  packages (cli, core, scanners, reporters, mcp-server) had **no**
+  `lint` script at all. Empirical pre-fix output: `pnpm lint`
+  produced `Tasks: 0 successful, 0 total` in 26ms with the
+  warning `No tasks were executed as part of this run` and
+  nonetheless exited 0 — CI watched a green checkmark for a gate
+  that verified nothing. Users reading the README line about
+  quality-gates got the impression of enforcement that did not
+  exist. Post-fix: each shipped package gains a
+  `"lint": "tsc --noEmit"` entry, the turbo pipeline is updated
+  to `{ "dependsOn": ["^build"], "outputs": [] }` so lint waits
+  on inter-package dist-artifacts being produced, and the CI
+  `ci.yml` workflow replaces its ad-hoc four-package
+  `cd-and-tsc` step with a single `pnpm lint` invocation.
+  Empirical post-fix output: `pnpm lint` now produces
+  `Tasks: 8 successful, 8 total` in ~2.5s on a cold cache. Gate-
+  proof via injection — writing
+  `export const BROKEN: string = 123;` into
+  `packages/core/src/lint-probe.ts` produced
+  `error TS2322: Type 'number' is not assignable to type 'string'`
+  and exited non-zero (probe then removed). Rule #12-extended
+  identifier-verify applied: the gate was not just declared but
+  empirically invoked with both a passing (clean-tree) and a
+  failing (injected-error) probe before commit. `tsc --noEmit`
+  chosen over ESLint because (a) type-drift is the highest-value
+  check for a TypeScript-strict codebase, (b) zero new dev-deps,
+  (c) each package already had `build: tsc` proving the tsconfig
+  is in good shape. ESLint-adoption remains available as a
+  separate follow-on cycle if operator-requested.
+
 - **D-CA-003 GitHub Actions SHA-pinned — self-advice-followed
   (v0.16.3, credibility-fix):** The Round-7 comprehensive audit
   flagged a self-contradiction in the AEGIS CI — `.github/workflows/

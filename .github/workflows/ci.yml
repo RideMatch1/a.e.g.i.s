@@ -17,8 +17,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - name: Type-check (catches interface mismatches mocks may hide)
-        run: cd packages/core && npx tsc --noEmit && cd ../scanners && npx tsc --noEmit && cd ../reporters && npx tsc --noEmit && cd ../cli && npx tsc --noEmit
+      - name: Lint — real type-drift gate across 5 shipped packages (v0.16.3 D-CA-002)
+        run: pnpm lint
       - run: pnpm test
       - name: Benchmark (21 planted vulnerabilities + 9 clean-file FP checks)
         run: pnpm benchmark
