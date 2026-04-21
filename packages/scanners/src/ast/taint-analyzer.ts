@@ -1,18 +1,10 @@
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { trackTaint, trackTaintInProgram, trackTaintInProgramWithGraph } from './taint-tracker.js';
 import { applyCustomRules } from './custom-rules.js';
 import { buildProgram } from './program.js';
 import { ModuleGraph } from './module-graph.js';
 import { SummaryCache } from './function-summary.js';
-
-function isTestFile(filePath: string): boolean {
-  return /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(filePath)
-    || filePath.includes('__tests__/')
-    || filePath.includes('__mocks__/')
-    || filePath.includes('/test/')
-    || filePath.includes('/tests/');
-}
 
 export const taintAnalyzerScanner: Scanner = {
   name: 'taint-analyzer',

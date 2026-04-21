@@ -1,14 +1,10 @@
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
 /** Files to skip — tests, vendor, minified, generated, templates */
 function shouldSkipFile(filePath: string): boolean {
+  if (isTestFile(filePath)) return true;
   return (
-    /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(filePath) ||
-    filePath.includes('__tests__/') ||
-    filePath.includes('__mocks__/') ||
-    filePath.includes('/test/') ||
-    filePath.includes('/tests/') ||
     filePath.includes('/vendor/') ||
     filePath.includes('/plugins/') ||
     filePath.includes('/Templates') ||

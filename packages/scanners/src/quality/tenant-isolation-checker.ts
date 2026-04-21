@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { parseFile, getLineNumber, walkAst } from '../ast/parser.js';
 import { stripComments } from '../ast/page-context.js';
@@ -182,12 +182,8 @@ const PRISMA_SIGNAL = /\bfrom\s+['"]@prisma\/client['"]|prisma\s*\.\s*\w+\s*\.\s
 const SUPABASE_SIGNAL = /\bfrom\s+['"]@supabase\/|createClient\s*\(|supabase\s*\.\s*(?:from|rpc)\s*\(|\bcreate(?:Admin|ServiceRole|ServerService)(?:Supabase)?Client\b/;
 
 function shouldSkipFile(filePath: string): boolean {
+  if (isTestFile(filePath)) return true;
   return (
-    /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(filePath) ||
-    filePath.includes('__tests__/') ||
-    filePath.includes('__mocks__/') ||
-    filePath.includes('/test/') ||
-    filePath.includes('/tests/') ||
     filePath.includes('/vendor/') ||
     filePath.includes('.min.js') ||
     filePath.includes('/generated/') ||

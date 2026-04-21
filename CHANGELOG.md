@@ -13,6 +13,120 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.16.3] — 2026-04-22 — "Coverage-Integrity"
+
+Emergency patch-release closing a 🔴 ship-stopper-class systemic
+silent-skip surfaced by a comprehensive external audit of the
+v0.15.6 → v0.16.2 release-trio on 2026-04-21. Nineteen of the 55
+built-in scanners — including jwt-detector, taint-analyzer,
+tenant-isolation-checker, sql-concat-checker, xss-checker,
+prompt-injection-checker, rls-bypass-checker, path-traversal-checker,
+and every file with a local `isTestFile()` or `shouldSkipFile()`
+helper — silently skipped any file whose path contained `/test/` or
+`/tests/` as a substring. The `walkFiles()` traversal layer in
+`packages/core/src/config.ts` compounded this with bare `'test'` and
+`'tests'` entries in `DEFAULT_IGNORE` that excluded those directory
+names at any depth. Empirical reproduction documented in the audit
+report: identical source at `src/app/api/test/route.ts` produced
+zero findings while the same source at `src/app/api/vuln/route.ts`
+produced six findings, including CRITICAL tenant-isolation and HIGH
+jwt-detector emissions. Any operator who named a Next.js App Router
+route `test` / `tests` was silently shipping unscanned code while
+seeing a green badge — the exact anti-pattern the tool was supposed
+to prevent.
+
+The fix closes the class systemically. A new canonical
+`packages/core/src/is-test-path.ts` exports `isTestFile()` with
+precise semantic — `.test.ts` / `.spec.ts` / `.e2e.ts` file-name
+extensions, plus `__tests__/` / `__mocks__/` / `playwright/` /
+`cypress/` / `e2e/` directory segments — and deliberately omits the
+ambiguous `/test/` and `/tests/` substring matches. Every one of
+the 19 affected scanners imports the canonical helper; the 13
+narrow-variant files (`isTestFile()` stubs) replace their local
+copies entirely, and the 6 wider-variant files (`shouldSkipFile()`
+with additional vendor / minified / generated / admin predicates)
+prepend `if (isTestFile(filePath)) return true;` at function-top
+while preserving the rest of their scanner-specific skip-logic.
+The `DEFAULT_IGNORE` list in `packages/core/src/config.ts` is
+narrowed to remove `'test'` and `'tests'` while retaining the
+unambiguous conventions (`__tests__`, `__test__`, `__mocks__`,
+`__fixtures__`, `fixtures`, `benchmark`, `benchmarks`).
+
+Honest grade-delta on a real-world operator-SaaS reference target
+previously baselined across v0.15.6 / v0.16.0 / v0.16.1 / v0.16.2
+— pre-fix `score=958 grade=A findings=645` with severity-split
+`{low:21, medium:35, info:506, high:83}`, post-fix `score=959
+grade=A findings=646` with severity-split `{low:21, medium:35,
+info:506, high:84}`. One previously silent-skipped HIGH-severity
+finding now surfaces. Grade remains A; score fluctuation is within
+normal scoring-noise tolerance. Operators who have `/test/`-named
+routes in their own codebases may see similar additional findings
+emerge — those are real vulnerabilities that were masked
+pre-v0.16.3, not v0.16.3-introduced regressions.
+
+D-CA-004 (duplicated skip-logic across 19 scanner files) closes
+naturally via the helper-extraction — the single canonical source
+of truth in `@aegis-scan/core` replaces the copy-paste-propagated
+local variants and their drift-risk. Scanner-behavior on every
+other axis is preserved: self-scan 1000 / A / HARDENED / zero
+findings, vulnerable-app benchmark 30 of 30, canary total 115 of
+115 across 15 phases (up from 110 of 110 across 14 — new
+v0163-test-path-semantic-skip phase adds 1 TP fixture for
+route-named-test scanning and 4 FP scope-guards for `.test.ts` /
+`__tests__/` / `__mocks__/` / `playwright/` correct-ignores). Per-
+package tests all green (190/190 core · 1272/1272 scanners ·
+110/110 reporters · 381/381 cli · 14/14 mcp-server). Provenance
+attestations carry forward from v0.16.0 / v0.16.1 / v0.16.2 — this
+release touches no publish-path config.
+
+### Fixed
+
+- **D-CA-001 systemic silent-skip coverage-gap (v0.16.3 ship-stopper
+  first-item, Round-7 audit finding):** Canonical
+  `packages/core/src/is-test-path.ts` helper replaces 19 copies of
+  local `isTestFile()` / `shouldSkipFile()` skip-logic in scanners.
+  The new semantic deliberately drops `/test/` and `/tests/`
+  substring matches that were the root cause of the silent-skip —
+  `filePath.includes('/test/')` matched `app/api/test/route.ts` as
+  a legitimate App Router route, same as it would have matched
+  `test/helpers.ts`, and the scanner couldn't distinguish the two.
+  The 19 files split into 13 narrow-variant files (each with its
+  own local `isTestFile()` — replaced by the canonical import
+  outright) and 6 wider-variant files (each with a local
+  `shouldSkipFile()` that combined test-file-detection with
+  scanner-specific predicates like `/vendor/`, `.min.js`,
+  `/generated/`, `/scripts/`, `/cron/`, `/webhooks/`, `/admin/`;
+  these replace only the test-related lines with a call to the
+  canonical helper and retain the scanner-specific extras). The
+  `walkFiles()` traversal layer's `DEFAULT_IGNORE` in
+  `packages/core/src/config.ts` is narrowed to remove bare `'test'`
+  and `'tests'` — those matched at any depth via picomatch and
+  compounded the silent-skip. Unambiguous test-framework
+  conventions (`__tests__`, `__test__`, `__mocks__`, `__fixtures__`,
+  `fixtures`, `benchmark`, `benchmarks`) remain in the default
+  ignore-list. Users who want their own top-level `test/` directory
+  ignored can add it via `aegis.config.json` `ignore` (which unions
+  with defaults). New canary phase
+  `v0163-test-path-semantic-skip` with 5 fixtures (1 TP + 4 FPs)
+  gates the semantic — TP `src/app/api/test/route.ts` now emits
+  jwt-detector/CWE-798 (previously silent-skipped), FPs for
+  `.test.ts` / `__tests__/` / `__mocks__/` / `playwright/` confirm
+  the preserved-skip behavior for real test-files. The
+  `packages/core/__tests__/config.test.ts` v0.7.1 BLOCKER-gate is
+  updated with a positive assertion for the retained unambiguous
+  dirs and a regression-guard negative assertion that `'test'` and
+  `'tests'` are NOT in the default ignore-list (to prevent D-CA-001
+  re-introduction). D-CA-004 duplicated-skip-logic closes naturally
+  via the single-source-of-truth helper. Class-lesson: the same-
+  class slip as v0.15.5 D-A-002 phantom `aegis doctor` (surface-
+  reference without empirical-probe) displaced to a different
+  pattern-semantic dimension (path-substring-match vs identifier-
+  reference). Rule #12-extension (2026-04-21 codification) did not
+  prevent this because it scoped to identifier-classes (CLI-
+  subcommands, install-commands, URLs, filepaths) rather than
+  pattern-semantics; D-CA-001 adds the pattern-semantic-class to
+  the list of audit-surfaced extension-classes.
+
 ## [0.16.2] — 2026-04-21 — "UX-Truth"
 
 Single-item patch-release closing D-R7-001 — a Rule #12

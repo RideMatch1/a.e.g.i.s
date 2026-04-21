@@ -1,0 +1,9 @@
+{
+  "id": "v0163-FP-playwright-dir-correctly-ignored",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Scope-guard for the v0.16.3 D-CA-001 fix. An e2e-test `apps/web/playwright/login.spec.ts` (the Playwright convention widely used in Next.js monorepos; originally covered by v0.6.1 console-checker extension) carries a hardcoded JWT. The canonical isTestFile() helper preserves the `playwright/` / `cypress/` / `e2e/` e2e-framework-directory conventions per advisor Q2 decision. If this fixture flips to FAIL post-fix, the helper lost the e2e-extension and the v0.6.1 cal-com/dub dogfood-lesson regressed.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

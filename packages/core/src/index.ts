@@ -5,6 +5,7 @@ export { loadConfig, type ConfigFileShape } from './config.js';
 export { Orchestrator } from './orchestrator.js';
 export { exec, commandExists, walkFiles, readFileSafe, clearWalkFilesCache, getChangedFiles, type ExecResult, type ExecOptions } from './utils.js';
 export { getVersion } from './version.js';
+export { isTestFile } from './is-test-path.js';
 export {
   parseSuppressions,
   isSuppressed,

@@ -1,0 +1,9 @@
+{
+  "id": "v0163-FP-tests-dir-correctly-ignored",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Scope-guard for the v0.16.3 D-CA-001 fix. A test-helper `src/__tests__/bar.ts` (no `.test.ts` extension, just lives under the `__tests__/` directory convention) carries a hardcoded JWT. The canonical isTestFile() helper must still match the `__tests__/` path segment and skip the file. If this fixture flips to FAIL post-fix, the helper lost the `__tests__/` segment-check.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

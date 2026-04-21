@@ -1,0 +1,9 @@
+{
+  "id": "v0163-FP-mocks-dir-correctly-ignored",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Scope-guard for the v0.16.3 D-CA-001 fix. A module-mock `src/__mocks__/baz.ts` (the Jest/Vitest auto-mock convention) carries a hardcoded JWT. The canonical isTestFile() helper must still match the `__mocks__/` path segment and skip the file — auto-mocks are test-infrastructure, not production code. If this fixture flips to FAIL post-fix, the helper lost the `__mocks__/` segment-check.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

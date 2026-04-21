@@ -1,4 +1,4 @@
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { stripComments } from '../ast/page-context.js';
 
@@ -57,14 +57,6 @@ import { stripComments } from '../ast/page-context.js';
 const JWT_REGEX = /eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{5,}/g;
 
 const DEFAULT_IGNORE = ['node_modules', 'dist', '.next', '.git', 'coverage', 'build', 'out', '.turbo'];
-
-function isTestFile(filePath: string): boolean {
-  return /\.(test|spec)\.(ts|js|tsx|jsx|mjs|cjs)$/.test(filePath)
-    || filePath.includes('__tests__/')
-    || filePath.includes('__mocks__/')
-    || filePath.includes('/test/')
-    || filePath.includes('/tests/');
-}
 
 function findLineNumber(content: string, matchIndex: number): number {
   return content.slice(0, matchIndex).split('\n').length;

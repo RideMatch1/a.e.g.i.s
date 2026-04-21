@@ -11,6 +11,7 @@ vi.mock('@aegis-scan/core', () => ({
   exec: mockExec,
   walkFiles: () => [],
   readFileSafe: mockReadFileSafe,
+  isTestFile: (filePath) => /\.(test|spec|e2e)\.(ts|tsx|js|jsx|mjs|cjs)$/.test(filePath) || /[\/\\]__tests__[\/\\]/.test(filePath) || /[\/\\]__mocks__[\/\\]/.test(filePath) || /[\/\\](playwright|cypress|e2e)[\/\\]/.test(filePath),
 }));
 
 import { reactDoctorScanner } from '../../src/react/react-doctor.js';

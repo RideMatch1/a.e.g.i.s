@@ -13,6 +13,7 @@ vi.mock('@aegis-scan/core', () => ({
   exec: vi.fn(),
   readFileSafe: mockReadFileSafe,
   walkFiles: mockWalkFiles,
+  isTestFile: (filePath) => /\.(test|spec|e2e)\.(ts|tsx|js|jsx|mjs|cjs)$/.test(filePath) || /[\/\\]__tests__[\/\\]/.test(filePath) || /[\/\\]__mocks__[\/\\]/.test(filePath) || /[\/\\](playwright|cypress|e2e)[\/\\]/.test(filePath),
 }));
 
 import { depConfusionCheckerScanner } from '../../src/dependencies/dep-confusion.js';

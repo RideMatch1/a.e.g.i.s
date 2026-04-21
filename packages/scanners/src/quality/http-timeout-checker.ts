@@ -1,16 +1,7 @@
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
 const HTTP_DIRS = ['api', 'lib', 'services'];
-
-/** Test files — timeout patterns here are intentional */
-function isTestFile(filePath: string): boolean {
-  return /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(filePath)
-    || filePath.includes('__tests__/')
-    || filePath.includes('__mocks__/')
-    || filePath.includes('/test/')
-    || filePath.includes('/tests/');
-}
 
 function findLineNumber(content: string, matchIndex: number): number {
   return content.slice(0, matchIndex).split('\n').length;

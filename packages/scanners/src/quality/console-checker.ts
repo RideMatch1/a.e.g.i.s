@@ -1,25 +1,12 @@
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
-/** Test files — debug statements are expected and acceptable.
- *
- * v0.6.1 — extended to cover e2e/browser-test directories (playwright, cypress, e2e).
- * Dogfood on cal-com and dub found 44 of 46 console-checker FPs in
- * `apps/web/playwright/**`. Those files are tests, not production code,
- * but the previous pattern only recognized unit-test conventions
- * (.test.ts, __tests__/, /test/, /tests/). The extended list includes
- * the e2e directory names commonly used in Next.js / TypeScript projects.
- */
-function isTestFile(filePath: string): boolean {
-  return /\.(test|spec|e2e)\.(ts|js|tsx|jsx)$/.test(filePath)
-    || filePath.includes('__tests__/')
-    || filePath.includes('__mocks__/')
-    || filePath.includes('/test/')
-    || filePath.includes('/tests/')
-    || filePath.includes('/playwright/')
-    || filePath.includes('/cypress/')
-    || filePath.includes('/e2e/');
-}
+// v0.6.1 unit-test + e2e coverage (playwright / cypress / e2e)
+// is preserved through the canonical `isTestFile()` helper imported
+// from @aegis-scan/core. v0.16.3 D-CA-001 replaced the local variant
+// (which included the ambiguous '/test/' and '/tests/' substring
+// matches) with the canonical helper that drops those two lines while
+// keeping the unambiguous extensions and framework directory segments.
 
 function findLineNumber(content: string, matchIndex: number): number {
   const before = content.slice(0, matchIndex);

@@ -97,21 +97,35 @@ describe('loadConfig — default ignore paths', () => {
     expect(config.ignore).toContain('coverage');
   });
 
-  it('includes test + benchmark dirs in ignore list (v0.7.1 BLOCKER fix)', async () => {
-    // Pre-fix: scanning a project with __tests__ / benchmark / fixtures
+  it('includes unambiguous test + benchmark dirs in ignore list (v0.7.1 BLOCKER fix, narrowed v0.16.3 D-CA-001)', async () => {
+    // Pre-v0.7.1: scanning a project with __tests__ / benchmark / fixtures
     // flooded findings with intentionally-vulnerable fixture code +
     // mocked test data — AEGIS-on-AEGIS scored 0/F/CRITICAL on its OWN
-    // benchmark fixtures. Any user running `aegis scan .` from a repo
-    // with a test suite saw the same noise flood.
+    // benchmark fixtures. v0.7.1 closed that by adding these dirs to
+    // DEFAULT_IGNORE.
+    //
+    // v0.16.3 D-CA-001 narrowed the list — bare `'test'` and `'tests'`
+    // were removed because they matched as path-segments anywhere
+    // (including legitimate Next.js App Router routes like
+    // `app/api/test/route.ts`), silently skipping real vulnerabilities.
+    // Unambiguous test-framework conventions (`__tests__`, `__test__`,
+    // `__mocks__`, `__fixtures__`) remain — those are zero-collision-
+    // risk with legitimate app-code. Users who want their top-level
+    // `test/` dir skipped can add it via aegis.config.json `ignore`.
     writePkg(tmpDir, {});
     const config = await loadConfig(tmpDir);
     for (const dir of [
-      '__tests__', '__test__', 'test', 'tests',
+      '__tests__', '__test__',
       '__mocks__', '__fixtures__', 'fixtures',
       'benchmark', 'benchmarks',
     ]) {
       expect(config.ignore, `default ignore missing '${dir}'`).toContain(dir);
     }
+    // Regression-guard: `'test'` and `'tests'` must NOT be in the
+    // default list. If they are, D-CA-001 silent-skip class has re-
+    // introduced itself (app/api/test/route.ts would be hidden again).
+    expect(config.ignore, `default ignore must not contain bare 'test' (D-CA-001)`).not.toContain('test');
+    expect(config.ignore, `default ignore must not contain bare 'tests' (D-CA-001)`).not.toContain('tests');
   });
 
   it('has at least 5 default ignore paths', async () => {

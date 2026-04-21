@@ -1,0 +1,9 @@
+{
+  "id": "v0163-FP-dot-test-file-correctly-ignored",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Scope-guard for the v0.16.3 D-CA-001 fix. A canonical test-file `src/foo.test.ts` carries a hardcoded JWT in test-fixture code. The canonical isTestFile() helper must still match the `.test.ts` extension and skip the file — preserving the intent of the original 19-scanner skip-logic for real test-files. If this fixture flips to FAIL post-fix, the new helper lost its extension-check and the fix over-narrowed.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

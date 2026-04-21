@@ -181,15 +181,21 @@ const DEFAULT_IGNORE = [
   '.windsurf',
   '.codex',
   '.aider',
-  // Test + benchmark fixtures (v0.7.1): scanning these is almost always
-  // noise — they contain intentionally-vulnerable code OR mocked data.
-  // Users who DO want to scan their tests can override via
-  // aegis.config.json `ignore` (unions with this list) or explicitly
-  // include paths on the CLI.
+  // Test + benchmark fixtures (v0.7.1, narrowed v0.16.3 D-CA-001):
+  // scanning these is almost always noise — they contain intentionally-
+  // vulnerable code OR mocked data. The list deliberately OMITS bare
+  // `'test'` and `'tests'` since those matched as path-segments
+  // anywhere (including legitimate Next.js App Router routes like
+  // `app/api/test/route.ts`), silently hiding real vulnerabilities
+  // whenever an operator named a route `test` / `tests`. Round-7
+  // comprehensive audit empirical-repro: identical source under
+  // `/test/` got 0 findings while under `/vuln/` got 6. Unambiguous
+  // test-framework conventions (`__tests__`, `__test__`, `__mocks__`,
+  // `__fixtures__`) remain — those are zero-collision-risk. Users who
+  // want to skip their own `test/` directory can add it via
+  // aegis.config.json `ignore` (unions with this list) or via CLI.
   '__tests__',
   '__test__',
-  'test',
-  'tests',
   '__mocks__',
   '__fixtures__',
   'fixtures',

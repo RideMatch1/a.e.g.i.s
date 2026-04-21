@@ -1,0 +1,9 @@
+{
+  "id": "v0163-TP-route-named-test-scanned",
+  "cwe": 798,
+  "type": "TP",
+  "description": "Route file `src/app/api/test/route.ts` carries a hardcoded JWT-format literal. Pre-v0.16.3 (RED-baseline) the 19-scanner silent-skip class matched `filePath.includes('/test/')` as a substring, silently skipping every legitimate route whose path contained `/test/` as a segment — including Next.js App Router routes like `app/api/test/route.ts`. Empirical RED-reproduction: identical source at `/test/` path got 0 findings while the same source at `/vuln/` path got 6 findings. Post-v0.16.3 D-CA-001 helper-extraction introduces canonical packages/core isTestFile() semantic (`.test.ts` extension + `__tests__/` + `__mocks__/` + playwright/cypress/e2e conventions only — NOT `/test/` or `/tests/` substring), and every scanner routes its skip-predicate through the canonical helper. Ship-stopper-class hotfix — D-CA-001 audit (2026-04-21) called this out as systemic-silent-skip coverage-gap affecting SSRF / SQLi / XSS / tenant-isolation / JWT / prompt-injection detection.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

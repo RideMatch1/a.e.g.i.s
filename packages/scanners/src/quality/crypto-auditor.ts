@@ -1,16 +1,7 @@
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
 const SECURITY_DIRS = ['api', 'lib', 'utils', 'services'];
-
-/** Test files — findings here are usually intentional patterns, not real issues */
-function isTestFile(filePath: string): boolean {
-  return /\.(test|spec)\.(ts|js|tsx|jsx)$/.test(filePath)
-    || filePath.includes('__tests__/')
-    || filePath.includes('__mocks__/')
-    || filePath.includes('/test/')
-    || filePath.includes('/tests/');
-}
 
 function isInSecurityDir(filePath: string): boolean {
   return SECURITY_DIRS.some((dir) => filePath.includes(`/${dir}/`));
