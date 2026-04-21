@@ -397,6 +397,15 @@ function checkFile(
       category: 'security',
       owasp: 'A07:2021',
       cwe: 285,
+      fix: {
+        description:
+          "Add an explicit role-check after authentication using the project's require-role helper — requireRole(context, ['admin', 'manager']) or requirePermission(context, 'resource.action') for permission-based authorization. For intentional self-service routes where the authenticated user only accesses their own data, add a @self-only JSDoc or line-comment annotation on the handler to opt out. Mirror the role-enforcement pattern used by sibling route-files so project conventions stay uniform.",
+        code: "const { context } = await secureApiRouteWithTenant(request, { requireAuth: true });\nif (!context.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\nrequireRole(context, ['admin', 'manager']);",
+        links: [
+          'https://cwe.mitre.org/data/definitions/285.html',
+          'https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/',
+        ],
+      },
     });
   }
 }
@@ -524,6 +533,14 @@ export const authEnforcerScanner: Scanner = {
           category: 'security',
           owasp: 'A07:2021',
           cwe: 306,
+          fix: {
+            description:
+              'Add an authentication guard at the top of this server component before the database call. Use the project session-helper (auth, getServerSession, or createServerSupabaseClient) followed by an explicit user-check, and redirect unauthenticated requests to the login route before any DB access. Server components run on every request and the DB query executes before any client-side guard fires — the guard MUST be server-side on this path.',
+            code: "// server-component page — enforce auth server-side before DB access\nexport default async function Page() {\n  const session = await getServerSession();\n  if (!session?.user) redirectToLogin();\n  const data = await db.query('SELECT * FROM ...');\n  return <>{/* ... */}</>;\n}",
+            links: [
+              'https://cwe.mitre.org/data/definitions/306.html',
+            ],
+          },
         });
       }
     }
@@ -597,6 +614,14 @@ export const authEnforcerScanner: Scanner = {
         category: 'security',
         owasp: 'A07:2021',
         cwe: 306,
+        fix: {
+          description:
+            'Add an authentication check in this middleware — middleware runs on every matching request before the route-handler executes, making it the canonical place to enforce auth globally. Use the framework session-validator (auth, createMiddlewareClient, or the project helper) and redirect unauthenticated requests before the handler runs. Configure the middleware matcher to exclude public routes (login, health, webhook endpoints, OAuth callbacks) rather than per-route opt-outs.',
+          code: "// middleware.ts — enforce auth globally\nexport async function middleware(req) {\n  const session = await getServerSession(req);\n  if (!session) return redirectToLogin(req);\n}\n\nexport const config = {\n  matcher: ['/((?!api/public|login|_next|favicon).*)'],\n};",
+          links: [
+            'https://cwe.mitre.org/data/definitions/306.html',
+          ],
+        },
       });
     }
 

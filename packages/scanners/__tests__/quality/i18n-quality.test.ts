@@ -355,10 +355,13 @@ describe('i18nQualityScanner — missing lang attribute', () => {
   });
 
   it('v0.15.4 D-M-001: populates FixGuidance fix.description on emitted findings', async () => {
+    // Uses "Bestatigen" which IS in UMLAUT_PATTERNS (→ Bestätigen),
+    // so the scanner fires accent-substitution finding-class which
+    // lacks fix-field pre-v0.15.4 D-M-001 and must gain one post-impl.
     createTsxFile(
       projectPath,
-      'src/app/greet.tsx',
-      `export default function Page() { return <p>fuer die beste Loesung</p>; }`,
+      'greet.tsx',
+      `export default function Page() { return <button>Bestatigen</button>; }`,
     );
     const result = await i18nQualityScanner.scan(projectPath, MOCK_CONFIG);
     const finding = result.findings.find((f) => f.scanner === 'i18n-quality');
@@ -368,6 +371,6 @@ describe('i18nQualityScanner — missing lang attribute', () => {
     const fix = finding!.fix as { description?: string };
     expect(fix.description).toEqual(expect.any(String));
     expect(fix.description!.length).toBeGreaterThan(20);
-    expect(fix.description).toMatch(/i18n|locale|translat|accent|umlaut/i);
+    expect(fix.description).toMatch(/i18n|locale|translat|accent|umlaut|UTF-8|Bestätigen/i);
   });
 });

@@ -145,6 +145,10 @@ export const i18nQualityScanner: Scanner = {
               file,
               line: lineIdx + 1,
               category: 'i18n',
+              fix: {
+                description:
+                  `Replace the ASCII substitution "${example}" with the proper locale-specific character "${correct}" (e.g. ü, ö, ä, ß). Modern UTF-8 source files and terminals render umlauts correctly — ASCII substitution is legacy-only. If the project is intentionally single-locale with ASCII-only conventions, add an aegis.config.json suppression with rule "i18n-quality" scoped to the file-glob plus the architectural reason.`,
+              },
             });
           }
         }
@@ -173,6 +177,11 @@ export const i18nQualityScanner: Scanner = {
           file,
           line: lineNum,
           category: 'i18n',
+          fix: {
+            description:
+              `Extract the hardcoded JSX text "${text}" to an i18n-library call — t("your.key") for react-i18next, <FormattedMessage id="your.key" /> for react-intl, or useTranslations("namespace") for next-intl. If this project is intentionally single-locale without translation infrastructure, set stack.hasI18n: false in aegis.config.json to disable this check entirely.`,
+            code: "// react-i18next example\nimport { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();\n<p>{t('yourKey')}</p>",
+          },
         });
       }
     }
@@ -212,6 +221,14 @@ export const i18nQualityScanner: Scanner = {
             line: 1,
             fileLevel: true,
             category: 'i18n',
+            fix: {
+              description:
+                'Add a BCP-47 locale code to the <html> tag — <html lang="en">, <html lang="de">, <html lang="fr-CA">, etc. Required for WCAG 3.1.1 accessibility compliance and helps screen readers and search engines resolve the page language. For Next.js App-Router with dynamic locale-switching, bind lang={locale} to the current route-locale variable from your i18n provider.',
+              code: "// Static (single-locale)\n<html lang=\"en\">\n\n// Dynamic (next-intl / react-i18next)\nexport default function RootLayout({ children, params: { locale } }) {\n  return <html lang={locale}>{children}</html>;\n}",
+              links: [
+                'https://www.w3.org/WAI/WCAG21/Understanding/language-of-page.html',
+              ],
+            },
           });
         }
       }

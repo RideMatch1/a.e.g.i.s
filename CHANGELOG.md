@@ -89,6 +89,30 @@ shown with the reason the target wasn't met.
   (not severity-field) — canary-runner severity/field-assertion
   extension is queued for v0.16+ as an orthogonal capability-gap.
 
+- **D-M-001 FixGuidance-fill on top-3 gap-scanners (Round-4
+  audit-finding):** Populated structured `fix: { description,
+  code?, links? }` field on the three scanner-classes identified in
+  Round-4 audit section 5.3 as contributing the most
+  nulls-on-high-or-above findings — `i18n-quality` (2676 null
+  fix-fields pre-v0.15.4), `console-checker` (192 nulls), and
+  `auth-enforcer` (183 nulls at the role-guard-missing
+  emission-site; the authentication-guard-missing site already had
+  fix since v0.15.2 Item-3). Eight emission-sites gain fix-field
+  total — three across `i18n-quality` (accent/umlaut substitution,
+  hardcoded JSX text, missing lang attribute), two across
+  `console-checker` (severity-specific console.error path + general
+  console-pattern path), and three across `auth-enforcer`
+  (role-guard-missing, server-component-with-DB-access-missing-auth,
+  middleware-missing-auth). Each fix carries an actionable
+  description and where applicable a compact code-snippet (example
+  pattern, not literal-framework-imports to avoid supply-chain
+  phantom-dep self-match) plus canonical links to CWE/OWASP
+  references. Unit-test-verified by three new failing-then-green
+  tests, one per scanner, asserting `finding.fix.description` is
+  truthy with keyword-match on the remediation-shape. Partial close
+  of 🟠 D-M-001 — remaining 13 scanner-classes with null-fix gaps
+  queued for v0.16+ extension.
+
 ---
 
 ## [0.15.3] — 2026-04-21 — "Credibility Patches"

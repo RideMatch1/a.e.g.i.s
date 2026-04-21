@@ -166,6 +166,11 @@ export const consoleCheckerScanner: Scanner = {
                 category: 'quality',
                 ...(rule.owasp ? { owasp: rule.owasp } : {}),
                 ...(rule.cwe ? { cwe: rule.cwe } : {}),
+                fix: {
+                  description:
+                    'Replace console.log / error / warn / info / debug with a structured logger — winston, pino, or the project centralized logger. Structured logging adds severity levels, context propagation, and PII-redaction controls that plain console calls lack. For CLI tools or intentional demo output, scope an aegis.config.json suppression to the specific file-glob with the architectural reason.',
+                  code: "import { logger } from '@/lib/logger';\n\nlogger.info('operation complete', { userId, action });\nlogger.error('operation failed', { userId, err });",
+                },
               });
             }
           }
@@ -187,6 +192,11 @@ export const consoleCheckerScanner: Scanner = {
             category: 'quality',
             ...(rule.owasp ? { owasp: rule.owasp } : {}),
             ...(rule.cwe ? { cwe: rule.cwe } : {}),
+            fix: {
+              description:
+                'Replace console.log / error / warn / info / debug with a structured logger — winston, pino, or the project centralized logger. Structured logging adds severity levels, context propagation, and PII-redaction controls that plain console calls lack. For CLI tools or intentional demo output, scope an aegis.config.json suppression to the specific file-glob with the architectural reason.',
+              code: "import { logger } from '@/lib/logger';\n\nlogger.info('operation complete', { userId, action });\nlogger.error('operation failed', { userId, err });",
+            },
           });
         }
       }
