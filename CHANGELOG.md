@@ -32,6 +32,27 @@ each hit be invoked to prove it is not a broken-promise.
 
 ### Fixed
 
+- **D-M-001 npm package descriptions aligned with README scanner-count
+  claims (v0.15.6 hotfix):** Two of the five public package
+  descriptions carried stale scanner-counts that drifted from the
+  README's canonical inventory after the v0.15.4 D-M-005 full-closure.
+  `@aegis-scan/cli` description said "41 built-in checkers" — README
+  L12 says 42. `@aegis-scan/scanners` description said "40 built-in
+  regex/AST checkers + 1 AST cross-file taint analyzer" — README L336
+  says "42 scanners: 41 regex + 1 AST taint analyzer". Operators
+  searching npmjs.com for AEGIS see the package descriptions before
+  the README; the drift implied the scanner suite was smaller than
+  documented and undermined the v0.15.4 D-M-005 close. Both
+  descriptions now read "42 built-in checkers" / "41 built-in regex
+  checkers + 1 AST cross-file taint analyzer + 16 external-tool
+  wrappers" — exact match with README L12 and L336. The other three
+  package descriptions (`core`, `reporters`, `mcp-server`) carried no
+  scanner-count claims and are unchanged. Empirical baseline check
+  via `npm view @aegis-scan/cli@0.15.5 description` confirmed the
+  drift was indeed shipped on the v0.15.5 tarballs (publish-immutable
+  per the same v0.15.4 D-A-001 erratum-boundary documented for the
+  CHANGELOG correction).
+
 - **D-B-001 cold-install-UX banner phantom-command reference
   (v0.15.6 hotfix, user-trust-erosion):** `packages/cli/src/commands/
   scan.ts` cold-install-UX banner rewritten to emit concrete
