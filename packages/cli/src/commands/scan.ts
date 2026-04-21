@@ -33,13 +33,19 @@ const TOTAL_EXTERNAL_TOOLS = 16;
  * banner. Replaces the prior `aegis doctor` broken-promise reference
  * (the subcommand does not exist in the CLI; a user who reads the
  * banner and types `aegis doctor` gets `too many arguments`).
- * Empirically verified per Rule #12 — every command listed here was
- * run on a clean machine to confirm it resolves. Scanners not in the
- * map fall back to a generic "see README" hint.
+ * Map maintained per Rule #12-extended — external install-commands
+ * are empirically invoked pre-commit (brew info --formula, docker
+ * manifest inspect, etc.). v0.16.2 D-R7-001 corrected a v0.15.6-era
+ * oversight where `brew install bearer` shipped without a
+ * `brew info --formula bearer` check and turned out to resolve to
+ * "No available formula" — now routed through bearer's canonical
+ * Docker-Hub image (pull_count 277k+ at correction-time) which
+ * matches the existing docker-pattern precedent used for `zap`.
+ * Scanners not in the map fall back to a generic "see README" hint.
  */
 const EXTERNAL_INSTALL_HINTS: Record<string, string> = {
   semgrep: 'brew install semgrep',
-  bearer: 'brew install bearer',
+  bearer: 'docker pull bearer/bearer',
   gitleaks: 'brew install gitleaks',
   trufflehog: 'brew install trufflehog',
   'osv-scanner': 'brew install osv-scanner',

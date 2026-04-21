@@ -105,6 +105,20 @@ describe('Item-7 — scan external-tool missing banner (stderr-only contract)', 
     expect(result.stderr).not.toContain('aegis doctor');
   });
 
+  it('banner bearer-hint routes through Docker, not brew (v0.16.2 D-R7-001)', async () => {
+    // v0.16.2 D-R7-001 — the v0.15.6-era `brew install bearer` hint was
+    // a dead-end (no available formula on homebrew-core). Regression
+    // guard: if the banner ever reverts to the brew-bearer pattern the
+    // Rule #12-extended empirical-invoke discipline has slipped and the
+    // user-facing install-hint is lying to operators again. The
+    // canonical bearer install is the Docker Hub image `bearer/bearer`
+    // (alternative: `curl -sfL …/install.sh | sh`) which matches the
+    // existing docker-pattern precedent used for `zap`.
+    const result = await runCli('scan . --format json', tempDir, noPathEnv());
+    expect(result.stderr).not.toContain('brew install bearer');
+    expect(result.stderr).toMatch(/docker pull bearer\/bearer|curl -sfL/);
+  });
+
   it('stdout stays parseable JSON even when banner fires on stderr', async () => {
     const result = await runCli('scan . --format json', tempDir, noPathEnv());
     const jsonStart = result.stdout.indexOf('{');

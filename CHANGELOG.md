@@ -13,6 +13,77 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.16.2] — 2026-04-21 — "UX-Truth"
+
+Single-item patch-release closing D-R7-001 — a Rule #12
+discipline-miss surfaced by a fresh Round-7 external audit of the
+v0.15.6 → v0.16.1 release-trio on 2026-04-21. The v0.15.6
+cold-install-UX banner shipped a curated map of per-scanner
+install-hints with a JSDoc header claiming "Empirically verified
+per Rule #12 — every command listed here was run on a clean
+machine to confirm it resolves." One of the 16 hints,
+`brew install bearer`, did not in fact resolve: `brew info
+--formula bearer` returns "No available formula with the name
+'bearer'" on current homebrew-core (no `bearer/tap` exists
+either). The Bearer SAST project itself is alive and actively
+maintained at github.com/Bearer/bearer; it just is not distributed
+via Homebrew. A user reading the v0.15.6 banner on a clean machine
+would copy-paste the brew command and receive an error — the same
+broken-promise trust-class that the v0.15.6 D-B-001 fix was meant
+to eliminate, displaced to an adjacent identifier-class (external
+install-commands rather than AEGIS-native CLI subcommands). The
+Rule #12 codification had specified CLI-subcommand-verify as the
+canonical example but did not explicitly enumerate external
+install-commands as in-scope; the Round-7 audit surfaced this
+extension-class, which this release codifies alongside the
+one-line source-fix.
+
+Scanner behavior, scoring, canary-results, attestation-flow, and
+published-package runtime behavior are all unchanged — v0.16.2
+touches only a single string-literal in
+`packages/cli/src/commands/scan.ts`, a new regression-guard test
+case in `scan-banner.test.ts`, and the Rule #12 feedback-file
+codification. Provenance attestations carry forward from v0.16.0
+and v0.16.1; this is the third consecutive release with non-empty
+SLSA v1 predicates on all 5 tarballs (first, second, and third
+sequential-preservation-gate passes of the D-P-001 closure).
+
+### Fixed
+
+- **D-R7-001 bearer banner-hint brew→docker (v0.16.2 first-item,
+  Rule #12-extended):** `packages/cli/src/commands/scan.ts:42`
+  `EXTERNAL_INSTALL_HINTS.bearer` changed from
+  `'brew install bearer'` (dead-end) to `'docker pull bearer/bearer'`
+  (bearer's canonical Docker Hub image — `docker manifest inspect
+  bearer/bearer` returns a valid v2 manifest at fix-time,
+  pull_count 277,938 per `hub.docker.com/v2/repositories/bearer/
+  bearer/`). The choice of docker-over-curl-script matches the
+  existing precedent for `zap: 'docker pull
+  owasp/zap2docker-stable'` in the same map, keeps the map's
+  one-command-per-hint ergonomics, and avoids the pipe-to-sh
+  pattern that a subset of security-minded operators refuse to
+  execute. The JSDoc header on `EXTERNAL_INSTALL_HINTS` is updated
+  to replace the overclaim ("every command listed here was run on
+  a clean machine") with an accurate description of the ongoing
+  Rule #12-extended discipline applied to external install-command
+  references, plus an explicit pointer to the v0.16.2 D-R7-001
+  incident-narrative. A new regression-guard test case in
+  `packages/cli/__tests__/scan-banner.test.ts` asserts the runtime
+  banner never again contains the literal string
+  `brew install bearer` and always contains either
+  `docker pull bearer/bearer` or a curl-install-script pattern.
+  The Rule #12 codification in
+  `feedback_verify_referenced_identifiers.md` has been extended
+  with explicit coverage of external install-commands (brew, pip,
+  docker, npm, go, apt) and URLs inside user-facing strings — not
+  only in-repo CLI subcommands as the original v0.15.6 codification
+  specified. The class-lesson codified this cycle: rule-codifications
+  cover the incident-class they were written against; fresh
+  external-audits surface extension-classes. Round-7 findings are
+  reproducible via `brew info --formula bearer` (exits non-zero with
+  "No available formula") and `docker manifest inspect
+  bearer/bearer` (returns a valid v2 manifest).
+
 ## [0.16.1] — 2026-04-21 — "Test-Reliability"
 
 Single-item patch-release closing the D-T-001 turbo-parallel AST-test
