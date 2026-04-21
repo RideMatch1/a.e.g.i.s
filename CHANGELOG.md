@@ -81,6 +81,35 @@ release touches no publish-path config.
 
 ### Fixed
 
+- **D-CA-003 GitHub Actions SHA-pinned — self-advice-followed
+  (v0.16.3, credibility-fix):** The Round-7 comprehensive audit
+  flagged a self-contradiction in the AEGIS CI — `.github/workflows/
+  publish.yml`, `release.yml`, and `ci.yml` all used floating
+  version-tagged Actions (`actions/checkout@v4`,
+  `pnpm/action-setup@v4`, `actions/setup-node@v4`) while AEGIS's
+  own `supply-chain` scanner warns operators about exactly this
+  C2-threat-class pattern (floating tags let a compromised
+  publish-token re-point a previously-trusted Action to malicious
+  code without any in-repo review). All 8 unpinned usages across
+  the 3 workflows are now replaced with 40-character commit-SHAs
+  plus a trailing `# vX.Y.Z` comment for human-readable version
+  tracking. Canonical SHAs empirically resolved via `gh api
+  repos/<org>/<repo>/git/refs/tags/<tag>` and its annotated-tag
+  dereference where applicable — `actions/checkout@v4` →
+  `34e114876b0b11c390a56381ad16ebd13914f8d5` (= v4.3.1),
+  `pnpm/action-setup@v4` →
+  `b906affcce14559ad1aafd4ab0e942779e9f58b1` (= v4.3.0 per the v4
+  floating-tag resolution at fix-time; v4.4.0 is a later release
+  the maintainer has not yet moved the floating v4-tag to),
+  `actions/setup-node@v4` →
+  `49933ea5288caeca8642d1e84afbd3f7d6820020` (= v4.4.0). Pre-fix
+  grep-gate: `grep -rnE 'uses: [^@]+@v?[0-9]+(\.[0-9]+)*$'
+  .github/workflows/` returned 8 hits; post-fix returns 0.
+  Complementary gate: `grep -rnE 'uses: [^@]+@[a-f0-9]{40}'
+  .github/workflows/` returns 8 hits. CI-only change — scanner
+  behavior, runtime behavior, and published-package behavior are
+  unchanged by this commit.
+
 - **D-CA-001 systemic silent-skip coverage-gap (v0.16.3 ship-stopper
   first-item, Round-7 audit finding):** Canonical
   `packages/core/src/is-test-path.ts` helper replaces 19 copies of
