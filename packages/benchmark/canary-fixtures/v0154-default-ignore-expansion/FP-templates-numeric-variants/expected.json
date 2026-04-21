@@ -1,0 +1,9 @@
+{
+  "id": "v0154-FP-templates-numeric-variants",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Glob-class-completeness canary — verifies the `Templates*` pattern catches multiple numeric-suffix variants (`Templates2/`, `Templates99/`) not just the Sonnenhof-literal `Templates1/`. Two separate vendor-template directories each carry a literal JWT-format token. Post-v0.15.4 picomatch-glob-support plus `Templates*` in DEFAULT_IGNORE must cause walkFiles to skip BOTH directories. If Option-A (exact-match-only) had been chosen, this canary would RED because only literal `Templates1` would have been added. The FP-assertion: zero jwt-detector findings across both subdirs.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

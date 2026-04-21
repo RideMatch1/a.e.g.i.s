@@ -1,0 +1,9 @@
+{
+  "id": "v0154-TP-real-src-scanned",
+  "cwe": 798,
+  "type": "TP",
+  "description": "Scope-guard canary: a legitimate source-code path (`src/app/api/route.ts`, the canonical Next.js App-Router location) carrying a hardcoded JWT must still fire jwt-detector both pre-impl AND post-impl. Verifies the v0.15.4 D-C-001 ignore-expansion does NOT over-reach and silence findings on real user-code. Critical scope-discipline guard — if this canary flips silent post-impl, the new globs are matching too broadly and the fix is rejected.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

@@ -1,0 +1,1 @@
+export const EXAMPLE_THIRD_PARTY_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJsaWIiLCJrIjoxfQ.third_party_lib_sig";

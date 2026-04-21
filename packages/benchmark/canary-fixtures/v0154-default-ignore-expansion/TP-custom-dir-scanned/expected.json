@@ -1,0 +1,9 @@
+{
+  "id": "v0154-TP-custom-dir-scanned",
+  "cwe": 798,
+  "type": "TP",
+  "description": "User-named-directory scope-guard canary: arbitrary user-chosen directory name (`my-feature/`) must still be scanned. The v0.15.4 D-C-001 ignore-expansion targets VENDOR and TEMPLATE classes only — user-code in custom-named dirs must NOT be auto-skipped. jwt-detector must fire both pre- and post-impl.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

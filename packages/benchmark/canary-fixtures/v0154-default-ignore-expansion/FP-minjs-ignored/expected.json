@@ -1,0 +1,9 @@
+{
+  "id": "v0154-FP-minjs-ignored",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Minified-bundle file (`vendor-assets/bundle.min.js`) carries a literal JWT-string — typical of vendor-bundled code the project doesn't own. The parent dir `vendor-assets/` is deliberately chosen to NOT collide with any pre-existing ignore-pattern: unlike `build/` (per-scanner DEFAULT_IGNORE exact-match) or `assets/` (global DEFAULT_IGNORE root-only) or `vendor` (global DEFAULT_IGNORE exact-match), `vendor-assets` is a distinct string that walkFiles does not skip. This isolates the `**/*.min.js` capability test from any pre-existing directory-ignore. Post-v0.15.4, the `**/*.min.js` file-level glob in DEFAULT_IGNORE must cause walkFiles to skip this file — file-level filtering is a NEW capability introduced alongside picomatch-glob-support; pre-v0.15.4 walkFiles only filtered directories. jwt-detector must NOT emit. This canary exercises file-level glob-matching, distinct from directory-level globs in the Templates* fixtures.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

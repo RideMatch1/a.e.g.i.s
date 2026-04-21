@@ -1,0 +1,9 @@
+{
+  "id": "v0154-FP-third-party-ignored",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Standard vendor-dir convention `third_party/` (common in Google-style and Bazel-class repos) containing an example library with a literal JWT. Post-v0.15.4, `third_party` in DEFAULT_IGNORE (literal-pattern handled as exact-match by picomatch) must cause walkFiles to skip this directory. Verifies that literal-string patterns continue to work under the new picomatch-matching logic — no regression on exact-string semantic. jwt-detector must NOT emit.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

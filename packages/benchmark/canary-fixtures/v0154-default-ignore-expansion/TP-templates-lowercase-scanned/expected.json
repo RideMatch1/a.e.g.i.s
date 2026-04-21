@@ -1,0 +1,9 @@
+{
+  "id": "v0154-TP-templates-lowercase-scanned",
+  "cwe": 798,
+  "type": "TP",
+  "description": "Case-sensitivity scope-guard canary: lowercase `templates/` directory (canonical location for email-templates, handlebars-templates, and similar legit-source content) MUST continue to be scanned. Round-4 audit recommended excluding lowercase `templates/` from the glob precisely because it is legit-source in many projects. jwt-detector must still fire on `templates/email.ts` both pre- and post-v0.15.4. If this canary flips silent, the `Templates*` glob is wrongly case-insensitive or has been duplicated as lowercase.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}
