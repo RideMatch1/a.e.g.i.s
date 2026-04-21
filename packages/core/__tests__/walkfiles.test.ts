@@ -60,3 +60,92 @@ describe('walkFiles — v0.10 Z9 root-only ignore', () => {
     expect(files.some((f) => f.includes('src/file.ts'))).toBe(true);
   });
 });
+
+describe('walkFiles — v0.15.4 picomatch-based glob-support (D-C-001)', () => {
+  let root: string;
+
+  beforeEach(() => {
+    clearWalkFilesCache();
+    root = mkdtempSync(join(tmpdir(), 'aegis-walkfiles-v0154-'));
+  });
+
+  function mkfile(rel: string, content = ''): void {
+    const parts = rel.split('/');
+    mkdirSync(join(root, ...parts.slice(0, -1)), { recursive: true });
+    writeFileSync(join(root, rel), content);
+  }
+
+  it('matches directory basename via wildcard glob (Templates* → Templates1, Templates2, Templates99)', () => {
+    mkfile('Templates1/demo.ts', 'export {};');
+    mkfile('Templates2/a.ts', 'export {};');
+    mkfile('Templates99/b.ts', 'export {};');
+    mkfile('src/keep.ts', 'export {};');
+
+    const files = walkFiles(root, ['Templates*'], ['ts']);
+    expect(files.some((f) => f.includes('Templates1/'))).toBe(false);
+    expect(files.some((f) => f.includes('Templates2/'))).toBe(false);
+    expect(files.some((f) => f.includes('Templates99/'))).toBe(false);
+    expect(files.some((f) => f.includes('src/keep.ts'))).toBe(true);
+  });
+
+  it('preserves case-sensitivity — Templates* does NOT match lowercase templates', () => {
+    mkfile('templates/email.ts', 'export {};');
+    mkfile('Templates1/demo.ts', 'export {};');
+
+    const files = walkFiles(root, ['Templates*'], ['ts']);
+    expect(files.some((f) => f.includes('templates/email.ts'))).toBe(true);
+    expect(files.some((f) => f.includes('Templates1/'))).toBe(false);
+  });
+
+  it('matches file-level globs via **/*.ext pattern (**/*.min.js ignores minified bundles)', () => {
+    mkfile('vendor-assets/bundle.min.js', 'var x;');
+    mkfile('a/b/c/lib.min.js', 'var y;');
+    mkfile('src/app.js', 'var z;');
+
+    const files = walkFiles(root, ['**/*.min.js'], ['js', 'ts']);
+    expect(files.some((f) => f.includes('bundle.min.js'))).toBe(false);
+    expect(files.some((f) => f.includes('lib.min.js'))).toBe(false);
+    expect(files.some((f) => f.includes('src/app.js'))).toBe(true);
+  });
+
+  it('treats literal-string patterns exactly (no behavior change from pre-v0.15.4 Set.has semantic)', () => {
+    mkfile('node_modules/pkg/index.ts', 'export {};');
+    mkfile('.next/cache/entry.ts', 'export {};');
+    mkfile('src/file.ts', 'export {};');
+
+    const files = walkFiles(root, ['node_modules', '.next'], ['ts']);
+    expect(files.some((f) => f.includes('node_modules/'))).toBe(false);
+    expect(files.some((f) => f.includes('.next/'))).toBe(false);
+    expect(files.some((f) => f.includes('src/file.ts'))).toBe(true);
+  });
+
+  it('matches any-depth nested glob — Templates* at depth > 1', () => {
+    mkfile('packages/pkg-a/Templates1/foo.ts', 'export {};');
+    mkfile('apps/web/Templates7/bar.ts', 'export {};');
+    mkfile('src/real.ts', 'export {};');
+
+    const files = walkFiles(root, ['Templates*'], ['ts']);
+    expect(files.some((f) => f.includes('packages/pkg-a/Templates1/'))).toBe(false);
+    expect(files.some((f) => f.includes('apps/web/Templates7/'))).toBe(false);
+    expect(files.some((f) => f.includes('src/real.ts'))).toBe(true);
+  });
+
+  it('supports mixed literal + glob patterns in a single ignore-list', () => {
+    mkfile('node_modules/pkg.ts', 'export {};');       // literal
+    mkfile('Templates1/demo.ts', 'export {};');         // glob: Templates*
+    mkfile('vendor-assets/lib.min.js', 'var x;');       // glob: **/*.min.js
+    mkfile('third_party/cfg.ts', 'export {};');         // literal
+    mkfile('src/keep.ts', 'export {};');                 // kept
+
+    const files = walkFiles(
+      root,
+      ['node_modules', 'Templates*', '**/*.min.js', 'third_party'],
+      ['ts', 'js'],
+    );
+    expect(files.some((f) => f.includes('node_modules'))).toBe(false);
+    expect(files.some((f) => f.includes('Templates1/'))).toBe(false);
+    expect(files.some((f) => f.includes('lib.min.js'))).toBe(false);
+    expect(files.some((f) => f.includes('third_party/'))).toBe(false);
+    expect(files.some((f) => f.includes('src/keep.ts'))).toBe(true);
+  });
+});
