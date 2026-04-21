@@ -57,6 +57,28 @@ maintained; canary total 110 of 110 across 14 phases (v0.15.4's
   not-matching `TemplatesTab.tsx` / `TemplatesGrid.tsx` /
   `TemplatesList.tsx` component basenames.
 
+- **D-A-001 CHANGELOG [0.15.4] D-M-001 honesty erratum:** the
+  v0.15.4 D-M-001 entry originally framed the FixGuidance work as
+  "full-closure 12-of-12 Round-4-flagged scanners". Empirical
+  post-ship verification (grep matrix on every scanner emission-
+  site cross-referenced against fix-block presence) shows the
+  framing was wrong — only 7 of 12 Round-4-flagged scanners were
+  actually populated; 4 remain null-fix (`supply-chain`,
+  `rate-limit-checker`, `error-leakage-checker`,
+  `prompt-injection-checker`) and queue v0.15.5. The remaining 5
+  scanners populated in Phase-2 (`crypto-auditor`,
+  `config-auditor`, `header-checker`, `next-public-leak`,
+  `mass-assignment-checker`) are valuable adjacent-improvements
+  but were not on Round-4's flagged list. The v0.15.4 [0.15.4]
+  block in this CHANGELOG carries the corrected framing — the
+  v0.15.4-on-npm tarballs and the v0.15.4 GitHub release-notes
+  ship with the original (incorrect) framing because those are
+  immutable post-publish; the v0.15.4.1 tarballs and onwards
+  carry the corrected text. Operators consuming v0.15.4 CHANGELOG
+  via `npm view ... CHANGELOG` see the original; everything from
+  v0.15.4.1 forward sees the corrected. No code change required —
+  CHANGELOG.md only.
+
 ## [0.15.4] — 2026-04-21 — "Fertig-Patches"
 
 Round-4 external-review close-out for v0.15.3. Nine audit-findings
@@ -131,11 +153,10 @@ test-suite 1272 of 1272 across 77 files.
   audit-flagged class end-to-end alongside the Phase 2
   FixGuidance-description specificity.
 
-- **D-M-001 FixGuidance-fill on remaining 9 scanners (v0.15.4
-  Fertig-Patches, Round-4 audit-finding full-closure):** Full-closes
-  🟠 D-M-001 by populating structured `fix: { description, code?,
-  links? }` on the remaining 9 scanner-classes that Item-3 (commit
-  bc120d0) left queued — `crypto-auditor` (14 RULES + 1 COMPOUND_RULE
+- **D-M-001 FixGuidance-fill on 9 additional scanners (v0.15.4
+  Fertig-Patches, Round-4 audit-finding partial-close):** Populates
+  structured `fix: { description, code?, links? }` on nine
+  scanner-classes — `crypto-auditor` (14 RULES + 1 COMPOUND_RULE
   + HMAC-truncation + prototype-pollution, ~17 emission-sites),
   `config-auditor` (3 Docker + 1 Docker-Compose + 3 Next.js + 2
   Firebase + 3 inline env-file findings, ~12 sites),
@@ -146,7 +167,26 @@ test-suite 1272 of 1272 across 77 files.
   in client component), `pagination-checker` (2 sites — Supabase .from
   and Prisma findMany), `mass-assignment-checker` (1 site — raw-body to
   DB), and `env-validation-checker` (2 sites — no central validation
-  + empty-string default). Total ~40 new FixGuidance objects across
+  + empty-string default). Combined with Item-3's `i18n-quality` /
+  `console-checker` / `auth-enforcer` populate (commit bc120d0),
+  total empirical FixGuidance coverage at v0.15.4 ship = 12
+  scanner-classes with structured `fix` on at least one high+
+  severity emission-site (verified post-hoc via grep matrix).
+  **Honest scope-correction (v0.15.4.1 D-A-001 erratum):** an
+  earlier framing of this entry as "full-closure 12-of-12
+  Round-4-flagged" was incorrect — empirical post-ship verification
+  shows four Round-4-flagged scanners with high+ emissions remain
+  null-fix and queue v0.15.5: `supply-chain` (its `addFinding` helper
+  doesn't accept a fix parameter at all — needs signature-change),
+  `rate-limit-checker`, `error-leakage-checker`, and
+  `prompt-injection-checker`. Of the nine scanners populated in this
+  commit, four match Round-4's flagged list (http-timeout-checker,
+  upload-validator, pagination-checker, env-validation-checker) and
+  five are adjacent quality-improvements (crypto-auditor,
+  config-auditor, header-checker, next-public-leak,
+  mass-assignment-checker) — all twelve add real operator-value but
+  the Round-4 closure is partial (7 of 12 flagged) rather than the
+  originally-claimed full. Total ~40 new FixGuidance objects across
   the 9 scanners, each with actionable description plus canonical
   CWE/OWASP/vendor references. Code-snippets follow the Item-3
   discipline — pseudo-code or literal-URL examples only, no framework
