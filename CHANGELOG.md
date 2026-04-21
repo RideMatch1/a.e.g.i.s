@@ -13,7 +13,52 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
-(Empty — next work lands here.)
+### Added
+
+- **Template-SQL-checker sink-list expansion (C-001 + M-001 from Round-3
+  external review):** `CALL_SITE_REGEX` extended from
+  `/\.(rpc|execute|query)\s*\(/g` to
+  `/\.(rpc|execute|query|\$queryRawUnsafe|\$executeRawUnsafe|raw)\s*\(/g`
+  at `packages/scanners/src/quality/template-sql-checker.ts:52`. Closes
+  the credibility-critical Prisma `$queryRawUnsafe()` / `$executeRawUnsafe()`
+  detection-gap plus the shared `.raw()` method across knex, mysql2,
+  mongoose, sequelize. The safe Prisma sibling `$queryRaw` (tagged-template
+  form) is deliberately NOT in the sink-list — the Unsafe-vs-Safe
+  distinction is load-bearing for trust. 6 new canary fixtures under
+  `packages/benchmark/canary-fixtures/v0153-sink-expansion/` (3 TP + 3
+  FP, including the dual-guard `FP-prisma-queryRaw-safe` credibility
+  test). JSDoc header and runtime scanner-description updated to list
+  the expanded sinks.
+
+- **`aegis diff-deps --since=<ref>` ref-existence-guard (M-002 from
+  Round-3 external review):** `validateGitRef` now uses
+  `git cat-file -t <ref>` instead of `git rev-parse --verify --quiet`.
+  The rev-parse variant accepted any shape-valid 40-hex SHA as a true
+  ref at exit 0 without actually resolving the object, letting bogus
+  SHAs fall through to `git show` which silently produced empty content
+  and rendered every dep as NEW with exit 0 — indistinguishable from
+  a clean diff against a real historical ref. `cat-file -t`
+  dereferences the object and exits 128 when absent. Regression-guard
+  integration-test added under the invalid-ref cluster in
+  `packages/cli/__tests__/diff-deps.integration.test.ts`.
+
+### Changed
+
+- **Self-scan config — inverse-mirror of v0.15.2 commit 56df297.** The
+  v0.15.3 sink-list expansion now matches on the literal `.raw(`…${…}`)`
+  documentation-comment and regex-literal inside the sibling
+  `sql-concat-checker.ts` source (line 45-46). `aegis.config.json`
+  grows one new suppression entry for rule `template-sql-checker` on
+  file `packages/scanners/src/quality/sql-concat-checker.ts`,
+  structurally identical to the existing mirror-class suppressions
+  (crypto-auditor, jwt-checker, xss-checker, ssrf-checker,
+  redos-checker, logging-checker, and the v0.15.2
+  template-sql-checker.ts → sql-concat-checker entry). Root-cause:
+  `stripComments` utility lacks regex-literal-awareness and treats the
+  `"` inside a regex char-class as opening a string-mode, leaving
+  subsequent comment-text visible to the scan. Second recurrence of
+  this class within two cycles — proper `stripComments`
+  regex-literal-tokenization refactor tracked for v0.16.
 
 ---
 
