@@ -323,6 +323,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 | **fix** | `aegis fix .` | AI-powered remediation (Claude, OpenAI, Ollama, or templates) |
 | **history** | `aegis history . --blame` | Git blame enrichment — who introduced each finding |
 | **diff** | `aegis scan . --diff main` | Only report findings in files changed vs a git ref |
+| **diff-deps** | `aegis diff-deps --since=HEAD~1` | Dependency-change reporter — added/removed deps and major/minor/patch bumps against a git ref; flags risky major bumps on `criticalDeps` with exit 1. v0.15.0+ |
 
 ---
 
@@ -367,7 +368,8 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 | `http-timeout-checker` | Security | 400 | HTTP calls without timeouts |
 | `next-public-leak` | Security | 200, 798 | Secrets accidentally prefixed `NEXT_PUBLIC_*` or read in `'use client'` files |
 | `jwt-checker` | Quality | 327, 345 | JWT implementation issues, weak signing, 'none' algorithm |
-| `logging-checker` | Quality | 778 | Missing structured logging — auto-skips CLI-tool projects (detects `bin` field in root or workspace children) |
+| `jwt-detector` | Security | 798 | Hardcoded JWT-format credential detection (`eyJ...`) — catches literal service-role tokens and demo-tokens shipped in source. Comment-aware via `stripComments`. v0.15.2+ |
+| `logging-checker` | Quality | 778 | Missing structured logging — auto-skips CLI-tool projects (detects `bin` field in root or workspace children); v0.15.4 also skips empty projects (0 source files) |
 | `console-checker` | Quality | 532 | Debug artifacts in production code (`console.log`, `debugger;`, TODO/FIXME) |
 | `gdpr-engine` | Compliance | — | GDPR/DSGVO: privacy page, consent, PII, Google Fonts, double-opt-in |
 | `soc2-checker` | Compliance | — | SOC 2 Type II control gaps |
