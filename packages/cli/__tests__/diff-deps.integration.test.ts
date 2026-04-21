@@ -238,6 +238,26 @@ describe('runDiffDeps — integration (real git-sandbox)', () => {
     expect(exitCode).toBe(2);
   });
 
+  it('invalid-ref (bogus 40-hex SHA): exit 2 for shape-valid-but-object-absent refs (v0.15.3 M-002)', async () => {
+    writeLockfile(tempDir, { next: '16.0.0' });
+    await commitAll(tempDir, 'v1');
+
+    // 40-hex SHA with valid shape but no corresponding object in the repo.
+    // Pre-v0.15.3 regression: git rev-parse --verify --quiet exits 0 on
+    // shape-valid-but-absent SHAs without resolving the object, letting
+    // the guard pass through; downstream git show then produces empty
+    // content and every dep rendered as NEW, exit 0. Round-3 external
+    // review M-002. Fix uses git cat-file -t which resolves the object.
+    const exitCode = await runDiffDeps(tempDir, {
+      since: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+      format: 'text',
+    });
+    expect(exitCode).toBe(2);
+
+    const combined = [...cap.logs, ...cap.errors].join('\n');
+    expect(combined.toLowerCase()).toMatch(/ref|reference|invalid|does not exist/);
+  });
+
   it('pnpm-lockfile: parses pnpm-lock.yaml and reports diff', async () => {
     const pnpmV1 = `lockfileVersion: '9.0'\n\npackages:\n\n  next@15.2.1:\n    resolution: {integrity: sha512-x}\n`;
     const pnpmV2 = `lockfileVersion: '9.0'\n\npackages:\n\n  next@16.0.0:\n    resolution: {integrity: sha512-y}\n`;
