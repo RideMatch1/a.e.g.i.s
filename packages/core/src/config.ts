@@ -161,6 +161,18 @@ const DEFAULT_IGNORE = [
   '/public',
   '/static',
   '/assets',
+  // Vendor-template / third-party / minified (v0.15.4 D-C-001, Round-4):
+  // walkFiles picomatch-glob-support (v0.15.4) lets these patterns match
+  // across nested depths and file-extensions. `Templates*` is capital-T
+  // case-sensitive on purpose — lowercase `templates/` is legit-source
+  // in many projects (email / handlebars). `third_party` / `third-party`
+  // are standard vendor-dir conventions (Google-style + Bazel-class).
+  // `**/*.min.js` / `**/*.min.css` catch minified bundles at any depth.
+  'Templates*',
+  'third_party',
+  'third-party',
+  '**/*.min.js',
+  '**/*.min.css',
 ];
 
 /**

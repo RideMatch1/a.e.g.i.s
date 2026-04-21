@@ -13,7 +13,47 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
-(Empty — next work lands here.)
+### Added
+
+- **walkFiles picomatch-based glob-support (v0.15.4 D-C-001
+  capability):** `packages/core/src/utils.ts` walkFiles now evaluates
+  ignore-patterns via picomatch, enabling glob-syntax in
+  `DEFAULT_IGNORE` and `aegis.config.json` `ignore: [...]`. Existing
+  30+ exact-string entries remain literal-match — picomatch handles
+  patterns-without-wildcards as literal, so `node_modules`, `.next`,
+  `/public`, etc. behave identically to the pre-v0.15.4 Set.has
+  implementation. New: wildcard patterns like `Templates*` match
+  directories by basename and relative-path; path-globs like
+  `**/*.min.js` match at file-level (pre-v0.15.4 walkFiles filtered
+  only directories). File-level filtering applies ONLY to patterns
+  containing glob-wildcards — literal-filename ignore-entries remain
+  silent no-ops on files, preserving backward-compat with the
+  pre-v0.15.4 semantic. Dependency: `picomatch@^4` (Apache-2.0, used
+  by tsc, prettier, eslint, chokidar). 8 canary fixtures under
+  `packages/benchmark/canary-fixtures/v0154-default-ignore-expansion/`
+  (5 FP + 3 TP) including `FP-templates-numeric-variants`
+  (glob-class-completeness across Templates2/Templates99) and
+  `TP-templates-lowercase-scanned` (case-sensitivity scope-guard
+  preserving legit lowercase `templates/` source).
+
+### Changed
+
+- **D-C-001 DEFAULT_IGNORE expansion for vendor-template /
+  third-party / minified patterns (Round-4 audit-finding):** Added
+  five new entries to `packages/core/src/config.ts` DEFAULT_IGNORE —
+  `Templates*`, `third_party`, `third-party`, `**/*.min.js`,
+  `**/*.min.css`. Closes Round-4 audit-finding 🔴 D-C-001 where 27%
+  of Sonnenhof-class (`Templates1/Larkon-*_v1.0/`) findings were
+  vendor-template-noise including six spurious JWT-detector
+  criticals on template-demo-code. Case-sensitive `Templates*`
+  deliberately preserves lowercase `templates/` as legit-source
+  (common email / handlebars convention). User-config merge-semantics
+  preserved — operators override via `ignore: [...]` in
+  `aegis.config.json` per existing merge-logic; additions union with
+  DEFAULT_IGNORE. The `**/*.min.js` / `**/*.min.css` file-level
+  patterns rely on the new picomatch capability introduced above —
+  pre-v0.15.4 walkFiles did not filter files against ignore-patterns
+  at all.
 
 ---
 
