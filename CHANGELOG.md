@@ -115,6 +115,25 @@ shown with the reason the target wasn't met.
 
 ### Fixed
 
+- **D-N-004 walkFiles 2 MiB file-size cap (v0.15.4 Fertig-Patches,
+  Round-4 audit-finding):** `packages/core/src/utils.ts` walkFiles
+  now skips any file larger than `MAX_FILE_SIZE_BYTES` (2 MiB) via
+  a `fs.statSync` check after the extension + ignore-pattern
+  filters resolve. Closes Round-4 audit-finding 🟡 D-N-004 where a
+  50 MB concatenated vendor bundle with a `.js` extension (slipped
+  past `DEFAULT_IGNORE` because it wasn't `.min.js`-named and didn't
+  live under a `Templates*/` / `third_party/` dir) took >15 s of
+  scanner time on a single-file read. The 2 MiB default comfortably
+  clears hand-written source (typical <100 KiB) and standard
+  minified bundles (typical 100 KiB to ~1 MiB) while catching the
+  vendor-mega-bundle failure mode. Stat failures are treated as
+  skip (matches `readFileSafe`'s any-error-returns-null contract).
+  4 new unit-tests under `walkfiles.test.ts` — oversized-file skip,
+  exact-boundary inclusion, typical-source-file inclusion, and an
+  ignore-pattern-precedes-size-check scope-guard.
+  `MAX_FILE_SIZE_BYTES` is exported so tests and downstream
+  consumers can reference the threshold rather than hardcoding it.
+
 - **D-N-003 Scanner.isExternal classification + cold-install-UX
   banner accuracy (v0.15.4 Fertig-Patches, Round-4 audit-finding):**
   `Scanner` interface in `packages/core/src/types.ts` gains an

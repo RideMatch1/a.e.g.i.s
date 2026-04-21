@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { walkFiles, clearWalkFilesCache } from '../src/utils.js';
+import { walkFiles, clearWalkFilesCache, MAX_FILE_SIZE_BYTES } from '../src/utils.js';
 
 describe('walkFiles — v0.10 Z9 root-only ignore', () => {
   let root: string;
@@ -147,5 +147,55 @@ describe('walkFiles — v0.15.4 picomatch-based glob-support (D-C-001)', () => {
     expect(files.some((f) => f.includes('lib.min.js'))).toBe(false);
     expect(files.some((f) => f.includes('third_party/'))).toBe(false);
     expect(files.some((f) => f.includes('src/keep.ts'))).toBe(true);
+  });
+});
+
+describe('walkFiles — v0.15.4 size-cap (D-N-004)', () => {
+  let root: string;
+
+  beforeEach(() => {
+    clearWalkFilesCache();
+    root = mkdtempSync(join(tmpdir(), 'aegis-walkfiles-sizecap-'));
+  });
+
+  function mkfileSized(rel: string, sizeBytes: number): void {
+    const parts = rel.split('/');
+    mkdirSync(join(root, ...parts.slice(0, -1)), { recursive: true });
+    writeFileSync(join(root, rel), Buffer.alloc(sizeBytes));
+  }
+
+  it('skips files larger than MAX_FILE_SIZE_BYTES (2 MiB)', () => {
+    mkfileSized('src/huge-bundle.js', MAX_FILE_SIZE_BYTES + 1);
+    mkfileSized('src/app.ts', 100);
+
+    const files = walkFiles(root, [], ['ts', 'js']);
+    expect(files.some((f) => f.includes('huge-bundle.js'))).toBe(false);
+    expect(files.some((f) => f.includes('app.ts'))).toBe(true);
+  });
+
+  it('includes files exactly at the MAX_FILE_SIZE_BYTES boundary', () => {
+    mkfileSized('src/boundary.js', MAX_FILE_SIZE_BYTES);
+
+    const files = walkFiles(root, [], ['js']);
+    expect(files.some((f) => f.includes('boundary.js'))).toBe(true);
+  });
+
+  it('includes typical source files well below the cap', () => {
+    mkfileSized('src/small.ts', 10 * 1024);
+    mkfileSized('src/medium.ts', 500 * 1024);
+
+    const files = walkFiles(root, [], ['ts']);
+    expect(files.some((f) => f.includes('small.ts'))).toBe(true);
+    expect(files.some((f) => f.includes('medium.ts'))).toBe(true);
+  });
+
+  it('scope-guard — size-cap does not affect ignore-pattern logic', () => {
+    mkfileSized('node_modules/huge.js', MAX_FILE_SIZE_BYTES + 1);
+    mkfileSized('src/app.ts', 100);
+
+    const files = walkFiles(root, ['node_modules'], ['ts', 'js']);
+    // node_modules skipped via ignore-filter before size-check ever runs
+    expect(files.some((f) => f.includes('node_modules'))).toBe(false);
+    expect(files.some((f) => f.includes('app.ts'))).toBe(true);
   });
 });

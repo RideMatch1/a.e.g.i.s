@@ -67,6 +67,19 @@ export async function commandExists(command: string): Promise<boolean> {
   }
 }
 
+/**
+ * v0.15.4 D-N-004 — file-size cap for walkFiles. Files larger than this
+ * are skipped at the walker level so scanners never read them into
+ * memory and never pay regex-scan time on multi-megabyte bundles. The
+ * default of 2 MiB excludes essentially all hand-written source files
+ * (typical < 100 KiB) and standard minified bundles (typical 100 KiB
+ * to ~1 MiB) while catching vendored mega-bundles that slipped past
+ * DEFAULT_IGNORE (e.g. a 50 MB concatenated CDN dump with a `.js`
+ * extension that would otherwise take >15 s to scan a single file).
+ * Round-4 audit-finding 🟡 D-N-004.
+ */
+export const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
 /** Module-level cache for walkFiles results — avoids redundant directory traversals
  *  when multiple scanners walk the same directories in a single audit run. */
 const _walkFilesCache = new Map<string, string[]>();
@@ -183,15 +196,22 @@ export function walkFiles(
         if (matchFileAnyDepth(entry.name) || matchFileAnyDepth(relPath)) continue;
         if (atRoot && (matchFileRootOnly(entry.name) || matchFileRootOnly(relPath))) continue;
 
-        if (extensions.length === 0) {
-          results.push(fullPath);
-        } else {
+        if (extensions.length > 0) {
           // Fix: path.extname returns '.ts' — slice(1) removes the dot to match ['ts', 'js']
           const ext = path.extname(entry.name).slice(1);
-          if (extensions.includes(ext)) {
-            results.push(fullPath);
-          }
+          if (!extensions.includes(ext)) continue;
         }
+
+        // v0.15.4 D-N-004 — size cap. Stat each candidate file and skip
+        // anything above MAX_FILE_SIZE_BYTES. Stat failure treated as
+        // skip, matching readFileSafe's any-error-returns-null contract.
+        try {
+          if (fs.statSync(fullPath).size > MAX_FILE_SIZE_BYTES) continue;
+        } catch {
+          continue;
+        }
+
+        results.push(fullPath);
       }
     }
   }
