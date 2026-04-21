@@ -65,15 +65,58 @@ const SupplyChainScannerConfigSchema = z.object({
 }).strict();
 
 /**
+ * v0.15.4 D-C-002: tenant-isolation-checker heuristic-config for
+ * public-route-with-path-param-as-tenant-discriminant detection.
+ *
+ * `publicRoutePrefixes` lists file-path segments that mark a route as
+ * "public-by-architecture" (e.g. `/api/public/`). Default: `['/api/public/']`.
+ * When the scanner sees service-role-use inside a file whose path
+ * contains any listed prefix AND a bracket-segment with a name in
+ * `tenantDiscriminantParams`, the emission is downgraded from
+ * CRITICAL to INFO with a context-note prompting operator-review of
+ * the downstream `.eq()` scope-filter.
+ *
+ * `tenantDiscriminantParams` lists bracket-segment inner-names
+ * recognized as architectural tenant-discriminants (e.g. `[slug]`,
+ * `[tenant]`). Default: `['slug', 'tenant', 'workspace', 'org',
+ * 'handle']`. Conservative-start — projects that use other
+ * discriminant names (e.g. `[tenantSlug]`, `[restaurantId]`) can
+ * extend via this field.
+ *
+ * Heuristic is path-pattern-only — it does NOT verify that the
+ * downstream `.eq('slug', slug)` scope-filter is actually present.
+ * That verification requires AST-taint extension deferred to
+ * v0.15.5+.
+ */
+const TenantIsolationScannerConfigSchema = z.object({
+  publicRoutePrefixes: z
+    .array(
+      z.string().min(1, {
+        message: 'publicRoutePrefixes entries must be non-empty path-segments',
+      }),
+    )
+    .optional(),
+  tenantDiscriminantParams: z
+    .array(
+      z.string().min(1, {
+        message: 'tenantDiscriminantParams entries must be non-empty param-names',
+      }),
+    )
+    .optional(),
+}).strict();
+
+/**
  * v0.15: structured scanner-configs. Known-scanner keys get strict
  * validation — typos in sub-keys surface as ZodError rather than
  * silent no-ops. Unknown scanner keys pass through unstructured for
  * backward-compat with v0.14 scanner-configs that haven't been
- * migrated yet (tenantIsolation, authEnforcer, csrf, etc.).
+ * migrated yet (tenantIsolation [superseded by structured schema
+ * in v0.15.4], authEnforcer, csrf, etc.).
  */
 const ScannersConfigSchema = z
   .object({
     supplyChain: SupplyChainScannerConfigSchema.optional(),
+    tenantIsolation: TenantIsolationScannerConfigSchema.optional(),
   })
   .catchall(z.record(z.unknown()));
 

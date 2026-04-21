@@ -55,6 +55,40 @@ shown with the reason the target wasn't met.
   pre-v0.15.4 walkFiles did not filter files against ignore-patterns
   at all.
 
+- **D-C-002 tenant-isolation-checker public-route-heuristic (Round-4
+  audit-finding):** `tenant-isolation-checker` now recognizes
+  `/api/public/**` routes with path-param-as-tenant-discriminant
+  (default allowlist `[slug]`, `[tenant]`, `[workspace]`, `[org]`,
+  `[handle]`) and downgrades service-role-use findings from CRITICAL
+  to INFO with an actionable context-note on the finding's
+  description. Closes Round-4 audit-finding 🔴 D-C-002 where
+  Operator-SaaS-class `/api/public/spa/[slug]/{booking, chat, rating,
+  treatments, checkout, [token]/cancel}` routes were F-blocking
+  first-scans despite `[slug]` being the architectural
+  tenant-discriminant. Heuristic is **path-pattern-only** — does NOT
+  verify the downstream `.eq('slug', slug)` scope-filter is actually
+  present (AST-taint extension deferred to v0.15.5+). The
+  context-note explicitly prompts operator-review of the scope-filter
+  so the severity-downgrade is an INVITATION to verify rather than a
+  silent pass. User-configurable via
+  `scanners.tenantIsolation.publicRoutePrefixes: string[]` (default
+  `['/api/public/']`) and
+  `scanners.tenantIsolation.tenantDiscriminantParams: string[]`
+  (default `['slug', 'tenant', 'workspace', 'org', 'handle']`) in
+  `aegis.config.json`. New structured Zod schema
+  `TenantIsolationScannerConfigSchema` added to
+  `packages/core/src/config.ts` alongside the existing
+  `SupplyChainScannerConfigSchema` pattern — typos in sub-keys now
+  surface as ZodError rather than silent no-ops.
+
+  Test-coverage note: correctness is unit-test-verified at
+  scanner-level (seven `scanResult.findings[0].severity` assertions
+  on three TP-downgrade-paths and four preserve-critical
+  scope-guards). Canary-fixtures omitted because
+  `packages/benchmark/canary-run.mjs` matches only scanner and CWE
+  (not severity-field) — canary-runner severity/field-assertion
+  extension is queued for v0.16+ as an orthogonal capability-gap.
+
 ---
 
 ## [0.15.3] — 2026-04-21 — "Credibility Patches"

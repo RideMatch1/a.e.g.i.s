@@ -75,6 +75,72 @@ function readTenantConfig(config: AegisConfig): TenantIsolationConfig {
   return out;
 }
 
+/**
+ * v0.15.4 D-C-002 public-route-heuristic — default param-sets.
+ * Override via aegis.config.json:
+ *   scanners.tenantIsolation.publicRoutePrefixes (default ['/api/public/'])
+ *   scanners.tenantIsolation.tenantDiscriminantParams
+ *     (default ['slug', 'tenant', 'workspace', 'org', 'handle'])
+ */
+const DEFAULT_PUBLIC_ROUTE_PREFIXES: readonly string[] = ['/api/public/'];
+const DEFAULT_TENANT_DISCRIMINANT_PARAMS: readonly string[] = [
+  'slug',
+  'tenant',
+  'workspace',
+  'org',
+  'handle',
+];
+
+interface PublicRouteMatch {
+  readonly matched: boolean;
+  readonly param?: string;
+}
+
+/**
+ * v0.15.4 D-C-002: detect whether a file-path represents a public-by-
+ * architecture route with a path-param-as-tenant-discriminant (e.g.
+ * `/api/public/spa/[slug]/route.ts`). When both the prefix-check and
+ * the bracket-param-allowlist-check succeed, service-role-use findings
+ * emitted on this file are downgraded from CRITICAL to INFO with a
+ * context-note prompting operator-review of the downstream `.eq()`
+ * scope-filter.
+ *
+ * Heuristic is path-pattern-only — it does NOT verify the downstream
+ * `.eq('slug', slug)` scope-filter is actually present. AST-taint
+ * extension for that verification is deferred to v0.15.5+.
+ *
+ * Closes Round-4 audit-finding 🔴 D-C-002.
+ */
+function isPublicRouteWithDiscriminant(
+  filePath: string,
+  config: AegisConfig,
+): PublicRouteMatch {
+  const normalized = filePath.replace(/\\/g, '/');
+  const raw = config.scanners?.tenantIsolation;
+  const prefixCfg =
+    raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).publicRoutePrefixes)
+      ? ((raw as Record<string, unknown>).publicRoutePrefixes as string[])
+      : DEFAULT_PUBLIC_ROUTE_PREFIXES;
+  const discriminantsCfg =
+    raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).tenantDiscriminantParams)
+      ? ((raw as Record<string, unknown>).tenantDiscriminantParams as string[])
+      : DEFAULT_TENANT_DISCRIMINANT_PARAMS;
+
+  const hasPublicPrefix = prefixCfg.some((prefix) => normalized.includes(prefix));
+  if (!hasPublicPrefix) return { matched: false };
+
+  const bracketMatches = normalized.match(/\[([a-zA-Z_][a-zA-Z0-9_]*)\]/g);
+  if (!bracketMatches) return { matched: false };
+
+  for (const bracketWithBrackets of bracketMatches) {
+    const paramName = bracketWithBrackets.slice(1, -1);
+    if (discriminantsCfg.includes(paramName)) {
+      return { matched: true, param: paramName };
+    }
+  }
+  return { matched: false };
+}
+
 /** Resolve the effective discriminant list from config (merged by default,
  *  replaced when `replaceBoundaryColumns: true`). Invalid column names
  *  (non-identifier shape) are warn-logged and dropped, not silent-dropped
@@ -1110,13 +1176,24 @@ export const tenantIsolationCheckerScanner: Scanner = {
           if (fileScope.fileIsScoped) continue;
           emittedLines.add(lineNum);
           const id = `TENANT-${String(idCounter++).padStart(3, '0')}`;
+          // v0.15.4 D-C-002 — downgrade severity from CRITICAL to INFO when
+          // the route is /api/public/**/[slug-like]/... (path-param acts as
+          // architectural tenant-discriminant). Path-heuristic only; the
+          // downstream .eq('slug', slug) verification requires AST-taint
+          // extension and is deferred to v0.15.5+.
+          const publicRouteMatch = isPublicRouteWithDiscriminant(file, config);
+          const severity = publicRouteMatch.matched ? 'info' : 'critical';
+          const baseDescription =
+            'The service_role key bypasses Row Level Security entirely. If used in an API route without extremely careful manual filtering, any user can access data from any tenant. Use the anon/user key with RLS policies, or add explicit tenant_id filtering with secureApiRouteWithTenant.';
+          const publicRouteNote = publicRouteMatch.matched
+            ? ` [v0.15.4 D-C-002] Public-route with path-param-as-tenant-discriminant detected ([${publicRouteMatch.param}]). Verify the downstream .eq('${publicRouteMatch.param}', ${publicRouteMatch.param}) scope-filter is actually present — AEGIS's path-heuristic does NOT verify downstream-flow (deferred to v0.15.5+ AST-taint extension).`
+            : '';
           findings.push({
             id,
             scanner: 'tenant-isolation-checker',
-            severity: 'critical',
+            severity,
             title: 'Service role key used in route — bypasses all RLS policies',
-            description:
-              'The service_role key bypasses Row Level Security entirely. If used in an API route without extremely careful manual filtering, any user can access data from any tenant. Use the anon/user key with RLS policies, or add explicit tenant_id filtering with secureApiRouteWithTenant.',
+            description: baseDescription + publicRouteNote,
             file,
             line: lineNum,
             category: 'security',
