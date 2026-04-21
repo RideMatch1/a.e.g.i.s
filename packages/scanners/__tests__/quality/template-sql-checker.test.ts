@@ -118,6 +118,41 @@ export function add(a: number, b: number): number { return a + b; }
     expect(result.findings).toHaveLength(1);
   });
 
+  it('emits CRITICAL SQLI-TMPL finding when .$queryRawUnsafe() takes a template-literal with interpolation (TP-prisma-queryRawUnsafe, v0.15.3 C-001)', async () => {
+    createFile(projectPath, 'src/api/users.ts', [
+      'export async function findById(id: string, prisma: any) {',
+      '  return await prisma.$queryRawUnsafe(`SELECT * FROM users WHERE id = ${id}`);',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0].severity).toBe('critical');
+    expect(result.findings[0].scanner).toBe('template-sql-checker');
+    expect(result.findings[0].id).toMatch(/^SQLI-TMPL-\d{3}$/);
+  });
+
+  it('emits CRITICAL SQLI-TMPL finding when .$executeRawUnsafe() takes a template-literal with interpolation (TP-prisma-executeRawUnsafe, v0.15.3 C-001)', async () => {
+    createFile(projectPath, 'src/db/mutations.ts', [
+      'export async function deleteById(id: string, prisma: any) {',
+      '  return await prisma.$executeRawUnsafe(`DELETE FROM t WHERE x = ${id}`);',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0].severity).toBe('critical');
+  });
+
+  it('emits CRITICAL SQLI-TMPL finding when .raw() takes a template-literal with interpolation (TP-knex-raw, v0.15.3 M-001)', async () => {
+    createFile(projectPath, 'src/db/queries.ts', [
+      'export async function dynamicSelect(table: string, id: string, knex: any) {',
+      '  return await knex.raw(`SELECT * FROM ${table} WHERE id = \'${id}\'`);',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0].severity).toBe('critical');
+  });
+
   it('does NOT emit for parameterized .rpc() calls with no template-literal (FP-static-rpc)', async () => {
     createFile(projectPath, 'src/api/users.ts', [
       'export async function getUser(id: string, supabase: any) {',
@@ -142,6 +177,36 @@ export function add(a: number, b: number): number { return a + b; }
     createFile(projectPath, 'src/db/reads.ts', [
       'export async function findById(id: string, db: any) {',
       '  return await db.query("SELECT * FROM users WHERE id = " + id);',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+
+  it('does NOT emit for .raw() with backticks but no ${} interpolation (FP-raw-no-interp, v0.15.3 no-interp-guard holds on expanded sinks)', async () => {
+    createFile(projectPath, 'src/db/listings.ts', [
+      'export async function listAllUsers(knex: any) {',
+      '  return await knex.raw(`SELECT * FROM users`);',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+
+  it('does NOT emit for postgres.js safe tagged-template — no .method( call-site (FP-postgres-tagged-template, v0.15.3 structural-guard)', async () => {
+    createFile(projectPath, 'src/db/reads.ts', [
+      'export async function findById(id: string, sql: any) {',
+      '  return await sql`SELECT * FROM t WHERE id = ${id}`;',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+
+  it('does NOT emit for prisma.$queryRaw safe tagged-template — dual-guard Unsafe-vs-Safe distinction (FP-prisma-queryRaw-safe, v0.15.3 trust-signal)', async () => {
+    createFile(projectPath, 'src/db/safe-reads.ts', [
+      'export async function findById(id: string, prisma: any) {',
+      '  return await prisma.$queryRaw`SELECT * FROM t WHERE id = ${id}`;',
       '}',
     ].join('\n'));
     const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
