@@ -113,6 +113,27 @@ shown with the reason the target wasn't met.
   of 🟠 D-M-001 — remaining 13 scanner-classes with null-fix gaps
   queued for v0.16+ extension.
 
+### 🔮 Multi-Version Stability Policy (new in v0.15.4)
+
+Starting this release, every minor-release that adds a new built-in
+scanner OR changes severity-assignment logic includes a **📦 Scanner
+Activation — Migration Impact** (or **📦 Scanner Expansion** /
+**📦 Scoring Policy**) sub-section documenting expected score-delta
+classes and recommended migration actions. This closes the
+CI-pipeline-operator UX-gap exposed in v0.15.2, where silent
+jwt-detector activation on vendor-template-containing codebases
+caused grade-regressions (A/909 → F/0 on repositories with large
+`Templates*/` vendored UI starter-kits) without any forward-looking
+warning in the CHANGELOG block. Retro-migration-notes for v0.15.0 /
+v0.15.1 / v0.15.2 / v0.15.3 land alongside this policy (D-M-004,
+Round-4 audit-finding).
+
+The `--baseline <version>` CLI flag that would let operators defer
+new-scanner activation by one minor-version is tracked as a v0.16+
+capability (non-blocking — the current mechanism is
+CHANGELOG-narrative guidance, the future mechanism is programmatic
+opt-in).
+
 ---
 
 ## [0.15.3] — 2026-04-21 — "Credibility Patches"
@@ -228,6 +249,32 @@ self-scan gate, diagnosed as the inverse-mirror of v0.15.2 commit
 56df297's stripComments-class self-match, and closed surgically via
 an `aegis.config.json` suppression entry (Commit `fd9204c`). Proper
 `stripComments` regex-literal-tokenization refactor is v0.16 scope.
+
+### 📦 Scanner Expansion — Migration Impact
+
+**Changed in v0.15.3:** `template-sql-checker` sink-list expanded
+from `(rpc|execute|query)` to
+`(rpc|execute|query|$queryRawUnsafe|$executeRawUnsafe|raw)`, covering
+Prisma's unsafe raw-query siblings plus the shared `.raw()` method
+across knex, mysql2, mongoose, and sequelize. The safe Prisma
+`$queryRaw` tagged-template form is deliberately NOT in the sink-list.
+
+**Expected impact on upgrade:** Projects using Prisma
+`$queryRawUnsafe()` / `$executeRawUnsafe()` or any ORM `.raw()`
+method with template-literal interpolation will see new CRITICAL
+findings under the existing rule `SQLI-TMPL-NNN` (CWE-89). This is
+a detection-gap closure within an existing scanner, not a new
+scanner activation — the rule-id and CWE are unchanged from v0.15.2.
+Because v0.15.1 auto-promotes critical-severity to blocker-tier,
+each new finding forces grade F / blocked until resolved.
+
+**Recommended migration:** Audit usage of unsafe raw-query variants.
+Prisma: migrate `$queryRawUnsafe` / `$executeRawUnsafe` to the
+tagged-template `$queryRaw` / `$executeRaw` siblings. Knex / mysql2
+/ mongoose / sequelize: use parameterized-binding forms
+(`knex.raw("? = ?", [val])`, `pool.query(sql, [val])`). For
+intentional unsafe-with-trusted-source call-sites: add a file-scoped
+suppression in `aegis.config.json` with an architectural reason.
 
 ---
 
@@ -370,6 +417,42 @@ self-scan gate caught a sibling-scanner self-match on the new
 `template-sql-checker.ts` source line 35 JSDoc and forced the c7
 suppression before Item-2 could close prematurely.
 
+### 📦 Scanner Activation — Migration Impact
+
+**New in v0.15.2:** `jwt-detector` (rule `SECRET-JWT-NNN`, CWE-798,
+OWASP A02) plus `template-sql-checker` (rule `SQLI-TMPL-NNN`, CWE-89,
+OWASP A03).
+
+**Expected impact on upgrade:** Projects containing hardcoded
+JWT-format strings in source — including vendor-template demo-code
+(e.g. dashboard-UI starter kits shipping with literal demo-tokens)
+or legitimately-hardcoded tokens — will see new CRITICAL findings.
+Projects using template-literal interpolation inside `.rpc()`,
+`.execute()`, or `.query()` call-sites will see new CRITICAL SQLI
+findings. Because v0.15.1 auto-promotes critical-severity to
+blocker-tier, these findings force `grade: 'F'` and `blocked: true`
+until resolved or suppressed.
+
+**Recommended migration:** Re-scan post-upgrade and triage new
+CRITICALs by source:
+
+- **Vendor-template directories** (e.g. `Templates*/`, `third_party/`,
+  vendored starter-kits with demo-tokens): v0.15.4 auto-ignores
+  these via the expanded `DEFAULT_IGNORE` patterns (D-C-001). On
+  v0.15.2 / v0.15.3, add the directory pattern to `ignore: [...]`
+  in `aegis.config.json`.
+- **env-var-loaded tokens that match the JWT regex by accident**
+  (e.g. an `.env.example` with a real-shape demo value): add a
+  file-scoped suppression with an architectural reason.
+- **True positives** (hardcoded tokens in production source, unsafe
+  template-literal SQL): migrate to environment-variable loading or
+  parameterized-query patterns before the CI gate runs.
+
+(The `Known-gap — empty dist.attestations` bullet above describes a
+separate provenance concern, not a detection-behavior change — no
+migration action needed beyond tracking the v0.15.3+ provenance
+remediation.)
+
 ---
 
 ## [0.15.1] — 2026-04-20 — "Hotfix: Trust Fixes"
@@ -415,6 +498,25 @@ scope-locked items, no feature-expansion:
   snippet, connect-from-other-MCP-clients guidance, and the
   thin-wrapper scope boundary relative to `@aegis-scan/core` +
   `/scanners`.
+
+### 📦 Scoring Policy — Migration Impact
+
+**Changed in v0.15.1:** `severity: 'critical'` now scored identically
+to `severity: 'blocker'`. Any critical finding forces `score: 0`,
+`grade: 'F'`, and `blocked: true`.
+
+**Expected impact on upgrade:** Projects that previously scored A/B/C
+despite pre-existing CRITICAL findings (e.g. hardcoded service-role
+secrets, critical-severity XSS) now flip to F / `blocked: true` until
+those findings are resolved or explicitly suppressed. This is an
+intended trust-fix surfacing findings that were always there, not a
+regression in detection or a new scanner activation.
+
+**Recommended migration:** Pre-v0.15.1 grade-A projects should
+re-scan after upgrade to surface any previously-masked CRITICAL
+findings. For each surfaced finding, either remediate at source or
+add a file-scoped suppression in `aegis.config.json` with an
+architectural reason.
 
 ---
 
@@ -524,6 +626,27 @@ unchanged 1000/A/HARDENED/0.
   configs that haven't been migrated (tenantIsolation, authEnforcer,
   csrf, etc.). Migration of the remaining scanners to the structured
   shape is queued for the v0.16 polish bundle.
+
+### 📦 Scanner Activation — Migration Impact
+
+**New in v0.15.0:** `supply-chain-scanner` with `criticalDeps`
+enforcement plus lockfile-drift detection.
+
+**Expected impact on upgrade:** Projects without exact-version pins
+on declared `criticalDeps` packages will see new HIGH-severity
+CWE-494 findings. Projects with a lockfile but without a seeded
+`.aegis/lockfile-hash` baseline emit an INFO CWE-353 baseline-seeding
+message; projects whose working-tree lockfile has drifted from the
+committed baseline emit MEDIUM CWE-353 findings.
+
+**Recommended migration:** (1) Populate
+`scanners.supplyChain.criticalDeps` in `aegis.config.json` with the
+dep-list your release-security-model relies on. (2) Pin each entry
+to an exact version in `package.json`. (3) Seed the lockfile baseline
+once via `shasum -a 256 package-lock.json > .aegis/lockfile-hash` (or
+`pnpm-lock.yaml` as applicable) and commit the file. The INFO seeding
+path is a one-time nudge — subsequent scans treat the baseline as
+authoritative.
 
 ---
 
