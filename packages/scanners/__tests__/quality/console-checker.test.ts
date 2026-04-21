@@ -345,4 +345,17 @@ describe('consoleCheckerScanner — TODO/FIXME/HACK/XXX comments', () => {
     expect(finding).toBeDefined();
     expect(finding!.line).toBe(3);
   });
+
+  it('v0.15.4 D-M-001: populates FixGuidance fix.description on emitted findings', async () => {
+    createFile(projectPath, 'src/index.ts', `console.log('hello world');\n`);
+    const result = await consoleCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.scanner === 'console-checker');
+    expect(finding).toBeDefined();
+    expect(typeof finding!.fix).toBe('object');
+    expect(finding!.fix).not.toBeNull();
+    const fix = finding!.fix as { description?: string };
+    expect(fix.description).toEqual(expect.any(String));
+    expect(fix.description!.length).toBeGreaterThan(20);
+    expect(fix.description).toMatch(/logger|pino|winston|structured/i);
+  });
 });

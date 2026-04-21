@@ -990,4 +990,30 @@ describe('authEnforcerScanner — v0.14 customRoleGuards', () => {
       warnSpy.mockRestore();
     }
   });
+
+  it('v0.15.4 D-M-001: populates FixGuidance fix.description on role-guard-missing findings', async () => {
+    // Triggers the AUTH-xxx "role/authorisation guard" emission-site (auth
+    // exists but no role-check) — that emission-site lacks fix-field pre-v0.15.4
+    // D-M-001, whereas the "missing authentication guard" site already had fix.
+    createApiRoute(
+      projectPath,
+      'admin/role-gap',
+      `
+      import { secureApiRouteWithTenant } from '@/lib/api/tenant-guard';
+      export async function DELETE(request) {
+        const { context } = await secureApiRouteWithTenant(request, { requireAuth: true });
+        return NextResponse.json({ ok: true });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.title.toLowerCase().includes('role/authorisation'));
+    expect(finding).toBeDefined();
+    expect(typeof finding!.fix).toBe('object');
+    expect(finding!.fix).not.toBeNull();
+    const fix = finding!.fix as { description?: string };
+    expect(fix.description).toEqual(expect.any(String));
+    expect(fix.description!.length).toBeGreaterThan(20);
+    expect(fix.description).toMatch(/requireRole|role.check|authorisation|authorization|middleware/i);
+  });
 });
