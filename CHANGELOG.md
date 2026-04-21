@@ -13,6 +13,35 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-04-21 — "Provenance-Integrity"
+
+Single-item minor-release closing the SLSA provenance soft-gap that
+has shipped unresolved across every @aegis-scan tarball since
+v0.15.2. Root-cause pinned to upstream pnpm#6607 (open since
+2023-05-29) — the recursive-publish path silently drops the
+top-level `--provenance` flag during the per-package npm-invocation.
+Two-layer remediation: root `packageManager` bumps from pnpm@9.15.0
+to pnpm@10.33.0 (post-libnpmpublish migration per pnpm#10591 merged
+2026-02-12), and each of the five shipped `packages/*/package.json`
+files (cli, core, scanners, reporters, mcp-server) gains
+`publishConfig.provenance=true` alongside the existing
+`access=public`. The publishConfig layer is independent of which
+publish-backend pnpm uses because npm reads
+`publishConfig.provenance` directly from each packed manifest.
+Scanner-behavior unchanged — self-scan 1000 / A / HARDENED / 0
+preserved, canary total 110 of 110 across 14 phases, full
+test-suite clean per-package (1272 of 1272 scanners, 190 of 190
+core, 110 of 110 reporters, 380 of 380 cli, 14 of 14 mcp-server;
+pre-existing turbo-parallel-CPU-contention flake on six AST tests
+documented at D-T-001 queued for v0.16.1), pnpm release:smoke PASS
+(34 files scaffolded, 0 moderate+ vulnerabilities), and `pnpm -r
+publish --dry-run --no-git-checks --force` reaches `npm notice
+Publishing` for all five packages with zero silently-dropped or
+warn or error output. Final empirical seal is post-tag-push —
+`npm view @aegis-scan/cli@0.16.0 dist.attestations` must return a
+non-empty SLSA predicate for D-P-001 to be confirmed closed
+end-to-end.
+
 ### Fixed
 
 - **D-P-001 SLSA provenance soft-gap closed
