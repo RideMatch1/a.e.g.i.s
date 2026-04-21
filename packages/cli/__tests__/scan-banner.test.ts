@@ -91,9 +91,18 @@ describe('Item-7 — scan external-tool missing banner (stderr-only contract)', 
     expect(result.stderr).toMatch(/external scanners unavailable/i);
   });
 
-  it('banner references aegis doctor (v0.15.3) upgrade path on stderr', async () => {
+  it('banner emits concrete per-scanner install-hints (v0.15.6 D-B-001)', async () => {
+    // v0.15.6 replaced the phantom-command `aegis doctor` reference with
+    // per-scanner install-hints empirically verified per Rule #12. The
+    // banner must cite at least one concrete install command (brew / npm
+    // / docker / pip) AND must reference only real CLI subcommands.
     const result = await runCli('scan . --format json', tempDir, noPathEnv());
-    expect(result.stderr).toContain('aegis doctor');
+    expect(result.stderr).toMatch(/brew install|npm i -g|pip install|docker pull|npx -y/);
+    expect(result.stderr).toContain('aegis --help');
+    expect(result.stderr).toContain('aegis init');
+    // Regression guard: the phantom `aegis doctor` subcommand must never
+    // return to the banner.
+    expect(result.stderr).not.toContain('aegis doctor');
   });
 
   it('stdout stays parseable JSON even when banner fires on stderr', async () => {
@@ -106,7 +115,7 @@ describe('Item-7 — scan external-tool missing banner (stderr-only contract)', 
   it('banner text never leaks into stdout (JSON-purity guarantee)', async () => {
     const result = await runCli('scan . --format json', tempDir, noPathEnv());
     expect(result.stdout).not.toMatch(/external scanners unavailable/i);
-    expect(result.stdout).not.toContain('aegis doctor');
+    expect(result.stdout).not.toMatch(/brew install|npm i -g|pip install/);
   });
 
   it('banner uses the warning glyph or the literal word "unavailable" so it is visually distinct on stderr', async () => {

@@ -28,6 +28,34 @@ const FAST_CATEGORIES: ScanCategory[] = [
  */
 const TOTAL_EXTERNAL_TOOLS = 16;
 
+/**
+ * v0.15.6 D-B-001 — per-scanner install-hints for the cold-install-UX
+ * banner. Replaces the prior `aegis doctor` broken-promise reference
+ * (the subcommand does not exist in the CLI; a user who reads the
+ * banner and types `aegis doctor` gets `too many arguments`).
+ * Empirically verified per Rule #12 — every command listed here was
+ * run on a clean machine to confirm it resolves. Scanners not in the
+ * map fall back to a generic "see README" hint.
+ */
+const EXTERNAL_INSTALL_HINTS: Record<string, string> = {
+  semgrep: 'brew install semgrep',
+  bearer: 'brew install bearer',
+  gitleaks: 'brew install gitleaks',
+  trufflehog: 'brew install trufflehog',
+  'osv-scanner': 'brew install osv-scanner',
+  'npm-audit': 'shipped with Node.js (npm >= 6)',
+  'license-checker': 'npm i -g license-checker',
+  nuclei: 'brew install nuclei',
+  zap: 'docker pull owasp/zap2docker-stable',
+  trivy: 'brew install trivy',
+  hadolint: 'brew install hadolint',
+  checkov: 'pip install checkov',
+  testssl: 'brew install testssl',
+  'react-doctor': 'npx -y react-doctor@latest .',
+  'axe-lighthouse': 'npm i -g @lhci/cli  (requires Chromium)',
+  'lighthouse-performance': 'npm i -g @lhci/cli  (requires Chromium)',
+};
+
 export interface ScanOptions {
   format?: string;
   color?: boolean;
@@ -102,12 +130,22 @@ export async function runScan(path: string, options: ScanOptions): Promise<numbe
       (s) => !s.available && externalScannerNames.has(s.scanner),
     );
     if (unavailable.length > 0) {
-      const names = unavailable.map((s) => s.scanner).join(', ');
-      const banner =
-        `⚠️  ${unavailable.length}/${TOTAL_EXTERNAL_TOOLS} external scanners unavailable `
-        + `(${names}). Built-in coverage is partial. Install for full audit: `
-        + `aegis doctor. See .github/workflows/aegis.yml for CI-ready setup.\n`;
-      process.stderr.write(banner);
+      // v0.15.6 D-B-001 — concrete per-scanner install-hints instead of
+      // the prior `aegis doctor` broken-promise reference. Each hint in
+      // EXTERNAL_INSTALL_HINTS was empirically verified per Rule #12.
+      const lines = [
+        `⚠️  ${unavailable.length}/${TOTAL_EXTERNAL_TOOLS} external scanners unavailable — built-in coverage is partial.`,
+        `Install missing tools for full audit coverage:`,
+      ];
+      for (const s of unavailable) {
+        const hint = EXTERNAL_INSTALL_HINTS[s.scanner] ?? 'see README for install instructions';
+        lines.push(`    ${s.scanner.padEnd(24)} — ${hint}`);
+      }
+      lines.push(
+        `CI-ready setup: \`aegis init\` writes .github/workflows/aegis.yml into your project.`,
+        `Run \`aegis --help\` for the full CLI reference.`,
+      );
+      process.stderr.write(lines.join('\n') + '\n');
     }
 
     // Hide info-severity findings (e.g., i18n hardcoded-text hints) from

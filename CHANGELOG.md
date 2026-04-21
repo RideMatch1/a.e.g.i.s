@@ -13,6 +13,51 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.15.6] — 2026-04-21 — "Trust-Fixes"
+
+Emergency hotfix closing two post-v0.15.5-ship defects surfaced by the
+Round-6 external-review audit run immediately after the v0.15.5
+tarballs landed on npm. 🔴 D-B-001 is a user-facing trust-erosion
+defect: the v0.15.5 cold-install-UX banner referenced `aegis doctor`
+as an install-hint, but that subcommand does not exist in the CLI —
+a user who typed the referenced command got `error: too many
+arguments` and lost trust in the tool's own output. Root cause: the
+v0.15.5 D-A-002 hotfix at commit 45adc7c edited the banner string
+without running the referenced command empirically. Codified as
+Rule #12 (`feedback_verify_referenced_identifiers.md`) — any edit
+touching a string that references a CLI command / option / URL /
+filepath must invoke / fetch / load the identifier before commit.
+Textual grep-sweep (Rule #9) finds the references; Rule #12 demands
+each hit be invoked to prove it is not a broken-promise.
+
+### Fixed
+
+- **D-B-001 cold-install-UX banner phantom-command reference
+  (v0.15.6 hotfix, user-trust-erosion):** `packages/cli/src/commands/
+  scan.ts` cold-install-UX banner rewritten to emit concrete
+  per-scanner install-hints instead of pointing at the non-existent
+  `aegis doctor` subcommand. A new `EXTERNAL_INSTALL_HINTS` map maps
+  each of the 16 external-tool wrappers to its empirically-verified
+  install command — `brew install semgrep`, `brew install gitleaks`,
+  `pip install checkov`, `docker pull owasp/zap2docker-stable`,
+  `npm i -g license-checker`, `npx -y react-doctor@latest .`, etc.
+  Only the scanners that are actually unavailable on the current run
+  are listed, one per line with the tool-name padded and followed by
+  the install command. The banner's closing lines reference `aegis
+  init` (which writes `.github/workflows/aegis.yml` per
+  `packages/cli/src/commands/init.ts:93-94`) and `aegis --help`
+  (the standard CLI reference command, confirmed via `npx -y -p
+  @aegis-scan/cli@0.15.5 aegis --help`). The `scan-banner.test.ts`
+  regression-guard was updated to assert the new contract: banner
+  must emit a concrete install-command pattern (`brew install` /
+  `npm i -g` / `pip install` / `docker pull` / `npx -y`), must
+  reference `aegis --help` and `aegis init` (both real subcommands),
+  and must never again contain the phantom `aegis doctor`.
+  Grep-sweep against all other `aegis <subcommand>` string-literal
+  references in shipped source confirmed every remaining referent is
+  a real subcommand per `aegis --help` output (scan, audit, pentest,
+  siege, fix, history, init, new, precision, diff-deps, version).
+
 ## [0.15.5] — 2026-04-21 — "Fertig-Patches hotfix"
 
 Hotfix for three defects surfaced by a brutal-audit run immediately
