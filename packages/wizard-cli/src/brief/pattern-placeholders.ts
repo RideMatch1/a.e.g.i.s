@@ -30,6 +30,7 @@
  * core identity fields is preserved.
  */
 import type { AegisConfig } from '../wizard/schema.js';
+import { sanitizeForBrief } from './sanitize.js';
 
 export interface PatternPlaceholderContext {
   config: AegisConfig;
@@ -48,17 +49,20 @@ export function buildPatternPlaceholders(
     ...reserved,
 
     // Identity + address — Tier-1 with optional DSGVO-address sub-object.
-    COMPANY_NAME: config.identity.company_name,
-    COMPANY_STREET: addr?.street ?? '',
-    COMPANY_ZIP_CITY: addr?.zip_city ?? '',
-    COMPANY_COUNTRY: addr?.country ?? 'Deutschland',
-    COMPANY_EMAIL: addr?.email ?? `kontakt@${projectHost}`,
-    COMPANY_PHONE: addr?.phone ?? '',
-    COMPANY_VAT_ID: addr?.vat_id ?? '',
-    COMPANY_HRB: addr?.hrb ?? '',
-    COMPANY_CEO: addr?.ceo ?? '',
-    DPO_NAME: dpo?.name ?? '',
-    DPO_EMAIL: dpo?.email ?? '',
+    // Every operator-supplied string is run through sanitizeForBrief so
+    // a paste-attack cannot synthesize a new Markdown section or open
+    // a code-fence inside the embedded pattern body.
+    COMPANY_NAME: sanitizeForBrief(config.identity.company_name),
+    COMPANY_STREET: sanitizeForBrief(addr?.street ?? ''),
+    COMPANY_ZIP_CITY: sanitizeForBrief(addr?.zip_city ?? ''),
+    COMPANY_COUNTRY: sanitizeForBrief(addr?.country ?? 'Deutschland'),
+    COMPANY_EMAIL: sanitizeForBrief(addr?.email ?? `kontakt@${projectHost}`),
+    COMPANY_PHONE: sanitizeForBrief(addr?.phone ?? ''),
+    COMPANY_VAT_ID: sanitizeForBrief(addr?.vat_id ?? ''),
+    COMPANY_HRB: sanitizeForBrief(addr?.hrb ?? ''),
+    COMPANY_CEO: sanitizeForBrief(addr?.ceo ?? ''),
+    DPO_NAME: sanitizeForBrief(dpo?.name ?? ''),
+    DPO_EMAIL: sanitizeForBrief(dpo?.email ?? ''),
 
     // Compliance — retention + consent.
     DATA_RETENTION_DAYS: String(config.compliance.data_retention_days),

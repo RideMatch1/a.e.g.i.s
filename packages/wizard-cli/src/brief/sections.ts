@@ -19,6 +19,7 @@
 import type { AegisConfig } from '../wizard/schema.js';
 import type { LoadedPattern } from '../patterns/loader.js';
 import { getMessage, type BriefLang } from './i18n/index.js';
+import { sanitizeForBrief } from './sanitize.js';
 
 // ============================================================================
 // Small helpers
@@ -35,16 +36,17 @@ function hasLocale(config: AegisConfig, locale: string): boolean {
 }
 
 function companyInfoLine(config: AegisConfig): string {
+  const companyName = sanitizeForBrief(config.identity.company_name);
   const addr = config.compliance.company_address;
   if (!addr) {
-    return `${config.identity.company_name} · address-on-file-missing (populate in config)`;
+    return `${companyName} · address-on-file-missing (populate in config)`;
   }
   const parts = [
-    config.identity.company_name,
-    addr.street,
-    addr.zip_city,
-    addr.country,
-    addr.email,
+    companyName,
+    sanitizeForBrief(addr.street),
+    sanitizeForBrief(addr.zip_city),
+    sanitizeForBrief(addr.country),
+    sanitizeForBrief(addr.email),
   ].filter(Boolean);
   return parts.join(' · ');
 }
@@ -100,7 +102,7 @@ export function renderHeader(
     `# ${title}: ${config.identity.project_name}`,
     '',
     `**${getMessage(lang, 'header.generated_by')}:** AEGIS Wizard v{{AEGIS_WIZARD_VERSION}} · ${nowIso} · \`aegis-wizard new ${config.identity.project_name}\``,
-    `**${getMessage(lang, 'header.project_type')}:** ${config.identity.project_description}`,
+    `**${getMessage(lang, 'header.project_type')}:** ${sanitizeForBrief(config.identity.project_description)}`,
     `**${getMessage(lang, 'header.stack')}:** ${stackCore}`,
     `**${getMessage(lang, 'header.selected_patterns')}:** ${patternRefList(patterns)}`,
     `**${getMessage(lang, 'header.deployment_target')}:** ${deploy}`,
