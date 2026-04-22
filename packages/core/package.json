@@ -1,6 +1,6 @@
 {
   "name": "@aegis-scan/core",
-  "version": "0.16.2",
+  "version": "0.16.3",
   "description": "AEGIS core engine — orchestrator, scoring (0-1000), config loader with Zod-strict schema, suppression filter, shared types + utilities. The foundation of the AEGIS security-scanner suite for Next.js + Supabase.",
   "license": "MIT",
   "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
