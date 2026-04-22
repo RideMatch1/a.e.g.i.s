@@ -1,0 +1,9 @@
+{
+  "id": "v017-TP-zod-enforcer-post-formdata-no-zod",
+  "cwe": 20,
+  "type": "TP",
+  "description": "D-S-001 TP variant: multipart-upload mutation-route without declared validation. Scanner must still emit the missing-validation HIGH.",
+  "expected": [
+    { "scanner": "zod-enforcer", "cwe": 20 }
+  ]
+}

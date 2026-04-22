@@ -1,0 +1,9 @@
+{
+  "id": "v017-TP-zod-enforcer-post-json-no-zod",
+  "cwe": 20,
+  "type": "TP",
+  "description": "D-S-001 TP: mutation-route that consumes the incoming payload yet does not declare validation. Scanner must emit the missing-validation HIGH. If this canary flips FAIL post-fix, the body-gate over-narrowed.",
+  "expected": [
+    { "scanner": "zod-enforcer", "cwe": 20 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v017-FP-zod-enforcer-post-cron-no-body",
+  "cwe": 20,
+  "type": "FP",
+  "description": "D-S-001 canary: cron-triggered mutation-handler with no declared parameter at all. Nothing to validate. Scanner must NOT emit the missing-validation HIGH.",
+  "expected": [
+    { "scanner": "zod-enforcer", "cwe": 20 }
+  ]
+}

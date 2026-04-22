@@ -25,6 +25,27 @@ const ZOD_IMPORT_PATTERNS = [
   /require\s*\(\s*['"]zod['"]\s*\)/,
 ];
 
+/** Tokens that indicate the mutation-handler actually reads the request payload.
+ *  D-S-001: mutation routes that never touch the payload have nothing to validate,
+ *  so emitting HIGH on them is a false-positive. This gate suppresses that class. */
+const BODY_CONSUMPTION_PATTERNS = [
+  /request\.json\s*\(/,
+  /request\.formData\s*\(/,
+  /request\.text\s*\(/,
+  /request\.blob\s*\(/,
+  /request\.arrayBuffer\s*\(/,
+  /request\.body\b/,
+  // Short-form conventional aliases
+  /\breq\.json\s*\(/,
+  /\breq\.formData\s*\(/,
+  /\breq\.text\s*\(/,
+  /\breq\.blob\s*\(/,
+  /\breq\.arrayBuffer\s*\(/,
+  /\breq\.body\b/,
+  // Destructuring: const { body } = request / req
+  /const\s*\{[^}]*\bbody\b[^}]*\}\s*=\s*(request|req)\b/,
+];
+
 /** Patterns that indicate Zod validation is applied to the request body.
  *  Requires a Zod schema method call, not generic JSON.parse(). */
 const ZOD_PARSE_PATTERNS = [
@@ -61,6 +82,10 @@ function hasZodImport(content: string): boolean {
   return ZOD_IMPORT_PATTERNS.some((p) => p.test(content));
 }
 
+function hasBodyConsumption(block: string): boolean {
+  return BODY_CONSUMPTION_PATTERNS.some((p) => p.test(block));
+}
+
 function hasZodParse(content: string): boolean {
   // Check for Zod-specific parse methods
   if (ZOD_PARSE_PATTERNS.some((p) => p.test(content))) return true;
@@ -87,6 +112,23 @@ function findMatchingBrace(content: string, pos: number): number {
     }
   }
   return Math.min(pos + 2000, content.length); // fallback if unbalanced
+}
+
+/** Extract the body-block content of every mutation handler (POST / PUT / PATCH)
+ *  declared in the file. Used by the D-S-001 body-consumption gate. */
+function extractMutationHandlerBlocks(content: string): string[] {
+  const blocks: string[] = [];
+  for (const pattern of MUTATION_PATTERNS) {
+    const re = new RegExp(pattern.source, 'g');
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(content)) !== null) {
+      const braceIdx = content.indexOf('{', match.index + match[0].length);
+      if (braceIdx === -1) continue;
+      const end = findMatchingBrace(content, braceIdx);
+      blocks.push(content.slice(braceIdx, end));
+    }
+  }
+  return blocks;
 }
 
 export const zodEnforcerScanner: Scanner = {
@@ -157,6 +199,14 @@ export const zodEnforcerScanner: Scanner = {
 
         // Only check routes with mutation handlers
         if (!hasMutationHandler(content)) continue;
+
+        // D-S-001 body-consumption gate: if no mutation handler in the file
+        // actually reads the request payload, there is nothing to validate.
+        // Emitting HIGH on such a handler is a false-positive (session-only,
+        // cron-trigger, path-param-only routes fall into this class).
+        const mutationBlocks = extractMutationHandlerBlocks(content);
+        const anyBodyConsumed = mutationBlocks.some((b) => hasBodyConsumption(b));
+        if (!anyBodyConsumed) continue;
 
         const hasZod = hasZodImport(content);
         const hasParse = hasZodParse(content);

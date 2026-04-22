@@ -1,0 +1,9 @@
+{
+  "id": "v017-FP-zod-enforcer-post-path-param-only",
+  "cwe": 20,
+  "type": "FP",
+  "description": "D-S-001 canary: mutation-handler that only reads a dynamic path segment from the route context. No payload consumption. Scanner must NOT emit the missing-validation HIGH.",
+  "expected": [
+    { "scanner": "zod-enforcer", "cwe": 20 }
+  ]
+}

@@ -165,6 +165,82 @@ describe('zodEnforcerScanner', () => {
     expect(result.findings.some((f) => f.title.includes('missing Zod'))).toBe(false);
   });
 
+  it('does NOT flag POST route with no body-consumption (D-S-001)', async () => {
+    createApiRoute(
+      projectPath,
+      'mark-all-read',
+      `
+      export async function POST(request) {
+        const userId = getUserFromSession(request);
+        await markAllRead(userId);
+        return Response.json({ ok: true });
+      }
+    `,
+    );
+    const result = await zodEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.some((f) => f.title.includes('missing Zod'))).toBe(false);
+  });
+
+  it('does NOT flag cron POST that only returns status (D-S-001)', async () => {
+    createApiRoute(
+      projectPath,
+      'cron/nightly',
+      `
+      export async function POST() {
+        await runNightlyJob();
+        return Response.json({ done: true });
+      }
+    `,
+    );
+    const result = await zodEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.some((f) => f.title.includes('missing Zod'))).toBe(false);
+  });
+
+  it('flags POST that uses request.formData() without Zod (D-S-001 TP-preserved)', async () => {
+    createApiRoute(
+      projectPath,
+      'upload',
+      `
+      export async function POST(request) {
+        const fd = await request.formData();
+        return Response.json({ ok: true });
+      }
+    `,
+    );
+    const result = await zodEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.some((f) => f.title.includes('missing Zod'))).toBe(true);
+  });
+
+  it('flags POST that uses request.text() without Zod (D-S-001 TP-preserved)', async () => {
+    createApiRoute(
+      projectPath,
+      'webhook',
+      `
+      export async function POST(request) {
+        const raw = await request.text();
+        return Response.json({ ok: true });
+      }
+    `,
+    );
+    const result = await zodEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.some((f) => f.title.includes('missing Zod'))).toBe(true);
+  });
+
+  it('flags POST that destructures body from request (D-S-001 TP-preserved)', async () => {
+    createApiRoute(
+      projectPath,
+      'legacy',
+      `
+      export async function POST(request) {
+        const { body } = request;
+        return Response.json({ received: body });
+      }
+    `,
+    );
+    const result = await zodEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.some((f) => f.title.includes('missing Zod'))).toBe(true);
+  });
+
   it('does not flag route with Zod import and .parse()', async () => {
     createApiRoute(
       projectPath,
@@ -245,8 +321,27 @@ describe('zodEnforcerScanner', () => {
   });
 
   it('generates incrementing IDs across multiple routes', async () => {
-    createApiRoute(projectPath, 'a', `export async function POST(r) {}`);
-    createApiRoute(projectPath, 'b', `export async function PUT(r) {}`);
+    // Both handlers consume the payload so the D-S-001 body-gate lets them through.
+    createApiRoute(
+      projectPath,
+      'a',
+      `
+      export async function POST(request) {
+        const body = await request.json();
+        return Response.json({ ok: true });
+      }
+    `,
+    );
+    createApiRoute(
+      projectPath,
+      'b',
+      `
+      export async function PUT(request) {
+        const body = await request.json();
+        return Response.json({ ok: true });
+      }
+    `,
+    );
 
     const result = await zodEnforcerScanner.scan(projectPath, MOCK_CONFIG);
     expect(result.findings.length).toBeGreaterThanOrEqual(2);

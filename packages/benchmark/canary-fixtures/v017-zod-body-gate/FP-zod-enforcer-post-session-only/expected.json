@@ -1,0 +1,9 @@
+{
+  "id": "v017-FP-zod-enforcer-post-session-only",
+  "cwe": 20,
+  "type": "FP",
+  "description": "D-S-001 canary: mutation-handler that only reads session/header context and does not touch the incoming payload. Scanner must NOT emit the missing-validation HIGH. If this canary flips FAIL post-fix, the body-gate regressed.",
+  "expected": [
+    { "scanner": "zod-enforcer", "cwe": 20 }
+  ]
+}
