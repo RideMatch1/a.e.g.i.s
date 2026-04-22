@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-cors-checker-p1-dot-test-file",
+  "cwe": 942,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on cors-checker — P1-class path. Scanner filters files to route.ts / middleware.ts basenames, so foo.test.ts is not a target-file; vacuous FP still demonstrates no-false-emission under test-file naming.",
+  "expected": [
+    { "scanner": "cors-checker", "cwe": 942 }
+  ]
+}

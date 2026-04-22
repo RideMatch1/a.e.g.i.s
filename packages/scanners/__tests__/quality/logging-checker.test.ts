@@ -257,3 +257,71 @@ describe('loggingCheckerScanner', () => {
     expect(result.available).toBe(true);
   });
 });
+
+describe('loggingCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+    // Inject winston dep so the project-level centralized-logger finding is
+    // suppressed, isolating the path-invariance gate to the individual-file
+    // mutation-route emission.
+    writeFileSync(
+      join(projectPath, 'package.json'),
+      JSON.stringify({
+        name: 'fixture',
+        version: '0.0.0',
+        private: true,
+        dependencies: { winston: '^3.0.0' },
+      }),
+    );
+  });
+
+  const MUTATION_HANDLER = [
+    "import { NextResponse } from 'next/server';",
+    'export async function POST(request: Request) {',
+    '  const body = await request.json();',
+    '  return NextResponse.json({ ok: true, id: body.id });',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags mutation handler under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    // Scanner aggregates mutation-routes-without-logs — emits a file-anchored
+    // finding only when the percentage-without-logs is <=50%. Add a second
+    // logged route alongside the N1-path target so the ratio drops to 50%
+    // and the per-file branch fires on our unlogged target.
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), MUTATION_HANDLER);
+    mkdirSync(join(projectPath, 'src/app/api/logged'), { recursive: true });
+    writeFileSync(
+      join(projectPath, 'src/app/api/logged/route.ts'),
+      [
+        "import { NextResponse } from 'next/server';",
+        "import logger from 'winston';",
+        'export async function POST(request: Request) {',
+        '  const body = await request.json();',
+        "  logger.info({ action: 'create', id: body.id });",
+        '  return NextResponse.json({ ok: true });',
+        '}',
+      ].join('\n'),
+    );
+    const result = await loggingCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter(
+      (f) =>
+        f.scanner === 'logging-checker' &&
+        f.cwe === 778 &&
+        f.file?.includes('/api/test/route.ts'),
+    );
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips mutation handler in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), MUTATION_HANDLER);
+    const result = await loggingCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter(
+      (f) => f.scanner === 'logging-checker' && f.cwe === 778 && f.file?.includes('foo.test.ts'),
+    );
+    expect(hits).toHaveLength(0);
+  });
+});

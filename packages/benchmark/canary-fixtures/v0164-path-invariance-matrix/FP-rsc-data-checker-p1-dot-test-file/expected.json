@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-rsc-data-checker-p1-dot-test-file",
+  "cwe": 200,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on rsc-data-checker — P1-class path. Test-file with record-spread pattern as fixture. isTestFile() extension-match must skip (vacuous: scanner also requires page.tsx or layout.tsx basename-regex).",
+  "expected": [
+    { "scanner": "rsc-data-checker", "cwe": 200 }
+  ]
+}

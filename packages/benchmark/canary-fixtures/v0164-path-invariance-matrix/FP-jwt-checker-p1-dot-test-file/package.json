@@ -1,0 +1,8 @@
+{
+  "name": "fp-jwt-checker-p1-dot-test-file",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "jsonwebtoken": "^9.0.0"
+  }
+}

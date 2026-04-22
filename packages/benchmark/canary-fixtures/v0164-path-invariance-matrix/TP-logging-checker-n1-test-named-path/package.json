@@ -1,0 +1,8 @@
+{
+  "name": "tp-logging-checker-n1-test-named-path",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "winston": "^3.0.0"
+  }
+}

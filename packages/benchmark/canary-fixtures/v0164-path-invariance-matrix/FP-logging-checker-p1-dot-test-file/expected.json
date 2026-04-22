@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-logging-checker-p1-dot-test-file",
+  "cwe": 778,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on logging-checker — P1-class path. Test-file with mutation handler as fixture; winston dep suppresses the project-level centralized-logger finding. isTestFile() must skip the individual file.",
+  "expected": [
+    { "scanner": "logging-checker", "cwe": 778 }
+  ]
+}

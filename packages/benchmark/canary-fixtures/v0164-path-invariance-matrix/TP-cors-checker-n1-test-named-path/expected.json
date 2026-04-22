@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-cors-checker-n1-test-named-path",
+  "cwe": 942,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for cors-checker — N1-class path. Route file at src/app/api/test/route.ts emits an overly-permissive CORS response header. Scanner must flag CWE-942.",
+  "expected": [
+    { "scanner": "cors-checker", "cwe": 942 }
+  ]
+}

@@ -306,3 +306,34 @@ describe('corsCheckerScanner — sensitive-route severity escalation (v0.6d)', (
     expect(f!.title).toContain('CRITICAL');
   });
 });
+
+describe('corsCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const WILDCARD_RESPONSE = [
+    'export async function GET(): Promise<Response> {',
+    "  return new Response('ok', {",
+    "    headers: { 'Access-Control-Allow-Origin': '*' },",
+    '  });',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags wildcard response header under /api/test/route.ts (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), WILDCARD_RESPONSE);
+    const result = await corsCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'cors-checker' && f.cwe === 942);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips wildcard response header in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), WILDCARD_RESPONSE);
+    const result = await corsCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'cors-checker')).toHaveLength(0);
+  });
+});

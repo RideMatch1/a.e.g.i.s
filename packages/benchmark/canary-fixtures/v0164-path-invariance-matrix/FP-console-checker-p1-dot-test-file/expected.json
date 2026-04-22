@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-console-checker-p1-dot-test-file",
+  "cwe": 532,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on console-checker — P1-class path. Test-file with debug-statement as fixture. isTestFile() extension-match must skip.",
+  "expected": [
+    { "scanner": "console-checker", "cwe": 532 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-jwt-checker-p1-dot-test-file",
+  "cwe": 347,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on jwt-checker — P1-class path. Test-file with token-signing pattern as fixture. isTestFile() extension-match must skip.",
+  "expected": [
+    { "scanner": "jwt-checker", "cwe": 347 }
+  ]
+}

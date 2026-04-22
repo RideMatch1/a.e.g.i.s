@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-jwt-checker-n1-test-named-path",
+  "cwe": 347,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for jwt-checker — N1-class path. Route file at src/app/api/test/route.ts imports jsonwebtoken and calls sign() without an expiresIn option. Scanner must flag CWE-347.",
+  "expected": [
+    { "scanner": "jwt-checker", "cwe": 347 }
+  ]
+}

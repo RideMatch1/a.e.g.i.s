@@ -1,6 +1,11 @@
 import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
+// Path-invariance test-contract (v0164 — D-CA-001 coverage-audit 2026-04-22):
+//   [x] TP — record-spread in page.tsx under /test/ route path (N1-class, D-CA-001 regression-guard)
+//   [x] FP — record-spread in *.test.tsx basename (P1-class, isTestFile() canonical skip)
+// Helper-level correctness for P1–P6 covered at phase v0163-test-path-semantic-skip.
+
 /**
  * RSC Data Checker — detects React Server Components that pass full DB records
  * to Client Components, potentially exposing sensitive fields.

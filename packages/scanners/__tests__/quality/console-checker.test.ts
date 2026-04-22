@@ -361,3 +361,32 @@ describe('consoleCheckerScanner — TODO/FIXME/HACK/XXX comments', () => {
     expect(fix.description).toMatch(/logger|pino|winston|structured/i);
   });
 });
+
+describe('consoleCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const DEBUG_STATEMENT = [
+    'export function handler(): void {',
+    "  console.log('debug');",
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags debug-statement under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), DEBUG_STATEMENT);
+    const result = await consoleCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'console-checker' && f.cwe === 532);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips debug-statement in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), DEBUG_STATEMENT);
+    const result = await consoleCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'console-checker')).toHaveLength(0);
+  });
+});

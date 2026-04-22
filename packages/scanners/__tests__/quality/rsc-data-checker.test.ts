@@ -216,3 +216,37 @@ export default async function ProfilePage({ searchParams }) {
     expect(prismaFindings[0].cwe).toBe(200);
   });
 });
+
+describe('rscDataCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const RSC_RECORD_SPREAD = [
+    'export default async function UsersPage() {',
+    '  const supabase = (globalThis as any).supabase;',
+    "  const { data } = await supabase.from('users').select('*');",
+    '  return <UserList data={data} />;',
+    '}',
+    'function UserList({ data }: { data: unknown }) {',
+    '  return <div>{JSON.stringify(data)}</div>;',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags record-spread in page.tsx under /test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/test/page.tsx'), RSC_RECORD_SPREAD);
+    const result = await rscDataCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'rsc-data-checker' && f.cwe === 200);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips record-spread in *.test.tsx basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src/app'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/foo.test.tsx'), RSC_RECORD_SPREAD);
+    const result = await rscDataCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'rsc-data-checker')).toHaveLength(0);
+  });
+});

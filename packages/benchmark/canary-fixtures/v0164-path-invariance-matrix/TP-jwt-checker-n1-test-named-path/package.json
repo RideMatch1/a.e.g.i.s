@@ -1,0 +1,8 @@
+{
+  "name": "tp-jwt-checker-n1-test-named-path",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "jsonwebtoken": "^9.0.0"
+  }
+}

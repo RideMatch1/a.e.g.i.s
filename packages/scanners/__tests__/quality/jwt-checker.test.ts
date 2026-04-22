@@ -257,3 +257,33 @@ describe('jwtCheckerScanner', () => {
     expect(result.available).toBe(true);
   });
 });
+
+describe('jwtCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const TOKEN_SIGN_NO_EXPIRY = [
+    "import jwt from 'jsonwebtoken';",
+    'export function createToken(userId: string): string {',
+    '  return jwt.sign({ sub: userId }, process.env.JWT_SECRET as string);',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags token-signing under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), TOKEN_SIGN_NO_EXPIRY);
+    const result = await jwtCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'jwt-checker' && f.cwe === 347);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips token-signing in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), TOKEN_SIGN_NO_EXPIRY);
+    const result = await jwtCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'jwt-checker')).toHaveLength(0);
+  });
+});
