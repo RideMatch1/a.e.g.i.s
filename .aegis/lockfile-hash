@@ -1,4 +1,5 @@
 # Seeded 2026-04-20 when v0.15 lockfile-drift detection landed.
 # Re-seed after every acknowledged dep-update: shasum -a 256 pnpm-lock.yaml > .aegis/lockfile-hash
 # Re-seeded 2026-04-21 for v0.15.4 D-C-001 picomatch@^4 addition (walkFiles glob-support).
-sha256:c260b0ea14735db923abbb66e2371cd139e87f9816e5eac36928c341827af579  pnpm-lock.yaml
+# Re-seeded 2026-04-22 for v0.17 Day-1 wizard-cli scaffold — adds @clack/prompts, gray-matter transitively via new packages/wizard-cli/package.json.
+sha256:93fcccac181e301e226c44bfbe55421e052185f4a5487e8715c3d3f1dc1ad0b8  pnpm-lock.yaml

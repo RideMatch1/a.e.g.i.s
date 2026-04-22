@@ -14,6 +14,11 @@
       "reason": "CLI package: console output IS the user interface. console.log/error/warn are intentional and map to stdout/stderr as required for a command-line tool, not debug artifacts."
     },
     {
+      "file": "packages/wizard-cli/src/**/*.ts",
+      "rule": "console-checker",
+      "reason": "Wizard CLI package: console output IS the user interface (wizard prompts, success banners, next-step hints). console.log/error/warn are intentional and map to stdout/stderr as required for a command-line tool, not debug artifacts. Same architectural class as the existing packages/cli/src suppression for the sibling scanner CLI."
+    },
+    {
       "file": "packages/scanners/src/**/*.ts",
       "rule": "console-checker",
       "reason": "Scanner source files log diagnostic output during scan orchestration (duration, progress, warnings). Not debug artifacts; not end-user-facing in a web context."
@@ -127,6 +132,11 @@
       "file": "packages/scanners/**",
       "rule": "logging-checker",
       "reason": "Scanner package orchestrates scan runs via console; no centralized web-app logger applies. Scoped replacement for the prior blanket '**/*' suppression."
+    },
+    {
+      "file": "packages/wizard-cli/**",
+      "rule": "logging-checker",
+      "reason": "Wizard CLI package emits banner/progress/next-step output via console — same architectural class as the existing packages/scanners and packages/cli logging-checker suppressions. No Next.js-centralized logger applies to a command-line tool."
     },
     {
       "file": "packages/mcp-server/**",
