@@ -55,6 +55,25 @@ Post-1.0 will commit to a longer support window; policy will be written into thi
 - **Third-party dependency vulnerabilities**. Report those to the dependency's maintainers; we'll update our lockfile once their fix lands.
 - **Attacks requiring privileged local access** (arbitrary code execution on the machine running AEGIS, attacker already has file-system write). AEGIS assumes it's running in a trusted local environment.
 
+## Supply-chain integrity invariants
+
+These are structural guarantees about how AEGIS packages are built and shipped. Violations are compromise indicators — report immediately via the disclosure channel above.
+
+- **No install-time code execution.** No AEGIS package (`@aegis-scan/*`, `@aegis-wizard/*`) declares a `preinstall`, `install`, `postinstall`, `preuninstall`, `postuninstall`, or `prepare` script. A consumer running `npm install @aegis-*` executes zero scripts from our namespace. If your install executes a hook from our packages, the published package has been tampered with.
+- **SLSA v1 provenance on every published version.** Verify with `npm audit signatures` or `npm view @aegis-scan/<pkg>@<version> dist.attestations.provenance.predicateType`. Expected value: `https://slsa.dev/provenance/v1`. A missing attestation indicates tamper.
+- **Published via GitHub Actions only.** All releases originate from `.github/workflows/publish*.yml`, triggered by a signed git tag pushed by the maintainer. No direct publishes from developer machines.
+- **Deprecation over deletion.** We use `npm deprecate`, never `npm unpublish`. A deprecated version with a security note should not be installed.
+
+**Verifying a specific installation:**
+
+```bash
+# Expected: https://slsa.dev/provenance/v1
+npm view @aegis-scan/cli@<version> dist.attestations.provenance.predicateType
+
+# Expected: empty or a subset limited to CI-build hooks the consumer can safely ignore
+npm view @aegis-scan/cli@<version> scripts
+```
+
 ## Security-focused design decisions
 
 These are deliberate design choices that may look like bugs but are intended behavior:

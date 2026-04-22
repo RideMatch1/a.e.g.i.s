@@ -65,6 +65,27 @@ jobs:
       - name: Verify wizard-cli tests before publish
         run: pnpm -F @aegis-wizard/cli test
 
+      - name: Verify no install-time lifecycle scripts (structural invariant)
+        # Safety-property: packages under @aegis-wizard/cli MUST NOT
+        # declare preinstall, install, postinstall, preuninstall,
+        # postuninstall, or prepare lifecycle scripts. A consumer
+        # running `npm install @aegis-wizard/cli` should execute zero
+        # scripts from our namespace. This gate makes the invariant
+        # impossible to regress silently.
+        run: |
+          node -e "
+          const path = 'packages/wizard-cli/package.json';
+          const pkg = require(process.cwd() + '/' + path);
+          const danger = ['preinstall','install','postinstall','preuninstall','postuninstall','prepare'];
+          const scripts = pkg.scripts || {};
+          const hits = danger.filter((k) => Object.prototype.hasOwnProperty.call(scripts, k));
+          if (hits.length > 0) {
+            console.error('::error::' + path + ' declares install-time lifecycle script(s): ' + hits.join(', '));
+            process.exit(1);
+          }
+          console.log(path + ': clean — no install-time lifecycle scripts declared');
+          "
+
       - name: Verify no install-hint-style version-pins in shipped src
         # Mirrors the scanner publish.yml gate. Tool names like
         # `aegis-wizard new` are stable across 0.17.x releases and

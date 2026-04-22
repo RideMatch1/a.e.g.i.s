@@ -2,5 +2,14 @@
   "name": "@aegis-scan/rules",
   "version": "0.2.0",
   "description": "Custom Semgrep and ESLint rules for AEGIS security scanning",
-  "private": true
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "packages/rules"
+  },
+  "bugs": {
+    "url": "https://github.com/RideMatch1/a.e.g.i.s/issues"
+  },
+  "homepage": "https://github.com/RideMatch1/a.e.g.i.s#readme"
 }

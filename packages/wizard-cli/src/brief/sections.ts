@@ -1050,6 +1050,74 @@ export function renderFooterVerbose(
 }
 
 // ============================================================================
+// Install-time hardening — teaches the scaffolded-project operator the
+// three supply-chain hygiene commands they should be running on every
+// `npm install`. Placed before the pattern-appendix so the operator
+// sees the hardening guidance adjacent to the rest of the active
+// instructions rather than after a 100-kilobyte pattern dump.
+// ============================================================================
+
+export function renderInstallTimeHardening(lang: BriefLang = 'en'): string {
+  const heading =
+    lang === 'de' ? '## Härtung des Installations-Pipelines' : '## Install-time hardening';
+  const lede =
+    lang === 'de'
+      ? 'Bevor du `npm install` auf diesem Scaffold ausführst, härte die Install-Pipeline gegen Supply-Chain-Risiken:'
+      : 'Before running `npm install` on this scaffold, harden the install pipeline against supply-chain risks:';
+
+  const skipHeading =
+    lang === 'de'
+      ? '**Install-Hooks standardmäßig überspringen.** Bösartige `postinstall`-Hooks sind ein häufiger Supply-Chain-Angriffspfad; die meisten Production-Dependencies brauchen keine Hooks:'
+      : '**Skip install-hooks by default.** Malicious `postinstall` hooks are a primary supply-chain attack vector; most production dependencies do not need them:';
+  const skipBody =
+    lang === 'de'
+      ? '```bash\nnpm install --ignore-scripts\n# Wenn eine Abhängigkeit den Hook wirklich braucht (native Builds wie better-sqlite3),\n# schalte ihn nur für dieses Paket wieder frei: npm rebuild <pkg>\n```'
+      : '```bash\nnpm install --ignore-scripts\n# If a dep actually needs its hook (native builds like better-sqlite3),\n# re-enable for that dep only: npm rebuild <pkg>\n```';
+
+  const auditHeading =
+    lang === 'de'
+      ? '**Provenance bei jedem Install prüfen.** Legitime Pakete sollten SLSA-Attestationen tragen:'
+      : '**Verify provenance on every install.** Legitimate packages should carry SLSA attestations:';
+  const auditBody =
+    lang === 'de'
+      ? '```bash\nnpm audit signatures\n# Erwartung: "audited N packages, all have valid attestations"\n```'
+      : '```bash\nnpm audit signatures\n# Expected: "audited N packages, all have valid attestations"\n```';
+
+  const ciHeading =
+    lang === 'de'
+      ? '**Installs strikt an das Lockfile binden.** Nutze in CI und Production `npm ci` statt `npm install` — Letzteres kann vom Lockfile abweichen:'
+      : '**Lock installs to the lockfile.** Use `npm ci` in CI and production — never `npm install`, which can resolve differently from the lockfile:';
+  const ciBody = '```bash\nnpm ci\n```';
+
+  return [
+    heading,
+    '',
+    lede,
+    '',
+    skipHeading,
+    '',
+    skipBody,
+    '',
+    auditHeading,
+    '',
+    auditBody,
+    '',
+    ciHeading,
+    '',
+    ciBody,
+  ].join('\n');
+}
+
+export function renderInstallTimeHardeningVerbose(lang: BriefLang = 'en'): string {
+  const terse = renderInstallTimeHardening(lang);
+  const addendum =
+    lang === 'de'
+      ? '\n\n**Warum dieser Block verbose ist.** Install-Hardening ist keine Einmal-Aktion — jede Dependency-Änderung, jeder CI-Lauf, jedes Developer-Setup berührt den Install-Pfad. Die drei Kommandos oben reduzieren die drei häufigsten Supply-Chain-Ausfallmodi (unerwartete Hook-Ausführung, unverifizierte Provenance, Drift zwischen Lockfile und Resolution) auf einen reproduzierbaren, grep-verifizierbaren Workflow.'
+      : '\n\n**Why this block is verbose.** Install-hardening is not a one-shot action — every dependency bump, every CI run, every developer setup touches the install path. The three commands above collapse the three most common supply-chain failure modes (unexpected hook execution, unverified provenance, drift between lockfile and resolution) into a reproducible, grep-verifiable workflow.';
+  return terse + addendum;
+}
+
+// ============================================================================
 // Pattern-appendix — embeds every selected pattern's full body into the brief.
 // Without this the brief refers to files the user does not have on disk; with
 // it the brief is a self-contained hand-off the agent can execute end-to-end.

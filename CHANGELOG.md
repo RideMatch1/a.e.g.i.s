@@ -89,6 +89,28 @@ Wizard. The AEGIS Scan family (`@aegis-scan/*`) is unchanged at
   is a pure scaffold + brief-generator; security verification remains
   the responsibility of `@aegis-scan/cli` in a separate invocation.
 
+### Known limitations
+
+- Legal-page templates (Impressum, Datenschutzerklärung, AGB) for DE
+  jurisdiction are starting-points, not attorney-reviewed. The
+  templates cite correct statutes but binding compliance requires
+  review by a qualified German lawyer. Consult counsel before
+  production deployment.
+- DSGVO-kit compliance depends on the operator's actual data flows.
+  The schema plus audit-log structure is defensible; real-world
+  compliance is a function of how the application uses them.
+- IP-anonymization is implemented at ingest in the middleware pattern
+  (/24 IPv4, /48 IPv6). If the ingest path is modified, verify
+  anonymization still applies before shipping.
+- SHA-pinned GitHub Actions in `publish-wizard.yml` are current as of
+  the release date. Periodic re-pin may be needed as upstream actions
+  update.
+- `publish.yml` does not yet carry the install-time lifecycle-script
+  CI gate that `publish-wizard.yml` now enforces; the scanner-side
+  workflow is byte-locked to preserve the existing SLSA attestation
+  streak and the same gate will land on the next `@aegis-scan` ship
+  cycle via a dedicated commit.
+
 ## [0.16.4] — 2026-04-22 — "Scanner-Precision"
 
 Patch-release closing two audit-tracked scanner-precision findings

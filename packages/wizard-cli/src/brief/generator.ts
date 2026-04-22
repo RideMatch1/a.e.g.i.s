@@ -45,6 +45,7 @@ import {
   renderDsgvoChecklist,
   renderEnvVars,
   renderPostBuildReportTemplate,
+  renderInstallTimeHardening,
   renderPatternAppendix,
   renderFooter,
   renderHeaderVerbose,
@@ -60,6 +61,7 @@ import {
   renderDsgvoChecklistVerbose,
   renderEnvVarsVerbose,
   renderPostBuildReportTemplateVerbose,
+  renderInstallTimeHardeningVerbose,
   renderPatternAppendixVerbose,
   renderFooterVerbose,
 } from './sections.js';
@@ -104,6 +106,7 @@ export function generateBrief(
         renderDsgvoChecklistVerbose(config, lang),
         renderEnvVarsVerbose(config, patterns, lang),
         renderPostBuildReportTemplateVerbose(lang),
+        renderInstallTimeHardeningVerbose(lang),
         renderPatternAppendixVerbose(patterns, lang),
         renderFooterVerbose(config, patterns, lang),
       ]
@@ -121,6 +124,7 @@ export function generateBrief(
         renderDsgvoChecklist(config, lang),
         renderEnvVars(config, patterns, lang),
         renderPostBuildReportTemplate(lang),
+        renderInstallTimeHardening(lang),
         renderPatternAppendix(patterns, lang),
         renderFooter(config, patterns, lang),
       ];
