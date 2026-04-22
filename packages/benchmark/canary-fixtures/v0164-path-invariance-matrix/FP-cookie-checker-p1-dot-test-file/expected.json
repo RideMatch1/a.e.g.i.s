@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-cookie-checker-p1-dot-test-file",
+  "cwe": 614,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on cookie-checker — P1-class path (.test.ts extension). A test-file `src/foo.test.ts` sets a cookie without Secure flags as part of a test-fixture harness. isTestFile() extension-match must skip. If this flips to FAIL, the extension-check regressed.",
+  "expected": [
+    { "scanner": "cookie-checker", "cwe": 614 }
+  ]
+}

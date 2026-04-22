@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-cookie-checker-n1-test-named-path",
+  "cwe": 614,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for cookie-checker — N1-class path (vuln in /api/test/ route, NOT a test-file). Route file `src/app/api/test/route.ts` sets a cookie via `Set-Cookie` header WITHOUT Secure/HttpOnly/SameSite flags. Post-v0.16.3 cookie-checker must flag this as CWE-614.",
+  "expected": [
+    { "scanner": "cookie-checker", "cwe": 614 }
+  ]
+}

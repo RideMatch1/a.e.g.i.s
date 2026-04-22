@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-redos-checker-n1-test-named-path",
+  "cwe": 1333,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for redos-checker — N1-class path (vuln in /api/test/ route, NOT a test-file). Route file `src/app/api/test/route.ts` uses a catastrophic-backtrack regex `/(.+)+$/` on user input. Post-v0.16.3 redos-checker must flag this as CWE-1333. Note: the fixture path deliberately avoids /vendor/, /generated/, /scripts/, .min.js which redos-checker also skips.",
+  "expected": [
+    { "scanner": "redos-checker", "cwe": 1333 }
+  ]
+}

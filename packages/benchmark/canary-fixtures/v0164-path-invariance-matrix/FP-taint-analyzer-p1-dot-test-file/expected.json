@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-taint-analyzer-p1-dot-test-file",
+  "cwe": 78,
+  "type": "FP",
+  "description": "Scope-guard for the v0.16.3 D-CA-001 fix on taint-analyzer — P1-class path (.test.ts extension). A canonical test-file `src/foo.test.ts` contains a tainted flow from a mocked request object to child_process.exec. The canonical isTestFile() helper must match the .test.ts extension and skip the file, preserving the original 19-scanner skip-intent for real test-files. If this fixture flips to FAIL post-fix, the helper lost the extension-check and over-narrowed.",
+  "expected": [
+    { "scanner": "taint-analyzer", "cwe": 78 }
+  ]
+}

@@ -6,6 +6,11 @@ import { buildProgram } from './program.js';
 import { ModuleGraph } from './module-graph.js';
 import { SummaryCache } from './function-summary.js';
 
+// Path-invariance test-contract (v0164 — D-CA-001 coverage-audit 2026-04-22):
+//   [x] TP — vulnerable pattern in /api/test/ route path (N1-class, D-CA-001 regression-guard)
+//   [x] FP — vulnerable pattern in *.test.ts basename (P1-class, isTestFile() canonical skip)
+// Helper-level correctness for P1–P6 covered at phase v0163-test-path-semantic-skip.
+
 export const taintAnalyzerScanner: Scanner = {
   name: 'taint-analyzer',
   description: 'AST-based taint analysis — tracks user input from sources to dangerous sinks within each file',

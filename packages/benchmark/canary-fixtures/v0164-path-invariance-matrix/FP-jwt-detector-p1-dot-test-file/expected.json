@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-jwt-detector-p1-dot-test-file",
+  "cwe": 798,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on jwt-detector — P1-class path (.test.ts extension). Test-file `src/foo.test.ts` carries a JWT-format literal as test-fixture data. isTestFile() extension-match must skip the file. If this fixture flips to FAIL post-fix, the extension-check regressed and the fix over-narrowed.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

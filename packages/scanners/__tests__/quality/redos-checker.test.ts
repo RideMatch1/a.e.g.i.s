@@ -161,3 +161,32 @@ const regex = /(a+)+$/;
     expect(result.available).toBe(true);
   });
 });
+
+describe('redosCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('N1-class: flags catastrophic-backtrack regex under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    createFile(
+      projectPath,
+      'src/app/api/test/route.ts',
+      ["const input = searchParams.get('q');", 'const regex = /^(a+)+$/;', 'regex.test(input);'].join('\n'),
+    );
+    const result = await redosCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'redos-checker' && f.cwe === 1333);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips catastrophic-backtrack regex in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    createFile(
+      projectPath,
+      'src/foo.test.ts',
+      ["const input = searchParams.get('q');", 'const regex = /^(a+)+$/;', 'regex.test(input);'].join('\n'),
+    );
+    const result = await redosCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'redos-checker')).toHaveLength(0);
+  });
+});

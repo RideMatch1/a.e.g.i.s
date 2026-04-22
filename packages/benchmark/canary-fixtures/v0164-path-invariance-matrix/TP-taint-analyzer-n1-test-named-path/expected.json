@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-taint-analyzer-n1-test-named-path",
+  "cwe": 78,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for taint-analyzer — N1-class path (vuln in /api/test/ route, NOT a test-file). Route file `src/app/api/test/route.ts` carries a tainted flow from request body to child_process.exec (command injection). Pre-v0.16.3 the 19-scanner substring-skip (/test/) would have silently skipped this file. Post-v0.16.3 D-CA-001 fix routes every scanner through canonical isTestFile() which explicitly rejects the /test/ substring match — so taint-analyzer MUST now fire on this legitimate App Router route. This fixture proves the invariance holds for taint-analyzer specifically.",
+  "expected": [
+    { "scanner": "taint-analyzer", "cwe": 78 }
+  ]
+}

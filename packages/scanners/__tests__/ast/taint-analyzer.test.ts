@@ -253,3 +253,32 @@ describe('taintAnalyzerScanner — custom rules', () => {
     await expect(taintAnalyzerScanner.scan(projectPath, cfg)).rejects.toThrow(/PARSE_NOT_SANITIZER/);
   });
 });
+
+describe('taintAnalyzerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('N1-class: scans vulnerable pattern under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    createFile(
+      projectPath,
+      'src/app/api/test/route.ts',
+      ['const id = req.body.id;', 'exec(id);'].join('\n'),
+    );
+    const result = await taintAnalyzerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'taint-analyzer' && f.cwe === 78);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips vulnerable pattern in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    createFile(
+      projectPath,
+      'src/foo.test.ts',
+      ['const id = req.body.id;', 'exec(id);'].join('\n'),
+    );
+    const result = await taintAnalyzerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'taint-analyzer')).toHaveLength(0);
+  });
+});

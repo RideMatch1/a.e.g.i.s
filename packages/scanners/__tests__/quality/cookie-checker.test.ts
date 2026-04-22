@@ -203,3 +203,32 @@ describe('cookieCheckerScanner', () => {
     expect(result.available).toBe(true);
   });
 });
+
+describe('cookieCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('N1-class: flags insecure cookie under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    createFile(
+      projectPath,
+      'src/app/api/test/route.ts',
+      "res.headers.set('Set-Cookie', 'session=abc123');",
+    );
+    const result = await cookieCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'cookie-checker' && f.cwe === 614);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips insecure cookie in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    createFile(
+      projectPath,
+      'src/foo.test.ts',
+      "res.headers.set('Set-Cookie', 'session=abc123');",
+    );
+    const result = await cookieCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'cookie-checker')).toHaveLength(0);
+  });
+});

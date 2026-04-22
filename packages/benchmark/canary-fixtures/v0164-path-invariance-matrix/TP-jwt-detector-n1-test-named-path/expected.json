@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-jwt-detector-n1-test-named-path",
+  "cwe": 798,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for jwt-detector — N1-class path (vuln in /api/test/ route, NOT a test-file). Route file `src/app/api/test/route.ts` carries a hardcoded JWT-format literal. Pre-v0.16.3 substring-skip would have silently hidden this. Post-v0.16.3 jwt-detector MUST fire on the hardcoded token via CWE-798. Complements phase-level v0163 with a dedicated per-scanner pattern-validation fixture.",
+  "expected": [
+    { "scanner": "jwt-detector", "cwe": 798 }
+  ]
+}

@@ -166,3 +166,32 @@ const fixture = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc123def4
     expect(result.available).toBe(true);
   });
 });
+
+describe('jwtDetectorScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('N1-class: flags hardcoded JWT under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    createFile(
+      projectPath,
+      'src/app/api/test/route.ts',
+      'export const KEY = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc123def456";',
+    );
+    const result = await jwtDetectorScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'jwt-detector' && f.cwe === 798);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips hardcoded JWT in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    createFile(
+      projectPath,
+      'src/foo.test.ts',
+      'export const FIXTURE = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc123def456";',
+    );
+    const result = await jwtDetectorScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'jwt-detector')).toHaveLength(0);
+  });
+});
