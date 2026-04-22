@@ -1,0 +1,126 @@
+{
+  "header": {
+    "generated_by": "Erstellt von",
+    "project_type": "Projekttyp",
+    "stack": "Stack",
+    "selected_patterns": "Ausgewählte Patterns",
+    "deployment_target": "Deployment-Ziel",
+    "languages": "Sprachen",
+    "company_info": "Firmeninfos",
+    "expected_grade": "Erwartete Note nach Build",
+    "grade_target": "AEGIS-scan >= 960 / A · React-Doctor >= 93"
+  },
+  "agent_instructions": {
+    "heading": "Agenten-Anweisungen (ZUERST LESEN)",
+    "intro": "Du bist ein Software-Engineering-Agent (Claude Code, Codex, Cursor oder ähnlich). Du hast diesen Brief und Zugriff auf das leere Projektverzeichnis. Baue ein vollständiges, funktionierendes SaaS-Backend, indem du diesen Brief von oben nach unten befolgst.",
+    "operating_rules": "Arbeitsregeln",
+    "ask_vs_decide": "Fragen oder selbst entscheiden",
+    "decide_autonomously": "Selbst entscheiden",
+    "decide_body": "Dateinamen, Variablennamen, CSS-Klassen, Testnamen, welches shadcn-Primitive verwendet werden soll.",
+    "ask_user": "Benutzer fragen",
+    "ask_body": "Schema-Änderungen während des Builds, Drittanbieter-Integrationen, die nicht in diesem Brief stehen, jede destruktive Git-Operation (reset, force-push, rm -rf).",
+    "rule_boil_the_lake": "Boil the Lake",
+    "rule_boil_body": "liefere VOLLSTÄNDIGE Features. Keine `TODO:`-Marker. Keine „erst die einfache Version\". Wenn eine Datei spezifiziert ist, schreibe sie vollständig.",
+    "rule_search": "Search Before Building",
+    "rule_search_body": "bevor du einen Helper schreibst, greppe den existierenden Code. Multi-Tenant-Guard, Logger, Errors sind nach Phase 1 alle vorhanden.",
+    "rule_explicit_paths": "Explizite Pfade",
+    "rule_explicit_body": "beim Stagen von Git-Änderungen Dateien namentlich auflisten. Niemals `git add -A`.",
+    "rule_localhost": "Localhost zuerst",
+    "rule_localhost_body": "niemals an Remote pushen, bevor lokal alle Quality-Gates bestanden wurden.",
+    "rule_halt": "2-Checkpoint-Halt zwischen Phasen",
+    "rule_halt_body": "nach jeder Phase STOPP machen und Gate-Checks durchführen, bevor die nächste beginnt.",
+    "rule_defensive": "Defensive Ausführung",
+    "rule_defensive_body": "wenn eine Phase länger als 90 Minuten dauert, HALT und ein Handover schreiben, NICHT halbfertig weitermachen."
+  },
+  "core_rules": {
+    "heading": "Kern-Regeln (nicht verhandelbar)",
+    "multi_tenancy": "Multi-Tenancy (HART)",
+    "multi_tenancy_body": "Jede Domain-Tabelle hat `tenant_id uuid not null references tenants(id) on delete cascade`. Jede authentifizierte API-Route ruft `secureApiRouteWithTenant()` plus `requireRole()` auf. Jede RLS-Policy filtert nach tenant_id. Keine Ausnahme. Ein Verstoß ist eine IDOR-Schwachstelle.",
+    "zod_strict": "Zod .strict()",
+    "zod_body": "Alle POST/PATCH/PUT-Bodies werden mit `z.object({...}).strict()` geparst. Unbekannte Keys erzeugen Zod-Fehler (verhindert Mass-Assignment).",
+    "optimistic": "Optimistische Updates",
+    "optimistic_body": "Jede Mutation nutzt TanStack Querys `useMutation` mit `onMutate` (optimistisches Update), `onError` (Rollback) und `onSettled` (Invalidation). Niemals einen Loading-Spinner für Mutationen zeigen — sofort den optimistischen Zustand anzeigen.",
+    "no_new_deps": "Keine neuen Dependencies ohne Erwähnung",
+    "no_deps_body": "Jedes `npm install <package>`, das nicht in diesem Brief steht, muss in deinem Phasen-Report gemeldet werden.",
+    "umlaute_heading": "Umlaute im UI (nur deutscher Text)",
+    "umlaute_body": "Echte Umlaute im deutschen UI-Text verwenden: ä ö ü ß. ASCII-Ersatz (ae / oe / ue / ss) nur in DB-Keys, URL-Slugs, Dateinamen, Variablennamen."
+  },
+  "installation": {
+    "heading": "Installation (Phase-1-Befehle)",
+    "intro": "Führe diese in Reihenfolge aus. Jeder Schritt ist idempotent. Bei jedem Exit-Code ungleich Null stoppen und untersuchen.",
+    "after_step_6": "Nach Schritt 6 verifizieren:"
+  },
+  "database_schema": {
+    "heading": "Datenbank-Schema",
+    "intro": "Erzeuge Migrationen in `supabase/migrations/` in dieser Reihenfolge.",
+    "apply_migrations": "Migrationen anwenden",
+    "seed_default": "Default-Daten einspielen",
+    "key_tables": "Erstellte Schlüssel-Tabellen",
+    "key_triggers": "Schlüssel-Trigger",
+    "rls_heading": "RLS",
+    "rls_body": "auf beiden aktiviert; Policies filtern nach `auth.uid()` plus Rolle."
+  },
+  "pages_inventory": {
+    "heading": "Seiten-Inventar",
+    "admin_pages": "Admin-Seiten",
+    "public_pages": "Öffentliche Seiten",
+    "auth_pages": "Auth-Seiten",
+    "total_prefix": "Gesamt",
+    "total_suffix": "Seiten (saas-starter Baseline). Ergänze branchenspezifische Seiten darüber hinaus."
+  },
+  "component_catalog": {
+    "heading": "Komponenten-Katalog",
+    "from_shadcn": "Von shadcn-CLI (installiert via Installations-Sektion Schritt 6)",
+    "from_shadcn_body": "Alle Foundation-Primitives: Button, Input, Card, Dialog, Table, DataTable, etc.",
+    "from_patterns": "Aus Patterns in diesem Brief",
+    "project_specific": "Projekt-spezifisch (du baust)"
+  },
+  "api_routes": {
+    "heading": "API-Routen",
+    "convention": "Konvention (jede authentifizierte Route)",
+    "routes_to_create": "Zu erstellende Routen (saas-starter Baseline)",
+    "domain_specific": "Ergänze domänenspezifische Routen nach Projektbedarf."
+  },
+  "build_order": {
+    "heading": "Build-Reihenfolge",
+    "intro": "**Strikt von oben nach unten. Nach jeder Phase die Quality-Gates-Sektion ausführen. Falls ein Gate fehlschlägt, vor der nächsten Phase stoppen und fixen.**",
+    "phase_1_foundation": "Phase 1 - Foundation (~2h)",
+    "phase_2_middleware": "Phase 2 - Middleware + Auth (~2h)",
+    "phase_3_i18n": "Phase 3 - i18n (~1h)",
+    "phase_4_dsgvo": "Phase 4 - DSGVO-Kit (~2h)",
+    "phase_5_legal": "Phase 5 - Rechtliche Seiten (~1h)",
+    "phase_6_admin": "Phase 6 - Admin-Shell (~2h)",
+    "phase_7_testing": "Phase 7 - Testing-Gerüst (~1h)",
+    "phase_8_cicd": "Phase 8 - CI/CD (~1h)",
+    "phase_9_deploy": "Phase 9 - Deployment-Konfiguration (~1h)",
+    "phase_10_final": "Phase 10 - Finale Verifikation (~30min)",
+    "gate": "Gate"
+  },
+  "quality_gates": {
+    "heading": "Quality-Gates (ALLE müssen bestehen, bevor „fertig\")",
+    "intro": "Nach jeder Phase und am Build-Ende ausführen:"
+  },
+  "dsgvo_checklist": {
+    "heading": "DSGVO-Checkliste (nach Build verifizieren)"
+  },
+  "env_vars": {
+    "heading": "Umgebungsvariablen",
+    "intro": "Erzeuge `.env.local` (Copy-Paste-Template, projektspezifische Werte eintragen):",
+    "outro": "Erzeuge `.env.production.example` mit derselben Struktur (ohne Secrets) für die Deploy-Doku."
+  },
+  "post_build_report": {
+    "heading": "Post-Build-Report",
+    "intro": "Nach Abschluss erzeuge `POST-BUILD-REPORT.md` mit folgender Struktur:"
+  },
+  "footer": {
+    "end_marker": "ENDE DES AGENTEN-BRIEFS.",
+    "agent_start": "Agent: beginne jetzt mit Phase 1. Lies die Core-Rules-Sektion erneut, bevor du Code schreibst. Melde jede Unklarheit dem Benutzer, bevor du fortfährst. Viel Erfolg.",
+    "meta_heading": "Meta (zur Referenz, überspringen außer beim Debuggen)",
+    "pattern_versions": "Enthaltene Pattern-Versionen",
+    "brief_config": "Brief-Erzeugungs-Konfiguration",
+    "tone_label": "Ton",
+    "lang_label": "Sprache",
+    "target_agent_label": "Ziel-Agent",
+    "quality_target": "Quality-Ziel"
+  }
+}

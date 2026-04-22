@@ -45,7 +45,7 @@
   },
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node ../../scripts/copy-wizard-assets.mjs",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "dev": "tsc --watch",
