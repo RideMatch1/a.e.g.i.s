@@ -69,7 +69,7 @@ create table if not exists public.user_consents (
   analytics         boolean not null default false,
   marketing         boolean not null default false,
   functional        boolean not null default true,  -- strictly-necessary
-  ip_address        inet,
+  ip_address        inet,  -- truncated via middleware-hardened truncateIp before insert (/24 IPv4, /48 IPv6)
   user_agent        text,
   consented_at      timestamptz not null default now()
 );
@@ -100,7 +100,7 @@ create table if not exists public.audit_log (
   resource_type     text,
   resource_id       text,
   metadata          jsonb,
-  ip_address        inet,
+  ip_address        inet,  -- truncated via middleware-hardened truncateIp before insert (/24 IPv4, /48 IPv6)
   user_agent        text,
   created_at        timestamptz not null default now()
 );

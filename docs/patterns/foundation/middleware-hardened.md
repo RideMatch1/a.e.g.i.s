@@ -156,7 +156,32 @@ function getTrustedProxyCount(): number {
   return n;
 }
 
+/**
+ * Truncate an IP to its network prefix so the value we persist or
+ * rate-limit against is no longer personally-identifying at the host
+ * level. IPv4 drops the host octet to yield a /24, IPv6 keeps only
+ * the first three hextets to yield a /48. This matches the
+ * Datenschutz-claim ("IP-Adresse wird gekürzt") rendered by the
+ * legal-pages template, so what the operator stores matches what
+ * they promise under DSGVO Art. 5(1)(d).
+ */
+export function truncateIp(ip: string): string {
+  if (!ip || ip === 'unknown') return ip;
+  if (ip.includes(':')) {
+    const hextets = ip.split(':').slice(0, 3).join(':');
+    return `${hextets}::`;
+  }
+  const octets = ip.split('.');
+  if (octets.length !== 4) return ip;
+  return `${octets.slice(0, 3).join('.')}.0`;
+}
+
 function getTrustedClientIp(request: NextRequest): string {
+  const raw = readClientIp(request);
+  return truncateIp(raw);
+}
+
+function readClientIp(request: NextRequest): string {
   const cf = request.headers.get('cf-connecting-ip');
   if (cf?.trim()) return cf.trim();
 
