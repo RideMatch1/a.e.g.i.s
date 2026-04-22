@@ -1,0 +1,9 @@
+{
+  "id": "v017-TP-tenant-iso-upsert-no-discriminant",
+  "cwe": 639,
+  "type": "TP",
+  "description": "v0.16.4 D-S-002 canary. Supabase .upsert() call with no tenant-boundary discriminant in the payload and no .eq()/.filter()/.match() chain. Scanner must emit tenant-isolation-checker/CWE-639 to preserve true-positive recognition of unscoped writes.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

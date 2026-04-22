@@ -1,0 +1,9 @@
+{
+  "id": "v017-FP-tenant-iso-eq-chain-preserved",
+  "cwe": 639,
+  "type": "FP",
+  "description": "v0.16.4 D-S-002 regression-guard canary. Supabase .from().select().eq('tenant_id', ...) with the discriminant filter present in the chain. The scanner must NOT emit tenant-isolation-checker/CWE-639 — this is the baseline read-path suppression that predated D-S-002 and must continue to hold. Guards against over-broadening the write-payload helper into a read-path suppression or inadvertently breaking chain-walk recognition.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

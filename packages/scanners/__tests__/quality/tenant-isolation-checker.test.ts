@@ -1155,3 +1155,161 @@ describe('tenantIsolationCheckerScanner — path-invariance (D-CA-001 contract, 
     ).toHaveLength(0);
   });
 });
+
+describe('tenantIsolationCheckerScanner — v0.16.4 D-S-002 write-payload recognition', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+    createFile(projectPath, 'lib/tenant.ts', 'export const TENANT_COL = "tenant_id";');
+  });
+
+  it('does NOT flag Supabase .insert() with tenant_id in payload', async () => {
+    createFile(
+      projectPath,
+      'app/api/items/route.ts',
+      `
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient('url', 'key');
+
+export async function POST(request) {
+  const tenantId = 't1';
+  const { data } = await supabase.from('items').insert({
+    tenant_id: tenantId,
+    title: 'foo',
+  });
+  return NextResponse.json({ data });
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(
+      (f) =>
+        f.scanner === 'tenant-isolation-checker' &&
+        /missing tenant-boundary filter|without explicit tenant-boundary/.test(f.title),
+    );
+    expect(tenantFindings).toHaveLength(0);
+  });
+
+  it('does NOT flag Supabase .update() with tenantId in payload', async () => {
+    createFile(
+      projectPath,
+      'app/api/items/route.ts',
+      `
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient('url', 'key');
+
+export async function PATCH(request) {
+  const tenantId = 't1';
+  await supabase.from('items').update({
+    tenantId: tenantId,
+    name: 'bar',
+  });
+  return NextResponse.json({ ok: true });
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(
+      (f) =>
+        f.scanner === 'tenant-isolation-checker' &&
+        /missing tenant-boundary filter|without explicit tenant-boundary/.test(f.title),
+    );
+    expect(tenantFindings).toHaveLength(0);
+  });
+
+  it('does NOT flag Supabase .upsert() with workspaceId in payload', async () => {
+    createFile(
+      projectPath,
+      'app/api/items/route.ts',
+      `
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient('url', 'key');
+
+export async function PUT(request) {
+  const workspaceId = 'w1';
+  await supabase.from('items').upsert({
+    workspaceId: workspaceId,
+    name: 'baz',
+  });
+  return NextResponse.json({ ok: true });
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(
+      (f) =>
+        f.scanner === 'tenant-isolation-checker' &&
+        /missing tenant-boundary filter|without explicit tenant-boundary/.test(f.title),
+    );
+    expect(tenantFindings).toHaveLength(0);
+  });
+
+  it('DOES flag .insert() without any discriminant in payload (TP preserved)', async () => {
+    createFile(
+      projectPath,
+      'app/api/items/route.ts',
+      `
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient('url', 'key');
+
+export async function POST(request) {
+  await supabase.from('items').insert({ title: 'foo', description: 'bar' });
+  return NextResponse.json({ ok: true });
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(
+      (f) =>
+        f.scanner === 'tenant-isolation-checker' &&
+        /missing tenant-boundary filter|without explicit tenant-boundary/.test(f.title),
+    );
+    expect(tenantFindings.length).toBeGreaterThanOrEqual(1);
+    expect(tenantFindings[0].severity).toBe('high');
+  });
+
+  it('public-route [slug] downgrades AST .from() emission from HIGH to INFO', async () => {
+    // Path-structure `api/public/spa/[slug]/route.ts` triggers
+    // isPublicRouteWithDiscriminant. The route has no payload
+    // discriminant and no chained filter — the existing emission path
+    // would have emitted HIGH before D-S-002 extended the downgrade.
+    createFile(
+      projectPath,
+      'app/api/public/spa/[slug]/route.ts',
+      `
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient('url', 'key');
+
+export async function POST(request) {
+  await supabase.from('items').insert({ title: 'x' });
+  return NextResponse.json({ ok: true });
+}
+`,
+    );
+
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const tenantFindings = result.findings.filter(
+      (f) => f.scanner === 'tenant-isolation-checker',
+    );
+    const high = tenantFindings.filter((f) => f.severity === 'high');
+    const info = tenantFindings.filter((f) => f.severity === 'info');
+    expect(high).toHaveLength(0);
+    expect(info.length).toBeGreaterThanOrEqual(1);
+    expect(info[0].title).toContain('public-route');
+  });
+});

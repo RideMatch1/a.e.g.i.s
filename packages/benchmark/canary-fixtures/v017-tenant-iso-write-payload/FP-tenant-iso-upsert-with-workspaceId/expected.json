@@ -1,0 +1,9 @@
+{
+  "id": "v017-FP-tenant-iso-upsert-with-workspaceId",
+  "cwe": 639,
+  "type": "FP",
+  "description": "v0.16.4 D-S-002 canary. Supabase .upsert() with a workspaceId identifier-key bound in the first-argument payload object. The scanner must NOT emit tenant-isolation-checker/CWE-639. Exercises the alternate workspace-scoped multi-tenant convention alongside the tenant_id default.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v017-FP-tenant-iso-update-with-tenantId",
+  "cwe": 639,
+  "type": "FP",
+  "description": "v0.16.4 D-S-002 canary. Supabase .update() with a tenantId identifier-key bound in the first-argument payload object. The scanner must NOT emit tenant-isolation-checker/CWE-639 because the write carries its tenant boundary in the payload. If this canary flips to a failure post-fix, camelCase-discriminant recognition regressed.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

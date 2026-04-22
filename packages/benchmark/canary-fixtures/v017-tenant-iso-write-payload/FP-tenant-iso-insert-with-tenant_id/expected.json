@@ -1,0 +1,9 @@
+{
+  "id": "v017-FP-tenant-iso-insert-with-tenant_id",
+  "cwe": 639,
+  "type": "FP",
+  "description": "v0.16.4 D-S-002 canary. Supabase .insert() with tenant_id bound in the first-argument payload object. The scanner must NOT emit tenant-isolation-checker/CWE-639 because the write is tenant-bounded at the row level by construction. If this canary flips to a failure post-fix, write-payload recognition regressed.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

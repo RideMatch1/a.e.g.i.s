@@ -326,6 +326,61 @@ function supabaseChainHasDiscriminant(
   return false;
 }
 
+/** Supabase write-methods whose first-argument object literal can embed a
+ *  tenant-boundary discriminant directly in the payload (row-value rather
+ *  than `.eq()` filter). Discovered via the v0.16.4 D-S-002 dogfood delta. */
+const SUPABASE_WRITE_METHODS: ReadonlySet<string> = new Set([
+  'insert',
+  'update',
+  'upsert',
+]);
+
+/** Walk up the call-chain from a Supabase `.from('x')` call. Returns true
+ *  if any `.insert({...})` / `.update({...})` / `.upsert({...})` along the
+ *  chain has a discriminant-named key in its first-argument object literal.
+ *
+ *  D-S-002: mirrors prismaCallHasDiscriminant (line 354). Supabase write
+ *  calls bind the tenant boundary via the row payload rather than a
+ *  subsequent `.eq()` filter — without this recognition, every
+ *  `.from(x).insert({ tenant_id, ... })` emits a false-positive HIGH.
+ *
+ *  Known limitation: array-payload writes of the form `.insert([row, ...])`
+ *  are out-of-scope in v0.16.4 and still emit. The dogfood corpus contained
+ *  zero array-payload cases among the 7 FP writes, so scope was deliberately
+ *  bounded to the single-object shape. */
+function supabaseWriteHasDiscriminantInPayload(
+  fromCall: ts.CallExpression,
+  discriminants: readonly string[],
+): boolean {
+  let cursor: ts.Node = fromCall;
+  while (cursor.parent) {
+    const parent: ts.Node = cursor.parent;
+    if (ts.isPropertyAccessExpression(parent) && parent.expression === cursor) {
+      cursor = parent;
+      continue;
+    }
+    if (ts.isCallExpression(parent) && parent.expression === cursor) {
+      if (ts.isPropertyAccessExpression(cursor)) {
+        const methodName = cursor.name.text;
+        if (SUPABASE_WRITE_METHODS.has(methodName)) {
+          const arg0 = parent.arguments[0];
+          if (
+            arg0 !== undefined &&
+            ts.isObjectLiteralExpression(arg0) &&
+            objectLiteralHasDiscriminant(arg0, discriminants)
+          ) {
+            return true;
+          }
+        }
+      }
+      cursor = parent;
+      continue;
+    }
+    break;
+  }
+  return false;
+}
+
 /** Return true if the object-literal has a property whose key name matches
  *  any discriminant in the supplied list. Supports both identifier and
  *  string-literal keys. */
@@ -1223,6 +1278,12 @@ export const tenantIsolationCheckerScanner: Scanner = {
         const fromCall = asSupabaseFromCall(node);
         if (fromCall) {
           if (supabaseChainHasDiscriminant(fromCall, discriminants)) return;
+          // v0.16.4 D-S-002: Supabase write calls (.insert / .update /
+          // .upsert) commonly bind the tenant boundary via the payload
+          // object rather than a chained .eq(). Mirror the Prisma-side
+          // where/data recognition (prismaCallHasDiscriminant, line 354)
+          // so the two client SDKs suppress symmetrically.
+          if (supabaseWriteHasDiscriminantInPayload(fromCall, discriminants)) return;
           // v0.11.2 Part C: per-`.from()` URL-param scope check. When
           // the chain's `.eq()` arg resolves (by binding-origin, not
           // lexical name) to a URL-param declaration in the enclosing
@@ -1238,15 +1299,32 @@ export const tenantIsolationCheckerScanner: Scanner = {
               return;
             }
           }
+          // v0.16.4 D-S-002: apply the v0.15.4 D-C-002 public-route
+          // path-heuristic on the AST emission path too, mirroring how
+          // the service-role regex-emission already downgrades
+          // CRITICAL → INFO on `/api/public/**/[slug-like]/...`. The
+          // heuristic signals that the route-path architecturally
+          // carries a tenant-discriminant via a URL bracket-param, but
+          // path-pattern only — the downstream .eq('<param>', <param>)
+          // verification requires AST-taint extension and stays
+          // out-of-scope. Operator sees the finding at INFO with a note
+          // prompting downstream-flow verification.
+          const publicRouteMatch = isPublicRouteWithDiscriminant(file, config);
+          const severity: Finding['severity'] = publicRouteMatch.matched ? 'info' : 'high';
+          const publicRouteNote = publicRouteMatch.matched
+            ? ` [v0.16.4 D-S-002] Public-route with path-param-as-tenant-discriminant detected ([${publicRouteMatch.param}]). The scanner could not verify a discriminant-filter in this .from() chain, but the route-path architecturally signals tenant-discriminant scoping. Verify the downstream scope-filter (e.g. .eq('${publicRouteMatch.param}', ${publicRouteMatch.param})) is actually present — this is an architectural hint, not a clean-bill-of-health.`
+            : '';
+          const baseTitle = publicRouteMatch.matched
+            ? 'Supabase query without explicit tenant-boundary filter on public-route — verify architecture-scoping'
+            : 'Supabase query missing tenant-boundary filter — cross-tenant data leak possible';
           const id = `TENANT-${String(idCounter++).padStart(3, '0')}`;
           findings.push({
             id,
             scanner: 'tenant-isolation-checker',
-            severity: 'high',
-            title:
-              'Supabase query missing tenant-boundary filter — cross-tenant data leak possible',
+            severity,
+            title: baseTitle,
             description:
-              'A Supabase .from() query in an API route has no .eq/.filter/.match on any known tenant-boundary discriminant (tenant_id / tenantId / workspaceId / teamId / orgId / organizationId). In a multi-tenant application every database query must filter by the tenant boundary to prevent cross-tenant leaks. Add .eq(\'tenant_id\', context.tenantId), use secureApiRouteWithTenant, or pick the convention matching the codebase.',
+              'A Supabase .from() query in an API route has no .eq/.filter/.match on any known tenant-boundary discriminant (tenant_id / tenantId / workspaceId / teamId / orgId / organizationId) and no discriminant in the write payload. In a multi-tenant application every database query must filter by the tenant boundary to prevent cross-tenant leaks. Add .eq(\'tenant_id\', context.tenantId), include tenant_id in the write payload, use secureApiRouteWithTenant, or pick the convention matching the codebase.' + publicRouteNote,
             file,
             line: getLineNumber(sf, fromCall.getStart(sf)),
             category: 'security',
