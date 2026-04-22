@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# AEGIS Rule #13 pre-commit scrub-gate.
+# Installed to .git/hooks/commit-msg by scripts/install-hooks.sh.
+# To bypass in emergencies: git commit --no-verify (not recommended).
+
+set -e
+REPO_ROOT=$(git rev-parse --show-toplevel)
+exec "$REPO_ROOT/scripts/scrub-gate.sh" "$1"

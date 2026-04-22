@@ -44,6 +44,38 @@ The benchmark scans a vulnerable fixture app under `packages/benchmark/vulnerabl
 - **Target branch**: `main`. No long-lived feature branches for solo-scoped work.
 - **Pre-1.0 semantics**: breaking changes are allowed, but require a `CHANGELOG.md` entry under the current `[Unreleased]` heading describing migration.
 
+### Commit-message hygiene (Rule #13)
+
+AEGIS enforces a pre-commit scrub-gate on commit messages to catch accidental leaks of AI-attribution markers, TODO placeholders, and project-specific sensitive terms BEFORE commits land on a branch that may be pushed publicly.
+
+**One-time install:**
+
+```bash
+./scripts/install-hooks.sh
+```
+
+This installs a local `commit-msg` hook. Every `git commit` then runs `scripts/scrub-gate.sh` on the message. Clean messages proceed; leaks are rejected with a pointer to the offending line.
+
+**What gets blocked:**
+
+- Terms listed in `scripts/scrub-terms.generic.txt` (committed — universal OSS-hygiene terms like Claude, Anthropic, TODO, FIXME).
+- Terms you add to `scripts/scrub-terms.local.txt` (gitignored — your project-specific list, e.g. internal codenames, pre-disclosure handles).
+
+**What is warned-on but not blocked:**
+
+- Commit-message ends in a `Key: value` trailer-block (per `git interpret-trailers --parse`). Often intentional (e.g. `Signed-off-by:`), so warn-only.
+- SHA-like strings in the message body. Sometimes valid (e.g. referencing a commit for context), but worth double-checking for reference-repo-SHA leaks.
+
+**Bypass (use sparingly):**
+
+```bash
+git commit --no-verify
+```
+
+Only use `--no-verify` when you've manually verified the message is clean and the hook is producing a false-positive. Prefer fixing the scrub-list.
+
+**Discipline-class:** this replaces the prior ad-hoc scrub-discipline with deterministic tooling. Background: on 2026-04-22 a discipline-level scrub-check false-negatived on a private-repo codename because the applied term-list was an ad-hoc subset. The hook catches such slips at commit-time rather than relying on memory-level enforcement. See `memory/reference_scrub_term_list.md` for the authoritative institutional scrub-term list.
+
 ## PR guidelines
 
 - One concern per PR. Five small PRs are easier to review than one sweeping one.

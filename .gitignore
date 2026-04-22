@@ -18,3 +18,6 @@ aegis-precision/
 # `npm run package` inside packages/vscode-extension/ and uploaded as
 # a release asset by .github/workflows/release.yml. Do NOT commit.
 *.vsix
+
+# Rule #13 developer-local scrub-terms
+scripts/scrub-terms.local.txt

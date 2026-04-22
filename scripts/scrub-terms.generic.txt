@@ -1,0 +1,12 @@
+# AEGIS generic scrub-terms (Rule #13 enforcement).
+# Universal leak-classes that apply to any OSS commit.
+# Project-specific extensions go in scripts/scrub-terms.local.txt (gitignored).
+#
+# Format: one term per line (case-insensitive match), # for comments, blank lines ignored.
+
+Claude
+Anthropic
+TODO
+FIXME
+XXX
+HACK
