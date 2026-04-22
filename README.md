@@ -172,6 +172,24 @@ for template structure, primitive source-strategy, and exit criteria.
 
 ---
 
+## Sibling package: `@aegis-wizard/cli`
+
+Building a new Next.js + Supabase + shadcn SaaS from a blank directory? The companion package [`@aegis-wizard/cli`](https://www.npmjs.com/package/@aegis-wizard/cli) is an interactive scaffold-wizard + brief-generator. Run it once, answer ~15 thorough questions about your project, and it emits an agent-consumable Markdown brief that an AI coding-agent (Claude Code, Codex, Cursor) executes top-to-bottom to build a working SaaS backend — multi-tenant, authenticated, DSGVO-compliant, deployment-ready — in a day.
+
+```bash
+# One-shot via npx (no global install)
+npx -y @aegis-wizard/cli new my-saas --interactive
+
+# After the agent finishes, verify safety with AEGIS Scan
+npx -y @aegis-scan/cli scan ./my-saas
+```
+
+AEGIS Wizard and AEGIS Scan are co-calibrated: the brief Wizard emits encodes the same architectural assumptions Scan checks against. A Wizard-scaffolded project scoring below 960 on Scan's grade is treated as a pattern-defect.
+
+See [`packages/wizard-cli/README.md`](./packages/wizard-cli/README.md) for the full wizard-cli docs and [`docs/patterns/index.md`](./docs/patterns/index.md) for the bundled pattern catalog.
+
+---
+
 ## What AEGIS finds that generic SAST tools miss
 
 These are **stack-specific** vulnerabilities in Next.js + Supabase apps. Generic tools don't have rules for them because they're framework-specific patterns:
