@@ -2,8 +2,6 @@
  * Zod schemas for `aegis.config.json` — the serialized output of the wizard
  * and the input for `--non-interactive` runs.
  *
- * Source-of-truth: aegis-precision/wizard-config-schema.md §2.
- *
  * Day-1 covers Tier-1 essentials (Identity, Stack, Localization, MultiTenancy,
  * Auth, Rbac, Deployment, Theme, BriefOptions) as fully-defined schemas with
  * user-input-required fields; Tier-2 (Billing, Email, Features, Integrations,

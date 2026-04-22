@@ -761,7 +761,7 @@ export function renderAgentInstructionsVerbose(lang: BriefLang = 'en'): string {
     '',
     '- **Boil the Lake** — Agents hedging on complete-vs-partial deliveries produce unsafe half-features (auth stub without middleware, RLS without policies, DSGVO page without export route). "Build it fully or halt and ask" avoids that failure mode.',
     '- **Search Before Building** — Re-invented helpers drift over time; re-invented tenant-guard skips one check, re-invented logger misses one redaction-pattern. The primitives in this brief are intentionally reusable; search them first.',
-    '- **Explicit-Paths** — `git add -A` silently stages `.env.local`, `aegis-precision/`, and other gitignored-elsewhere files. Ambiguous stages leak secrets. Always stage by name.',
+    '- **Explicit-Paths** — `git add -A` silently stages `.env.local` and any other files your shell happens to drop into the working tree. Ambiguous stages leak secrets. Always stage by name.',
     '- **Localhost-First** — A push that breaks main blocks every other agent-run. Local gates are cheap; remote gates are expensive and shared.',
     '- **2-Checkpoint-Halt** — Early bugs compound: a broken migration in Phase 1 means every downstream Phase-2 route writes to a bad schema. Stopping between phases limits blast radius.',
     '- **Defensive-execution** — Silent halfway-completions (e.g. "Phase 4 done, DSGVO partially scaffolded") produce broken builds that look done. A handover-document with "still-to-do" is strictly better than a half-commit.',

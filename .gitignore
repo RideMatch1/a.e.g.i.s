@@ -21,3 +21,8 @@ aegis-precision/
 
 # Rule #13 developer-local scrub-terms
 scripts/scrub-terms.local.txt
+
+# pnpm pack / npm pack output — per-package tarballs produced during
+# local publish rehearsals. They can accidentally get git-added and
+# should never land in a commit.
+packages/*/*.tgz

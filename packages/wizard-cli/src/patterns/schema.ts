@@ -1,8 +1,6 @@
 /**
  * Zod schema for pattern-file frontmatter — `docs/patterns/<category>/<name>.md`.
  *
- * Source-of-truth: aegis-precision/pattern-schema-reference.md §3.
- *
  * The loader validates the parsed gray-matter object against this schema
  * before returning, so every downstream consumer (brief-generator, CLI
  * pattern-list, linter) sees a fully-typed PatternFrontmatter or fails fast

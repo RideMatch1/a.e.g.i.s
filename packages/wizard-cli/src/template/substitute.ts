@@ -37,8 +37,8 @@ export interface ReservedPlaceholderInput {
 }
 
 /**
- * Compute the always-available reserved placeholders per
- * aegis-precision/pattern-schema-reference.md §5.
+ * Compute the always-available reserved placeholders that every pattern
+ * body can rely on regardless of user configuration.
  */
 export function buildReservedPlaceholders(
   input: ReservedPlaceholderInput,

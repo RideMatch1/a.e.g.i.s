@@ -1,8 +1,6 @@
 /**
  * Tier-1 wizard question catalog — 15 essentials, ~8 min user-time.
  *
- * Source-of-truth: aegis-precision/v017-scaffold-roadmap.md §5.
- *
  * Structure: a declarative array of `WizardQuestion` objects consumed by
  * `flow.ts` which dispatches them to `@clack/prompts` by type. Keeping the
  * catalog declarative makes the flow testable and the brief-generator (Day-2)
