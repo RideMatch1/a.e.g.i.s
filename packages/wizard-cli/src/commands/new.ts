@@ -82,15 +82,39 @@ function readSelfVersion(): string {
 }
 
 /**
- * Resolve the patterns directory at runtime. In the monorepo dev-mode
- * (current Day-2 shape) the CLI runs from packages/wizard-cli/dist/commands
- * and docs/patterns lives at the monorepo root, so four `..`-steps get us
- * there. Day-3 publish-flow copies patterns into the tarball and this
- * resolver gains an additional branch.
+ * Resolve the patterns directory relative to a given anchor directory.
+ * Two layouts are supported:
+ *
+ *   1. Installed-package layout — after the post-build copy-step lands
+ *      pattern .md files into dist/docs/patterns/, the shipped tarball
+ *      contains them at that path. From dist/commands/ that resolves
+ *      with one `..` step into dist/, then into docs/patterns/.
+ *
+ *   2. Monorepo-dev layout — when running from a local checkout the
+ *      patterns live at the repo root. From dist/commands/ (or from
+ *      src/commands/ under vitest) that is four `..` steps up to the
+ *      repo root, then into docs/patterns/.
+ *
+ * The installed-layout is tried first because it is the production path;
+ * the monorepo-dev path is the dev-loop fallback. Throws a descriptive
+ * error if neither exists. Exported (together with the anchor-less
+ * convenience wrapper below) to make the resolution logic directly
+ * unit-testable against fixture directories.
  */
-function resolvePatternsDir(): string {
+export function resolvePatternsDirFrom(here: string): string {
+  const installedPath = resolve(here, '..', 'docs', 'patterns');
+  if (existsSync(installedPath)) return installedPath;
+  const monorepoPath = resolve(here, '..', '..', '..', '..', 'docs', 'patterns');
+  if (existsSync(monorepoPath)) return monorepoPath;
+  throw new Error(
+    `Pattern directory not found. Searched:\n  ${installedPath}\n  ${monorepoPath}\n` +
+      `This is a packaging bug in @aegis-wizard/cli — please file an issue.`,
+  );
+}
+
+export function resolvePatternsDir(): string {
   const here = dirname(fileURLToPath(import.meta.url));
-  return resolve(here, '..', '..', '..', '..', 'docs', 'patterns');
+  return resolvePatternsDirFrom(here);
 }
 
 export async function runNew(name: string, options: NewOptions = {}): Promise<number> {

@@ -87,8 +87,11 @@ async function walkMarkdownFiles(dir: string, out: string[]): Promise<void> {
   let entries;
   try {
     entries = await readdir(dir);
-  } catch {
-    return;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw new Error(
+      `walkMarkdownFiles failed at ${dir}: ${(err as Error).message}`,
+    );
   }
   for (const e of entries) {
     const p = join(dir, e);
