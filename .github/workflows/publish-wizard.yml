@@ -1,0 +1,71 @@
+name: Publish @aegis-wizard/cli
+
+# Triggered on tag-push matching wizard-v-prefix (e.g. wizard-v0.17.0).
+# Publishes @aegis-wizard/cli with npm-provenance for SLSA Level-2
+# attestation bound to this exact workflow run, this exact commit, and
+# this exact npm-registry identity. Consumers can verify via
+# `npm audit signatures` or
+# `npm view @aegis-wizard/cli@<version> dist.attestations`.
+#
+# Scope: @aegis-wizard/cli only. The @aegis-scan/* family is published
+# by the sibling `.github/workflows/publish.yml` workflow on a separate
+# `v*` tag-namespace; this workflow does not touch those packages and
+# the pnpm filter (-F @aegis-wizard/cli) enforces that at publish-time.
+#
+# Prerequisites:
+#   - Repo secret NPM_TOKEN_WIZARD (publish-scope token for
+#     @aegis-wizard org). Advisor-recommended Option-ii for
+#     scope-separation from the existing NPM_TOKEN (which is scoped to
+#     @aegis-scan only per publish.yml). If Lukas instead reused a
+#     single classic-token by replacing NPM_TOKEN with an account-wide
+#     token covering both orgs (Option-i), swap NPM_TOKEN_WIZARD →
+#     NPM_TOKEN in the env block below before pushing the tag.
+#   - The tag being pushed matches the release-commit that sets
+#     @aegis-wizard/cli to the target version in its package.json.
+#
+# Fallback: If this workflow ever fails at publish-time and the release
+# window is tight, a maintainer can publish manually from their laptop
+# via `pnpm -F @aegis-wizard/cli publish --access public --no-git-checks`
+# — that path ships without SLSA provenance, which is a documented
+# known-gap recovered in the next release cycle.
+
+on:
+  push:
+    tags:
+      - 'wizard-v*'
+
+permissions:
+  contents: read
+  id-token: write  # required for npm --provenance (OIDC attestation)
+
+jobs:
+  publish:
+    name: Publish @aegis-wizard/cli with SLSA provenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout at tag
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1 — SHA-pinned per v0.16.3 D-CA-003
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1  # v4.3.0 — SHA-pinned per v0.16.3 D-CA-003
+
+      - name: Setup Node.js + npm registry auth
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0 — SHA-pinned per v0.16.3 D-CA-003
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build wizard-cli plus transitive deps
+        run: pnpm -F @aegis-wizard/cli... build
+
+      - name: Verify wizard-cli tests before publish
+        run: pnpm -F @aegis-wizard/cli test
+
+      - name: Publish @aegis-wizard/cli with provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_WIZARD }}
+        run: pnpm -F @aegis-wizard/cli publish --provenance --access public --no-git-checks
