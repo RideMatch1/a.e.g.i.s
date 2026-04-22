@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-crypto-auditor-p1-dot-test-file",
+  "cwe": 95,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on crypto-auditor — P1-class path. Test-file with dynamic-evaluation pattern as fixture. isTestFile() extension-match must skip.",
+  "expected": [
+    { "scanner": "crypto-auditor", "cwe": 95 }
+  ]
+}

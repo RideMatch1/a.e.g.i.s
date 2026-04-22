@@ -272,3 +272,37 @@ export function add(a: number, b: number): number { return a + b; }
     expect(result.available).toBe(true);
   });
 });
+
+describe('templateSqlCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const TEMPLATE_QUERY = [
+    'export async function POST(request: Request) {',
+    '  const body = await request.json();',
+    '  const supabase = (globalThis as any).supabase;',
+    "  const { data } = await supabase.rpc('exec_raw', {",
+    '    sql: `SELECT * FROM users WHERE id = \'${body.id}\'`,',
+    '  });',
+    '  return new Response(JSON.stringify(data));',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags template-interpolated query under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), TEMPLATE_QUERY);
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'template-sql-checker' && f.cwe === 89);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips template-interpolated query in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), TEMPLATE_QUERY);
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+});

@@ -276,3 +276,38 @@ describe('timingSafeCheckerScanner', () => {
     expect(result.findings[0].cwe).toBe(208);
   });
 });
+
+describe('timingSafeCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const TOKEN_COMPARE = [
+    'export async function POST(request: Request) {',
+    '  const body = await request.json();',
+    '  const token = body.token as string;',
+    '  const secret = process.env.API_SECRET as string;',
+    '  if (token === secret) {',
+    "    return new Response('ok', { status: 200 });",
+    '  }',
+    "  return new Response('nope', { status: 401 });",
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags token-comparison under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), TOKEN_COMPARE);
+    const result = await timingSafeCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'timing-safe-checker' && f.cwe === 208);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips token-comparison in *.test.ts basename (scanner filters to route.ts basename — vacuous P1-confirmation)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), TOKEN_COMPARE);
+    const result = await timingSafeCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'timing-safe-checker')).toHaveLength(0);
+  });
+});

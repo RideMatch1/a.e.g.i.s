@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-timing-safe-checker-n1-test-named-path",
+  "cwe": 208,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for timing-safe-checker — N1-class path. Route file at src/app/api/test/route.ts compares a token secret via triple-equals instead of a constant-time helper. Scanner must flag CWE-208.",
+  "expected": [
+    { "scanner": "timing-safe-checker", "cwe": 208 }
+  ]
+}

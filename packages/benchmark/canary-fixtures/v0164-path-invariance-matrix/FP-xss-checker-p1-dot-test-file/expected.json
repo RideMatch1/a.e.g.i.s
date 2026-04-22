@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-xss-checker-p1-dot-test-file",
+  "cwe": 79,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on xss-checker — P1-class path. Test-file with unsafe-html pattern as fixture. isTestFile() extension-match must skip.",
+  "expected": [
+    { "scanner": "xss-checker", "cwe": 79 }
+  ]
+}

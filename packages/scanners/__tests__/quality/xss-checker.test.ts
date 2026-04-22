@@ -472,3 +472,33 @@ export function Comp({ html }: { html: string }) {
     expect(finding!.severity).toBe('high');
   });
 });
+
+describe('xssCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const UNSAFE_HTML = [
+    'export default function TestPage({ searchParams }: { searchParams: { q: string } }) {',
+    '  const userInput = searchParams.q;',
+    '  return <div dangerouslySetInnerHTML={{ __html: userInput }} />;',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags unsafe-html in page.tsx under /test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/test/page.tsx'), UNSAFE_HTML);
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'xss-checker' && f.cwe === 79);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips unsafe-html in *.test.tsx basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src/app'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/foo.test.tsx'), UNSAFE_HTML);
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'xss-checker')).toHaveLength(0);
+  });
+});

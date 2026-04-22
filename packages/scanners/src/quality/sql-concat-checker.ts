@@ -1,6 +1,11 @@
 import { walkFiles, readFileSafe, isTestFile } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
+// Path-invariance test-contract (v0164 — D-CA-001 coverage-audit 2026-04-22):
+//   [x] TP — query-concatenation in /api/test/ route path (N1-class, D-CA-001 regression-guard)
+//   [x] FP — query-concatenation in *.test.ts basename (P1-class, isTestFile() canonical skip)
+// Helper-level correctness for P1–P6 covered at phase v0163-test-path-semantic-skip.
+
 /** Files to skip — tests, vendor, minified, generated, templates */
 function shouldSkipFile(filePath: string): boolean {
   if (isTestFile(filePath)) return true;

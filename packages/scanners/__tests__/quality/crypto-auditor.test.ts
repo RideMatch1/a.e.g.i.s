@@ -473,3 +473,34 @@ const stripe = new Stripe('sk_live_lineThreeKey');
     expect(finding!.severity).toBe('high');
   });
 });
+
+describe('cryptoAuditorScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const DYNAMIC_EVAL = [
+    'export async function POST(request: Request) {',
+    '  const body = await request.json();',
+    '  const result = eval(body.code);',
+    '  return new Response(String(result));',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags dynamic-evaluation under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), DYNAMIC_EVAL);
+    const result = await cryptoAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'crypto-auditor' && f.cwe === 95);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips dynamic-evaluation in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), DYNAMIC_EVAL);
+    const result = await cryptoAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'crypto-auditor')).toHaveLength(0);
+  });
+});

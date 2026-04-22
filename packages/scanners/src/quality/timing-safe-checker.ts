@@ -1,6 +1,11 @@
 import { walkFiles, readFileSafe } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
+// Path-invariance test-contract (v0164 — D-CA-001 coverage-audit 2026-04-22):
+//   [x] TP — token-comparison in /api/test/route.ts (N1-class, D-CA-001 regression-guard)
+//   [x] FP — token-comparison in *.test.ts basename (P1-class, isTestFile() canonical skip via ROUTE_FILENAMES filter)
+// Helper-level correctness for P1–P6 covered at phase v0163-test-path-semantic-skip.
+
 const ROUTE_FILENAMES = ['route.ts', 'route.js'];
 
 /**

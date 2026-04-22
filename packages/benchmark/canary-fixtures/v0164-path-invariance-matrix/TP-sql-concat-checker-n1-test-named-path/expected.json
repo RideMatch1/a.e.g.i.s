@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-sql-concat-checker-n1-test-named-path",
+  "cwe": 89,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for sql-concat-checker — N1-class path. Route file at src/app/api/test/route.ts builds a SQL query via string-concatenation with user input. Scanner must flag CWE-89.",
+  "expected": [
+    { "scanner": "sql-concat-checker", "cwe": 89 }
+  ]
+}

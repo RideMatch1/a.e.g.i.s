@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-sql-concat-checker-p1-dot-test-file",
+  "cwe": 89,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on sql-concat-checker — P1-class path. Test-file with query-concatenation pattern as fixture. isTestFile() extension-match must skip.",
+  "expected": [
+    { "scanner": "sql-concat-checker", "cwe": 89 }
+  ]
+}

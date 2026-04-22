@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-timing-safe-checker-p1-dot-test-file",
+  "cwe": 208,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on timing-safe-checker — P1-class path. Scanner filters to route.ts / route.js basenames inside app/api dirs; foo.test.ts is not a scanner target — vacuous FP still demonstrates no-false-emission under test-file naming.",
+  "expected": [
+    { "scanner": "timing-safe-checker", "cwe": 208 }
+  ]
+}

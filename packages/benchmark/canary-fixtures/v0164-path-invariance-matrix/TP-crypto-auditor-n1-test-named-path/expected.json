@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-crypto-auditor-n1-test-named-path",
+  "cwe": 95,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for crypto-auditor — N1-class path. File at src/app/api/test/route.ts invokes dynamic-evaluation on user input. Scanner must flag CWE-95.",
+  "expected": [
+    { "scanner": "crypto-auditor", "cwe": 95 }
+  ]
+}

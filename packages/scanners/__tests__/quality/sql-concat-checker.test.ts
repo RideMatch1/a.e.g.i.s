@@ -349,3 +349,34 @@ const result = await supabase.rpc(\`fn_\${id}\`);
     expect(finding!.severity).toBe('blocker');
   });
 });
+
+describe('sqlConcatCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const QUERY_CONCAT = [
+    'export async function POST(request: Request) {',
+    '  const body = await request.json();',
+    '  const sql = "SELECT * FROM users WHERE id = " + body.id;',
+    '  return new Response(sql);',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags query-concatenation under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), QUERY_CONCAT);
+    const result = await sqlConcatCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'sql-concat-checker' && f.cwe === 89);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips query-concatenation in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), QUERY_CONCAT);
+    const result = await sqlConcatCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'sql-concat-checker')).toHaveLength(0);
+  });
+});
