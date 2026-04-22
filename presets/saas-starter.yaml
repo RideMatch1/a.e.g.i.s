@@ -1,0 +1,16 @@
+name: saas-starter
+version: 1
+description: >
+  Generic multi-tenant SaaS foundation — 6 foundation patterns for
+  tenancy, auth, RBAC, middleware-hardening, PII-safe-logging, and i18n,
+  plus 2 compliance patterns for DSGVO and legal-pages. Target stack:
+  Next.js + Supabase + shadcn/ui.
+patterns:
+  - { category: foundation, name: multi-tenant-supabase }
+  - { category: foundation, name: auth-supabase-full }
+  - { category: foundation, name: rbac-requirerole }
+  - { category: foundation, name: middleware-hardened }
+  - { category: foundation, name: logger-pii-safe }
+  - { category: foundation, name: i18n-next-intl }
+  - { category: compliance, name: dsgvo-kit }
+  - { category: compliance, name: legal-pages-de }
