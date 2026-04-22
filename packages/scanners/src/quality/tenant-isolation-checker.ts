@@ -4,6 +4,12 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
 import { parseFile, getLineNumber, walkAst } from '../ast/parser.js';
 import { stripComments } from '../ast/page-context.js';
 
+// Path-invariance test-contract (v0164 — D-CA-001 coverage-audit 2026-04-22):
+//   [x] TP — unscoped query in /api/test/route.ts (N1-class, D-CA-001 regression-guard)
+//   [x] FP — unscoped query in *.test.ts basename (P1-class, scanner filters to
+//       route.ts basename — vacuous P1-confirmation via basename-regex filter)
+// Helper-level correctness for P1–P6 covered at phase v0163-test-path-semantic-skip.
+
 /**
  * Tenant Isolation Checker — detects multi-tenant database queries
  * missing a tenant-boundary filter, risking cross-tenant data leaks.

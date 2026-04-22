@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-tenant-isolation-checker-p1-dot-test-file",
+  "cwe": 639,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on tenant-isolation-checker — P1-class path. Scanner filters files to basename regex route.ts / route.js; foo.test.ts is not a scanner target — vacuous FP still demonstrates no-false-emission under test-file naming.",
+  "expected": [
+    { "scanner": "tenant-isolation-checker", "cwe": 639 }
+  ]
+}

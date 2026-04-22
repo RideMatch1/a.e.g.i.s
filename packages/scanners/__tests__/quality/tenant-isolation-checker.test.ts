@@ -1116,3 +1116,42 @@ export async function GET() {
     });
   });
 });
+
+describe('tenantIsolationCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+    // Activation-gate: scanner only proceeds when the project contains a
+    // tenant-discriminant literal or a Supabase / Prisma client import.
+    createFile(projectPath, 'lib/tenant.ts', 'export const TENANT_COL = "tenant_id";');
+  });
+
+  const UNSCOPED_QUERY = [
+    "import { NextResponse } from 'next/server';",
+    "import { createClient } from '@supabase/supabase-js';",
+    '',
+    'export async function GET() {',
+    "  const supabase = createClient('url', 'key');",
+    "  const { data } = await supabase.from('users').select('*');",
+    '  return NextResponse.json(data);',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags unscoped query under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    createFile(projectPath, 'src/app/api/test/route.ts', UNSCOPED_QUERY);
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter(
+      (f) => f.scanner === 'tenant-isolation-checker' && f.cwe === 639,
+    );
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips unscoped query in *.test.ts basename (scanner filters to route.ts basename — vacuous P1-confirmation)', async () => {
+    createFile(projectPath, 'src/foo.test.ts', UNSCOPED_QUERY);
+    const result = await tenantIsolationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(
+      result.findings.filter((f) => f.scanner === 'tenant-isolation-checker'),
+    ).toHaveLength(0);
+  });
+});
