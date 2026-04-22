@@ -30,11 +30,12 @@ program
 
 program
   .command('new <project-name>')
-  .description('Run the Tier-1 wizard and emit aegis.config.json for a new SaaS project')
+  .description('Run the Tier-1 wizard, emit aegis.config.json, and render the agent-brief')
   .option('-i, --interactive', 'Run the interactive wizard (default)', true)
   .option('-n, --non-interactive', 'Skip the wizard and read --config instead')
   .option('-c, --config <file>', 'Path to a pre-filled aegis.config.json (for --non-interactive)')
-  .option('-o, --output-dir <dir>', 'Where to write aegis.config.json (default: ./<project-name>)')
+  .option('-o, --output-dir <dir>', 'Where to write emitted files (default: ./<project-name>)')
+  .option('-m, --output-mode <mode>', 'brief | scaffold | both (default: both)', 'both')
   .action(
     async (
       name: string,
@@ -43,6 +44,7 @@ program
         nonInteractive?: boolean;
         config?: string;
         outputDir?: string;
+        outputMode?: string;
       },
     ) => {
       process.exit(await runNew(name, options));
