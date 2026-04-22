@@ -147,14 +147,32 @@ export function generateBrief(
   const allValues = { ...reserved, ...extra };
   const substituted = substitute(rendered, allValues);
 
-  // Fail-fast: no unsubstituted UPPER_SNAKE placeholders left.
-  const leaked = substituted.match(/\{\{[A-Z][A-Z0-9_]*\}\}/g);
-  if (leaked) {
-    const unique = [...new Set(leaked)].join(', ');
+  // Fail-fast: no unsubstituted placeholder markers may leak. Two
+  // classes are rejected. Brace-style {{UPPER_SNAKE}} is the canonical
+  // substitute-engine marker; a leftover one means a section-renderer
+  // or embedded pattern body used a key the resolver map has no value
+  // for. Bracket-style [X] single-letter literals are the convention
+  // the legal-template drafts used as a human-fill-me-in hint — one
+  // of them ([Y] in the AGB cancellation clause) shipped to the
+  // pre-fix tarball, so this guard surfaces the class pre-publish.
+  const leakedBraces = substituted.match(/\{\{[A-Z][A-Z0-9_]*\}\}/g);
+  const leakedBrackets = substituted.match(/\[[A-Z]\]/g);
+  if (leakedBraces || leakedBrackets) {
+    const parts: string[] = [];
+    if (leakedBraces) {
+      parts.push(
+        `brace-placeholders: ${[...new Set(leakedBraces)].join(', ')}`,
+      );
+    }
+    if (leakedBrackets) {
+      parts.push(
+        `bracket-literals: ${[...new Set(leakedBrackets)].join(', ')}`,
+      );
+    }
     throw new Error(
-      `Brief-renderer emitted unresolved placeholders: ${unique}. Either a ` +
-      `section-renderer used a placeholder the generator has no value for, ` +
-      `or the reserved-placeholder mapping is incomplete.`,
+      `Brief-renderer emitted unresolved placeholders — ${parts.join('; ')}. ` +
+        `Either a section-renderer used a marker the generator has no value for, ` +
+        `an embedded pattern body leaked a literal, or the resolver map is incomplete.`,
     );
   }
 

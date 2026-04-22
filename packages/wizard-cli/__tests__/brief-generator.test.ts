@@ -124,6 +124,24 @@ describe('generateBrief - contract', () => {
     });
     expect(out).not.toMatch(/\{\{[A-Z][A-Z0-9_]*\}\}/);
   });
+
+  it('throws when the rendered brief contains a bracket-literal marker', () => {
+    // The legal-template drafts used [Y] as a fill-me-in hint in the AGB
+    // cancellation clause; one such literal shipped to the pre-fix tarball
+    // unnoticed. Here we feed a config whose project_description carries
+    // the same bracket-pattern, which the brief embeds verbatim through
+    // sections.ts. The fail-fast guard must catch it before render-return.
+    const cfg = buildConfig({
+      identity: {
+        ...buildConfig().identity,
+        project_description:
+          'A description with an embedded [Y] marker inside the text.',
+      },
+    });
+    expect(() =>
+      generateBrief(cfg, ALL_8, { uuidFactory: FIXED_UUID_FACTORY }),
+    ).toThrow(/bracket-literals/);
+  });
 });
 
 describe('generateBrief - output shape', () => {
