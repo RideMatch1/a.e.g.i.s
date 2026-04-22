@@ -88,22 +88,27 @@ const FIXED_UUID_FACTORY = () => FIXED_UUID;
 // ----------------------------------------------------------------------------
 
 describe('generateBrief - contract', () => {
-  it('throws when tone is verbose (Day-3 scope)', () => {
-    expect(() =>
-      generateBrief(buildConfig(), ALL_8, {
-        tone: 'verbose',
-        uuidFactory: FIXED_UUID_FACTORY,
-      }),
-    ).toThrow(/verbose.*Day-3/);
+  it('accepts tone=verbose and emits a larger brief than terse', () => {
+    const terse = generateBrief(buildConfig(), ALL_8, {
+      tone: 'terse',
+      uuidFactory: FIXED_UUID_FACTORY,
+    });
+    const verbose = generateBrief(buildConfig(), ALL_8, {
+      tone: 'verbose',
+      uuidFactory: FIXED_UUID_FACTORY,
+    });
+    expect(verbose.length).toBeGreaterThan(terse.length);
+    // Verbose adds at least 3 rationale-markers
+    const markers = (verbose.match(/Alternatives considered/g) || []).length;
+    expect(markers).toBeGreaterThanOrEqual(3);
   });
 
-  it('throws when lang is de (Day-3 scope)', () => {
-    expect(() =>
-      generateBrief(buildConfig(), ALL_8, {
-        lang: 'de',
-        uuidFactory: FIXED_UUID_FACTORY,
-      }),
-    ).toThrow(/German.*Day-3/);
+  it('emits lang=en brief by default without German-specific strings', () => {
+    const out = generateBrief(buildConfig(), ALL_8, {
+      lang: 'en',
+      uuidFactory: FIXED_UUID_FACTORY,
+    });
+    expect(out.length).toBeGreaterThan(1000);
   });
 
   it('throws when sections leave an unresolved placeholder in the output', () => {

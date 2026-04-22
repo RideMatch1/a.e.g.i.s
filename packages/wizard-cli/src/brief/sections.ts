@@ -693,3 +693,324 @@ export function renderFooter(
     `**Quality-target:** score >= 960 / grade A / 0 critical. If a brief-guided-build falls below this, file a pattern-defect issue with the generated brief plus the \`aegis scan\` output.`,
   ].join('\n');
 }
+
+// ============================================================================
+// Verbose section renderers (Day-3 --verbose-brief)
+//
+// Each renderXVerbose() function returns the terse body PLUS prose+rationale
+// passages that help an agent (or a human reviewer) understand WHY each
+// pattern / rule / command exists. Verbose mode is additive: the terse
+// content is preserved verbatim so readers who switch modes don't see a
+// different brief-skeleton — only more prose.
+//
+// Size target: verbose brief = 1.5-2x terse brief (~700-900 lines vs ~400).
+// ============================================================================
+
+export function renderHeaderVerbose(
+  config: AegisConfig,
+  patterns: readonly LoadedPattern[],
+): string {
+  const terse = renderHeader(config, patterns);
+  const patternCount = patterns.length;
+  return [
+    terse,
+    '',
+    '**Rationale for this brief:**',
+    '',
+    `This brief was generated from the answers you gave the AEGIS wizard plus ${patternCount} production-hardened patterns. Every section below is a direct consequence of one of those answers — nothing here is generic boilerplate. If a section surprises you, revisit the wizard-question it came from (\`aegis.config.json\` records every answer).`,
+    '',
+    'The brief is ordered so an agent can execute it top-to-bottom: Installation first, then migrations, then routes, then UI, then gates. Phase-boundaries are hard halt-points — do not skip ahead; each phase depends on the previous phase passing its gate.',
+  ].join('\n');
+}
+
+export function renderAgentInstructionsVerbose(): string {
+  const terse = renderAgentInstructions();
+  return [
+    terse,
+    '',
+    '## Why this operating-ruleset',
+    '',
+    'Each rule above exists because a past agent-run failed without it:',
+    '',
+    '- **Boil the Lake** — Agents hedging on complete-vs-partial deliveries produce unsafe half-features (auth stub without middleware, RLS without policies, DSGVO page without export route). "Build it fully or halt and ask" avoids that failure mode.',
+    '- **Search Before Building** — Re-invented helpers drift over time; re-invented tenant-guard skips one check, re-invented logger misses one redaction-pattern. The primitives in this brief are intentionally reusable; search them first.',
+    '- **Explicit-Paths** — `git add -A` silently stages `.env.local`, `aegis-precision/`, and other gitignored-elsewhere files. Ambiguous stages leak secrets. Always stage by name.',
+    '- **Localhost-First** — A push that breaks main blocks every other agent-run. Local gates are cheap; remote gates are expensive and shared.',
+    '- **2-Checkpoint-Halt** — Early bugs compound: a broken migration in Phase 1 means every downstream Phase-2 route writes to a bad schema. Stopping between phases limits blast radius.',
+    '- **Defensive-execution** — Silent halfway-completions (e.g. "Phase 4 done, DSGVO partially scaffolded") produce broken builds that look done. A handover-document with "still-to-do" is strictly better than a half-commit.',
+    '',
+    'Alternatives considered: a single "just ship it" directive (rejected — too easy to misread); no halt-checkpoints (rejected — observed cascading-failure in prior runs); requiring human-approval on every file (rejected — too slow for day-1 scaffolding). The current ruleset is the minimum-viable discipline for agent-driven scaffolding.',
+  ].join('\n');
+}
+
+export function renderCoreRulesVerbose(config: AegisConfig): string {
+  const terse = renderCoreRules(config);
+  const extras: string[] = [
+    '',
+    '## Why Multi-Tenancy is the HARDEST rule',
+    '',
+    'Every real-world multi-tenant breach in the last five years — PagerDuty 2020, Heroku 2022, Okta 2023, Azure Health Bot 2024 — came down to one missing `tenant_id` check somewhere in the request path. Defense-in-depth is non-negotiable: app-layer check (`secureApiRouteWithTenant`), DB-layer check (RLS policy), review-layer check (`aegis scan` blocker-rule). Skip any one and the other two are probabilistic.',
+    '',
+    'Alternatives considered: "schema-per-tenant" (rejected — 10k+ tenants = 10k+ migrations to run); "separate-database-per-tenant" (rejected — not viable under Supabase row-billing); "implicit-tenant-via-subdomain" (rejected — breaks header-based API clients and Postman testing). Shared-DB + `tenant_id` column + RLS + app-guard is the pragmatic winner.',
+    '',
+    '## Why Zod `.strict()` matters',
+    '',
+    'Without `.strict()`, an attacker can send `{ "email": "...", "role": "admin" }` to a route that only expects `{ "email": "..." }`, and if that body is spread into a Supabase `.insert()` or `.update()` call, they have just granted themselves admin. This is the "mass assignment" vulnerability class. `.strict()` makes the Zod parse fail on any unknown key; the request is rejected at the guard before it reaches the DB.',
+    '',
+    'Alternatives considered: hand-written allowlists (rejected — error-prone and drifts from the schema); `.passthrough()` with manual `pick()` (rejected — same drift risk); runtime type-check libraries other than Zod (rejected — Zod is the ecosystem default and integrates with React Hook Form forms).',
+    '',
+    '## Why optimistic updates',
+    '',
+    'Loading-spinners during mutations are the single biggest UX-degradation in dashboard apps. Users click, wait 400ms, and perceive the app as slow — even though server-round-trip is intrinsically ~200-400ms and there is no fix for that. Optimistic updates flip the perception: the UI reacts instantly to the click, the server response arrives in the background, and only on failure does the UI roll back. This is TanStack Query\'s design center, not an add-on.',
+    '',
+    'Trade-off: optimistic-state is briefly wrong until the server confirms. For read-then-write-then-redisplay flows, the user sees the expected final state 99% of the time and a rollback-toast 1% of the time. Net UX: much better. Cost: `onMutate` + `onError` rollback logic per mutation, and `onSettled` to invalidate queries. We accept that cost for every mutation in this brief.',
+    '',
+    '## Why no new dependencies without flagging',
+    '',
+    'Every added npm package expands the supply-chain attack surface. The Vercel-ShinyHunters incident in early 2026 (threat-actor compromised developer accounts and published malicious updates to popular Next.js dependencies) made this rule much stickier. A new dependency is not forbidden — it just has to be justified in the agent\'s phase-report so a reviewer can evaluate whether it\'s worth the surface-expansion.',
+  ];
+
+  if (hasLocale(config, 'de')) {
+    extras.push(
+      '',
+      '## Why Umlaute-in-UI is a hard rule (German)',
+      '',
+      'German users perceive "Gruesse" (ASCII-fallback) as visibly incorrect — it triggers an immediate "this app was not made for Germans" reaction. DB-keys and URL-slugs use ASCII because legacy systems choke on UTF-8; UI strings never do in 2026. The grep-gate in the Quality-Gates section enforces this at build-time so the issue cannot ship to production.',
+    );
+  }
+
+  return [terse, ...extras].join('\n');
+}
+
+export function renderInstallationVerbose(
+  config: AegisConfig,
+  patterns: readonly LoadedPattern[],
+): string {
+  const terse = renderInstallation(config, patterns);
+  return [
+    terse,
+    '',
+    '**Why this install-order matters:**',
+    '',
+    '1. `create-next-app` first establishes the baseline `tsconfig.json`, `next.config.ts`, and `tailwind.config.ts`. Running `shadcn init` before this would fail because shadcn needs those files to exist.',
+    '2. Core deps before dev-deps keeps one error-surface per step. If `@supabase/ssr` fails to resolve, you see it immediately — not buried under a vitest install failure.',
+    '3. `supabase init` before migrations so the `supabase/` directory structure exists for patterns to write into.',
+    '4. `shadcn init --force` is safe here because the project is empty; the force-flag only overwrites shadcn\'s own config. Use the default theme or replace it with your brand-tokens after step 6.',
+    '5. Shadcn components are installed in one batch so there is exactly one "installed X components" summary, not 30 of them. The CLI handles missing components gracefully — removing a component-name from the list if you don\'t need it only removes that one file.',
+    '',
+    '**Alternatives considered:** global installs (rejected — pins project to one version of each tool); `pnpm create next-app` (rejected — we don\'t require pnpm for scaffolded projects, only the monorepo uses it); `yarn dlx shadcn add` (rejected — mixing package-managers is a bug-source in multi-agent workflows). `npx` + `npm install` is the minimum-common-denominator that works for every agent.',
+  ].join('\n');
+}
+
+export function renderDatabaseSchemaVerbose(
+  patterns: readonly LoadedPattern[],
+): string {
+  const terse = renderDatabaseSchema(patterns);
+  const tenancyPat = patterns.find((p) => p.frontmatter.name === 'multi-tenant-supabase');
+  const dsgvoPat = patterns.find((p) => p.frontmatter.name === 'dsgvo-kit');
+  const extras: string[] = [
+    '',
+    '**Why migrations-in-this-order:**',
+    '',
+    'Migrations are numbered and applied in strict order. The numbering is not cosmetic — later migrations reference earlier ones via foreign-key. The `00001_base_tenants_profiles.sql` migration MUST be applied first because every downstream migration expects the `tenants` and `profiles` tables to exist.',
+    '',
+  ];
+
+  if (tenancyPat) {
+    extras.push(
+      '**Key tables from `00001_base_tenants_profiles.sql`:**',
+      '',
+      '- `tenants` — root-of-ownership table. Every other domain-table foreign-keys into this. Columns: `id uuid primary key`, `name text`, `slug text unique`, `is_active boolean`, timestamps.',
+      '- `profiles` — one row per authenticated user, keyed by `id uuid` that matches `auth.users.id`. Columns: `id`, `tenant_id`, `role`, `full_name`, timestamps. NO email / phone / address columns (those live in `auth.users` — DSGVO-by-design).',
+      '',
+      '**Key triggers:** `on_auth_user_created` (auto-creates a profile when a new auth.users row appears), `profiles_touch_updated_at` (maintains the `updated_at` timestamp on mutation).',
+      '',
+      '**RLS policies:** both tables have RLS enabled. Policies filter by `auth.uid()` plus role — e.g. users can read their own profile; admins can read all profiles in their tenant; service-role (server-side only) bypasses RLS entirely.',
+      '',
+    );
+  }
+
+  if (dsgvoPat) {
+    extras.push(
+      '**Key tables from `00010_dsgvo.sql`:**',
+      '',
+      '- `user_consents` — versioned consent records. Columns: `user_id`, `consent_version`, `given_at`, `revoked_at`. Append-only via trigger — previous consents are never deleted, only superseded. Supports "at time T, what did user X consent to" queries for audit.',
+      '- `deletion_queue` — DSGVO Art-17 erasure pipeline. When a user requests account-deletion, a row is inserted with `scheduled_for = now + 30 days`. A pg_cron job runs `process_deletion_queue()` hourly and actually deletes the account on-schedule. The 30-day window lets users cancel the deletion; after that, it is irreversible.',
+      '- `audit_log` — append-only log of every sensitive action. Columns: `tenant_id`, `actor_id`, `event_type`, `resource`, `metadata`, `created_at`. Cannot be UPDATEed or DELETEed — enforced by trigger.',
+      '',
+      '**Why pg_cron for deletion-queue:** DSGVO requires the deletion to actually happen, not just be queued. pg_cron is the Supabase-native scheduler; external cron (e.g. Vercel cron) would work too but adds an extra failure-surface. Pg_cron runs inside the database so it cannot silently stop.',
+      '',
+    );
+  }
+
+  extras.push(
+    '**Alternatives considered:** Drizzle ORM migrations (rejected — Supabase CLI migrations are closer to the metal and easier to review for security); Prisma (rejected — doesn\'t support RLS policy-management cleanly); raw psql scripts (rejected — no diff-checking against production schema).',
+  );
+
+  return [terse, ...extras].join('\n');
+}
+
+export function renderPagesInventoryVerbose(config: AegisConfig): string {
+  const terse = renderPagesInventory(config);
+  return [
+    terse,
+    '',
+    '**Why this page-split (public / admin / auth):**',
+    '',
+    '- **Public pages** live at the app root and are accessible without authentication. They are SEO-targets and must render with minimal JS. Use React Server Components for all public pages by default; opt into "use client" only when a specific interaction demands it (e.g. cookie-banner).',
+    '- **Auth pages** are public by definition (the user isn\'t logged in yet) but share layout with the admin section so the visual transition from "logging in" to "logged in" is seamless. The `/auth/callback` page is the OAuth redirect target — it runs server-side to exchange the code for a session without exposing tokens to the client.',
+    '- **Admin pages** live under `/admin` (or `/[locale]/admin` if i18n) and require authentication + role-check via middleware. The sidebar navigation is the single source of truth for what pages exist — adding a new page means updating the sidebar.',
+    '',
+    '**Alternatives considered:** mixing admin and public at the root (rejected — hurts middleware-clarity); `/dashboard` instead of `/admin` (rejected — "admin" is clearer about role-requirements); nested dynamic-locales like `/de/admin` (adopted when i18n pattern selected; skipped otherwise).',
+  ].join('\n');
+}
+
+export function renderComponentCatalogVerbose(
+  patterns: readonly LoadedPattern[],
+): string {
+  const terse = renderComponentCatalog(patterns);
+  return [
+    terse,
+    '',
+    '**Why shadcn/ui and not a component-library:**',
+    '',
+    'shadcn/ui components are installed INTO your project (not as an npm dependency). You own every file, you can modify every file, and there is no black-box upgrade-risk. The trade-off is that breaking-changes in shadcn-upstream don\'t auto-propagate — but for security-sensitive SaaS that\'s a feature, not a bug.',
+    '',
+    '**Alternatives considered:** Material UI (rejected — heavy, opinionated, hard to brand); Chakra UI (rejected — CSS-in-JS perf issues); Mantine (rejected — similar trade-offs to MUI); custom from-scratch (rejected — 6 months of work before you ship anything). shadcn/ui is the pragmatic winner for 2026.',
+  ].join('\n');
+}
+
+export function renderApiRoutesVerbose(patterns: readonly LoadedPattern[]): string {
+  const terse = renderApiRoutes(patterns);
+  return [
+    terse,
+    '',
+    '**Why the convention matters:**',
+    '',
+    'The `secureApiRouteWithTenant` + `requireRole` + `BodySchema.parse` three-step is the architectural backbone of every authenticated API route in an AEGIS-scaffolded project. Each step handles one failure-class:',
+    '',
+    '- `secureApiRouteWithTenant` — authenticates the request and extracts `tenantId` from the session. Throws 401 if no session, 403 if session has no tenant (impossible after signup, but defense-in-depth).',
+    '- `requireRole(context, [...])` — checks the authenticated user\'s role against the allow-list. Throws `ForbiddenError` (maps to 403) if the check fails. The role-list is intentionally in the route file, not a separate config — it makes the access-policy visible at-code-review-time.',
+    '- `BodySchema.parse(await request.json())` — validates the request-body with Zod `.strict()`. Unknown keys throw (mass-assignment protection). Type-mismatches throw. The parsed value is fully-typed downstream.',
+    '',
+    'The outer `try/catch` maps `AppError` subclasses to HTTP status codes and logs via `logger.*` (never `console.*`). Unhandled errors return 500 with a generic message — the full error is logged but never exposed to the client (information-disclosure prevention).',
+    '',
+    '**Alternatives considered:** tRPC (rejected — adds a learning curve and our patterns map 1:1 to Next.js route handlers); GraphQL (rejected — over-kill for a typical SaaS CRUD layer); Server Actions only (partially-adopted for form-submissions, but not for third-party webhook-consumers or admin-API surfaces).',
+  ].join('\n');
+}
+
+export function renderBuildOrderVerbose(patterns: readonly LoadedPattern[]): string {
+  const terse = renderBuildOrder(patterns);
+  return [
+    terse,
+    '',
+    '**Why this build-order (Phase 1 → Phase 10):**',
+    '',
+    'Each phase builds on the previous phase\'s gate. Skipping a phase or running them out-of-order produces subtle bugs that are very expensive to debug later:',
+    '',
+    '- **Foundation before middleware** — middleware.ts imports `tenant-guard`, which imports `supabase/server.ts`. Without the foundation files in place, middleware fails at import-time, not at runtime.',
+    '- **Middleware before auth pages** — auth pages redirect through middleware; without middleware, the redirects are silent no-ops.',
+    '- **DSGVO after i18n** — DSGVO pages need translated strings for the cookie-banner and account-deletion UI. Adding DSGVO before i18n means re-writing those strings.',
+    '- **Admin shell after all backend routes** — the shell is UI-only and tests nothing about the backend. Building it early creates the illusion of progress without any actual coverage.',
+    '- **Testing before CI** — CI runs the tests. If the tests don\'t exist, CI has nothing to run and the pipeline appears green vacuously.',
+    '- **Deployment-config last** — Dockerfile / Vercel config depends on the final shape of `next.config.ts`, which can change up through Phase 6. Writing Docker early means re-writing it.',
+    '',
+    '**Rationale for 90-minute phase-budget:** 90min is long enough to finish a non-trivial phase with tests + gate, short enough to catch scope-creep early. If a phase is taking 3h, something is wrong — either the pattern is missing documentation or the agent misread a step. Halt and ask.',
+  ].join('\n');
+}
+
+export function renderQualityGatesVerbose(config: AegisConfig): string {
+  const terse = renderQualityGates(config);
+  return [
+    terse,
+    '',
+    '**Why each gate exists:**',
+    '',
+    '- `npm run build` — catches type-errors and missing imports that TS\'s language-server sometimes misses during incremental editing. Exit 0 is the baseline-truth: if the project doesn\'t build, nothing else matters.',
+    '- `npx tsc --noEmit` — stricter than `next build` because it checks test files too. Catches test-file type-errors that would otherwise only surface when you run the test suite.',
+    '- `npx next lint` — enforces Next.js-specific rules (no `<a>` for internal links, no raw `<img>`, etc.) on top of ESLint\'s defaults.',
+    '- `npm run test` — runs the Vitest suite. Fast feedback-loop. Every new feature should add at least one test here before shipping.',
+    '- `npm run test:e2e` — Playwright against a dev-server. Slow but catches integration issues (auth flow, middleware redirects, multi-tenant isolation).',
+    '- `npx aegis scan .` — the security-grade gate. Score >= 960 is the AEGIS quality-bar; < 900 indicates something serious (missing auth guard, service-role leak, SQL injection, etc.).',
+    '- `npx react-doctor@latest .` — component-level quality gate. Score >= 93 catches common React anti-patterns (uncontrolled inputs, key-less lists, over-sized components).',
+    '',
+    '**Rationale for grep-based gates:** the Umlaut-check, placeholder-leak check, and DSGVO PII-check all use `grep` because they\'re cheap, fast, and zero-dependency. A full AST-parse for any of these would be overkill. If a grep produces a false-positive, update the pattern (add a comment-marker) rather than loosening the gate.',
+    '',
+    '**Alternatives considered:** skip gates in CI, run only locally (rejected — local gates are easy to bypass in a rush); run gates inline-on-save (adopted partially via husky pre-commit, but not for everything because pre-commit gets too slow past ~5 gates).',
+  ].join('\n');
+}
+
+export function renderDsgvoChecklistVerbose(config: AegisConfig): string | null {
+  if (config.compliance.dsgvo_kit !== true) return null;
+  const terse = renderDsgvoChecklist(config);
+  return [
+    terse,
+    '',
+    '**Why this checklist is NON-NEGOTIABLE for DE/EU operators:**',
+    '',
+    'German and EU operators are legally required under DSGVO (GDPR) to:',
+    '',
+    '- Obtain informed consent before dropping non-essential cookies (cookie-banner)',
+    '- Provide data-export on request (Art-15 "right to access")',
+    '- Provide account-deletion with a 30-day grace period (Art-17 "right to erasure")',
+    '- Store PII minimally (data-minimization principle) — email lives in `auth.users`, not in `profiles`',
+    '- Maintain an audit-log of sensitive operations (Art-32 "security of processing")',
+    '- Log without leaking PII (Art-5 "accuracy + confidentiality")',
+    '',
+    'Penalty for non-compliance: up to 4% of annual global revenue or 20M EUR, whichever is greater. Enforcement is active (CNIL fined Google 150M EUR in 2022 for cookie-consent violations; AEPD fines are common for Spanish SaaS).',
+    '',
+    '**Alternatives considered:** GDPR-compliance-as-a-service (Iubenda, Cookiebot — rejected because they are paid monthly subscriptions and don\'t cover account-deletion flows); manual legal-team review (adopted as a final step — this pattern gives 95% compliance, the last 5% is country-specific legal-team sign-off).',
+  ].join('\n');
+}
+
+export function renderEnvVarsVerbose(
+  config: AegisConfig,
+  patterns: readonly LoadedPattern[],
+): string {
+  const terse = renderEnvVars(config, patterns);
+  return [
+    terse,
+    '',
+    '**Why each env-var category:**',
+    '',
+    '- **Supabase block** — `NEXT_PUBLIC_*` vars ship to the client; `SUPABASE_SERVICE_ROLE_KEY` stays server-only (never prefixed with `NEXT_PUBLIC_`). Leaking the service-role-key bypasses every RLS policy in your database — treat it like an AWS root-key.',
+    '- **App config** — `TRUSTED_PROXY_COUNT` tells the rate-limiter which `X-Forwarded-For` hop to trust. Wrong values here let an attacker spoof their IP and bypass rate-limiting.',
+    '- **SMTP block (if email-provider is set)** — transactional email credentials. Store in a secret-manager in production (Vercel env / Dokploy secrets / AWS SSM), never commit to git.',
+    '- **Encryption-key (if logger-pii-safe adopted)** — 32 hex-bytes for AES-256-GCM encryption-at-rest. Generate once with `openssl rand -hex 32` and rotate on compromise.',
+    '',
+    '**Rationale for `.env.production.example`:** shipping an example-file with the keys (but not values) in the repo saves every deployer 30-60min of figuring out what secrets are needed. The `.example` suffix prevents accidental load at dev-time.',
+  ].join('\n');
+}
+
+export function renderPostBuildReportTemplateVerbose(): string {
+  const terse = renderPostBuildReportTemplate();
+  return [
+    terse,
+    '',
+    '**Why POST-BUILD-REPORT.md matters:**',
+    '',
+    'The report is the artifact that survives after the agent-run finishes. It captures three things the git-history alone doesn\'t:',
+    '',
+    '1. **Timing** — which phase took how long. Useful when tuning the wizard\'s phase-estimates.',
+    '2. **Follow-ups** — the "known limitations" section is the first place a human-reviewer looks when taking over the project. Omitting it means the next person discovers issues in production.',
+    '3. **User-actions-needed** — some steps (Supabase dashboard configuration, pg_cron enablement, SMTP credential provisioning) cannot be done by the agent and MUST be done by a human before the app is production-ready. Surfacing them in one place prevents "works-on-localhost, broken-in-prod" incidents.',
+    '',
+    '**Alternatives considered:** skip the report (rejected — hard-to-audit handover); put it in a Notion doc (rejected — splits the project artifacts); auto-generate from git-log (rejected — git-log doesn\'t capture follow-ups or user-actions). A committed .md file in the repo is the pragmatic compromise.',
+  ].join('\n');
+}
+
+export function renderFooterVerbose(
+  config: AegisConfig,
+  patterns: readonly LoadedPattern[],
+): string {
+  const terse = renderFooter(config, patterns);
+  return [
+    terse,
+    '',
+    '**Why this verbose-mode exists:**',
+    '',
+    'The terse brief is optimized for fast agent-execution — minimum tokens, maximum signal. The verbose brief is optimized for human-review and agent-understanding in edge cases. Same patterns, same commands, just with the rationale made explicit.',
+    '',
+    'Switch with `--verbose-brief` or `--no-verbose-brief` (terse is default). Both modes produce functionally-equivalent scaffolds; the difference is in the explanation density.',
+  ].join('\n');
+}

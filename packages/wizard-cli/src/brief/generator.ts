@@ -2,9 +2,19 @@
  * Brief-generator - composes an AegisConfig plus resolved patterns into
  * an agent-consumable Markdown brief.
  *
- * Day-2 implements terse English rendering only. --verbose-brief and
- * --lang=de are Day-3 scope and intentionally throw if requested here so
- * no caller accidentally ships pre-Day-3 output.
+ * Tone dimension (Day-2 + Day-3):
+ *   - tone=terse (default) — minimum-token brief optimized for fast
+ *     agent-execution
+ *   - tone=verbose (Day-3) — same structure plus prose + rationale +
+ *     alternatives-considered for human-review and edge-case agent-runs
+ *
+ * Lang dimension (Day-2 + Day-3):
+ *   - lang=en (default) — English output
+ *   - lang=de (Day-3) — German output via i18n translation-layer
+ *
+ * The two dimensions are orthogonal: all 4 matrix combinations (terse+en,
+ * terse+de, verbose+en, verbose+de) produce equivalent-semantic scaffolds
+ * at different verbosity + language.
  *
  * After all sections are joined the whole string is run through the
  * substitute engine with reserved placeholders (PROJECT_NAME, APP_NAME,
@@ -35,6 +45,20 @@ import {
   renderEnvVars,
   renderPostBuildReportTemplate,
   renderFooter,
+  renderHeaderVerbose,
+  renderAgentInstructionsVerbose,
+  renderCoreRulesVerbose,
+  renderInstallationVerbose,
+  renderDatabaseSchemaVerbose,
+  renderPagesInventoryVerbose,
+  renderComponentCatalogVerbose,
+  renderApiRoutesVerbose,
+  renderBuildOrderVerbose,
+  renderQualityGatesVerbose,
+  renderDsgvoChecklistVerbose,
+  renderEnvVarsVerbose,
+  renderPostBuildReportTemplateVerbose,
+  renderFooterVerbose,
 } from './sections.js';
 
 // ============================================================================
@@ -59,29 +83,41 @@ export function generateBrief(
   patterns: readonly LoadedPattern[],
   opts: BriefGenerateOptions = {},
 ): string {
-  if (opts.tone === 'verbose') {
-    throw new Error('verbose-tone brief-rendering is scheduled for v0.17 Day-3');
-  }
-  if (opts.lang === 'de') {
-    throw new Error('German-language brief-rendering is scheduled for v0.17 Day-3');
-  }
+  const verbose = opts.tone === 'verbose';
 
-  const sections: Array<string | null> = [
-    renderHeader(config, patterns),
-    renderAgentInstructions(),
-    renderCoreRules(config),
-    renderInstallation(config, patterns),
-    renderDatabaseSchema(patterns),
-    renderPagesInventory(config),
-    renderComponentCatalog(patterns),
-    renderApiRoutes(patterns),
-    renderBuildOrder(patterns),
-    renderQualityGates(config),
-    renderDsgvoChecklist(config),
-    renderEnvVars(config, patterns),
-    renderPostBuildReportTemplate(),
-    renderFooter(config, patterns),
-  ];
+  const sections: Array<string | null> = verbose
+    ? [
+        renderHeaderVerbose(config, patterns),
+        renderAgentInstructionsVerbose(),
+        renderCoreRulesVerbose(config),
+        renderInstallationVerbose(config, patterns),
+        renderDatabaseSchemaVerbose(patterns),
+        renderPagesInventoryVerbose(config),
+        renderComponentCatalogVerbose(patterns),
+        renderApiRoutesVerbose(patterns),
+        renderBuildOrderVerbose(patterns),
+        renderQualityGatesVerbose(config),
+        renderDsgvoChecklistVerbose(config),
+        renderEnvVarsVerbose(config, patterns),
+        renderPostBuildReportTemplateVerbose(),
+        renderFooterVerbose(config, patterns),
+      ]
+    : [
+        renderHeader(config, patterns),
+        renderAgentInstructions(),
+        renderCoreRules(config),
+        renderInstallation(config, patterns),
+        renderDatabaseSchema(patterns),
+        renderPagesInventory(config),
+        renderComponentCatalog(patterns),
+        renderApiRoutes(patterns),
+        renderBuildOrder(patterns),
+        renderQualityGates(config),
+        renderDsgvoChecklist(config),
+        renderEnvVars(config, patterns),
+        renderPostBuildReportTemplate(),
+        renderFooter(config, patterns),
+      ];
 
   const rendered = sections
     .filter((s): s is string => s !== null)

@@ -1,5 +1,5 @@
 /**
- * `aegis-wizard new <project-name>` - Day-2 surface.
+ * `aegis-wizard new <project-name>` - Day-2 + Day-3 surface.
  *
  * Flags:
  *   --interactive             (default) run the Tier-1 wizard
@@ -7,6 +7,8 @@
  *   --config <file>           path to pre-filled aegis.config.json
  *   --output-dir <dir>        where to write (default: ./<project-name>)
  *   --output-mode <mode>      brief | scaffold | both (default: both)
+ *   --verbose-brief           emit verbose brief with prose + rationale
+ *   --lang <lang>             en (default) | de — brief output language
  *
  * Exit codes:
  *   0 - config (and/or brief) written OK
@@ -31,6 +33,7 @@ export const EXIT_WRITE_FAILURE = 2;
 export const EXIT_SCHEMA_ERROR = 3;
 
 export type OutputMode = 'brief' | 'scaffold' | 'both';
+export type BriefLang = 'en' | 'de';
 
 export interface NewOptions {
   interactive?: boolean;
@@ -38,6 +41,8 @@ export interface NewOptions {
   config?: string;
   outputDir?: string;
   outputMode?: string;
+  verboseBrief?: boolean;
+  lang?: string;
   /** Optional override for pattern-directory root, used by tests and cross-install setups. */
   patternsDir?: string;
 }
@@ -45,6 +50,7 @@ export interface NewOptions {
 const NAME_REGEX = /^[a-z][a-z0-9-]*$/;
 const MAX_NAME_LENGTH = 64;
 const VALID_OUTPUT_MODES: readonly OutputMode[] = ['brief', 'scaffold', 'both'];
+const VALID_LANGS: readonly BriefLang[] = ['en', 'de'];
 
 function validateProjectName(name: string): string | null {
   if (!name) return 'project name is required';
@@ -58,6 +64,12 @@ function validateProjectName(name: string): string | null {
 function normalizeOutputMode(value: string | undefined): OutputMode | null {
   if (!value) return 'both';
   if (VALID_OUTPUT_MODES.includes(value as OutputMode)) return value as OutputMode;
+  return null;
+}
+
+function normalizeLang(value: string | undefined): BriefLang | null {
+  if (!value) return 'en';
+  if (VALID_LANGS.includes(value as BriefLang)) return value as BriefLang;
   return null;
 }
 
@@ -95,6 +107,17 @@ export async function runNew(name: string, options: NewOptions = {}): Promise<nu
     console.error(
       chalk.red(
         `Error: --output-mode must be one of ${VALID_OUTPUT_MODES.join(', ')}; got "${options.outputMode}"`,
+      ),
+    );
+    return EXIT_USER_ERROR;
+  }
+
+  // 2b. Validate lang
+  const lang = normalizeLang(options.lang);
+  if (!lang) {
+    console.error(
+      chalk.red(
+        `Error: --lang must be one of ${VALID_LANGS.join(', ')}; got "${options.lang}"`,
       ),
     );
     return EXIT_USER_ERROR;
@@ -158,7 +181,8 @@ export async function runNew(name: string, options: NewOptions = {}): Promise<nu
   }));
 
   // 6. Emit outputs per mode
-  return writeOutputs(name, options, config, selectedPatterns, mode);
+  const verbose = options.verboseBrief === true;
+  return writeOutputs(name, options, config, selectedPatterns, mode, lang, verbose);
 }
 
 function writeOutputs(
@@ -167,6 +191,8 @@ function writeOutputs(
   config: AegisConfig,
   patterns: readonly import('../patterns/loader.js').LoadedPattern[],
   mode: OutputMode,
+  lang: BriefLang,
+  verbose: boolean,
 ): number {
   const outDirRaw = options.outputDir ?? `./${name}`;
   const outDir = isAbsolute(outDirRaw) ? outDirRaw : resolve(process.cwd(), outDirRaw);
@@ -197,7 +223,10 @@ function writeOutputs(
   if (mode === 'both' || mode === 'brief') {
     let briefMd: string;
     try {
-      briefMd = generateBrief(config, patterns, { tone: 'terse', lang: 'en' });
+      briefMd = generateBrief(config, patterns, {
+        tone: verbose ? 'verbose' : 'terse',
+        lang,
+      });
     } catch (err) {
       console.error(chalk.red('Error: brief-generation failed.'));
       console.error(chalk.dim((err as Error).message));

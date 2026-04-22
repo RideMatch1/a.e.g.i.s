@@ -36,6 +36,8 @@ program
   .option('-c, --config <file>', 'Path to a pre-filled aegis.config.json (for --non-interactive)')
   .option('-o, --output-dir <dir>', 'Where to write emitted files (default: ./<project-name>)')
   .option('-m, --output-mode <mode>', 'brief | scaffold | both (default: both)', 'both')
+  .option('-v, --verbose-brief', 'Emit a verbose brief with prose + rationale (default: terse)')
+  .option('-l, --lang <lang>', 'Brief language: en (default) | de', 'en')
   .action(
     async (
       name: string,
@@ -45,6 +47,8 @@ program
         config?: string;
         outputDir?: string;
         outputMode?: string;
+        verboseBrief?: boolean;
+        lang?: string;
       },
     ) => {
       process.exit(await runNew(name, options));
