@@ -1,5 +1,8 @@
 /**
- * `aegis-wizard new <project-name>` - Day-2 + Day-3 surface.
+ * `aegis-wizard new <project-name>` — main CLI entry for scaffold
+ * emission. Runs the Tier-1 wizard (or reads a pre-filled config in
+ * non-interactive mode) and writes the resulting aegis.config.json and
+ * agent-brief into the output directory.
  *
  * Flags:
  *   --interactive             (default) run the Tier-1 wizard

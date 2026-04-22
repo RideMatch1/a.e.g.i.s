@@ -378,7 +378,7 @@ grep -rn "console\." src/lib src/app/api --include="*.ts" | grep -v "logger.ts"
 # expect: only inside logger.ts itself
 
 # AEGIS scan
-npx aegis scan . --focus logging
+npx -y @aegis-scan/cli scan . --focus logging
 ```
 
 ---

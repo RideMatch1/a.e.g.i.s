@@ -369,7 +369,7 @@ describe('filterSensitiveFields', () => {
 
 ```bash
 npm run test -- require-role    # expect all pass
-npx aegis scan .                 # expect score ≥ 970
+npx -y @aegis-scan/cli scan .                 # expect score ≥ 970
 grep -rn "requireRole" src/app/api | wc -l   # expect non-zero (every sensitive route)
 ```
 

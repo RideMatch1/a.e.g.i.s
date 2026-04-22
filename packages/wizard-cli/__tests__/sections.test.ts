@@ -276,7 +276,7 @@ describe('renderQualityGates', () => {
 
   it('always includes aegis scan and react-doctor gates', () => {
     const out = renderQualityGates(buildConfig());
-    expect(out).toContain('npx aegis scan');
+    expect(out).toContain('npx -y @aegis-scan/cli scan');
     expect(out).toContain('react-doctor');
   });
 

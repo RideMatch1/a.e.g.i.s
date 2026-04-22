@@ -527,7 +527,7 @@ export function renderBuildOrder(patterns: readonly LoadedPattern[], lang: Brief
     `4. **${k('gate')}:** \`npm run test\` plus \`npm run test:e2e\` both pass`,
     '',
     `## ${k('phase_8_cicd')}`,
-    '1. Create `.github/workflows/ci.yml` with checkout, setup-node, npm ci, npm run build, npm run test, npx aegis scan',
+    '1. Create `.github/workflows/ci.yml` with checkout, setup-node, npm ci, npm run build, npm run test, npx -y @aegis-scan/cli scan',
     `2. **${k('gate')}:** Commit triggers CI; build plus tests plus aegis-scan all green`,
     '',
     `## ${k('phase_9_deploy')}`,
@@ -561,7 +561,7 @@ export function renderQualityGates(config: AegisConfig, lang: BriefLang = 'en'):
     'npx next lint                   # expect 0 errors',
     'npm run test                    # expect all pass',
     'npm run test:e2e                # expect golden-path green',
-    'npx aegis scan .                # expect score >= 960, grade A, 0 critical',
+    'npx -y @aegis-scan/cli scan .                # expect score >= 960, grade A, 0 critical',
     'npx -y react-doctor@latest .    # expect score >= 93',
   ];
 
@@ -963,7 +963,7 @@ export function renderQualityGatesVerbose(config: AegisConfig, lang: BriefLang =
     '- `npx next lint` — enforces Next.js-specific rules (no `<a>` for internal links, no raw `<img>`, etc.) on top of ESLint\'s defaults.',
     '- `npm run test` — runs the Vitest suite. Fast feedback-loop. Every new feature should add at least one test here before shipping.',
     '- `npm run test:e2e` — Playwright against a dev-server. Slow but catches integration issues (auth flow, middleware redirects, multi-tenant isolation).',
-    '- `npx aegis scan .` — the security-grade gate. Score >= 960 is the AEGIS quality-bar; < 900 indicates something serious (missing auth guard, service-role leak, SQL injection, etc.).',
+    '- `npx -y @aegis-scan/cli scan .` — the security-grade gate. Score >= 960 is the AEGIS quality-bar; < 900 indicates something serious (missing auth guard, service-role leak, SQL injection, etc.).',
     '- `npx react-doctor@latest .` — component-level quality gate. Score >= 93 catches common React anti-patterns (uncontrolled inputs, key-less lists, over-sized components).',
     '',
     '**Rationale for grep-based gates:** the Umlaut-check, placeholder-leak check, and DSGVO PII-check all use `grep` because they\'re cheap, fast, and zero-dependency. A full AST-parse for any of these would be overkill. If a grep produces a false-positive, update the pattern (add a comment-marker) rather than loosening the gate.',

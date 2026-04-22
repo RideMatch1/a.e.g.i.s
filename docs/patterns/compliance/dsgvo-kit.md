@@ -720,7 +720,7 @@ npm run test -- dsgvo
 npm run test:e2e -- dsgvo
 
 # AEGIS scan
-npx aegis scan . --focus dsgvo
+npx -y @aegis-scan/cli scan . --focus dsgvo
 # expect: 0 critical compliance-findings
 
 # Manual check:

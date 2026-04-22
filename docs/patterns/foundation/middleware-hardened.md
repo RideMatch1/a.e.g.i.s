@@ -511,7 +511,7 @@ curl -I http://localhost:3000
 # expect: Content-Security-Policy, Strict-Transport-Security, X-Frame-Options, etc.
 
 # AEGIS scan verifies headers in code
-npx aegis scan . --focus security-headers
+npx -y @aegis-scan/cli scan . --focus security-headers
 ```
 
 ---

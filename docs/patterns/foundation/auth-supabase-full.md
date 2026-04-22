@@ -742,7 +742,7 @@ test('login-flow: valid credentials redirect to dashboard', async ({ page }) => 
 ```bash
 npm run build             # expect exit 0
 npm run test -- auth      # expect all pass
-npx aegis scan .          # expect score ≥ 970, 0 critical
+npx -y @aegis-scan/cli scan .          # expect score ≥ 970, 0 critical
 ```
 
 Verify manually:
