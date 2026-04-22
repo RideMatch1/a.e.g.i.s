@@ -21,6 +21,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
+import { confirm, isCancel } from '@clack/prompts';
 import { AegisConfigSchema, type AegisConfig } from '../wizard/schema.js';
 import { runWizard } from '../wizard/flow.js';
 import { loadAllPatterns } from '../patterns/loader.js';
@@ -45,6 +46,8 @@ export interface NewOptions {
   lang?: string;
   /** Optional override for pattern-directory root, used by tests and cross-install setups. */
   patternsDir?: string;
+  /** Skip the clobber-check on existing output files and overwrite unconditionally. */
+  force?: boolean;
 }
 
 const NAME_REGEX = /^[a-z][a-z0-9-]*$/;
@@ -209,7 +212,7 @@ export async function runNew(name: string, options: NewOptions = {}): Promise<nu
   return writeOutputs(name, options, config, selectedPatterns, mode, lang, verbose);
 }
 
-function writeOutputs(
+async function writeOutputs(
   name: string,
   options: NewOptions,
   config: AegisConfig,
@@ -217,7 +220,7 @@ function writeOutputs(
   mode: OutputMode,
   lang: BriefLang,
   verbose: boolean,
-): number {
+): Promise<number> {
   const outDirRaw = options.outputDir ?? `./${name}`;
   const outDir = isAbsolute(outDirRaw) ? outDirRaw : resolve(process.cwd(), outDirRaw);
 
@@ -233,6 +236,15 @@ function writeOutputs(
 
   const configPath = join(outDir, 'aegis.config.json');
   const briefPath = join(outDir, `${config.identity.project_name}-brief.md`);
+
+  const wouldWrite: string[] = [];
+  if (mode === 'both' || mode === 'scaffold') wouldWrite.push(configPath);
+  if (mode === 'both' || mode === 'brief') wouldWrite.push(briefPath);
+
+  const clobberResult = await resolveOverwritePolicy(options, wouldWrite);
+  if (clobberResult === 'abort') {
+    return EXIT_USER_ERROR;
+  }
 
   if (mode === 'both' || mode === 'scaffold') {
     try {
@@ -283,4 +295,48 @@ function writeOutputs(
   }
   console.log('');
   return EXIT_OK;
+}
+
+/**
+ * Decide how the output writer handles already-existing target files.
+ *
+ * Four outcomes, in decreasing preference order:
+ *   1. No existing files intersect the write-set → proceed.
+ *   2. options.force is set → proceed, overwriting unconditionally.
+ *   3. Non-interactive caller without --force → abort with a pointer
+ *      to --force so CI scripts fail loudly rather than silently
+ *      clobbering a user's work.
+ *   4. Interactive caller → prompt via @clack/prompts; confirm-yes
+ *      proceeds, confirm-no or Ctrl-C aborts.
+ *
+ * Returns a discriminated value rather than a boolean so the caller
+ * can map 'abort' onto EXIT_USER_ERROR without re-guessing why we
+ * stopped.
+ */
+async function resolveOverwritePolicy(
+  options: NewOptions,
+  paths: readonly string[],
+): Promise<'proceed' | 'abort'> {
+  const existing = paths.filter((p) => existsSync(p));
+  if (existing.length === 0) return 'proceed';
+  if (options.force === true) return 'proceed';
+
+  if (options.nonInteractive === true) {
+    console.error(chalk.red('Error: refusing to overwrite existing output files:'));
+    for (const p of existing) console.error(chalk.red(`  ${p}`));
+    console.error(
+      chalk.dim('Pass --force to override, or choose a different --output-dir.'),
+    );
+    return 'abort';
+  }
+
+  const response = await confirm({
+    message: `Overwrite existing file(s)?\n  ${existing.join('\n  ')}`,
+    initialValue: false,
+  });
+  if (isCancel(response) || response === false) {
+    console.error(chalk.red('Aborted: existing output files left intact.'));
+    return 'abort';
+  }
+  return 'proceed';
 }

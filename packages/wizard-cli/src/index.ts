@@ -38,6 +38,7 @@ program
   .option('-m, --output-mode <mode>', 'brief | scaffold | both (default: both)', 'both')
   .option('-v, --verbose-brief', 'Emit a verbose brief with prose + rationale (default: terse)')
   .option('-l, --lang <lang>', 'Brief language: en (default) | de', 'en')
+  .option('-f, --force', 'Overwrite existing output files without prompting')
   .action(
     async (
       name: string,
@@ -49,6 +50,7 @@ program
         outputMode?: string;
         verboseBrief?: boolean;
         lang?: string;
+        force?: boolean;
       },
     ) => {
       process.exit(await runNew(name, options));
