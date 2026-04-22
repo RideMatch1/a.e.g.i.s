@@ -7,6 +7,9 @@
  *   - Missing required Tier-1 fields are rejected
  *   - Wrong types on key enums are rejected
  *   - Regex-gated fields (project_name, aegis_version) enforced
+ *
+ * Plus the cross-field refine added for bug 008:
+ *   - localization.default_locale must be a member of localization.locales
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -237,5 +240,59 @@ describe('Tier-1 questions catalog', () => {
     for (const id of expected) {
       expect(TIER_1_IDS).toContain(id);
     }
+  });
+});
+
+// ----------------------------------------------------------------------------
+// Cross-field refine: localization.default_locale must be in localization.locales
+// (bug 008 backstop — catches configs produced outside the interactive flow)
+// ----------------------------------------------------------------------------
+
+describe('AegisConfigSchema locale-consistency refine', () => {
+  it('accepts the default configuration (locales=[de,en], default_locale=de)', () => {
+    // VALID_TIER_1 relies on Zod defaults for localization entirely
+    expect(() => AegisConfigSchema.parse(VALID_TIER_1)).not.toThrow();
+  });
+
+  it('accepts fr-only locales when default_locale is also fr', () => {
+    const input = {
+      ...VALID_TIER_1,
+      localization: { locales: ['fr'], default_locale: 'fr' },
+    };
+    expect(() => AegisConfigSchema.parse(input)).not.toThrow();
+  });
+
+  it('accepts multi-locale with default matching one member', () => {
+    const input = {
+      ...VALID_TIER_1,
+      localization: { locales: ['en', 'fr'], default_locale: 'en' },
+    };
+    expect(() => AegisConfigSchema.parse(input)).not.toThrow();
+  });
+
+  it('rejects fr-only locales with en default (the literal bug 008 case)', () => {
+    const input = {
+      ...VALID_TIER_1,
+      localization: { locales: ['fr'], default_locale: 'en' },
+    };
+    expect(() => AegisConfigSchema.parse(input)).toThrow(/default_locale/);
+  });
+
+  it('rejects when Zod default_locale=de falls back but locales excludes de', () => {
+    // Hand-authored config with no explicit default_locale: Zod fills in 'de',
+    // but locales=['fr'] makes 'de' invalid. Bug 008 backstop.
+    const input = {
+      ...VALID_TIER_1,
+      localization: { locales: ['fr'] },
+    };
+    expect(() => AegisConfigSchema.parse(input)).toThrow(/default_locale/);
+  });
+
+  it('rejects when default_locale is a locale not even enumerated in the schema', () => {
+    const input = {
+      ...VALID_TIER_1,
+      localization: { locales: ['de'], default_locale: 'zh' },
+    };
+    expect(() => AegisConfigSchema.parse(input)).toThrow(/default_locale/);
   });
 });

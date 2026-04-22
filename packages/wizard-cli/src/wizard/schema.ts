@@ -400,7 +400,13 @@ export const AegisConfigSchema = z.object({
   brief_options: BriefOptionsSchema.default({}),
 
   selected_patterns: SelectedPatternsSchema.default([]),
-});
+}).refine(
+  (cfg) => cfg.localization.locales.some((l) => l === cfg.localization.default_locale),
+  {
+    message: 'localization.default_locale must be one of localization.locales',
+    path: ['localization', 'default_locale'],
+  },
+);
 
 export type AegisConfig = z.infer<typeof AegisConfigSchema>;
 export type ProjectIdentity = z.infer<typeof ProjectIdentitySchema>;

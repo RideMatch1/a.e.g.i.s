@@ -110,7 +110,7 @@ export async function runWizard(opts: RunWizardOptions): Promise<WizardResult> {
 
     localization: {
       locales: assertStringArray(answers.locales),
-      default_locale: assertStringArray(answers.locales).includes('de') ? 'de' : 'en',
+      default_locale: pickDefaultLocale(assertStringArray(answers.locales)),
       i18n_strategy: 'url-prefix',
     },
 
@@ -293,6 +293,22 @@ function deriveAppName(projectName: string): string {
 /** DSGVO-kit defaults ON for EU/DE/AT; OFF default for US/other. User can override. */
 function shouldEnableDsgvo(jurisdiction: string): boolean {
   return ['DE', 'EU', 'AT', 'CH'].includes(jurisdiction);
+}
+
+/**
+ * Pick default_locale deterministically from the user's selected locales.
+ * Preference order: 'de' > 'en' > first-selected. Guaranteed to return a
+ * locale that exists in the input array. The Zod refine on
+ * AegisConfigSchema is the backstop if an operator bypasses this helper
+ * via a hand-authored --config file.
+ */
+export function pickDefaultLocale(locales: string[]): string {
+  if (locales.length === 0) {
+    throw new Error('pickDefaultLocale requires at least one locale');
+  }
+  if (locales.includes('de')) return 'de';
+  if (locales.includes('en')) return 'en';
+  return locales[0];
 }
 
 function buildTheme(
