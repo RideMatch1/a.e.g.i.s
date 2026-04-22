@@ -13,6 +13,117 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.16.4] — 2026-04-22 — "Scanner-Precision"
+
+Patch-release closing two audit-tracked scanner-precision findings
+surfaced by a representative Next.js + Supabase SaaS dogfood corpus.
+Both fixes reduce false-positive noise in file-level scanner emission
+without loosening security semantics. Benchmark 30/30 preserved.
+Self-scan 1000/A/0 preserved. Canary-runner 168/168 across 18 phases
+(13 new in two v017-prefixed phases). Scanner unit-tests 1322/1322.
+SLSA v1 provenance across all five published packages — fifth-
+consecutive-release preservation milestone since the v0.16.0
+provenance-integrity fix.
+
+### zod-enforcer body-consumption gate (closes D-S-001)
+
+Previously, `zod-enforcer` flagged any mutation-method route handler
+(`POST` / `PUT` / `PATCH` / `DELETE`) that did not contain a Zod schema
+parse in or near the handler body. On dogfood corpora with real-world
+App Router layouts, this produced a high false-positive rate on
+handlers that do not consume a request body at all — session-only
+mark-as-read endpoints, cron-reminder handlers, path-param-only
+writers, form-data-only handlers outside the Zod validation scope.
+
+The fix introduces a file-level body-consumption gate in
+`zod-enforcer.ts`. If no mutation handler in the file reads
+`request.json()`, `request.formData()`, `request.text()`, or
+`request.body`, the scanner's HIGH finding is suppressed for that file.
+Handlers that do consume a body and still lack Zod validation continue
+to fire.
+
+Measured empirical delta on the dogfood corpus: `zod-enforcer` HIGH
+findings drop from 17 to 1. The remaining HIGH is a genuine true
+positive on a Stripe webhook handler that reads the raw request
+payload without Zod validation — this is the canonical
+webhook-signature-verification pattern and the scanner is correctly
+flagging it.
+
+Known scope-limit: the gate is file-level, matching the existing
+Zod-detection granularity. A file that defines an unused
+`z.object({ … })` in a body-less handler will no longer emit the
+MEDIUM `.strict()`-warning for that dead schema. Dead-schema warnings
+are noise-class; the trade-off is documented inline in the scanner
+source. Per-handler gate-granularity is deferred to a future
+scanner-precision cycle.
+
+### tenant-isolation-checker write-payload recognition + public-route downgrade (closes D-S-002)
+
+Two-part fix for `tenant-isolation-checker`:
+
+**Part A — write-payload recognition.** The scanner now recognises
+tenant-boundary discriminants passed inside `.insert({ … })`,
+`.update({ … })`, and `.upsert({ … })` payload objects — not only in
+the surrounding `.eq()` filter chain. Previously, a route that passed
+`{ tenant_id: ctx.tenantId, … }` in an insert-payload without a
+separate `.eq('tenant_id', …)` filter was flagged HIGH despite being
+scoped through the insert-payload itself. The extended recognition
+covers the Supabase idiomatic insert-scoped-write pattern and
+eliminates a structural false-positive class.
+
+**Part B — public-route severity downgrade.** Service-role-key usage
+on routes matching the `/api/public/<param>/…` path-pattern — where
+`<param>` is a configured tenant-discriminant parameter like `slug` /
+`tenant` / `workspace` — now downgrades from CRITICAL to INFO with a
+context-note prompting operator-review. These routes are
+public-by-architecture and rely on the downstream
+`.eq('<param>', <param>)` scope-filter for tenant-scoping. The
+heuristic is path-pattern-only and does not verify the downstream
+filter is present; AST-taint extension for that verification is
+queued for a future release.
+
+Measured empirical delta on the dogfood corpus: `tenant-isolation`
+HIGH findings drop from 8 to 0. One finding moves from CRITICAL to
+INFO via the public-route downgrade (INFO-band 25 → 26).
+
+### Cumulative empirical impact
+
+Measured end-to-end on the dogfood corpus:
+
+- score 959 → 969 (grade A preserved)
+- total findings 646 → 618 (−28)
+- HIGH-band across all scanners: 82 → 59 (−23)
+- zero regressions on benchmark, canaries, self-scan, or unit-tests
+
+### Known scope-limits (transparent disclosure)
+
+- `zod-enforcer` body-consumption gate is file-level. Dead-schema
+  `.strict()`-warnings in body-less handlers are suppressed.
+- `tenant-isolation` write-payload recognition covers single-object
+  payloads. Array-payload `insert([{ … }, …])` is not yet recognised
+  (zero occurrences in the measured corpus).
+- `tenant-isolation` multi-statement flow-tracking (SELECT-scoped-id
+  → UPDATE-by-id) is out-of-scope for this release. Public-route
+  downgrade covers the architectural pattern; full AST-taint
+  extension is queued.
+
+### Discipline
+
+Two Rule codifications operationalised against a ship-class event for
+the first time this cycle:
+
+- Rule #13 (pre-commit HEREDOC scrub-gate) caught a scrub-leak
+  pre-ship. Two initial commits embedded an internal project-name
+  codename in narrative paragraphs describing the empirical corpus;
+  the full-list scrub-gate flagged six occurrences across both
+  commits before push. Remediation was `git reset --hard` plus two
+  cherry-pick-with-amended-message cycles on the unpushed branch.
+  The rule is now referenced against an authoritative scrub-term list
+  rather than a per-session chosen subset.
+- Rule #14 (canary-fixture comment hygiene) held — all fifteen new
+  fixtures passed canary-runner first-authoring without the
+  scanner-trigger-keyword-proximity issue surfaced in the v0164 arc.
+
 ## [0.16.3] — 2026-04-22 — "Coverage-Integrity"
 
 Emergency patch-release closing a 🔴 ship-stopper-class systemic

@@ -1,6 +1,6 @@
 {
   "name": "@aegis-scan/reporters",
-  "version": "0.16.3",
+  "version": "0.16.4",
   "description": "AEGIS output reporters — terminal (colourised with progress bars), JSON, SARIF 2.1.0 (GitHub Code Scanning), HTML report, and Markdown for CI comments. Consumes ScanResult from @aegis-scan/core.",
   "license": "MIT",
   "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
