@@ -85,7 +85,8 @@ create table if not exists public.deletion_queue (
   requested_at      timestamptz not null default now(),
   scheduled_for     timestamptz not null,
   reason            text,
-  status            text not null default 'pending' check (status in ('pending', 'processed', 'cancelled'))
+  status            text not null default 'pending' check (status in ('pending', 'processed', 'cancelled')),
+  processed_at      timestamptz
 );
 
 create index idx_deletion_queue_scheduled on public.deletion_queue(scheduled_for) where status = 'pending';
@@ -94,7 +95,7 @@ create index idx_deletion_queue_scheduled on public.deletion_queue(scheduled_for
 create table if not exists public.audit_log (
   id                bigserial primary key,
   tenant_id         uuid references public.tenants(id) on delete cascade,
-  user_id           uuid references auth.users(id),
+  user_id           uuid references auth.users(id) on delete set null,  -- audit-log survives Art. 17 erasure
   action            text not null,   -- e.g. 'user.login', 'customer.update', 'data.export'
   resource_type     text,
   resource_id       text,
@@ -166,10 +167,21 @@ begin
       set full_name = 'Deleted User', avatar_url = null
       where id = target.user_id;
 
-    -- Delete auth.users row (cascades to profiles via FK)
-    delete from auth.users where id = target.user_id;
+    -- Mark the queue row processed BEFORE the auth.users delete.
+    -- deletion_queue.user_id uses on-delete-cascade, so the
+    -- auth.users delete below also removes this row — updating
+    -- status here would then be a silent no-op on the now-deleted
+    -- row. Persisting processed-state first preserves the
+    -- successful-run evidence in any replication target or
+    -- audit-log trigger chain that reads before the cascade fires.
+    update public.deletion_queue
+      set status = 'processed', processed_at = now()
+      where id = target.id;
 
-    update public.deletion_queue set status = 'processed' where id = target.id;
+    -- Delete auth.users row (cascades to profiles + deletion_queue).
+    -- The audit_log.user_id FK uses on-delete-set-null so historical
+    -- rows keep their action+metadata with the user_id nulled out.
+    delete from auth.users where id = target.user_id;
   end loop;
 end;
 $$;
