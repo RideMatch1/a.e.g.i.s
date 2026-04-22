@@ -49,7 +49,15 @@ export function derivePatterns(config: AegisConfig): SelectedPatternRef[] {
   if (compliance?.dsgvo_kit === true) {
     selected.push({ category: 'compliance', name: 'dsgvo-kit' });
   }
-  if ((compliance?.legal_pages?.length ?? 0) > 0) {
+  // legal-pages-de is German-law-specific (§5 TMG/DDG, DSGVO Art. 13
+  // templates). Gate on jurisdiction=DE so a US / CH / AT / EU / other
+  // operator does not end up with German Impressum content in their brief
+  // even if the Zod default legal_pages list leaks through the config
+  // layer. Belt-and-suspenders: both jurisdiction AND non-empty list must
+  // hold, so a DE user who explicitly cleared legal_pages is respected.
+  const jurisdiction = config.identity.target_jurisdiction;
+  const hasLegalPages = (compliance?.legal_pages?.length ?? 0) > 0;
+  if (jurisdiction === 'DE' && hasLegalPages) {
     selected.push({ category: 'compliance', name: 'legal-pages-de' });
   }
 

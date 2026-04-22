@@ -148,6 +148,77 @@ describe('derivePatterns', () => {
     const unique = new Set(names);
     expect(unique.size).toBe(names.length);
   });
+
+  // --------------------------------------------------------------------------
+  // Jurisdiction-gated legal-pages-de (bug 010)
+  // --------------------------------------------------------------------------
+
+  it('omits legal-pages-de for US jurisdiction even with non-empty legal_pages', () => {
+    const cfg = buildConfig();
+    cfg.identity = { ...cfg.identity, target_jurisdiction: 'US' };
+    // Default legal_pages is still ['impressum','datenschutz'] — this tests
+    // that the selector gate treats jurisdiction as the primary filter.
+    const refs = derivePatterns(cfg);
+    expect(refs.find((r) => r.name === 'legal-pages-de')).toBeUndefined();
+  });
+
+  it('omits legal-pages-de for CH jurisdiction', () => {
+    const cfg = buildConfig();
+    cfg.identity = { ...cfg.identity, target_jurisdiction: 'CH' };
+    const refs = derivePatterns(cfg);
+    expect(refs.find((r) => r.name === 'legal-pages-de')).toBeUndefined();
+  });
+
+  it('omits legal-pages-de for AT jurisdiction (adjacent law-family but distinct Impressum rules)', () => {
+    const cfg = buildConfig();
+    cfg.identity = { ...cfg.identity, target_jurisdiction: 'AT' };
+    const refs = derivePatterns(cfg);
+    expect(refs.find((r) => r.name === 'legal-pages-de')).toBeUndefined();
+  });
+
+  it('omits legal-pages-de for EU jurisdiction (too generic for §5 TMG/DDG specifics)', () => {
+    const cfg = buildConfig();
+    cfg.identity = { ...cfg.identity, target_jurisdiction: 'EU' };
+    const refs = derivePatterns(cfg);
+    expect(refs.find((r) => r.name === 'legal-pages-de')).toBeUndefined();
+  });
+
+  it('omits legal-pages-de for other jurisdiction', () => {
+    const cfg = buildConfig();
+    cfg.identity = { ...cfg.identity, target_jurisdiction: 'other' };
+    const refs = derivePatterns(cfg);
+    expect(refs.find((r) => r.name === 'legal-pages-de')).toBeUndefined();
+  });
+
+  it('includes legal-pages-de for DE jurisdiction when legal_pages is non-empty', () => {
+    // Baseline — same as the default-config case but made explicit
+    const cfg = buildConfig();
+    expect(cfg.identity.target_jurisdiction).toBe('DE');
+    expect((cfg.compliance?.legal_pages?.length ?? 0) > 0).toBe(true);
+    const refs = derivePatterns(cfg);
+    expect(refs.find((r) => r.name === 'legal-pages-de')).toBeDefined();
+  });
+
+  it('omits legal-pages-de for DE jurisdiction if legal_pages is explicitly empty', () => {
+    // DE user who opts out of legal pages altogether — respect their choice
+    const cfg = buildConfig();
+    cfg.compliance = { ...cfg.compliance, legal_pages: [] };
+    const refs = derivePatterns(cfg);
+    expect(refs.find((r) => r.name === 'legal-pages-de')).toBeUndefined();
+  });
+
+  it('returns 6 foundation + 1 compliance (dsgvo-kit) for EU jurisdiction default', () => {
+    const cfg = buildConfig();
+    cfg.identity = { ...cfg.identity, target_jurisdiction: 'EU' };
+    // EU keeps dsgvo_kit=true (per shouldEnableDsgvo in flow.ts) but drops
+    // legal-pages-de. In unit-test we parse the Zod default which already
+    // has dsgvo_kit=true, so the resulting ref-set is 6 + 1 = 7.
+    const refs = derivePatterns(cfg);
+    expect(refs).toHaveLength(7);
+    const names = refs.map((r) => r.name);
+    expect(names).toContain('dsgvo-kit');
+    expect(names).not.toContain('legal-pages-de');
+  });
 });
 
 describe('resolvePatterns', () => {

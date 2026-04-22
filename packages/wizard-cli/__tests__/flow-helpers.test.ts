@@ -6,7 +6,7 @@
  * drives an interactive @clack/prompts session).
  */
 import { describe, it, expect } from 'vitest';
-import { pickDefaultLocale } from '../src/wizard/flow.js';
+import { pickDefaultLocale, legalPagesForJurisdiction } from '../src/wizard/flow.js';
 
 describe('pickDefaultLocale', () => {
   it('returns de when de is in locales (single)', () => {
@@ -45,5 +45,31 @@ describe('pickDefaultLocale', () => {
     expect(first).toBe(second);
     // And input is not mutated
     expect(input).toEqual(['fr', 'es']);
+  });
+});
+
+describe('legalPagesForJurisdiction', () => {
+  it('returns [impressum, datenschutz] for DE', () => {
+    expect(legalPagesForJurisdiction('DE')).toEqual(['impressum', 'datenschutz']);
+  });
+
+  it('returns empty list for every non-DE jurisdiction', () => {
+    expect(legalPagesForJurisdiction('EU')).toEqual([]);
+    expect(legalPagesForJurisdiction('US')).toEqual([]);
+    expect(legalPagesForJurisdiction('CH')).toEqual([]);
+    expect(legalPagesForJurisdiction('AT')).toEqual([]);
+    expect(legalPagesForJurisdiction('other')).toEqual([]);
+  });
+
+  it('returns empty list for unknown jurisdiction strings defensively', () => {
+    expect(legalPagesForJurisdiction('')).toEqual([]);
+    expect(legalPagesForJurisdiction('XX')).toEqual([]);
+    expect(legalPagesForJurisdiction('de')).toEqual([]); // lowercase does not match
+  });
+
+  it('is pure — same input always yields the same output', () => {
+    const first = legalPagesForJurisdiction('DE');
+    const second = legalPagesForJurisdiction('DE');
+    expect(first).toEqual(second);
   });
 });

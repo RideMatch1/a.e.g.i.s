@@ -136,6 +136,7 @@ export async function runWizard(opts: RunWizardOptions): Promise<WizardResult> {
 
     compliance: {
       dsgvo_kit: shouldEnableDsgvo(assertString(answers.target_jurisdiction)),
+      legal_pages: legalPagesForJurisdiction(assertString(answers.target_jurisdiction)),
     },
 
     advanced: {},
@@ -309,6 +310,25 @@ export function pickDefaultLocale(locales: string[]): string {
   if (locales.includes('de')) return 'de';
   if (locales.includes('en')) return 'en';
   return locales[0];
+}
+
+/**
+ * Derive the default legal_pages selection for a given jurisdiction. Only
+ * DE gets the two baseline pages because legal-pages-de is written against
+ * German law specifically (§5 TMG/DDG, DSGVO Art. 13 templates). AT shares
+ * an adjacent legal framework but has distinct Impressum rules under ECG
+ * and is intentionally not auto-selected pending a dedicated AT pattern.
+ * CH, EU, US, and other jurisdictions get an empty list so the brief does
+ * not reference German-specific legal content they do not need and must
+ * not claim to satisfy.
+ */
+export function legalPagesForJurisdiction(
+  jurisdiction: string,
+): Array<'impressum' | 'datenschutz' | 'agb'> {
+  if (jurisdiction === 'DE') {
+    return ['impressum', 'datenschutz'];
+  }
+  return [];
 }
 
 function buildTheme(
