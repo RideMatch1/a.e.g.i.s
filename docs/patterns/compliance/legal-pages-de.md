@@ -49,6 +49,9 @@ placeholders:
   - name: APP_URL
     description: Production URL of the app (e.g. https://mysaas.de)
     required: true
+  - name: CANCELLATION_DAYS
+    description: Kündigungsfrist in Tagen zum Monatsende (Standard-B2C-AGB default is 30).
+    default: 30
 brief_section: Compliance
 estimated_files: 3
 tags: [legal, dsgvo, impressum, datenschutz, agb, de]
@@ -96,28 +99,24 @@ export default function ImpressumPage() {
         {{COMPANY_COUNTRY}}
       </p>
 
-      {{#COMPANY_CEO}}
+      {/* Delete this block if your entity has no named Geschäftsführer / Vertretungsberechtigter. */}
       <h3>Vertreten durch</h3>
       <p>{{COMPANY_CEO}}</p>
-      {{/COMPANY_CEO}}
 
       <h2>Kontakt</h2>
       <p>
         E-Mail: <a href="mailto:{{COMPANY_EMAIL}}">{{COMPANY_EMAIL}}</a><br />
-        {{#COMPANY_PHONE}}
+        {/* Delete the Telefon line if your entity has no published phone contact. */}
         Telefon: {{COMPANY_PHONE}}<br />
-        {{/COMPANY_PHONE}}
       </p>
 
-      {{#COMPANY_HRB}}
+      {/* Delete the Registereintrag block if the entity is not HR-registered (Einzelunternehmen, GbR). */}
       <h2>Registereintrag</h2>
       <p>{{COMPANY_HRB}}</p>
-      {{/COMPANY_HRB}}
 
-      {{#COMPANY_VAT_ID}}
+      {/* Delete the Umsatzsteuer-ID block if §19 UStG Kleinunternehmer applies. */}
       <h2>Umsatzsteuer-ID</h2>
       <p>Umsatzsteuer-Identifikationsnummer nach §27a UStG: {{COMPANY_VAT_ID}}</p>
-      {{/COMPANY_VAT_ID}}
 
       <h2>Verantwortlich für den Inhalt nach §18 Abs. 2 MStV</h2>
       <p>
@@ -200,13 +199,12 @@ export default function DatenschutzPage() {
         E-Mail: <a href="mailto:{{COMPANY_EMAIL}}">{{COMPANY_EMAIL}}</a>
       </p>
 
-      {{#DPO_NAME}}
+      {/* Delete this block if your organization has no designated Datenschutzbeauftragter — §38 BDSG requires one only from ~20 employees processing regularly, smaller orgs can skip. */}
       <h2>2. Datenschutzbeauftragter</h2>
       <p>
         {{DPO_NAME}}<br />
         E-Mail: <a href="mailto:{{DPO_EMAIL}}">{{DPO_EMAIL}}</a>
       </p>
-      {{/DPO_NAME}}
 
       <h2>3. Ihre Rechte</h2>
       <p>Sie haben jederzeit das Recht auf:</p>
@@ -354,7 +352,7 @@ export default function AGBPage() {
 
       <h2>§7 Kündigung</h2>
       <p>
-        Der Vertrag kann von beiden Parteien jederzeit mit einer Frist von [Y] Tagen zum Monatsende
+        Der Vertrag kann von beiden Parteien jederzeit mit einer Frist von {{CANCELLATION_DAYS}} Tagen zum Monatsende
         gekündigt werden. Das Recht zur außerordentlichen Kündigung aus wichtigem Grund bleibt
         unberührt.
       </p>

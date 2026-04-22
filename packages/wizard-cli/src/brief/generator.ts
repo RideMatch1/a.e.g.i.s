@@ -30,6 +30,7 @@ import {
   substitute,
   buildReservedPlaceholders,
 } from '../template/substitute.js';
+import { buildPatternPlaceholders } from './pattern-placeholders.js';
 import {
   renderHeader,
   renderAgentInstructions,
@@ -44,6 +45,7 @@ import {
   renderDsgvoChecklist,
   renderEnvVars,
   renderPostBuildReportTemplate,
+  renderPatternAppendix,
   renderFooter,
   renderHeaderVerbose,
   renderAgentInstructionsVerbose,
@@ -58,6 +60,7 @@ import {
   renderDsgvoChecklistVerbose,
   renderEnvVarsVerbose,
   renderPostBuildReportTemplateVerbose,
+  renderPatternAppendixVerbose,
   renderFooterVerbose,
 } from './sections.js';
 
@@ -101,6 +104,7 @@ export function generateBrief(
         renderDsgvoChecklistVerbose(config, lang),
         renderEnvVarsVerbose(config, patterns, lang),
         renderPostBuildReportTemplateVerbose(lang),
+        renderPatternAppendixVerbose(patterns, lang),
         renderFooterVerbose(config, patterns, lang),
       ]
     : [
@@ -117,6 +121,7 @@ export function generateBrief(
         renderDsgvoChecklist(config, lang),
         renderEnvVars(config, patterns, lang),
         renderPostBuildReportTemplate(lang),
+        renderPatternAppendix(patterns, lang),
         renderFooter(config, patterns, lang),
       ];
 
@@ -144,7 +149,8 @@ export function generateBrief(
     STAGING_URL: config.deployment.staging_url ?? `https://staging.${config.identity.project_name}.example.com`,
   };
 
-  const allValues = { ...reserved, ...extra };
+  const patternMap = buildPatternPlaceholders({ config, reserved });
+  const allValues = { ...patternMap, ...extra };
   const substituted = substitute(rendered, allValues);
 
   // Fail-fast: no unsubstituted placeholder markers may leak. Two

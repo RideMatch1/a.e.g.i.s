@@ -13,9 +13,10 @@ placeholders:
   - name: PROJECT_NAME
     description: The project identifier (kebab-case, from wizard). Used in file-headers and path hints.
     required: true
-  - name: EXTRA_SENSITIVE_KEYS
-    description: Additional field-name patterns to redact (substring-match, case-insensitive)
-    default: []
+  - name: EXTRA_SENSITIVE_KEYS_JSON
+    description: JSON-encoded list of extra field-name patterns to redact (substring-match, case-insensitive).
+    default: '[]'
+    type: json
 brief_section: Foundation
 estimated_files: 1
 tags: [logging, pii, dsgvo, security]

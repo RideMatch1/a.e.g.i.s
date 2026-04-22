@@ -10,8 +10,8 @@
  *
  * Each matrix-point asserts the shape-contracts specified in the
  * dispatch-brief §5.7:
- *   - Terse brief-length is within 400-500 lines
- *   - Verbose brief-length is within 500-900 lines (1.1-2x terse)
+ *   - Terse brief-length is within 4,500-7,000 lines (pattern-appendix dominant)
+ *   - Verbose brief-length is within 4,700-7,500 lines (slightly larger than terse)
  *   - No unsubstituted UPPER_SNAKE placeholders
  *   - Expected H2 section count >= 15
  *   - lang=de: at least 5 German-specific strings (umlauts, müssen, etc.)
@@ -57,10 +57,10 @@ interface MatrixPoint {
 }
 
 const MATRIX: MatrixPoint[] = [
-  { tone: 'terse', lang: 'en', minLines: 400, maxLines: 500, expectGermanStrings: false, expectRationaleMarkers: false },
-  { tone: 'terse', lang: 'de', minLines: 400, maxLines: 500, expectGermanStrings: true, expectRationaleMarkers: false },
-  { tone: 'verbose', lang: 'en', minLines: 500, maxLines: 900, expectGermanStrings: false, expectRationaleMarkers: true },
-  { tone: 'verbose', lang: 'de', minLines: 500, maxLines: 900, expectGermanStrings: true, expectRationaleMarkers: true },
+  { tone: 'terse', lang: 'en', minLines: 4_500, maxLines: 7_000, expectGermanStrings: false, expectRationaleMarkers: false },
+  { tone: 'terse', lang: 'de', minLines: 4_500, maxLines: 7_000, expectGermanStrings: true, expectRationaleMarkers: false },
+  { tone: 'verbose', lang: 'en', minLines: 4_700, maxLines: 7_500, expectGermanStrings: false, expectRationaleMarkers: true },
+  { tone: 'verbose', lang: 'de', minLines: 4_700, maxLines: 7_500, expectGermanStrings: true, expectRationaleMarkers: true },
 ];
 
 describe('Day-3 E2E: 4-matrix (tone × lang)', () => {

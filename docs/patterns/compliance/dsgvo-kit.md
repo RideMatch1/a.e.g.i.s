@@ -20,9 +20,6 @@ placeholders:
   - name: COMPANY_NAME
     description: Legal company name (for cookie-banner imprint link)
     required: true
-  - name: DATA_RETENTION_DAYS
-    description: Days to keep user-data after account-deletion before hard-delete
-    default: 30
   - name: CONSENT_VERSION
     description: Current T&C version-hash. Bump when T&C changes → users re-consent
     default: "2026-04-22-v1"
@@ -457,7 +454,7 @@ const DeleteSchema = z.object({
   reason: z.string().max(500).optional(),
 }).strict();
 
-const RETENTION_DAYS = {{DATA_RETENTION_DAYS}};
+const RETENTION_DAYS = parseInt(process.env.DATA_RETENTION_DAYS ?? '30', 10);
 
 /**
  * Art. 17 — Right to Erasure (Recht auf Vergessenwerden)
@@ -595,7 +592,7 @@ export default function PrivacySettingsPage() {
   );
 }
 
-const RETENTION_DAYS_LABEL = {{DATA_RETENTION_DAYS}};
+const RETENTION_DAYS_LABEL = parseInt(process.env.DATA_RETENTION_DAYS ?? '30', 10);
 ```
 
 ### `src/app/layout.tsx` integration
@@ -678,7 +675,7 @@ Verify: `SELECT * FROM cron.job;` should list the job.
 
 1. **Loading analytics scripts before consent.** Breaks DSGVO. Check `hasConsent('analytics')` before every script-load.
 2. **Deleting `auth.users` without FK-cascade to domain-tables.** Orphaned rows = data-leak. Ensure every FK uses `ON DELETE CASCADE` or explicit anonymization trigger.
-3. **Forgetting the consent-version bump on T&C change.** Users stay on old consent. Update `{{CONSENT_VERSION}}` placeholder + redeploy — banner re-shows.
+3. **Forgetting the consent-version bump on T&C change.** Users stay on old consent. Bump the `CONSENT_VERSION` constant in your consent-banner component when you change T&C/privacy copy (e.g. from `v1` to `v2-2026-Q2`) and redeploy — the banner re-shows for every user.
 4. **Not logging the export itself.** Ironic: the audit-log should include "user X exported their data at Y". Already in the API above.
 5. **Letting users delete immediately with no grace period.** Risky for accidental-delete. The retention-queue + cancellable-deletion is the safer pattern.
 6. **Exporting data that includes other users' info.** If user A has conversations with user B, A's export shouldn't reveal B's email. Filter/mask per-request-side.

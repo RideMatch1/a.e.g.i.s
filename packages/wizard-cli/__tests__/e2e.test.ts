@@ -9,7 +9,10 @@
  *   - brief has at least 15 H2 sections
  *   - emitted config has selected_patterns populated (length 8 for full
  *     saas-starter fixture)
- *   - brief size is within a sane range (10k-60k bytes)
+ *   - brief size is within a sane range. The lower bound protects against
+ *     a renderer dropping sections; the upper bound protects against
+ *     runaway duplication. The appendix embeds every pattern body now,
+ *     so the total lands well above the pre-embedding 60k ceiling.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
@@ -119,7 +122,7 @@ describe('Day-2 E2E: new command emits config + brief', () => {
     expect(h2Count).toBeGreaterThanOrEqual(15);
   });
 
-  it('brief size is within expected range (10k-60k bytes)', async () => {
+  it('brief size is within expected range (100k-400k bytes once pattern bodies embed)', async () => {
     await runNew('e2e-test', {
       nonInteractive: true,
       config: configPath,
@@ -130,8 +133,8 @@ describe('Day-2 E2E: new command emits config + brief', () => {
       join(outputDir, 'e2e-test-brief.md'),
       'utf-8',
     );
-    expect(brief.length).toBeGreaterThan(10_000);
-    expect(brief.length).toBeLessThan(60_000);
+    expect(brief.length).toBeGreaterThan(100_000);
+    expect(brief.length).toBeLessThan(400_000);
   });
 
   it('--output-mode=brief writes only the brief file', async () => {

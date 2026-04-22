@@ -13,15 +13,6 @@ placeholders:
   - name: PROJECT_NAME
     description: The project identifier (kebab-case, from wizard). Used in file-headers and path hints.
     required: true
-  - name: CSP_REPORT_ONLY
-    description: If true, CSP is report-only (dev/staging), else enforced (prod)
-    default: false
-  - name: CSP_ADDITIONAL_CONNECT_SRC
-    description: Extra origins for connect-src (e.g. Supabase URL, Stripe JS)
-    default: []
-  - name: TRUSTED_PROXY_COUNT
-    description: Number of trusted reverse-proxies in front (1 for Vercel/Dokploy, 2 for Cloudflare-in-front)
-    default: 1
 brief_section: Foundation
 estimated_files: 2
 tags: [middleware, csp, hsts, rate-limit, security-headers]
@@ -69,8 +60,12 @@ import { createServerClient } from '@supabase/ssr';
 // Config
 // ============================================================================
 
-const CSP_REPORT_ONLY = {{CSP_REPORT_ONLY}};
-const ADDITIONAL_CONNECT_SRC: string[] = {{CSP_ADDITIONAL_CONNECT_SRC}};
+const CSP_REPORT_ONLY = process.env.CSP_REPORT_ONLY === 'true';
+const ADDITIONAL_CONNECT_SRC: string[] =
+  process.env.CSP_ADDITIONAL_CONNECT_SRC
+    ?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean) ?? [];
 
 // Routes that REQUIRE authentication (301 → /login if unauthenticated)
 const PROTECTED_PREFIXES = ['/admin'];
@@ -155,7 +150,7 @@ function generateNonce(): string {
 
 function getTrustedProxyCount(): number {
   const raw = process.env.TRUSTED_PROXY_COUNT;
-  if (!raw) return {{TRUSTED_PROXY_COUNT}};
+  if (!raw) return 1;
   const n = parseInt(raw, 10);
   if (!Number.isFinite(n) || n < 0 || n > 10) return 1;
   return n;

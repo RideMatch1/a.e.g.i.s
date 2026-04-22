@@ -14,9 +14,10 @@ placeholders:
   - name: PROJECT_NAME
     description: The project identifier (kebab-case, from wizard). Used in file-headers and path hints.
     required: true
-  - name: LOCALES
-    description: Array of locale-codes (e.g. ["de", "en"])
-    default: ["de", "en"]
+  - name: LOCALES_JSON
+    description: JSON-encoded array of locale-codes the app ships (e.g. `["de", "en"]`).
+    default: '["de", "en"]'
+    type: json
   - name: DEFAULT_LOCALE
     description: Fallback locale
     default: "de"

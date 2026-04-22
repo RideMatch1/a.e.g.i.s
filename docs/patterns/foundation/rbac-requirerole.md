@@ -13,16 +13,18 @@ placeholders:
   - name: PROJECT_NAME
     description: The project identifier (kebab-case, from wizard). Used in file-headers and path hints.
     required: true
-  - name: ROLES
-    description: Array of role-strings (e.g. ["admin", "manager", "user"])
-    default: ["admin", "manager", "user"]
+  - name: ROLES_UNION
+    description: TypeScript union-literal of the app's role strings (e.g. `'admin' | 'manager' | 'user'`).
+    default: "'admin' | 'manager' | 'user'"
     required: true
-  - name: SENSITIVE_PERSONAL_FIELDS
-    description: Fields on profiles/customers that only managers+owners see (IBAN, salary, SSN, etc.)
-    default: []
-  - name: PUBLIC_PROFILE_FIELDS
-    description: Fields safe for any authenticated user to see
-    default: ["id", "full_name", "avatar_url", "role", "is_active", "created_at"]
+  - name: SENSITIVE_PERSONAL_FIELDS_JSON
+    description: JSON-encoded list of fields that only managers+owners may read (IBAN, salary, SSN).
+    default: '[]'
+    type: json
+  - name: PUBLIC_PROFILE_FIELDS_JSON
+    description: JSON-encoded list of profile fields safe for any authenticated user to read.
+    default: '["id", "full_name", "avatar_url", "role", "is_active", "created_at"]'
+    type: json
 brief_section: Foundation
 estimated_files: 1
 tags: [rbac, authorization, defense-in-depth]

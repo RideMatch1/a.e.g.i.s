@@ -1046,3 +1046,56 @@ export function renderFooterVerbose(
     'Switch with `--verbose-brief` or `--no-verbose-brief` (terse is default). Both modes produce functionally-equivalent scaffolds; the difference is in the explanation density.',
   ].join('\n');
 }
+
+// ============================================================================
+// Pattern-appendix — embeds every selected pattern's full body into the brief.
+// Without this the brief refers to files the user does not have on disk; with
+// it the brief is a self-contained hand-off the agent can execute end-to-end.
+// Placeholder substitution runs at the generator level after all sections are
+// joined, so markers inside these embedded bodies resolve against the
+// resolver-map alongside header-level identifiers.
+// ============================================================================
+
+export function renderPatternAppendix(
+  patterns: readonly LoadedPattern[],
+  lang: BriefLang = 'en',
+): string | null {
+  if (patterns.length === 0) return null;
+  const heading =
+    lang === 'de'
+      ? '## Anhang — Vollständige Pattern-Texte'
+      : '## Appendix — Full pattern bodies';
+  const intro =
+    lang === 'de'
+      ? 'Der folgende Text ist die vollständige Referenz jeder ausgewählten Vorlage. Platzhalter sind bereits gegen die aktuelle Konfiguration substituiert. Kopiere jeden Codeblock in die im Kopfkommentar benannte Datei.'
+      : 'The text below is the complete source-of-truth for each selected pattern. Every placeholder is already substituted against the current configuration. Copy each code-block into the file named in its header comment.';
+  const blocks: string[] = [`${heading}\n\n${intro}`];
+  for (const p of patterns) {
+    blocks.push(
+      `### ${p.frontmatter.category}/${p.frontmatter.name} — ${p.frontmatter.title}\n\n${p.body.trim()}`,
+    );
+  }
+  return blocks.join('\n\n');
+}
+
+export function renderPatternAppendixVerbose(
+  patterns: readonly LoadedPattern[],
+  lang: BriefLang = 'en',
+): string | null {
+  if (patterns.length === 0) return null;
+  const heading =
+    lang === 'de'
+      ? '## Anhang — Vollständige Pattern-Texte (verbose)'
+      : '## Appendix — Full pattern bodies (verbose)';
+  const intro =
+    lang === 'de'
+      ? 'Jedes Muster bringt seine Beschreibung zuerst und den vollständigen, substituierten Text danach. Die Reihenfolge spiegelt die Auswahl des Pattern-Selectors.'
+      : 'Each pattern block leads with its frontmatter description and then the full substituted body. Ordering mirrors the pattern-selector output.';
+  const blocks: string[] = [`${heading}\n\n${intro}`];
+  for (const p of patterns) {
+    blocks.push(
+      `### ${p.frontmatter.category}/${p.frontmatter.name} — ${p.frontmatter.title}\n\n${p.frontmatter.description}\n\n${p.body.trim()}`,
+    );
+  }
+  return blocks.join('\n\n');
+}
