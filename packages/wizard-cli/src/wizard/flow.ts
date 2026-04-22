@@ -2,17 +2,12 @@
  * Wizard orchestration — runs `@clack/prompts` through the Tier-1 catalog and
  * assembles a validated `AegisConfig`.
  *
- * Day-1 responsibility:
- *   1. Ask Tier-1 15 questions in order
- *   2. Validate each answer against the per-question constraints
- *   3. Map raw-answers → structured AegisConfig sub-objects
- *   4. Run AegisConfigSchema.parse() for final end-to-end validation
- *   5. Write aegis.config.json to target-dir (caller manages file-IO)
- *
- * Deferred:
- *   - Tier-2 / Tier-3 (Day-2)
- *   - Brief-generation after config-write (Day-2)
- *   - `--non-interactive` config-file-read (Day-2)
+ * Responsibilities:
+ *   1. Ask Tier-1 21 questions in order (15 scaffold + 6 legal identity).
+ *   2. Validate each answer against the per-question constraints.
+ *   3. Map raw-answers to structured AegisConfig sub-objects.
+ *   4. Run AegisConfigSchema.parse for the final end-to-end validation.
+ *   5. Return the validated config; caller handles the file-IO write.
  */
 import { randomUUID } from 'node:crypto';
 import {
@@ -63,7 +58,7 @@ export async function runWizard(opts: RunWizardOptions): Promise<WizardResult> {
 
   note(
     [
-      'Tier-1 asks ~15 essentials (~8 min).',
+      'Tier-1 asks 21 essentials (~10 min).',
       'Tier-2 / Tier-3 land in a future release.',
       'Press Ctrl+C anytime to abort.',
     ].join('\n'),
@@ -98,8 +93,8 @@ export async function runWizard(opts: RunWizardOptions): Promise<WizardResult> {
     identity: {
       project_name: projectName,
       project_description: assertString(answers.project_description),
-      app_name: deriveAppName(projectName),
-      company_name: deriveAppName(projectName),
+      app_name: pickAppName(answers.app_name, projectName),
+      company_name: assertString(answers.company_name),
       target_branche: assertString(answers.target_branche),
       target_jurisdiction: assertString(answers.target_jurisdiction),
       b2b_or_b2c: assertString(answers.b2b_or_b2c),
@@ -137,6 +132,7 @@ export async function runWizard(opts: RunWizardOptions): Promise<WizardResult> {
     compliance: {
       dsgvo_kit: shouldEnableDsgvo(assertString(answers.target_jurisdiction)),
       legal_pages: legalPagesForJurisdiction(assertString(answers.target_jurisdiction)),
+      company_address: buildCompanyAddress(answers),
     },
 
     advanced: {},
@@ -289,6 +285,70 @@ function deriveAppName(projectName: string): string {
     .filter(Boolean)
     .map((seg) => seg.charAt(0).toUpperCase() + seg.slice(1))
     .join(' ');
+}
+
+/**
+ * Respect an operator-supplied app_name when present, fall back to the
+ * kebab-case-to-TitleCase derivation when the user left the question
+ * blank. Empty-string handling matches the question's optional flag in
+ * questions.ts. Never throws: the schema's min(1) is enforced by the
+ * derivation returning at least one character for any valid
+ * project_name.
+ */
+function pickAppName(
+  raw: string | string[] | boolean | undefined,
+  projectName: string,
+): string {
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.length > 0) return trimmed;
+  }
+  return deriveAppName(projectName);
+}
+
+/**
+ * Assemble ComplianceSchema.company_address from the six legal-identity
+ * Tier-1 answers. Returns undefined when every field is blank so the
+ * sub-object stays optional at the Zod level — operators outside German
+ * jurisdictions can leave the block empty without tripping validation.
+ * Required fields for DE are enforced downstream in the brief-renderer
+ * output (legal-pages template renders empty tags when a field is
+ * unfilled, flagged via JSX-comment hints in the pattern body).
+ */
+function buildCompanyAddress(
+  answers: Record<string, string | string[] | boolean>,
+):
+  | {
+      street: string;
+      zip_city: string;
+      country: string;
+      email: string;
+      phone?: string;
+      vat_id?: string;
+    }
+  | undefined {
+  const email = typeof answers.company_email === 'string' ? answers.company_email.trim() : '';
+  const street = typeof answers.company_street === 'string' ? answers.company_street.trim() : '';
+  const zipCity = typeof answers.company_zip_city === 'string' ? answers.company_zip_city.trim() : '';
+  const vatId = typeof answers.company_vat_id === 'string' ? answers.company_vat_id.trim() : '';
+
+  if (!email && !street && !zipCity && !vatId) return undefined;
+
+  const addr: {
+    street: string;
+    zip_city: string;
+    country: string;
+    email: string;
+    phone?: string;
+    vat_id?: string;
+  } = {
+    street,
+    zip_city: zipCity,
+    country: 'Deutschland',
+    email,
+  };
+  if (vatId) addr.vat_id = vatId;
+  return addr;
 }
 
 /** DSGVO-kit defaults ON for EU/DE/AT; OFF default for US/other. User can override. */

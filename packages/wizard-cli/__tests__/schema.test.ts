@@ -194,8 +194,18 @@ describe('Sub-schemas — spot-checks', () => {
 // ----------------------------------------------------------------------------
 
 describe('Tier-1 questions catalog', () => {
-  it('has exactly 15 questions', () => {
-    expect(TIER_1_QUESTIONS.length).toBe(15);
+  it('has exactly 21 questions', () => {
+    expect(TIER_1_QUESTIONS.length).toBe(21);
+  });
+
+  it('contains the six legal-identity Tier-1 questions added post-audit', () => {
+    const ids = TIER_1_QUESTIONS.map((q) => q.id);
+    expect(ids).toContain('company_name');
+    expect(ids).toContain('app_name');
+    expect(ids).toContain('company_email');
+    expect(ids).toContain('company_street');
+    expect(ids).toContain('company_zip_city');
+    expect(ids).toContain('company_vat_id');
   });
 
   it('every question has tier === 1', () => {

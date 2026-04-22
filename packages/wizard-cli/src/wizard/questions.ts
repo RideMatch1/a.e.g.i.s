@@ -1,14 +1,18 @@
 /**
- * Tier-1 wizard question catalog — 15 essentials, ~8 min user-time.
+ * Tier-1 wizard question catalog — 21 essentials (15 scaffold + 6 legal
+ * identity), ~10 min user-time.
  *
  * Structure: a declarative array of `WizardQuestion` objects consumed by
  * `flow.ts` which dispatches them to `@clack/prompts` by type. Keeping the
- * catalog declarative makes the flow testable and the brief-generator (Day-2)
+ * catalog declarative makes the flow testable and the brief-generator
  * able to cross-reference what was asked.
  *
- * Day-2 will add Tier-2 (25 common) and Tier-3 (30-40 advanced). They will
- * live in `questions-tier2.ts` / `questions-tier3.ts` and get composed in
- * `flow.ts` behind grouped skip-flags.
+ * The six legal-identity questions (company_name, app_name, company_email,
+ * company_street, company_zip_city, company_vat_id) were added in the
+ * v0.17 pre-ship fix cycle to close M-02 + N-03. Without them the wizard
+ * auto-derived the company name from the project-slug, which produced
+ * legal-pages with a kebab-case entity name — actively wrong for any
+ * registered GmbH/UG deploying to a German jurisdiction.
  */
 
 // ============================================================================
@@ -63,7 +67,7 @@ export interface ConfirmQuestion extends QuestionBase {
 }
 
 // ============================================================================
-// Tier-1 catalog (15 questions)
+// Tier-1 catalog (21 questions)
 // ============================================================================
 
 export const TIER_1_QUESTIONS: WizardQuestion[] = [
@@ -91,7 +95,30 @@ export const TIER_1_QUESTIONS: WizardQuestion[] = [
     minLength: 10,
     maxLength: 300,
   },
-  // Q3 — target branche
+  // Q3 — company name (legal entity)
+  {
+    id: 'company_name',
+    tier: 1,
+    type: 'text',
+    prompt: 'Legal company name (entity that ships the product)',
+    hint: 'Exactly as registered — e.g. "Acme Solutions GmbH". Lands in Impressum / Datenschutz / SMTP-From.',
+    placeholder: 'Acme Solutions GmbH',
+    minLength: 3,
+    maxLength: 200,
+  },
+  // Q4 — app-display-name (defaults to title-cased project_name)
+  {
+    id: 'app_name',
+    tier: 1,
+    type: 'text',
+    prompt: 'App display name (user-facing product name)',
+    hint: 'Rendered in login/signup CTAs, email subjects, page titles. Leave blank to derive from project name.',
+    placeholder: 'Acme CRM',
+    minLength: 1,
+    maxLength: 120,
+    optional: true,
+  },
+  // Q5 — target branche
   {
     id: 'target_branche',
     tier: 1,
@@ -189,7 +216,7 @@ export const TIER_1_QUESTIONS: WizardQuestion[] = [
     ],
     initialValue: 'vercel',
   },
-  // Q9 — jurisdiction
+  // Q11 — jurisdiction
   {
     id: 'target_jurisdiction',
     tier: 1,
@@ -206,7 +233,55 @@ export const TIER_1_QUESTIONS: WizardQuestion[] = [
     ],
     initialValue: 'DE',
   },
-  // Q10 — shadcn theme-paste (free-text optional)
+  // Q12 — contact email (legal-entity email, required by §5 TMG/DDG for DE)
+  {
+    id: 'company_email',
+    tier: 1,
+    type: 'text',
+    prompt: 'Legal-entity contact email (lands in Impressum + SMTP-From)',
+    hint: 'Mailbox operated by the entity — e.g. kontakt@acme.de. Required for German jurisdictions.',
+    placeholder: 'kontakt@acme.example',
+    validateRegex: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$',
+    validateMessage: 'Must look like an email (user@host.tld).',
+    minLength: 5,
+    maxLength: 200,
+  },
+  // Q13 — street address (optional catalog-side, validated further by flow for DE)
+  {
+    id: 'company_street',
+    tier: 1,
+    type: 'text',
+    prompt: 'Entity street address (for Impressum; optional if jurisdiction is non-DE)',
+    hint: 'Street plus house number, exactly as registered.',
+    placeholder: 'Musterstraße 12',
+    minLength: 3,
+    maxLength: 200,
+    optional: true,
+  },
+  // Q14 — postal code + city
+  {
+    id: 'company_zip_city',
+    tier: 1,
+    type: 'text',
+    prompt: 'Entity postal code and city (for Impressum; optional if jurisdiction is non-DE)',
+    hint: 'Five-digit postal code plus city, e.g. "10115 Berlin".',
+    placeholder: '10115 Berlin',
+    minLength: 5,
+    maxLength: 200,
+    optional: true,
+  },
+  // Q15 — VAT-ID (optional, B2B relevance only)
+  {
+    id: 'company_vat_id',
+    tier: 1,
+    type: 'text',
+    prompt: 'USt-IdNr. (optional, required only if the entity has one)',
+    hint: 'Leave blank for §19 UStG Kleinunternehmer or for non-EU entities.',
+    placeholder: 'DE123456789',
+    maxLength: 40,
+    optional: true,
+  },
+  // Q16 — shadcn theme-paste (free-text optional)
   {
     id: 'shadcn_preset_code',
     tier: 1,
