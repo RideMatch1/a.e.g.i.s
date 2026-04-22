@@ -13,6 +13,82 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-04-23 — "wizard-cli-initial"
+
+First release of a new sibling package, `@aegis-wizard/cli`, the AEGIS
+Wizard. The AEGIS Scan family (`@aegis-scan/*`) is unchanged at
+`0.16.4`; this cycle ships only the new wizard-cli package at version
+`0.17.0`. Tag-namespace for this release is `wizard-v0.17.0` so the
+`v*` namespace remains reserved for future @aegis-scan ship-cycles.
+
+### Added
+
+- New npm package `@aegis-wizard/cli` at version `0.17.0` (first
+  release). Binary `aegis-wizard` with a single `new <project-name>`
+  command.
+- Interactive mode via `@clack/prompts` asks 15 Tier-1 essential
+  questions about a user's project (identity, compliance, i18n,
+  deployment, email-provider, etc.) and emits a validated
+  `aegis.config.json`.
+- Non-interactive mode consumes an existing `aegis.config.json` via
+  `--config <file>` for CI-driven re-runs.
+- Brief-generator composes the config + selected patterns into an
+  agent-consumable Markdown brief (`<project-name>-brief.md`) at the
+  target output directory. The brief structures installation commands,
+  database migrations, API-route conventions, build-order with
+  gate-checks, quality-gates, DSGVO checklist, env-vars template, and
+  a post-build-report template.
+- Pattern-loader walks `docs/patterns/<category>/*.md`, parses
+  gray-matter frontmatter, and validates via Zod. 8 patterns shipped
+  in v0.17.0: `multi-tenant-supabase`, `auth-supabase-full`,
+  `rbac-requirerole`, `middleware-hardened`, `logger-pii-safe`,
+  `i18n-next-intl` (foundation), plus `dsgvo-kit` and `legal-pages-de`
+  (compliance).
+- `saas-starter` preset manifest at `presets/saas-starter.yaml`
+  bundling all 8 patterns for the default new-project path.
+- `--verbose-brief` flag emits a prose + rationale expansion of the
+  brief (~1.5x terse length, ~600-900 lines on a saas-starter fixture).
+  Every section keeps the terse skeleton and adds alternatives-considered
+  paragraphs and why-this-matters rationale.
+- `--lang=en|de` flag switches the brief's static strings between
+  English (default) and German via a new i18n translation-layer
+  backed by `src/brief/i18n/{en,de}.json` message catalogs. Dynamic
+  interpolations (file paths, command names, pattern references, URLs)
+  stay language-agnostic.
+- `--output-mode=brief|scaffold|both` (default `both`) controls
+  emission: `scaffold` writes only the config, `brief` writes only
+  the brief, `both` writes both.
+- Auto-generated pattern-catalog index at `docs/patterns/index.md`,
+  regeneratable via `node scripts/gen-pattern-index.mjs`.
+- Package-level README.md for the npm-page landing + root-README
+  pointer-section directing users to the wizard-cli package.
+- New GitHub Actions workflow `.github/workflows/publish-wizard.yml`
+  triggered on `wizard-v*` tags, publishing `@aegis-wizard/cli` with
+  SLSA v1 provenance attestation scoped to the new package only.
+
+### Unchanged
+
+- `@aegis-scan/*` family stays at `0.16.4`. No behavior change, no
+  re-publish. The 5-consecutive-release SLSA-preservation streak for
+  `@aegis-scan` continues unaffected — the new publish-workflow
+  filters on `@aegis-wizard/cli` only via pnpm-filter and does not
+  touch existing packages.
+- Existing `.github/workflows/publish.yml` untouched. AEGIS Scan
+  release-cycles continue independently on the `v*` tag-namespace.
+
+### Architecture notes
+
+- Tag-namespace split: `v*` → `@aegis-scan` ship-cycles;
+  `wizard-v*` → `@aegis-wizard` ship-cycles. The two families are
+  versioned independently so neither gates the other.
+- Two-org npm architecture: users install AEGIS Scan and AEGIS Wizard
+  independently depending on their needs. The brief emitted by
+  Wizard recommends running `aegis scan` post-build as a quality
+  gate — the two tools are co-calibrated.
+- The wizard-cli package ships without external runtime scanners. It
+  is a pure scaffold + brief-generator; security verification remains
+  the responsibility of `@aegis-scan/cli` in a separate invocation.
+
 ## [0.16.4] — 2026-04-22 — "Scanner-Precision"
 
 Patch-release closing two audit-tracked scanner-precision findings
