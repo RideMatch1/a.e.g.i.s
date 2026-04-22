@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-path-traversal-checker-n1-test-named-path",
+  "cwe": 22,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for path-traversal-checker — N1-class path. Route file `src/app/api/test/route.ts` (matches isTargetFile via /api/ substring) uses path.join with request.url-derived input. Post-v0.16.3 must flag CWE-22.",
+  "expected": [
+    { "scanner": "path-traversal-checker", "cwe": 22 }
+  ]
+}

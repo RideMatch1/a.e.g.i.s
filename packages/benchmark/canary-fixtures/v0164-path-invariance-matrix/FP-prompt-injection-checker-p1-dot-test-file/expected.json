@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-prompt-injection-checker-p1-dot-test-file",
+  "cwe": 77,
+  "type": "FP",
+  "description": "Scope-guard for D-CA-001 on prompt-injection-checker — P1-class. Fixture declares mistral dep so scanner does not early-exit on ai='none'. Test-file `src/foo.test.ts` carries a prompt-interpolation as test-fixture data. isTestFile() must skip.",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}

@@ -221,3 +221,33 @@ describe('httpTimeoutCheckerScanner', () => {
     expect(result.available).toBe(true);
   });
 });
+
+describe('httpTimeoutCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const BARE_FETCH = [
+    'export async function getData() {',
+    "  const res = await fetch('https://api.example.com/data');",
+    '  return res.json();',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags bare fetch under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/api/test/route.ts'), BARE_FETCH);
+    const result = await httpTimeoutCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'http-timeout-checker' && f.cwe === 400);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips bare fetch in *.test.ts inside target-dir (strong invariance — file within HTTP_DIRS but test-extension)', async () => {
+    mkdirSync(join(projectPath, 'src/api'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/api/foo.test.ts'), BARE_FETCH);
+    const result = await httpTimeoutCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'http-timeout-checker')).toHaveLength(0);
+  });
+});

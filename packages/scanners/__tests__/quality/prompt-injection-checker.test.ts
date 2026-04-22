@@ -211,3 +211,38 @@ export async function POST(req) {
     expect(directVariableFindings[0].cwe).toBe(77);
   });
 });
+
+describe('promptInjectionCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const PROMPT_WITH_USER_INTERP = [
+    'async function askAI(userMessage: string) {',
+    '  const response = await client.create({',
+    '    messages: [',
+    "      { role: 'system', content: 'You are a helpful assistant.' },",
+    '      { role: \'user\', content: `${userMessage}` },',
+    '    ],',
+    '  });',
+    '  return response;',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags prompt with user-interpolation under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), PROMPT_WITH_USER_INTERP);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'prompt-injection-checker' && f.cwe === 77);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips prompt with user-interpolation in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), PROMPT_WITH_USER_INTERP);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'prompt-injection-checker')).toHaveLength(0);
+  });
+});

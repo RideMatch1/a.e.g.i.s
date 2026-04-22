@@ -1,0 +1,8 @@
+{
+  "name": "fp-prompt-injection-checker-p1-dot-test-file",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@mistralai/mistralai": "^1.0.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-rls-bypass-checker-n1-test-named-path",
+  "cwe": 863,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for rls-bypass-checker — N1-class path. Route file `src/app/api/test/route.ts` calls supabase.rpc() without an RLS-aware comment. File itself provides the DB-client signal (supabase.rpc) needed to pass project-level guard. Must flag RLS / CWE-863 (severity=info per v0.14 downgrade).",
+  "expected": [
+    { "scanner": "rls-bypass-checker", "cwe": 863 }
+  ]
+}

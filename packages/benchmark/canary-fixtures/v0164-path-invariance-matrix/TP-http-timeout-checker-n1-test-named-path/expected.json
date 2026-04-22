@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-http-timeout-checker-n1-test-named-path",
+  "cwe": 400,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for http-timeout-checker — N1-class path. File `src/api/test/route.ts` uses fetch() without AbortController/timeout. http-timeout-checker scans api/lib/services directories only, so fixture lives at src/api/test/ (not src/app/api/test/). Post-v0.16.3 must flag CWE-400.",
+  "expected": [
+    { "scanner": "http-timeout-checker", "cwe": 400 }
+  ]
+}

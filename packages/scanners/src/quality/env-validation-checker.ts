@@ -3,6 +3,11 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
 import { existsSync } from 'fs';
 import { join } from 'path';
 
+// Path-invariance test-contract (v0164 — D-CA-001 coverage-audit 2026-04-22):
+//   [x] TP — >5 env-vars in /api/test/ route path (N1-class, D-CA-001 regression-guard)
+//   [x] FP — >5 env-vars in *.test.ts basename (P1-class, isTestFile() canonical skip)
+// Helper-level correctness for P1–P6 covered at phase v0163-test-path-semantic-skip.
+
 function findLineNumber(content: string, matchIndex: number): number {
   return content.slice(0, matchIndex).split('\n').length;
 }

@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-path-traversal-checker-p1-dot-test-file",
+  "cwe": 22,
+  "type": "FP",
+  "description": "Scope-guard for D-CA-001 on path-traversal-checker — P1-class. Test-file `src/api/foo.test.ts` matches isTargetFile (/api/) AND isTestFile (.test.ts extension). Must skip via isTestFile — strong FP proof (file would be scanned if extension differed).",
+  "expected": [
+    { "scanner": "path-traversal-checker", "cwe": 22 }
+  ]
+}

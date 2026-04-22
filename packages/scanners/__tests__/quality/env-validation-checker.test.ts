@@ -225,3 +225,35 @@ describe('envValidationCheckerScanner', () => {
     expect(result.available).toBe(true);
   });
 });
+
+describe('envValidationCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const SIX_ENV_VARS = [
+    'const a = process.env.DATABASE_URL;',
+    'const b = process.env.NEXTAUTH_SECRET;',
+    'const c = process.env.SMTP_HOST;',
+    'const d = process.env.STRIPE_SECRET_KEY;',
+    'const e = process.env.REDIS_URL;',
+    'const f = process.env.S3_BUCKET;',
+  ].join('\n');
+
+  it('N1-class: flags >5 env-vars under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), SIX_ENV_VARS);
+    const result = await envValidationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'env-validation-checker' && f.cwe === 1188);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips >5 env-vars in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), SIX_ENV_VARS);
+    const result = await envValidationCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'env-validation-checker')).toHaveLength(0);
+  });
+});

@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-env-validation-checker-n1-test-named-path",
+  "cwe": 1188,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for env-validation-checker — N1-class path (vuln in /api/test/ route, NOT a test-file). Route file `src/app/api/test/route.ts` references more than 5 process.env.* variables without a central Zod-validated env.ts. Post-v0.16.3 env-validation-checker must flag this as CWE-1188.",
+  "expected": [
+    { "scanner": "env-validation-checker", "cwe": 1188 }
+  ]
+}

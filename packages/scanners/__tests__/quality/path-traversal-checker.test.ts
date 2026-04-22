@@ -183,3 +183,35 @@ const filePath = path.join('/uploads', searchParams.get('path')!);
     expect(result.available).toBe(true);
   });
 });
+
+describe('pathTraversalCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const PATH_JOIN_USER_INPUT = [
+    "import path from 'path';",
+    "import { readFileSync } from 'fs';",
+    'export async function GET(request: Request) {',
+    '  const { searchParams } = new URL(request.url);',
+    "  return new Response(readFileSync(path.join('/uploads', searchParams.get('p')!)));",
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags path.join with user-input under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), PATH_JOIN_USER_INPUT);
+    const result = await pathTraversalCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'path-traversal-checker' && f.cwe === 22);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips path.join in *.test.ts inside target-dir (strong invariance — file matches isTargetFile /api/ but test-extension)', async () => {
+    mkdirSync(join(projectPath, 'src/api'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/api/foo.test.ts'), PATH_JOIN_USER_INPUT);
+    const result = await pathTraversalCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'path-traversal-checker')).toHaveLength(0);
+  });
+});

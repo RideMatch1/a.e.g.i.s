@@ -1,0 +1,9 @@
+{
+  "id": "v0164-TP-prompt-injection-checker-n1-test-named-path",
+  "cwe": 77,
+  "type": "TP",
+  "description": "Per-scanner path-invariance contract for prompt-injection-checker — N1-class path. Fixture declares @mistralai/mistralai dep so detectStack returns ai='mistral' (scanner skips when ai='none'). Route file `src/app/api/test/route.ts` builds a prompt by interpolating user-input directly — must flag PROMPTINJ / CWE-77.",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}

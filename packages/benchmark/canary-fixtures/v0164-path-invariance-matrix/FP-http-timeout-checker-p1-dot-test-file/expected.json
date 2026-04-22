@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-http-timeout-checker-p1-dot-test-file",
+  "cwe": 400,
+  "type": "FP",
+  "description": "Scope-guard for D-CA-001 on http-timeout-checker — P1-class. Test-file `src/api/foo.test.ts` lives INSIDE the scanner's HTTP_DIRS target-set (api/lib/services) but carries `.test.ts` extension. isTestFile() must skip even within target-dirs — strong FP (file would be scanned if not a test-file).",
+  "expected": [
+    { "scanner": "http-timeout-checker", "cwe": 400 }
+  ]
+}

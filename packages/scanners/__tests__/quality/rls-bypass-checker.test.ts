@@ -257,3 +257,33 @@ const { data } = await supabase.rpc('admin_delete_all');
   });
 
 });
+
+describe('rlsBypassCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  const SUPABASE_RPC_NO_RLS = [
+    'export async function fetchStats(supabase: any) {',
+    "  const { data } = await supabase.rpc('get_dashboard_stats');",
+    '  return data;',
+    '}',
+  ].join('\n');
+
+  it('N1-class: flags supabase.rpc under /api/test/ route path (regression-guard for v0.16.3 fix)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/test'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/test/route.ts'), SUPABASE_RPC_NO_RLS);
+    const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'rls-bypass-checker' && f.cwe === 863);
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('P1-class: skips supabase.rpc in *.test.ts basename (canonical isTestFile extension-match)', async () => {
+    mkdirSync(join(projectPath, 'src'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/foo.test.ts'), SUPABASE_RPC_NO_RLS);
+    const result = await rlsBypassCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'rls-bypass-checker')).toHaveLength(0);
+  });
+});

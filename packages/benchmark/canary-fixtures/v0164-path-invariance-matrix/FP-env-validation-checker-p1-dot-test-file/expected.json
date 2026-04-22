@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-env-validation-checker-p1-dot-test-file",
+  "cwe": 1188,
+  "type": "FP",
+  "description": "Scope-guard for the D-CA-001 fix on env-validation-checker — P1-class path. Test-file `src/foo.test.ts` references >5 process.env.* as test-fixture data. isTestFile() extension-match must skip.",
+  "expected": [
+    { "scanner": "env-validation-checker", "cwe": 1188 }
+  ]
+}

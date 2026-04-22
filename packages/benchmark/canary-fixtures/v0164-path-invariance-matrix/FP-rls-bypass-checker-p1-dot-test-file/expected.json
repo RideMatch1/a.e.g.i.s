@@ -1,0 +1,9 @@
+{
+  "id": "v0164-FP-rls-bypass-checker-p1-dot-test-file",
+  "cwe": 863,
+  "type": "FP",
+  "description": "Scope-guard for D-CA-001 on rls-bypass-checker — P1-class. Test-file `src/foo.test.ts` calls supabase.rpc() as test-fixture. DB-client signal provided by the same file; isTestFile() extension-match must skip.",
+  "expected": [
+    { "scanner": "rls-bypass-checker", "cwe": 863 }
+  ]
+}

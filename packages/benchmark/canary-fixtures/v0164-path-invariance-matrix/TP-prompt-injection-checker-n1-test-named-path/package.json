@@ -1,0 +1,8 @@
+{
+  "name": "tp-prompt-injection-checker-n1-test-named-path",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@mistralai/mistralai": "^1.0.0"
+  }
+}
