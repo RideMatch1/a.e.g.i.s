@@ -682,7 +682,7 @@ export function renderEnvVars(
 
   if (patterns.some((p) => p.frontmatter.name === 'dsgvo-kit')) {
     lines.push(
-      'CONSENT_VERSION=2026-04-23-v1          # bump when T&C changes',
+      'NEXT_PUBLIC_CONSENT_VERSION=2026-04-23-v1   # bump when T&C changes; NEXT_PUBLIC_ prefix is mandatory for client-bundle inlining',
     );
   }
   if (patterns.some((p) => p.frontmatter.name === 'logger-pii-safe')) {

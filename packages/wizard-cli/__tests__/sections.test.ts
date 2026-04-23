@@ -469,6 +469,12 @@ describe('renderEnvVars', () => {
     const out = renderEnvVars(buildConfig(), ALL_8);
     expect(out).toContain('{{DEFAULT_TENANT_ID}}');
   });
+
+  it('emits NEXT_PUBLIC_CONSENT_VERSION when dsgvo-kit is selected (D-CON-05)', () => {
+    const out = renderEnvVars(buildConfig(), ALL_8);
+    expect(out).toContain('NEXT_PUBLIC_CONSENT_VERSION=');
+    expect(out).not.toMatch(/^CONSENT_VERSION=/m);
+  });
 });
 
 describe('renderPostBuildReportTemplate', () => {

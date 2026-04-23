@@ -200,7 +200,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const CONSENT_COOKIE = '{{PROJECT_NAME}}-consent';
-const CONSENT_VERSION = '{{CONSENT_VERSION}}';
+// Read from public env-var so a consent-version bump is a single
+// .env change + redeploy. Fallback 'v1' is for local dev where the
+// env-var is sometimes unset; never relies on the fallback in prod.
+const CONSENT_VERSION = process.env.NEXT_PUBLIC_CONSENT_VERSION ?? 'v1';
 
 interface Consent {
   version: string;
@@ -687,7 +690,7 @@ Verify: `SELECT * FROM cron.job;` should list the job.
 
 1. **Loading analytics scripts before consent.** Breaks DSGVO. Check `hasConsent('analytics')` before every script-load.
 2. **Deleting `auth.users` without FK-cascade to domain-tables.** Orphaned rows = data-leak. Ensure every FK uses `ON DELETE CASCADE` or explicit anonymization trigger.
-3. **Forgetting the consent-version bump on T&C change.** Users stay on old consent. Bump the `CONSENT_VERSION` constant in your consent-banner component when you change T&C/privacy copy (e.g. from `v1` to `v2-2026-Q2`) and redeploy — the banner re-shows for every user.
+3. **Forgetting the consent-version bump on T&C change.** Users stay on old consent. Bump the `NEXT_PUBLIC_CONSENT_VERSION` env-var (e.g. from `v1` to `v2-2026-Q2`) and redeploy — the banner re-reads it from `process.env.NEXT_PUBLIC_CONSENT_VERSION` and re-shows for every user. The `NEXT_PUBLIC_` prefix is mandatory: Next.js only inlines env-vars with that prefix into the client-side bundle.
 4. **Not logging the export itself.** Ironic: the audit-log should include "user X exported their data at Y". Already in the API above.
 5. **Letting users delete immediately with no grace period.** Risky for accidental-delete. The retention-queue + cancellable-deletion is the safer pattern.
 6. **Exporting data that includes other users' info.** If user A has conversations with user B, A's export shouldn't reveal B's email. Filter/mask per-request-side.
