@@ -133,7 +133,9 @@ updates:
 
   # GitHub Actions — SHA-pins need periodic refresh.
   # Dependabot opens PRs when upstream action tags advance; maintainer
-  # re-pins to the new SHA after reviewing the diff.
+  # re-pins to the new SHA after reviewing the diff. Major-version
+  # bumps ignored to match the npm-ecosystem policy; they require
+  # manual review (breaking API changes, new input defaults).
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -145,3 +147,7 @@ updates:
     labels:
       - dependencies
       - github-actions
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
