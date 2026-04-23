@@ -1,0 +1,130 @@
+{
+  // Renovate config for AEGIS supply-chain hardening.
+  //
+  // Activation: requires the Renovate GitHub App to be installed on the
+  // RideMatch1/a.e.g.i.s repo (https://github.com/apps/renovate). Once
+  // installed, this file is auto-discovered and used as the rules-source.
+  //
+  // Posture:
+  //   - cooldown of 7 days (default) / 14 days (critical-deps) before any
+  //     update is even proposed — gives the security community time to
+  //     flag a malicious-publish before our PR-pipeline considers it
+  //   - patches auto-merge after CI passes (low-risk, well-bounded)
+  //   - minors require manual review via PR
+  //   - majors require explicit human approval (separate PR per major;
+  //     never grouped, so you can reject one without losing the others)
+  //   - lockfile-only PRs separated from manifest changes
+  //   - all PRs land on a feat-branch with the standard scrub-gate +
+  //     SHA-pin-enforce + cooldown-lint + manifest-confusion-gate flow
+  //
+  // Reference: closes the rushed-update window class exemplified by the
+  // eslint-config-prettier July-2025 npm-token leak + Lottie Player
+  // Oct-2024 hijack.
+
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  "extends": [
+    "config:recommended",
+    "security:openssf-scorecard",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    ":separatePatchReleases"
+  ],
+
+  // Global cooldown — wait at least 7 days after a release is published
+  // before opening a PR for it. Catches the post-publish detection window.
+  "minimumReleaseAge": "7 days",
+
+  // Critical deps shipped into our published tarballs — longer cooldown.
+  // Mirror of the CRITICAL_DEPS list in scripts/check-dep-cooldown.sh.
+  "packageRules": [
+    {
+      "description": "Critical-deps that ship into tarballs — 14-day cooldown",
+      "matchPackageNames": [
+        "zod",
+        "@clack/prompts",
+        "commander",
+        "gray-matter",
+        "yaml",
+        "chalk",
+        "typescript",
+        "vitest",
+        "turbo"
+      ],
+      "minimumReleaseAge": "14 days"
+    },
+
+    {
+      "description": "Patch updates auto-merge after CI green",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "branch",
+      "ignoreTests": false,
+      "labels": ["dependencies", "patch", "auto-merge"]
+    },
+
+    {
+      "description": "Minor updates require manual review",
+      "matchUpdateTypes": ["minor"],
+      "automerge": false,
+      "labels": ["dependencies", "minor", "review-needed"]
+    },
+
+    {
+      "description": "Major updates require explicit human GO — never grouped",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "groupName": null,
+      "labels": ["dependencies", "major", "manual-go-required"],
+      "prBodyTemplate": "{{{header}}}\n\n## Major upgrade — review carefully\n\n- Read the upstream CHANGELOG between {{currentVersion}} and {{newVersion}}\n- Verify maintainer-continuity (`npm view {{depName}} maintainers`)\n- Check for new install-hooks (`npm view {{depName}}@{{newVersion}} scripts`)\n- Run the full test-suite locally before approving\n\n{{{footer}}}"
+    },
+
+    {
+      "description": "GitHub Actions — only allow SHA-pinned updates (Renovate handles the SHA-bump for us)",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "automerge": false,
+      "labels": ["github-actions", "manual-review"]
+    },
+
+    {
+      "description": "Lockfile-only maintenance — auto-merge weekly",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "automerge": true,
+      "schedule": ["before 6am on monday"]
+    }
+  ],
+
+  // GitHub Actions: keep as-is (Renovate auto-pins to SHA per pinDigests)
+  "github-actions": {
+    "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"]
+  },
+
+  // pnpm workspace — discover all packages/* + root
+  "rangeStrategy": "bump",
+
+  // Vulnerability alerts: open PR immediately even if cooldown not met,
+  // because zero-day fixes outweigh the cooldown defense.
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "vulnerability", "expedite"],
+    "minimumReleaseAge": "0 days"
+  },
+
+  // Dashboard issue tracks all pending updates so nothing slips through.
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate Dependency Dashboard — supply-chain hardening view",
+
+  // Limit parallel PRs so review queue stays manageable.
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+
+  // Commit format
+  "commitMessagePrefix": "chore(deps):",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "{{depName}}",
+
+  // Schedule: don't open PRs late at night — quieter morning review window.
+  "schedule": ["after 7am every weekday", "before 4pm every weekday"],
+  "timezone": "Europe/Berlin"
+}
