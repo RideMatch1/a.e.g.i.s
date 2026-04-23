@@ -1,0 +1,42 @@
+# .gitleaks.toml — AEGIS gitleaks configuration.
+#
+# Purpose: extend the upstream default ruleset with a scoped allowlist
+# for the snailsploit-fork pedagogical content rooted at
+#   packages/skills/skills/offensive/snailsploit-fork/
+#
+# Rationale:
+#   - The fork is byte-identical to upstream red-team source (see
+#     packages/skills/ATTRIBUTION.md and CHANGELOG.md). Modifying the
+#     content to strip example-strings would violate the fork's
+#     byte-identical guarantee and the quarterly-sync invariant that
+#     scripts/sync-upstream.sh enforces.
+#   - The flagged tokens are RFC 6455 WebSocket-handshake test-vectors
+#     embedded inside pedagogical curl-command examples (e.g. the
+#     base64 literal "dGhlIHNhbXBsZSBub25jZQ==" decodes to the RFC's
+#     canonical "the sample nonce" string). Not secrets.
+#   - Independent coverage against real leaks in published content is
+#     provided by the tarball-scrub gate in .github/workflows/
+#     publish-skills.yml, which caught the v0.1.0 ship-incident —
+#     allowlisting this path does not relax that gate.
+#
+# Scope is tightly path-bounded: only the snailsploit-fork subtree is
+# exempted. Every other file in the repo continues to run the full
+# upstream ruleset (generic-api-key, AWS, GCP, GitHub, Slack, Stripe,
+# high-entropy, plus whatever the default ruleset extends over time).
+#
+# Historical reference: three findings reported on the 2026-04-23
+# main-push at commit 8508aa6 — all RuleID generic-api-key, all
+# base64-encoded RFC WebSocket test-vectors:
+#   packages/skills/skills/offensive/snailsploit-fork/
+#     request-smuggling/SKILL.md:603
+#     parameter-pollution/SKILL.md:222
+#     race-condition/SKILL.md:407
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "snailsploit-fork — byte-identical upstream pedagogical content"
+paths = [
+    '''^packages/skills/skills/offensive/snailsploit-fork/''',
+]
