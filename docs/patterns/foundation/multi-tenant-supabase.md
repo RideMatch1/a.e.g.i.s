@@ -265,7 +265,9 @@ export function createAdminSupabaseClient() {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
   }
 
-  // eslint-disable-next-line no-restricted-imports -- Service role required for admin operations
+  // Service role required for admin operations — keep this module behind a
+  // server-only guard (import it only from code that already runs server-
+  // side; never from client components or exposed API bodies).
   return createClient(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,

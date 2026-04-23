@@ -176,6 +176,7 @@ export default function ImpressumPage() {
 
 ```typescript
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Datenschutzerklärung',
@@ -220,7 +221,7 @@ export default function DatenschutzPage() {
       </ul>
       <p>
         Zur Ausübung Ihrer Rechte kontaktieren Sie uns per E-Mail oder nutzen Sie die{' '}
-        <a href="/admin/mein-bereich/datenschutz">Daten-Selbstverwaltung</a> in Ihrem Konto.
+        <Link href="/admin/mein-bereich/datenschutz">Daten-Selbstverwaltung</Link> in Ihrem Konto.
       </p>
 
       <h2>4. Erhobene Daten</h2>

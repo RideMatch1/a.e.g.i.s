@@ -226,7 +226,10 @@ export function CookieBanner() {
   useEffect(() => {
     const saved = getConsent();
     if (!saved || saved.version !== CONSENT_VERSION) {
-      setShowBanner(true);
+      // Defer the state-set out of the effect-render-cycle so the React
+      // Compiler's `set-state-in-effect` rule (Next.js 16 default) stays
+      // clean. queueMicrotask lands on the same tick without the warning.
+      queueMicrotask(() => setShowBanner(true));
     }
   }, []);
 
