@@ -434,6 +434,27 @@ export const AegisConfigSchema = z.object({
       'features.chat.ai_powered is true but integrations.ai is not configured for chat — set integrations.ai.provider and add "chat" to integrations.ai.features',
     path: ['integrations', 'ai'],
   },
+).refine(
+  (cfg) => {
+    // C5 (commit 2): TMG §5 Impressumspflicht. If dsgvo_kit is on AND
+    // 'impressum' is in legal_pages, compliance.company_address must exist
+    // with street, zip_city, email all non-empty. Wizard v0.17.0 emitted
+    // Impressum pages with empty fields that passed the placeholder-grep
+    // gate but represented real Abmahnung risk (recon §10 C5; dogfood
+    // §3.2#5 + §3.7#6). Defense-in-depth with commit 8's gate-rewrite.
+    if (!cfg.compliance.dsgvo_kit) return true;
+    if (!cfg.compliance.legal_pages.includes('impressum')) return true;
+    const ca = cfg.compliance.company_address;
+    if (!ca) return false;
+    const nonEmpty = (s: string | undefined): boolean =>
+      typeof s === 'string' && s.trim().length > 0;
+    return nonEmpty(ca.street) && nonEmpty(ca.zip_city) && nonEmpty(ca.email);
+  },
+  {
+    message:
+      'compliance.dsgvo_kit with "impressum" in legal_pages requires compliance.company_address with street, zip_city, email populated (per TMG §5 Impressumspflicht). Populate these in wizard-input or remove "impressum" from legal_pages.',
+    path: ['compliance', 'company_address'],
+  },
 );
 
 export type AegisConfig = z.infer<typeof AegisConfigSchema>;

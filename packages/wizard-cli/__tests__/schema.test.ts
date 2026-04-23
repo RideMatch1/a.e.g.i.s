@@ -50,6 +50,15 @@ const VALID_TIER_1 = {
   deployment: {
     target: 'vercel',
   },
+  // C5 (commit 2): TMG §5 Impressum address required when dsgvo_kit is on
+  // (default-true) and 'impressum' is in legal_pages (default-included).
+  compliance: {
+    company_address: {
+      street: 'Musterstraße 1',
+      zip_city: '10115 Berlin',
+      email: 'kontakt@example.com',
+    },
+  },
 };
 
 // ----------------------------------------------------------------------------
@@ -208,6 +217,43 @@ describe('AegisConfigSchema — F3 ai↔chat coherence refines', () => {
         ai: { provider: 'openai', features: ['chat'], pii_guard: true },
       },
     };
+    expect(() => AegisConfigSchema.parse(ok)).not.toThrow();
+  });
+});
+
+// ----------------------------------------------------------------------------
+// C5 — TMG §5 Impressum completeness cross-validator (commit 2, dispatch-brief §4)
+// ----------------------------------------------------------------------------
+
+describe('AegisConfigSchema — C5 TMG §5 Impressum refine', () => {
+  it('REJECTS dsgvo_kit + impressum-in-legal_pages without company_address (RED)', () => {
+    // Strip the fixture's company_address; defaults still set dsgvo_kit=true
+    // and legal_pages includes 'impressum', so the C5 refine must fire.
+    const { compliance: _omit, ...bad } = VALID_TIER_1;
+    expect(() => AegisConfigSchema.parse(bad)).toThrow(/TMG §5 Impressumspflicht/);
+  });
+
+  it('ACCEPTS dsgvo_kit + impressum + populated company_address (GREEN)', () => {
+    expect(() => AegisConfigSchema.parse(VALID_TIER_1)).not.toThrow();
+  });
+
+  it('REJECTS company_address present but missing email (RED-partial / schema-level)', () => {
+    const bad = {
+      ...VALID_TIER_1,
+      compliance: {
+        company_address: {
+          street: 'Musterstraße 1',
+          zip_city: '10115 Berlin',
+          // email intentionally omitted — schema-level rejection (email required)
+        },
+      },
+    };
+    expect(() => AegisConfigSchema.parse(bad)).toThrow();
+  });
+
+  it('ACCEPTS dsgvo_kit=false without company_address (GREEN-edge / opt-out)', () => {
+    const { compliance: _omit, ...rest } = VALID_TIER_1;
+    const ok = { ...rest, compliance: { dsgvo_kit: false } };
     expect(() => AegisConfigSchema.parse(ok)).not.toThrow();
   });
 });

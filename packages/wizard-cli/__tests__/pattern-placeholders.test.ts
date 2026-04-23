@@ -26,6 +26,13 @@ function buildConfig(overrides: Partial<AegisConfig> = {}): AegisConfig {
       b2b_or_b2c: 'b2b',
       expected_users: '100-1k',
     },
+    compliance: {
+      company_address: {
+        street: 'Musterstraße 1',
+        zip_city: '10115 Berlin',
+        email: 'kontakt@example.com',
+      },
+    },
   });
   return { ...base, ...overrides } as AegisConfig;
 }
