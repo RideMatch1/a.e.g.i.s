@@ -1,0 +1,43 @@
+name: OSSF Scorecard
+
+# OSSF Scorecard assesses security-posture across ~18 dimensions
+# (signed-releases, branch-protection, code-review, CI-checks, token-
+# permissions, dependency-update tools, SAST, fuzzing, and more).
+# Results upload to GitHub code-scanning + generate a public badge.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Monday 06:30 UTC
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # upload SARIF to code-scanning
+      id-token: write          # generate OIDC token for publish-results
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@f49aabe0b5af0936a0987cfb85d86b75731b0186  # v2.4.1
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF to code-scanning
+        uses: github/codeql-action/upload-sarif@60168efe1c415ce0f5521ea06d5c2062adbeed1b  # v3.28.1
+        with:
+          sarif_file: results.sarif
