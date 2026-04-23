@@ -172,21 +172,32 @@ for template structure, primitive source-strategy, and exit criteria.
 
 ---
 
-## Sibling package: `@aegis-wizard/cli`
+## AEGIS is a three-layer security toolkit
 
-Building a new Next.js + Supabase + shadcn SaaS from a blank directory? The companion package [`@aegis-wizard/cli`](https://www.npmjs.com/package/@aegis-wizard/cli) is an interactive scaffold-wizard + brief-generator. Run it once, answer ~15 thorough questions about your project, and it emits an agent-consumable Markdown brief that an AI coding-agent (Claude Code, Codex, Cursor) executes top-to-bottom to build a working SaaS backend — multi-tenant, authenticated, DSGVO-compliant, deployment-ready — in a day.
+AEGIS ships three sibling packages that cover the full pre-ship security lifecycle. Serious security teams use all three together.
+
+| Package | Role | Quickstart |
+|---|---|---|
+| [`@aegis-wizard/cli`](https://www.npmjs.com/package/@aegis-wizard/cli) | **Build** — interactive scaffold + agent-brief generator for Next.js + Supabase + shadcn SaaS | `npx -y @aegis-wizard/cli new my-saas --interactive` |
+| [`@aegis-scan/cli`](https://www.npmjs.com/package/@aegis-scan/cli) | **Scan** — defensive SAST scanner (five-package family). 42 built-in checkers plus 16 external-tool wrappers, AST-based cross-file taint analysis. | `npx -y @aegis-scan/cli scan ./my-saas` |
+| [`@aegis-scan/skills`](https://www.npmjs.com/package/@aegis-scan/skills) | **Test** — opt-in red-team skill library for Claude Code and compatible AI agents. Prime your agent with attack-class methodology so you can stress-test what you built before shipping. | `npm i -g @aegis-scan/skills && aegis-skills install` |
+
+Build with the wizard. Scan what you built. Test it red-team-style. Full lifecycle, one toolchain, one attribution-compliant open-source license stack. The three packages release independently (`wizard-v*`, `v*`, and `skills-v*` tag-namespaces) so neither gates the other — but they co-calibrate on architectural assumptions: a wizard-scaffolded project scoring below 960 on scan's grade is treated as a pattern-defect, and an agent running under the skills library can reach for attack classes scan detects defensively.
 
 ```bash
-# One-shot via npx (no global install)
-npx -y @aegis-wizard/cli new my-saas --interactive
-
-# After the agent finishes, verify safety with AEGIS Scan
-npx -y @aegis-scan/cli scan ./my-saas
+# One-shot full-repertoire workflow
+npx -y @aegis-wizard/cli new my-saas --interactive   # build
+npx -y @aegis-scan/cli scan ./my-saas                # scan
+npm i -g @aegis-scan/skills && aegis-skills install  # equip agent for test
 ```
 
-AEGIS Wizard and AEGIS Scan are co-calibrated: the brief Wizard emits encodes the same architectural assumptions Scan checks against. A Wizard-scaffolded project scoring below 960 on Scan's grade is treated as a pattern-defect.
+See the individual package READMEs for full docs:
 
-See [`packages/wizard-cli/README.md`](./packages/wizard-cli/README.md) for the full wizard-cli docs and [`docs/patterns/index.md`](./docs/patterns/index.md) for the bundled pattern catalog.
+- [`packages/wizard-cli/README.md`](./packages/wizard-cli/README.md)
+- [`packages/skills/README.md`](./packages/skills/README.md)
+- [`docs/patterns/index.md`](./docs/patterns/index.md) for the wizard's bundled pattern catalog
+
+Responsible-use for `@aegis-scan/skills` is documented in this repository's `SECURITY.md` — the offensive methodology library is authorized-testing-only.
 
 ---
 
