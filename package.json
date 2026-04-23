@@ -26,5 +26,12 @@
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [],
+    "allowedDeprecatedVersions": {},
+    "auditConfig": {
+      "ignoreGhsas": []
+    }
   }
 }
