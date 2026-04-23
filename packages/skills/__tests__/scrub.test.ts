@@ -65,3 +65,25 @@ describe('scrub-clean — package-root documents', () => {
     });
   }
 });
+
+describe('scrub-clean — future-category placeholder READMEs', () => {
+  // Placeholder READMEs under skills/{defensive,mitre-mapped,ops}/
+  // ship in the tarball but are NOT iterated by loadAllSkills() because
+  // they live directly under the category directory rather than under
+  // a skill subdirectory. Without explicit coverage the v0.1.0 ship
+  // attempt leaked internal-path references through these files all
+  // the way to the CI tarball-scrub gate. This block closes the
+  // spec-gap so any future placeholder addition is scrub-checked
+  // source-side before the CI gate has to catch it.
+  const PLACEHOLDER_FILES = [
+    'skills/defensive/README.md',
+    'skills/mitre-mapped/README.md',
+    'skills/ops/README.md',
+  ];
+  for (const file of PLACEHOLDER_FILES) {
+    it(`${file} contains zero internal-codename hits`, () => {
+      const raw = readFileSync(file, 'utf-8');
+      expect(raw.match(FORBIDDEN_RE)).toBeNull();
+    });
+  }
+});

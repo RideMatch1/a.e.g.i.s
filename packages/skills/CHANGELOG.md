@@ -8,7 +8,50 @@ and quality-audit completion, not by a fixed schedule.
 
 ---
 
-## [0.1.0] — 2026-04-23 — "initial — offensive-only"
+## [0.1.1] — 2026-04-23 — "ship-gate-caught-recovery"
+
+First published release. v0.1.0 was tagged but NEVER published to npm —
+the publish-skills.yml tarball-scrub gate caught two internal planning-
+path references in placeholder category READMEs at the `Verify no
+internal-codename leaks in shipped tarball` step and refused to
+publish. This v0.1.1 is the clean first-publish.
+
+The fortress-discipline CI gate worked exactly as designed: the tag
+landed, the workflow ran, the scrub-gate fired, and nothing reached
+the npm registry. No force-push, no shortcut, no `--no-verify`. The
+full incident post-mortem is retained in the repository's internal
+planning tree; ask the maintainer for access if needed.
+
+### Fixed
+
+- **`skills/defensive/README.md`** and **`skills/mitre-mapped/README.md`**
+  placeholder documents referenced a gitignored operator-local
+  planning document by its exact filename; both files are generalized
+  to point to "the repository's internal planning tree" instead.
+- **`scripts/sync-upstream.sh`** reviewer-instruction paragraph
+  referenced the same operator-local planning document; generalized
+  to the same "internal planning tree" phrasing.
+
+### Added
+
+- **`__tests__/scrub.test.ts`** gains a new describe-block
+  (`scrub-clean — future-category placeholder READMEs`) covering the
+  three placeholder READMEs under `skills/defensive/`,
+  `skills/mitre-mapped/`, and `skills/ops/`. Without this block, the
+  v0.1.0 leak passed source-side tests (which iterated only the 37
+  forked SKILL.md files plus 4 package-root documents) while failing
+  at the CI tarball-scrub gate. Institutional spec-gap closed.
+
+### Meta
+
+- `v0.1.0` remains as a git-tag pointing at commit `8508aa6` for
+  audit-trail purposes but carries no corresponding npm release. If
+  you need to verify the v0.1.0 git state, check the tag; if you need
+  a running skills package, install `0.1.1` or later.
+
+---
+
+## [0.1.0] — 2026-04-23 — "initial — offensive-only" (WITHHELD — see 0.1.1 above)
 
 Initial ship. Multi-source package structure, offensive-only content
 at v0.1.0.
