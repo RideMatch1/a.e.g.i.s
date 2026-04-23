@@ -47,6 +47,7 @@ import {
   renderPostBuildReportTemplate,
   renderInstallTimeHardening,
   renderPatternAppendix,
+  renderSkillsSection,
   renderFooter,
   renderHeaderVerbose,
   renderAgentInstructionsVerbose,
@@ -108,6 +109,7 @@ export function generateBrief(
         renderPostBuildReportTemplateVerbose(lang),
         renderInstallTimeHardeningVerbose(lang),
         renderPatternAppendixVerbose(patterns, lang),
+        renderSkillsSection(lang),
         renderFooterVerbose(config, patterns, lang),
       ]
     : [
@@ -126,6 +128,7 @@ export function generateBrief(
         renderPostBuildReportTemplate(lang),
         renderInstallTimeHardening(lang),
         renderPatternAppendix(patterns, lang),
+        renderSkillsSection(lang),
         renderFooter(config, patterns, lang),
       ];
 

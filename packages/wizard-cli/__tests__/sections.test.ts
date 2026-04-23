@@ -22,6 +22,7 @@ import {
   renderEnvVars,
   renderPostBuildReportTemplate,
   renderFooter,
+  renderSkillsSection,
 } from '../src/brief/sections.js';
 import { AegisConfigSchema, type AegisConfig } from '../src/wizard/schema.js';
 import type { LoadedPattern } from '../src/patterns/loader.js';
@@ -344,6 +345,40 @@ describe('renderPostBuildReportTemplate', () => {
     const out = renderPostBuildReportTemplate();
     expect(out.length).toBeGreaterThan(50);
     expect(out).toBe(renderPostBuildReportTemplate());
+  });
+});
+
+describe('renderSkillsSection (F1, commit 3)', () => {
+  it('emits the H2 heading in English', () => {
+    const out = renderSkillsSection('en');
+    expect(out).toMatch(/^## Skills \(recommended companion package\)/m);
+  });
+
+  it('emits the H2 heading in German', () => {
+    const out = renderSkillsSection('de');
+    expect(out).toMatch(/^## Skills \(empfohlenes Begleit-Paket\)/m);
+  });
+
+  it('emits the install command without a --to flag (D-spec line 146)', () => {
+    const en = renderSkillsSection('en');
+    expect(en).toMatch(/aegis-skills install\b/);
+    expect(en).not.toMatch(/aegis-skills install --to\b/);
+  });
+
+  it('keeps install path-abstract per Rule #9 (no .claude path leak in prose)', () => {
+    const en = renderSkillsSection('en');
+    expect(en).not.toMatch(/\.claude\/skills/);
+  });
+
+  it('emits both verify subcommands', () => {
+    const en = renderSkillsSection('en');
+    expect(en).toMatch(/aegis-skills list/);
+    expect(en).toMatch(/aegis-skills info <name>/);
+  });
+
+  it('mentions the current 37-skill catalog count', () => {
+    expect(renderSkillsSection('en')).toMatch(/37 offensive/);
+    expect(renderSkillsSection('de')).toMatch(/37 Offensive/);
   });
 });
 

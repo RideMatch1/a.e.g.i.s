@@ -122,5 +122,18 @@
     "lang_label": "Sprache",
     "target_agent_label": "Ziel-Agent",
     "quality_target": "Quality-Ziel"
+  },
+  "skills": {
+    "heading": "Skills (empfohlenes Begleit-Paket)",
+    "intro": "Das AEGIS-Toolkit liefert eine opt-in **Skill-Library** für Claude Code und kompatible AI-Coding-Agenten. Skills sind SKILL.md-Dateien mit Frontmatter-Triggern, die der Agent in jeder Session automatisch lädt — er bekommt domänenspezifische Expertise on-demand, ohne dass das Brief aufgebläht wird.",
+    "security_value": "Für sicherheits-sensitives Scaffolding (Auth, RLS, DSGVO, Supply-Chain) ist die Skill-Library besonders wertvoll: sie lädt Angriffsklassen-Methodik, damit der Agent das Gebaute selbst stress-testen kann bevor du shipst.",
+    "install_heading": "Installation auf deinem Dev-Rechner (einmalig, ~30 Sekunden)",
+    "install_block_post": "`aegis-skills install` kopiert jede SKILL.md ins Standard-Skill-Verzeichnis des Agenten. Keine Flags nötig — der eingebaute Zielpfad des CLI ist korrekt für Claude Code.",
+    "verify_heading": "Verifizieren",
+    "verify_block_post": "Der Agent lädt relevante Skills basierend auf Frontmatter-Triggern in der NÄCHSTEN Session automatisch — schließe und öffne den Editor neu, oder starte den Agent-Prozess neu, um sie zu aktivieren.",
+    "notes_heading": "Hinweise",
+    "note_global": "Skills werden GLOBAL installiert (pro Rechner, nicht pro Projekt). Eine Installation hilft jedem Projekt, das der Agent anfasst.",
+    "note_catalog": "Die Library enthält momentan 37 Offensive-Security-Skills aus einer kuratierten Red-Team-Quelle (Lizenz + Herkunft siehe ATTRIBUTION.md von `@aegis-scan/skills`). Defensive, framework-gemappte und Ops-Kategorien sind als Platzhalter-Verzeichnisse für zukünftige Skill-Library-Releases reserviert.",
+    "note_optin": "Skills sind OPT-IN und nur zur Laufzeit aktiv — sie beeinflussen weder `npm run build`, Scanner-Output noch Production-Runtime dieses Scaffolds. Reine Tooling-Verbesserung für den Dev-Loop."
   }
 }

@@ -1169,3 +1169,42 @@ export function renderPatternAppendixVerbose(
   }
   return blocks.join('\n\n');
 }
+
+// F1 (commit 3): Skills companion-package section. Rendered unconditionally
+// after the pattern-appendix so the agent encounters it as enrichment-after-
+// completion. Closes recon-report F1 + dogfood §3.5 (consumer-agent had zero
+// visibility into the @aegis-scan/skills sibling).
+export function renderSkillsSection(lang: BriefLang = 'en'): string {
+  const k = (key: string): string => getMessage(lang, `skills.${key}`);
+  return [
+    `## ${k('heading')}`,
+    '',
+    k('intro'),
+    '',
+    k('security_value'),
+    '',
+    `### ${k('install_heading')}`,
+    '',
+    '```bash',
+    'npm install -g @aegis-scan/skills',
+    'aegis-skills install',
+    '```',
+    '',
+    k('install_block_post'),
+    '',
+    `### ${k('verify_heading')}`,
+    '',
+    '```bash',
+    'aegis-skills list           # browse the installed catalog',
+    'aegis-skills info <name>    # inspect one skill',
+    '```',
+    '',
+    k('verify_block_post'),
+    '',
+    `### ${k('notes_heading')}`,
+    '',
+    `- ${k('note_global')}`,
+    `- ${k('note_catalog')}`,
+    `- ${k('note_optin')}`,
+  ].join('\n');
+}
