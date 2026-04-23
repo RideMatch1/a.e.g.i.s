@@ -129,6 +129,17 @@ jobs:
             exit 1
           fi
 
+      - name: Manifest-confusion gate (tarball pkg.json vs source pkg.json)
+        # Closes the threat-class disclosed by Darcy Clarke (June 2024):
+        # a malicious tarball can ship a package.json that diverges from
+        # what the registry-API exposes, making consumer-resolution and
+        # actual-execution see different deps/scripts/bins. We prove the
+        # tarball-manifest matches the source-manifest on the security-
+        # critical fields (deps, scripts, bin, etc.) before publish.
+        run: |
+          TARBALL=$(ls /tmp/tarball-scrub/*.tgz | head -1)
+          node scripts/check-manifest-confusion.mjs packages/skills "$TARBALL"
+
       - name: Publish @aegis-scan/skills with provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

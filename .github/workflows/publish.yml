@@ -76,6 +76,23 @@ jobs:
             exit 1
           fi
 
+      - name: Manifest-confusion gate (per-package tarball vs source)
+        # Closes the threat-class disclosed by Darcy Clarke (June 2024):
+        # a malicious tarball can ship a package.json that diverges from
+        # what the registry-API exposes. We pre-pack each scanner-family
+        # package, compare its tarball-manifest against its source-
+        # manifest on security-critical fields (deps, scripts, bin, etc.),
+        # and refuse to publish on any divergence. This runs in addition
+        # to (not instead of) the SLSA v1 provenance attestation.
+        run: |
+          mkdir -p /tmp/manifest-confusion-tarballs
+          for pkg in core scanners reporters cli mcp-server; do
+            (cd "packages/$pkg" && pnpm pack --pack-destination /tmp/manifest-confusion-tarballs --silent)
+            TARBALL=$(ls /tmp/manifest-confusion-tarballs/aegis-scan-$pkg-*.tgz | tail -1)
+            echo "▸ Checking @aegis-scan/$pkg → $(basename "$TARBALL")"
+            node scripts/check-manifest-confusion.mjs "packages/$pkg" "$TARBALL"
+          done
+
       - name: Publish to npm with provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
