@@ -178,6 +178,44 @@ describe('renderInstallation', () => {
     const out = renderInstallation(buildConfig(), ALL_8);
     expect(out).not.toContain('--no-turbopack');
   });
+
+  describe('shadcn install block (D-COM-01 fix)', () => {
+    it('emits init with --defaults --yes (non-interactive base-nova lock)', () => {
+      const out = renderInstallation(buildConfig(), ALL_8);
+      expect(out).toMatch(/shadcn@latest init --defaults --yes/);
+      expect(out).not.toMatch(/shadcn@latest init --force\b/);
+    });
+
+    it('emits add with --yes flag', () => {
+      const out = renderInstallation(buildConfig(), ALL_8);
+      expect(out).toMatch(/shadcn@latest add --yes/);
+    });
+
+    it('shadcn add block does NOT include removed components (toast, data-table, date-picker, form)', () => {
+      const out = renderInstallation(buildConfig(), ALL_8);
+      // Extract the shadcn-add block via the sentinel comment + closing fence
+      const match = out.match(/# 6\. Add shadcn components[\s\S]*?```/);
+      expect(match).not.toBeNull();
+      const addBlock = match![0];
+      expect(addBlock).not.toMatch(/\btoast\b/);
+      expect(addBlock).not.toMatch(/\bdata-table\b/);
+      expect(addBlock).not.toMatch(/\bdate-picker\b/);
+      expect(addBlock).not.toMatch(/(?<![-\w])form\b/);  // matches bare 'form', not react-hook-form
+    });
+
+    it('shadcn add block keeps spinner and combobox (DR5 install-test confirmed both)', () => {
+      const out = renderInstallation(buildConfig(), ALL_8);
+      const match = out.match(/# 6\. Add shadcn components[\s\S]*?```/);
+      const addBlock = match![0];
+      expect(addBlock).toMatch(/\bspinner\b/);
+      expect(addBlock).toMatch(/\bcombobox\b/);
+    });
+
+    it('Phase 1 gate uses >=27 lower bound', () => {
+      const out = renderInstallation(buildConfig(), ALL_8);
+      expect(out).toMatch(/expect >=27/);
+    });
+  });
 });
 
 describe('renderQualityGates — Next.js 16 lint flag (D-NX-03)', () => {

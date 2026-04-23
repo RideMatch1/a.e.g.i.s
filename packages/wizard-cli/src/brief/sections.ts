@@ -189,17 +189,26 @@ export function renderInstallation(
   ];
   if (hasI18n) npmDeps.push('next-intl@latest');
 
+  // shadcn install-list (29 components, base-nova-style empirically install-
+  // verified 2026-04-23 in fresh next@16.2.4 scaffold). Removed since v0.17.0:
+  // form (HTTP 200 in registry but `shadcn add` writes no file in base-nova,
+  // verified DR5), toast (404 in base-nova), data-table + date-picker
+  // (compositions, not registry-items). Kept against earlier auditor advice:
+  // spinner + combobox (DR5 install-test confirmed both write files cleanly).
+  // Auto-resolved deps (e.g. textarea, input-group) typically backfill +2-3
+  // to the on-disk count, so the Phase 1 gate target is >=27 with a
+  // 2-component tolerance margin for transient registry hiccups.
   const shadcnComponents = [
-    'button input label card form alert',
+    'button input label card alert',
     'dialog sheet drawer popover dropdown-menu',
-    'table data-table',
+    'table',
     'avatar badge separator skeleton',
-    'toast sonner progress spinner',
+    'sonner progress spinner',
     'select combobox checkbox radio-group switch',
     'tabs accordion',
     'breadcrumb pagination',
     'command',
-    'date-picker calendar',
+    'calendar',
   ];
 
   return [
@@ -230,17 +239,17 @@ export function renderInstallation(
     '# 4. Initialize Supabase CLI',
     'npx supabase init',
     '',
-    '# 5. Install shadcn/ui + theme',
-    'npx shadcn@latest init --force',
+    '# 5. Initialize shadcn/ui (non-interactive — --defaults selects the base-nova style)',
+    'npx shadcn@latest init --defaults --yes',
     '',
-    '# 6. Add shadcn components',
-    'npx shadcn@latest add \\',
+    '# 6. Add shadcn components (--yes auto-confirms file-write prompts)',
+    'npx shadcn@latest add --yes \\',
     shadcnComponents.map((c) => `  ${c}`).join(' \\\n'),
     '```',
     '',
     k('after_step_6'),
     '```bash',
-    'ls src/components/ui/ | wc -l     # expect 30-40 components',
+    'ls src/components/ui/ | wc -l     # expect >=27 (29 listed + auto-deps; 2-component tolerance for transient registry hiccups)',
     'npm run build                      # expect exit 0',
     '```',
   ].join('\n');
