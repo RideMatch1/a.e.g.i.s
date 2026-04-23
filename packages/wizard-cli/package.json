@@ -37,7 +37,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "sbom.cdx.json"
   ],
   "type": "module",
   "bin": {

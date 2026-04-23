@@ -42,7 +42,8 @@
   "files": [
     "dist",
     "templates",
-    "README.md"
+    "README.md",
+    "sbom.cdx.json"
   ],
   "type": "module",
   "bin": {

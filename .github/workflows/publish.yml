@@ -93,6 +93,18 @@ jobs:
             node scripts/check-manifest-confusion.mjs "packages/$pkg" "$TARBALL"
           done
 
+      - name: Generate CycloneDX SBOM per package (supply-chain visibility)
+        # End-user-side verifiability: the SBOM enumerates every transitive
+        # dep with version + license + import-evidence, so a downstream
+        # consumer can compare against the registry-served manifest and
+        # detect drift independently of npm provenance. SLSA + SBOM are
+        # complementary trust-layers: provenance proves who built it,
+        # SBOM proves what is in it.
+        run: |
+          for pkg in core scanners reporters cli mcp-server; do
+            bash scripts/generate-sbom.sh "packages/$pkg"
+          done
+
       - name: Publish to npm with provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -37,7 +37,8 @@
     "provenance": true
   },
   "files": [
-    "dist"
+    "dist",
+    "sbom.cdx.json"
   ],
   "type": "module",
   "main": "dist/index.js",

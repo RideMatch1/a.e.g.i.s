@@ -34,3 +34,8 @@ packages/*/*.tgz
 # to the known benchmark vulnerable-app src-root so unrelated paths
 # with the same prefix are NOT auto-ignored.
 packages/benchmark/vulnerable-app/src/__aegis_*/
+
+# CycloneDX SBOM files generated at publish-time by
+# scripts/generate-sbom.sh. Per-version artifacts; never source-of-truth.
+sbom.cdx.json
+**/sbom.cdx.json

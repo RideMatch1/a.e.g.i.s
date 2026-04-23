@@ -41,7 +41,8 @@
     "README.md",
     "LICENSE",
     "ATTRIBUTION.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "sbom.cdx.json"
   ],
   "type": "module",
   "bin": {
