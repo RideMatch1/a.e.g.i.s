@@ -1,0 +1,47 @@
+name: CodeQL
+
+# CodeQL static analysis for JavaScript/TypeScript.
+# Runs on every push to main, every PR to main, and weekly on a fixed
+# schedule so the latest CodeQL queries re-scan the codebase even if
+# no new commits have landed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Sunday 07:00 UTC (09:00 Berlin summer, 08:00 winter)
+    - cron: "0 7 * * 0"
+
+permissions:
+  contents: read
+  security-events: write  # required to upload CodeQL results
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - javascript-typescript
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v5.0.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@60168efe1c415ce0f5521ea06d5c2062adbeed1b  # v3.28.1
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@60168efe1c415ce0f5521ea06d5c2062adbeed1b  # v3.28.1
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@60168efe1c415ce0f5521ea06d5c2062adbeed1b  # v3.28.1
+        with:
+          category: /language:${{ matrix.language }}
