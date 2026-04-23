@@ -48,8 +48,8 @@ at v0.1.0.
 - **Test suite** — four vitest files covering manifest integrity,
   frontmatter shape, attribution header preservation, and
   internal-codename scrub-clean invariant across every shipped
-  skill. Total tests at v0.1.0 is 151 new cases; the full monorepo
-  test count rises from 2224 to approximately 2375.
+  skill. Total tests at v0.1.0 is 316 new cases; the full monorepo
+  test count rises from 2224 to 2540.
 
 ### Known discrepancies tracked for upstream-courtesy-ping
 
