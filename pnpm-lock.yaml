@@ -156,6 +156,18 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/skills:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.0
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+
   packages/wizard-cli:
     dependencies:
       '@clack/prompts':

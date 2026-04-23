@@ -1,0 +1,63 @@
+{
+  "name": "@aegis-scan/skills",
+  "version": "0.1.0",
+  "description": "AEGIS Skills — opt-in skill library for Claude Code and compatible AI agents. Offensive red-team methodology from curated sources, attribution preserved per-file. Multi-source-ready architecture with placeholder directories for future defensive (AEGIS-native) and MITRE-mapped (Anthropic-Cybersec cherry-pick) extensions. Third sibling in the AEGIS full-repertoire toolkit alongside @aegis-scan/cli and @aegis-wizard/cli.",
+  "license": "MIT",
+  "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",
+  "homepage": "https://github.com/RideMatch1/a.e.g.i.s#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RideMatch1/a.e.g.i.s.git",
+    "directory": "packages/skills"
+  },
+  "bugs": {
+    "url": "https://github.com/RideMatch1/a.e.g.i.s/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-skills",
+    "agent-skills",
+    "agentskills",
+    "security",
+    "cybersecurity",
+    "red-team",
+    "pentesting",
+    "bug-bounty",
+    "ctf",
+    "defensive-security",
+    "aegis",
+    "institutional-grade"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "files": [
+    "dist",
+    "skills",
+    "README.md",
+    "LICENSE",
+    "ATTRIBUTION.md",
+    "CHANGELOG.md"
+  ],
+  "type": "module",
+  "bin": {
+    "aegis-skills": "dist/bin.js"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

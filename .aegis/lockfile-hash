@@ -3,4 +3,5 @@
 # Re-seeded 2026-04-21 for v0.15.4 D-C-001 picomatch@^4 addition (walkFiles glob-support).
 # Re-seeded 2026-04-22 for v0.17 Day-1 wizard-cli scaffold — adds @clack/prompts, gray-matter transitively via new packages/wizard-cli/package.json.
 # Re-seeded 2026-04-23 for v0.17 Day-2 preset-loader — adds yaml package to wizard-cli for YAML preset-manifests.
-sha256:5961435a309f9425e0357f64303d1af960609b1323813accfc2bc0e999c89cec  pnpm-lock.yaml
+# Re-seeded 2026-04-23 for v0.18 skills-v0.1.0 commit #1 — adds @aegis-scan/skills package (vitest devDependency only, no runtime deps in scaffold).
+sha256:4324e28c1a980373d82b75182fc74a1eba6a03bd98f2a9da9cfefb442c9b7edc  pnpm-lock.yaml
