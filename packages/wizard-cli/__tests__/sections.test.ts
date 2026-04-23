@@ -173,6 +173,19 @@ describe('renderInstallation', () => {
     const out = renderInstallation(buildConfig(), subset);
     expect(out).not.toContain('next-intl@latest');
   });
+
+  it('does NOT pass --no-turbopack to create-next-app (D-NX-02 fix)', () => {
+    const out = renderInstallation(buildConfig(), ALL_8);
+    expect(out).not.toContain('--no-turbopack');
+  });
+});
+
+describe('renderQualityGates — Next.js 16 lint flag (D-NX-03)', () => {
+  it('uses npx eslint src instead of npx next lint in the command block', () => {
+    const out = renderQualityGates(buildConfig());
+    expect(out).toContain('npx eslint src');
+    expect(out).not.toMatch(/^npx next lint\b/m);
+  });
 });
 
 describe('renderDatabaseSchema', () => {
