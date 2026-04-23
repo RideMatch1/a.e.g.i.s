@@ -340,7 +340,8 @@ export function renderPagesInventory(config: AegisConfig, lang: BriefLang = 'en'
     '`/` - landing page (replace with your marketing-copy)',
   ];
   for (const p of legal) {
-    publicPages.push(`\`${prefix}/${p}\` - from compliance/legal-pages-de pattern`);
+    const localeNote = hasLocalePrefix ? '' : ' (single-locale config; no `[locale]` prefix)';
+    publicPages.push(`\`${prefix}/${p}\` - from compliance/legal-pages-de pattern${localeNote}`);
   }
 
   const authPages = [
@@ -349,11 +350,15 @@ export function renderPagesInventory(config: AegisConfig, lang: BriefLang = 'en'
 
   const lines: string[] = [`# ${k('heading')}`, ''];
   lines.push(`${k('total_prefix')}: ${adminPages.length + publicPages.length + authPages.length} ${k('total_suffix')}`);
+  lines.push(
+    '',
+    '> **Note (i18n routing exemptions):** auth routes (`/login`, `/signup`, `/auth/*`, including `/auth/callback`) and API routes (`/api/*`) MUST stay at the URL root regardless of i18n configuration. Supabase auth-callbacks fail if relocated under `[locale]`; route-handlers under `/api/*` are server-only and not subject to next-intl routing. The `/[locale]/...` prefix below applies only to user-facing UI pages.',
+  );
   lines.push('', `## ${k('admin_pages')}`);
   adminPages.forEach((p) => lines.push(`- ${p}`));
   lines.push('', `## ${k('public_pages')}`);
   publicPages.forEach((p) => lines.push(`- ${p}`));
-  lines.push('', `## ${k('auth_pages')}`);
+  lines.push('', `## ${k('auth_pages')} (stay at root, no \`[locale]\` prefix)`);
   authPages.forEach((p) => lines.push(`- ${p}`));
 
   return lines.join('\n');
@@ -516,8 +521,24 @@ export function renderBuildOrder(patterns: readonly LoadedPattern[], lang: Brief
       '1. Copy compliance/dsgvo-kit files: SQL migration, CookieBanner, API routes, `/admin/mein-bereich/datenschutz` page',
       '2. Mount `<CookieBanner />` in root layout',
       '3. Apply migration `00010_dsgvo.sql`',
-      '4. Configure pg_cron for `process_deletion_queue()` (see dsgvo-kit pattern Supabase-dashboard-config section)',
-      `5. **${k('gate')}:** Cookie-banner shows on first-visit; \`/api/dsgvo/export\` downloads JSON; \`/api/dsgvo/delete\` schedules entry in deletion_queue`,
+      '4. Enable pg_cron via the Supabase SQL editor:',
+      '   ```sql',
+      '   CREATE EXTENSION IF NOT EXISTS pg_cron;',
+      '   -- Verify the project tier includes pg_cron:',
+      "   SELECT extname FROM pg_extension WHERE extname = 'pg_cron';",
+      '   -- Expect: 1 row.',
+      '   ```',
+      '5. Schedule the deletion-queue processor + verify the job is registered:',
+      '   ```sql',
+      '   SELECT cron.schedule(',
+      "     'dsgvo-deletion',",
+      "     '0 * * * *',",
+      '     $$ CALL public.process_deletion_queue(); $$',
+      '   );',
+      "   SELECT * FROM cron.job WHERE jobname = 'dsgvo-deletion';",
+      "   -- Expect: 1 row with schedule='0 * * * *' and active=true.",
+      '   ```',
+      `6. **${k('gate')}:** Cookie-banner shows on first-visit; \`/api/dsgvo/export\` downloads JSON; \`/api/dsgvo/delete\` schedules entry in deletion_queue; pg_cron job 'dsgvo-deletion' verified active per step 5.`,
       '',
     );
   }

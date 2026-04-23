@@ -262,6 +262,63 @@ describe('renderPagesInventory', () => {
     const out = renderPagesInventory(cfg);
     expect(out).not.toContain('`/admin/audit-log`');
   });
+
+  describe('D-CON-03/04 — i18n exemption note + locale-conditional legal paths', () => {
+    it('emits the auth + api exemption note', () => {
+      const out = renderPagesInventory(buildConfig());
+      expect(out).toMatch(
+        /auth routes \(`\/login`, `\/signup`, `\/auth\/\*`,.*\) and API routes \(`\/api\/\*`\) MUST stay at the URL root/,
+      );
+    });
+
+    it('with i18n_strategy=url-prefix — emits /[locale]/impressum + /[locale]/datenschutz', () => {
+      const cfg = buildConfig();
+      cfg.localization = { ...cfg.localization, i18n_strategy: 'url-prefix' };
+      const out = renderPagesInventory(cfg);
+      expect(out).toContain('`/[locale]/impressum`');
+      expect(out).toContain('`/[locale]/datenschutz`');
+    });
+
+    it('with i18n_strategy=none — emits /impressum + /datenschutz without [locale]', () => {
+      const cfg = buildConfig();
+      cfg.localization = { ...cfg.localization, i18n_strategy: 'none' };
+      const out = renderPagesInventory(cfg);
+      expect(out).toMatch(/^- `\/impressum`/m);
+      expect(out).toMatch(/^- `\/datenschutz`/m);
+      expect(out).not.toContain('`/[locale]/impressum`');
+    });
+
+    it('Auth pages section heading clarifies they stay at root', () => {
+      const out = renderPagesInventory(buildConfig());
+      expect(out).toMatch(/stay at root, no `\[locale\]` prefix/);
+    });
+  });
+});
+
+describe('renderBuildOrder Phase 4 pg_cron (D-COM-07)', () => {
+  it('Phase 4 step 4 enables pg_cron extension', () => {
+    const out = renderBuildOrder(ALL_8);
+    expect(out).toContain('CREATE EXTENSION IF NOT EXISTS pg_cron');
+  });
+
+  it('Phase 4 step 5 schedules dsgvo-deletion job + verifies it', () => {
+    const out = renderBuildOrder(ALL_8);
+    expect(out).toMatch(/SELECT cron\.schedule\(\s*\n?\s*'dsgvo-deletion'/);
+    expect(out).toMatch(/SELECT \* FROM cron\.job WHERE jobname = 'dsgvo-deletion'/);
+  });
+
+  it('Phase 4 gate references pg_cron job verified active', () => {
+    const out = renderBuildOrder(ALL_8);
+    expect(out).toMatch(/Gate.*pg_cron job 'dsgvo-deletion' verified active/);
+  });
+
+  it('Phase 4 has 6 numbered items (5 actionable + 1 gate)', () => {
+    const out = renderBuildOrder(ALL_8);
+    const phase4 = out.match(/## Phase 4 - DSGVO Kit[\s\S]*?(?=\n## Phase 5|\n## Phase 6)/);
+    expect(phase4).not.toBeNull();
+    const numberedSteps = (phase4![0].match(/^\d+\./gm) ?? []).length;
+    expect(numberedSteps).toBe(6);
+  });
 });
 
 describe('renderComponentCatalog', () => {

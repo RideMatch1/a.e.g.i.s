@@ -147,11 +147,11 @@ create policy audit_select_tenant_admin on public.audit_log
     )
   );
 
--- pg_cron job: process deletion_queue every hour
--- Enable pg_cron extension first: CREATE EXTENSION IF NOT EXISTS pg_cron;
--- Then: SELECT cron.schedule('dsgvo_process_deletions', '0 * * * *', $$
---   CALL public.process_deletion_queue();
--- $$);
+-- pg_cron deletion-queue scheduler — see Phase 4 step 5 of the brief for the
+-- canonical CREATE EXTENSION + cron.schedule + verification commands. The
+-- jobname used by the brief is 'dsgvo-deletion' (matches the brief's
+-- verify-step). Without this scheduled job, deletion_queue rows accumulate
+-- and Art. 17 erasure-requests never run — DSGVO compliance gap.
 
 create or replace procedure public.process_deletion_queue()
 language plpgsql as $$
