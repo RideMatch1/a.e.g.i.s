@@ -8,7 +8,7 @@
     "@aegis-scan/reporters": "0.16.4",
     "@aegis-scan/cli": "0.16.4",
     "@aegis-scan/mcp-server": "0.16.4",
-    "@aegis-wizard/cli": "0.17.0",
+    "@aegis-wizard/cli": "0.17.1",
     "@aegis-scan/skills": "0.1.1"
   },
   "_null_note": "A null baseline entry declares a package tracked by npm-version-watch that has not yet been published. After the first intentional publish (e.g. @aegis-scan/skills first published as 0.1.1, after skills-v0.1.0 was withheld at the publish-skills.yml tarball-scrub gate) the maintainer updates this entry to the new version via the same baseline-PR workflow used for every other tracked package."
