@@ -1,0 +1,135 @@
+name: Publish @aegis-scan/skills
+
+# Triggered on tag-push matching the skills-v- prefix (e.g. skills-v0.1.0).
+# Publishes @aegis-scan/skills with npm-provenance for SLSA Level-2
+# attestation bound to this exact workflow run, this exact commit, and
+# this exact npm-registry identity. Consumers verify via
+# `npm audit signatures` or
+# `npm view @aegis-scan/skills@<version> dist.attestations`.
+#
+# Scope: @aegis-scan/skills only. Scanner-family packages publish via
+# .github/workflows/publish.yml on the v* tag-namespace; wizard
+# publishes via .github/workflows/publish-wizard.yml on the wizard-v*
+# namespace. This workflow touches none of those and the pnpm filter
+# (-F @aegis-scan/skills) enforces that at publish-time.
+#
+# NPM auth: the existing repo secret NPM_TOKEN is scoped to the
+# @aegis-scan org and therefore covers @aegis-scan/skills natively.
+# No new secret provisioning is required for v0.1.0. If future
+# decisions migrate skills to a different scope, swap NODE_AUTH_TOKEN
+# to the matching secret before tagging.
+
+on:
+  push:
+    tags:
+      - 'skills-v*'
+
+permissions:
+  contents: read
+  id-token: write  # required for npm --provenance (OIDC attestation)
+
+jobs:
+  publish:
+    name: Publish @aegis-scan/skills with SLSA provenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout at tag
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1 — SHA-pinned per v0.16.3 D-CA-003
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320  # v4.3.0 — SHA-pinned per v0.16.3 D-CA-003
+
+      - name: Setup Node.js + npm registry auth
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0 — SHA-pinned per v0.16.3 D-CA-003
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build skills plus transitive deps
+        run: pnpm -F @aegis-scan/skills... build
+
+      - name: Verify skills tests before publish
+        run: pnpm -F @aegis-scan/skills test
+
+      - name: Verify no install-time lifecycle scripts (structural invariant)
+        # Mirror of the publish-wizard gate. The @aegis-scan/skills
+        # package must not declare preinstall, install, postinstall,
+        # preuninstall, postuninstall, or prepare. A consumer running
+        # `npm install @aegis-scan/skills` should execute zero scripts
+        # from our namespace. This gate makes the invariant impossible
+        # to regress silently.
+        run: |
+          node -e "
+          const path = 'packages/skills/package.json';
+          const pkg = require(process.cwd() + '/' + path);
+          const danger = ['preinstall','install','postinstall','preuninstall','postuninstall','prepare'];
+          const scripts = pkg.scripts || {};
+          const hits = danger.filter((k) => Object.prototype.hasOwnProperty.call(scripts, k));
+          if (hits.length > 0) {
+            console.error('::error::' + path + ' declares install-time lifecycle script(s): ' + hits.join(', '));
+            process.exit(1);
+          }
+          console.log(path + ': clean — no install-time lifecycle scripts declared');
+          "
+
+      - name: Verify markdown-only structural invariant under skills/ (R0-review A-1 + A-3)
+        # The skills/ tree ships methodology text only. Any non-.md
+        # file under that tree is either an accidentally-committed
+        # binary, a stray script, or an executable artifact that has
+        # no business in a markdown knowledge-base. Placeholder
+        # README.md files in the category-dirs (defensive, mitre-
+        # mapped, ops) are permitted because README.md IS .md.
+        run: |
+          NON_MD=$(find packages/skills/skills -type f ! -name '*.md' | head -20)
+          if [ -n "$NON_MD" ]; then
+            echo "::error::Non-markdown files found under packages/skills/skills/ — invariant violated"
+            echo "$NON_MD"
+            exit 1
+          fi
+          echo "packages/skills/skills/: clean — markdown-only invariant holds"
+
+      - name: Verify no install-hint-style version-pins in shipped src
+        # Mirrors the scanner and wizard publish gates. Tool names
+        # like `aegis-skills list` are stable across 0.1.x releases
+        # and should not carry parenthesized version anchors inside
+        # string-literals. Catches accidents where a version-bump
+        # leaves a literal "(skills-v0.1.0)" or "(v0.1.0)" inside a
+        # user-facing message.
+        run: |
+          if grep -rnE "[\"'\`][^\"'\`]*\((skills-)?v0\.1\.[0-9]+\)[^\"'\`]*[\"'\`]" packages/skills/src/; then
+            echo "::error::Install-hint-style version pin found in a"
+            echo "string-literal in shipped skills source. Remove"
+            echo "the version-pin — tool names are stable across 0.1.x"
+            echo "and do not need version anchors. Compute runtime"
+            echo "version references from package.json at build time"
+            echo "rather than hardcoding the literal."
+            exit 1
+          fi
+
+      - name: Verify no internal-codename leaks in shipped tarball
+        # Safety-net between the local Rule #13 commit-msg hook and
+        # the published binary: if a scrub-term slipped past the
+        # developer hook the tarball-extract grep below catches it
+        # before npm ever sees the bits.
+        run: |
+          cd packages/skills
+          pnpm pack --pack-destination /tmp/tarball-scrub
+          mkdir -p /tmp/tarball-check
+          tar -xzf /tmp/tarball-scrub/*.tgz -C /tmp/tarball-check
+          # Private codenames only. Generic product-refs like agent-
+          # names are legitimate here per the wizard-cli keyword list
+          # precedent and must NOT appear in this list.
+          SCRUB='Spa-App|spa-app|lukas|hertle|ucos|voidai|sonnenhof|hundementor|myspa|hotel-pilot|UCOS-space|VoidAI|aegis-precision'
+          if grep -riE "$SCRUB" /tmp/tarball-check/; then
+            echo "::error::Internal codename leaked into shipped tarball; refusing to publish"
+            exit 1
+          fi
+
+      - name: Publish @aegis-scan/skills with provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm -F @aegis-scan/skills publish --provenance --access public --no-git-checks
