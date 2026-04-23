@@ -435,6 +435,60 @@ npm run test:e2e -- legal
 # e.g. assert /impressum contains "Angaben gemäß §5 DDG"
 ```
 
+### Impressum field-completeness gate (TMG §5 / DDG)
+
+The pattern's `{{placeholder}}` substitution can complete with empty values when the wizard's `compliance.company_address` block is partially populated. The Impressum then renders without raising any visible error but represents real Abmahnung risk (€500-2000) — and AEGIS-scan flags it as `GDPR-018 missing Anschrift`. The C5 schema-refine added in v0.17.1 catches this at config-parse-time (defense-in-depth); the runtime gate below catches it at scaffold-build-time.
+
+Copy this script to `scripts/check-impressum-completeness.sh` in your generated SaaS and call it from Phase 5 + post-deploy CI. It is bash-3-compatible (works on stock macOS bash 3.2.57+).
+
+```bash
+#!/usr/bin/env bash
+# Check TMG §5 / DDG field-completeness in rendered Impressum page.
+# Pass: >=5 of the required field-class markers present.
+# Fail: <5 markers. Lists which classes are missing.
+set -euo pipefail
+
+IMPRESSUM_PATH="${1:-src/app/[locale]/impressum/page.tsx}"
+[[ -f "$IMPRESSUM_PATH" ]] || { echo "::error::Impressum not found at $IMPRESSUM_PATH"; exit 1; }
+
+CLASS_NAMES=(
+  "1-Anschrift"
+  "2-PLZ-Ort"
+  "3-Kontakt-Email"
+  "4-Vertretung"
+  "5-Handelsregister"
+  "6-USt-IdNr"
+  "7-Telefon"
+)
+CLASS_PATTERNS=(
+  'straße|strasse|str\.|anschrift'
+  '[0-9]{5}'
+  'mailto:|e-mail:|kontakt:|email:'
+  'geschäftsführer|geschaeftsfuehrer|gf:|vertreten durch|inhaber'
+  'handelsregister|hrb|hra|amtsgericht'
+  'ust-idnr|umsatzsteuer-id|vat-id|de[0-9]{9}'
+  'telefon:|tel\.:|\+49'
+)
+
+FOUND=""; MISSING=""; COUNT=0
+for i in "${!CLASS_NAMES[@]}"; do
+  if grep -qiE "${CLASS_PATTERNS[$i]}" "$IMPRESSUM_PATH"; then
+    FOUND="$FOUND ${CLASS_NAMES[$i]}"; COUNT=$((COUNT + 1))
+  else
+    MISSING="$MISSING ${CLASS_NAMES[$i]}"
+  fi
+done
+
+echo "TMG §5 field-class markers found: $COUNT/7"
+echo "  Found:  ${FOUND:-none}"
+echo "  Missing:${MISSING:-none}"
+
+[[ $COUNT -ge 5 ]] || { echo "::error::Impressum incomplete — only $COUNT/7 (need >=5). Missing:$MISSING. Abmahnung-risk €500-2000."; exit 1; }
+echo "Impressum gate PASS: $COUNT/7 field-classes present (threshold >=5)."
+```
+
+**Threshold rationale:** >=5 of 7 classes covers the GmbH/UG case (Anschrift + PLZ + E-Mail + Vertretungsberechtigter + Handelsregister) without false-positiving against legitimate sole-proprietor Impressum (which often lack Handelsregister + USt-IdNr but still have the first four). The dogfood-run's empty-field Impressum scored 0-2/7 — well below the threshold — so the gate catches it; a proper sole-proprietor at 4/7 still needs to add a contact-email or representative line, which it should anyway.
+
 ---
 
 **Pattern version: 1 · Last-updated: 2026-04-22 · AEGIS-compliance**

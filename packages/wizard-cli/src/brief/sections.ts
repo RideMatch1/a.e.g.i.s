@@ -514,8 +514,9 @@ export function renderBuildOrder(patterns: readonly LoadedPattern[], lang: Brief
     lines.push(
       `## ${k('phase_5_legal')}`,
       '1. Copy compliance/legal-pages-de to `/[locale]/impressum`, `/[locale]/datenschutz`, `/[locale]/agb`',
-      '2. Verify all `{{placeholders}}` are substituted (grep `{{`)',
-      `3. **${k('gate')}:** Pages render without placeholder-leakage; footer-links work from all admin pages`,
+      '2. Verify all `{{placeholders}}` are substituted (grep `{{` returns no matches in `src/app/[locale]/{impressum,datenschutz,agb}/`)',
+      '3. Run the Impressum field-completeness check: `bash scripts/check-impressum-completeness.sh src/app/\\[locale\\]/impressum/page.tsx` — verifies >=5 of the 7 TMG §5 / DDG field-classes (Anschrift, PLZ, E-Mail, Vertretungsberechtigter, Handelsregister/HRB, USt-IdNr, Telefon). Empty-field Impressum exits 1 with a diagnostic naming the missing classes. Defense-in-depth with the C5 schema-refine that catches the same gap at config-parse-time. Abmahnung-risk €500-2000 if shipped empty.',
+      `4. **${k('gate')}:** Pages render without placeholder-leakage AND Impressum-completeness script PASSes AND footer-links work from all admin pages`,
       '',
     );
   }
