@@ -1,0 +1,47 @@
+name: NPM Version Watch
+
+# Weekly tamper-detection for published npm packages.
+#
+# Diffs the live npm registry against the committed baseline at
+# `.github/npm-versions-baseline.json`. On any drift the workflow opens
+# a GitHub issue tagged in its title with `[security/tamper-alert]` so
+# the maintainer sees it immediately. The baseline is updated via PR as
+# part of every intentional ship-sequence; unexpected drift means a
+# potential account-compromise, stolen publish-token, or registry
+# tamper event and the SECURITY-INCIDENT-RESPONSE.md runbook applies.
+#
+# Closeout of fortress-plan G-12 (2026-04-23).
+
+on:
+  schedule:
+    # Tuesday 07:30 UTC (09:30 Berlin summer, 08:30 winter).
+    # One day after npm's weekly security report so we catch any
+    # post-report tamper events within ~24h.
+    - cron: "30 7 * * 2"
+  workflow_dispatch:
+    # Enable manual triggering for post-publish verification runs.
+
+permissions: read-all
+
+jobs:
+  diff:
+    name: Diff npm versions vs baseline
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write  # required to open a tamper-alert issue on drift
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: 20
+
+      - name: Run version-watch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/npm-version-watch.mjs
