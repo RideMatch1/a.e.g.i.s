@@ -155,6 +155,64 @@ describe('AegisConfigSchema', () => {
 });
 
 // ----------------------------------------------------------------------------
+// F3 — ai ↔ chat coherence cross-validators (commit 1, dispatch-brief §4)
+// ----------------------------------------------------------------------------
+
+describe('AegisConfigSchema — F3 ai↔chat coherence refines', () => {
+  it('REJECTS integrations.ai.features=["chat"] with features.chat default-off (forward refine RED)', () => {
+    const bad = {
+      ...VALID_TIER_1,
+      integrations: {
+        ai: { provider: 'mistral-eu', features: ['chat'], pii_guard: true },
+      },
+      // features.chat defaults to {enabled:false, ai_powered:false} — incoherent
+    };
+    expect(() => AegisConfigSchema.parse(bad)).toThrow(
+      /auto-enable both or remove/,  // unique substring of the F3-forward refine message
+    );
+  });
+
+  it('ACCEPTS integrations.ai.features=["chat"] with features.chat fully active (forward refine GREEN)', () => {
+    const ok = {
+      ...VALID_TIER_1,
+      integrations: {
+        ai: { provider: 'mistral-eu', features: ['chat'], pii_guard: true },
+      },
+      features: {
+        chat: { enabled: true, ai_powered: true },
+      },
+    };
+    expect(() => AegisConfigSchema.parse(ok)).not.toThrow();
+  });
+
+  it('REJECTS features.chat.ai_powered=true with integrations.ai.provider=none (symmetric refine RED)', () => {
+    const bad = {
+      ...VALID_TIER_1,
+      features: {
+        chat: { enabled: true, ai_powered: true },
+      },
+      // integrations.ai defaults to {provider:'none', features:[]} — incoherent
+    };
+    expect(() => AegisConfigSchema.parse(bad)).toThrow(
+      /set integrations\.ai\.provider and add/,  // unique substring of F3-symmetric refine message (no quote-chars)
+    );
+  });
+
+  it('ACCEPTS features.chat.ai_powered=true with integrations.ai.provider+features wired (symmetric refine GREEN)', () => {
+    const ok = {
+      ...VALID_TIER_1,
+      features: {
+        chat: { enabled: true, ai_powered: true },
+      },
+      integrations: {
+        ai: { provider: 'openai', features: ['chat'], pii_guard: true },
+      },
+    };
+    expect(() => AegisConfigSchema.parse(ok)).not.toThrow();
+  });
+});
+
+// ----------------------------------------------------------------------------
 
 describe('Sub-schemas — spot-checks', () => {
   it('ProjectIdentitySchema enforces kebab-case + length bounds', () => {

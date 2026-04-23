@@ -404,6 +404,36 @@ export const AegisConfigSchema = z.object({
     message: 'localization.default_locale must be one of localization.locales',
     path: ['localization', 'default_locale'],
   },
+).refine(
+  (cfg) => {
+    // F3 forward: if integrations.ai.features includes 'chat', then features.chat
+    // must be both enabled AND ai_powered. Otherwise the user has declared an
+    // AI-chat integration whose chat-feature is silently off — incoherent config
+    // surfaced post-recon §10 + dispatch-brief commit 1.
+    if (!cfg.integrations.ai.features.includes('chat')) return true;
+    return cfg.features.chat.enabled && cfg.features.chat.ai_powered;
+  },
+  {
+    message:
+      'integrations.ai.features includes "chat" but features.chat.{enabled,ai_powered} are not both true — auto-enable both or remove "chat" from integrations.ai.features',
+    path: ['features', 'chat'],
+  },
+).refine(
+  (cfg) => {
+    // F3 symmetric: if features.chat.ai_powered is true, an AI provider must be
+    // configured AND chat must be in the AI features list. Otherwise the chat-UI
+    // has no AI backend wired up.
+    if (!(cfg.features.chat.enabled && cfg.features.chat.ai_powered)) return true;
+    return (
+      cfg.integrations.ai.provider !== 'none' &&
+      cfg.integrations.ai.features.includes('chat')
+    );
+  },
+  {
+    message:
+      'features.chat.ai_powered is true but integrations.ai is not configured for chat — set integrations.ai.provider and add "chat" to integrations.ai.features',
+    path: ['integrations', 'ai'],
+  },
 );
 
 export type AegisConfig = z.infer<typeof AegisConfigSchema>;
