@@ -1,0 +1,34 @@
+name: Gitleaks
+
+# Gitleaks scans for accidentally committed secrets (API keys, tokens,
+# private keys, cloud credentials). Runs on every PR against main and
+# on every push to main. Protection-mode scans only the new commits
+# in a PR, so existing history is not re-flagged on every run.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan for committed secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v5.0.1
+        with:
+          # Full history required so scan covers the PR branch plus base.
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.9
+        env:
+          # License token is not required for public repositories.
+          # Scan config uses gitleaks defaults (broad coverage of AWS,
+          # GCP, GitHub, Slack, Stripe, generic high-entropy strings).
+          GITLEAKS_ENABLE_SUMMARY: "true"
+          GITLEAKS_ENABLE_COMMENTS: "true"
