@@ -15,7 +15,7 @@ placeholders:
     required: true
 brief_section: Foundation
 estimated_files: 2
-tags: [middleware, csp, hsts, rate-limit, security-headers]
+tags: [middleware, proxy, csp, hsts, rate-limit, security-headers]
 related:
   - foundation/multi-tenant-supabase
   - foundation/auth-supabase-full
@@ -23,7 +23,9 @@ related:
 
 # Hardened Next.js Middleware
 
-Every request hits `middleware.ts` before reaching a route handler. This is the ideal place to enforce:
+> **Backward-compat note:** Next.js 16 renamed `middleware.ts` to `proxy.ts` with `export function proxy`. The framework continues to recognize `middleware.ts` + `export function middleware` for backward-compat, so existing projects do not need to migrate. New scaffolds emit the new idiom.
+
+Every request hits `proxy.ts` before reaching a route handler. This is the ideal place to enforce:
 - Content-Security-Policy (XSS-prevention)
 - HTTP-Strict-Transport-Security (TLS-enforcement)
 - X-Frame-Options (clickjacking-prevention)
@@ -42,7 +44,7 @@ No new dependencies. Uses Next.js built-in middleware + existing `lib/api/rate-l
 
 ## Files to create
 
-### `middleware.ts` (project root)
+### `proxy.ts` (project root)
 
 ```typescript
 /**
@@ -234,10 +236,10 @@ const AUTH_RATE_LIMIT = 5;
 const AUTH_RATE_WINDOW_MS = 60 * 1000;
 
 // ============================================================================
-// Main middleware entry
+// Main proxy entry
 // ============================================================================
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip public assets
@@ -331,7 +333,7 @@ export const config = {
 };
 ```
 
-### `middleware.test.ts` (test-harness)
+### `proxy.test.ts` (test-harness)
 
 ```typescript
 /**
@@ -339,7 +341,7 @@ export const config = {
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { middleware } from './middleware';
+import { proxy } from './proxy';
 
 function makeRequest(path: string, headers: Record<string, string> = {}): NextRequest {
   return new NextRequest(new URL(`http://localhost:3000${path}`), {
@@ -349,23 +351,23 @@ function makeRequest(path: string, headers: Record<string, string> = {}): NextRe
 
 describe('middleware security-headers', () => {
   it('applies CSP on all responses', async () => {
-    const res = await middleware(makeRequest('/'));
+    const res = await proxy(makeRequest('/'));
     expect(res.headers.get('Content-Security-Policy')).toBeTruthy();
   });
 
   it('sets HSTS with 2-year max-age + preload', async () => {
-    const res = await middleware(makeRequest('/'));
+    const res = await proxy(makeRequest('/'));
     expect(res.headers.get('Strict-Transport-Security')).toMatch(/max-age=63072000.*preload/);
   });
 
   it('sets X-Frame-Options: DENY', async () => {
-    const res = await middleware(makeRequest('/'));
+    const res = await proxy(makeRequest('/'));
     expect(res.headers.get('X-Frame-Options')).toBe('DENY');
   });
 
   it('generates unique nonce per request', async () => {
-    const a = (await middleware(makeRequest('/'))).headers.get('x-nonce');
-    const b = (await middleware(makeRequest('/'))).headers.get('x-nonce');
+    const a = (await proxy(makeRequest('/'))).headers.get('x-nonce');
+    const b = (await proxy(makeRequest('/'))).headers.get('x-nonce');
     expect(a).toBeTruthy();
     expect(b).toBeTruthy();
     expect(a).not.toBe(b);
@@ -376,16 +378,16 @@ describe('middleware rate-limiting', () => {
   it('returns 429 after 5 auth-requests in 1 minute from same IP', async () => {
     const ip = '1.2.3.4';
     for (let i = 0; i < 5; i++) {
-      await middleware(makeRequest('/api/auth/login', { 'x-real-ip': ip }));
+      await proxy(makeRequest('/api/auth/login', { 'x-real-ip': ip }));
     }
-    const res = await middleware(makeRequest('/api/auth/login', { 'x-real-ip': ip }));
+    const res = await proxy(makeRequest('/api/auth/login', { 'x-real-ip': ip }));
     expect(res.status).toBe(429);
     expect(res.headers.get('Retry-After')).toBeTruthy();
   });
 
   it('different IPs do not share rate-limit', async () => {
-    const res1 = await middleware(makeRequest('/api/auth/login', { 'x-real-ip': '10.0.0.1' }));
-    const res2 = await middleware(makeRequest('/api/auth/login', { 'x-real-ip': '10.0.0.2' }));
+    const res1 = await proxy(makeRequest('/api/auth/login', { 'x-real-ip': '10.0.0.1' }));
+    const res2 = await proxy(makeRequest('/api/auth/login', { 'x-real-ip': '10.0.0.2' }));
     expect(res1.status).not.toBe(429);
     expect(res2.status).not.toBe(429);
   });
@@ -394,7 +396,7 @@ describe('middleware rate-limiting', () => {
 describe('middleware authentication-gate', () => {
   it('redirects unauthenticated /admin/* to /login with next-param', async () => {
     // Mock unauthenticated session
-    const res = await middleware(makeRequest('/admin/dashboard'));
+    const res = await proxy(makeRequest('/admin/dashboard'));
     expect(res.status).toBe(307);  // Next.js redirect
     const loc = res.headers.get('location');
     expect(loc).toContain('/login');
@@ -402,7 +404,7 @@ describe('middleware authentication-gate', () => {
   });
 
   it('returns 401 JSON for unauthenticated /api/admin/*', async () => {
-    const res = await middleware(makeRequest('/api/admin/users'));
+    const res = await proxy(makeRequest('/api/admin/users'));
     expect(res.status).toBe(401);
   });
 });
@@ -504,7 +506,7 @@ UPSTASH_REDIS_REST_TOKEN=...
 npm run build
 
 # Middleware-specific tests pass
-npm run test -- middleware
+npm run test -- proxy
 
 # Verify security-headers with a request (dev server running)
 curl -I http://localhost:3000
