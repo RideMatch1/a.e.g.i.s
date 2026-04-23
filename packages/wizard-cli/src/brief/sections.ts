@@ -1170,6 +1170,179 @@ export function renderPatternAppendixVerbose(
   return blocks.join('\n\n');
 }
 
+// F2 (commit 4): Enabled-features section. Surfaces wizard-config features
+// the v0.17.0 saas-starter pattern-library does not cover with a dedicated
+// pattern, so the agent sees them as visible gaps instead of silent drops.
+// Conditional-emit per D7: returns null when no enabled-uncovered features
+// exist (clean-config briefs stay clean). Closes recon-report F2 +
+// dogfood §3.2#4 + §3.5.
+//
+// hasPatternFor() uses substring-match. Naive but works for v0.17.0 saas-
+// starter where NO foundation/compliance pattern-name contains a feature-
+// key substring (verified DR-T2 sweep). Future v0.2 skills-arc adding
+// feature-patterns MUST either (a) avoid feature-key substrings in pattern
+// names (e.g. do NOT name a pattern "team-building-retrospective" — it
+// would false-positive against feature-key "team" and silently suppress
+// the team_management item), OR (b) replace this with an explicit
+// featureToPatternMap lookup table.
+
+interface EnabledItem {
+  key: string;
+  label: string;
+  guidanceKey: string;
+}
+
+function hasPatternFor(featureKey: string, patternNames: Set<string>): boolean {
+  for (const pname of patternNames) {
+    if (pname.includes(featureKey)) return true;
+  }
+  return false;
+}
+
+function collectEnabledUncoveredItems(cfg: AegisConfig): EnabledItem[] {
+  const patternNames = new Set(cfg.selected_patterns.map((p) => p.name.toLowerCase()));
+  const items: EnabledItem[] = [];
+
+  // features.*
+  if (cfg.features.calendar && !hasPatternFor('calendar', patternNames)) {
+    items.push({ key: 'calendar', label: 'Calendar', guidanceKey: 'calendar' });
+  }
+  if (cfg.features.kanban && !hasPatternFor('kanban', patternNames)) {
+    items.push({ key: 'kanban', label: 'Kanban', guidanceKey: 'kanban' });
+  }
+  if (cfg.features.chat.enabled && !hasPatternFor('chat', patternNames)) {
+    items.push({
+      key: 'chat',
+      label: cfg.features.chat.ai_powered ? 'Chat (AI-powered)' : 'Chat',
+      guidanceKey: cfg.features.chat.ai_powered ? 'chat_ai' : 'chat',
+    });
+  }
+  if (cfg.features.knowledge_base && !hasPatternFor('knowledge', patternNames)) {
+    items.push({ key: 'knowledge_base', label: 'Knowledge base', guidanceKey: 'knowledge_base' });
+  }
+  if (cfg.features.reporting_exports && !hasPatternFor('reporting', patternNames)) {
+    items.push({ key: 'reporting_exports', label: 'Reporting / data exports', guidanceKey: 'reporting_exports' });
+  }
+  if (cfg.features.search.enabled && !hasPatternFor('search', patternNames)) {
+    items.push({
+      key: 'search',
+      label: `Search (${cfg.features.search.lib})`,
+      guidanceKey: 'search',
+    });
+  }
+  if (cfg.features.file_upload.enabled && !hasPatternFor('upload', patternNames)) {
+    items.push({
+      key: 'file_upload',
+      label: `File upload (${cfg.features.file_upload.storage}, ${cfg.features.file_upload.max_size_mb}MB max)`,
+      guidanceKey: 'file_upload',
+    });
+  }
+  if (cfg.features.team_management && !hasPatternFor('team', patternNames)) {
+    items.push({ key: 'team_management', label: 'Team management', guidanceKey: 'team_management' });
+  }
+  if (cfg.features.feature_flags !== 'none' && !hasPatternFor('flags', patternNames)) {
+    items.push({
+      key: 'feature_flags',
+      label: `Feature flags (${cfg.features.feature_flags})`,
+      guidanceKey: 'feature_flags',
+    });
+  }
+  if (cfg.features.webhooks.incoming || cfg.features.webhooks.outgoing) {
+    if (!hasPatternFor('webhook', patternNames)) {
+      const direction = [
+        cfg.features.webhooks.incoming && 'incoming',
+        cfg.features.webhooks.outgoing && 'outgoing',
+      ].filter(Boolean).join(' + ');
+      items.push({ key: 'webhooks', label: `Webhooks (${direction})`, guidanceKey: 'webhooks' });
+    }
+  }
+
+  // integrations.*
+  if (cfg.integrations.ai.provider !== 'none' && !hasPatternFor('ai', patternNames)) {
+    const aiFeatures = cfg.integrations.ai.features.length > 0
+      ? cfg.integrations.ai.features.join(', ')
+      : 'none';
+    items.push({
+      key: 'ai',
+      label: `AI integration (${cfg.integrations.ai.provider}, features: ${aiFeatures})`,
+      guidanceKey: 'ai',
+    });
+  }
+  if (cfg.integrations.analytics !== 'none' && !hasPatternFor('analytics', patternNames)) {
+    items.push({
+      key: 'analytics',
+      label: `Analytics (${cfg.integrations.analytics})`,
+      guidanceKey: 'analytics',
+    });
+  }
+  if (cfg.integrations.observability !== 'none' && !hasPatternFor('observability', patternNames)) {
+    items.push({
+      key: 'observability',
+      label: `Observability (${cfg.integrations.observability})`,
+      guidanceKey: 'observability',
+    });
+  }
+  if (cfg.integrations.background_jobs !== 'none' && !hasPatternFor('cron', patternNames)) {
+    items.push({
+      key: 'background_jobs',
+      label: `Background jobs (${cfg.integrations.background_jobs})`,
+      guidanceKey: 'background_jobs',
+    });
+  }
+  if (cfg.integrations.external_services.length > 0) {
+    items.push({
+      key: 'external_services',
+      label: `External services (${cfg.integrations.external_services.join(', ')})`,
+      guidanceKey: 'external_services',
+    });
+  }
+
+  // billing / email / deployment
+  if (cfg.billing.enabled && !hasPatternFor('billing', patternNames) && !hasPatternFor('stripe', patternNames)) {
+    const trial = cfg.billing.trial_days ? `, ${cfg.billing.trial_days}-day trial` : '';
+    items.push({
+      key: 'billing',
+      label: `Billing (${cfg.billing.provider ?? 'unspecified'}${trial})`,
+      guidanceKey: 'billing',
+    });
+  }
+  if (cfg.email.provider !== 'smtp' && cfg.email.provider !== 'skip' && !hasPatternFor('email', patternNames)) {
+    items.push({
+      key: 'email',
+      label: `Email (${cfg.email.provider})`,
+      guidanceKey: 'email',
+    });
+  }
+  if (cfg.deployment.target !== 'localhost' && cfg.deployment.target !== 'skip') {
+    items.push({
+      key: 'deployment',
+      label: `Deployment target (${cfg.deployment.target})`,
+      guidanceKey: 'deployment',
+    });
+  }
+
+  return items;
+}
+
+export function renderEnabledFeaturesSection(
+  cfg: AegisConfig,
+  lang: BriefLang = 'en',
+): string | null {
+  const items = collectEnabledUncoveredItems(cfg);
+  if (items.length === 0) return null;
+  const k = (key: string): string => getMessage(lang, `enabled_features.${key}`);
+  const lines: string[] = [
+    `## ${k('heading')}`,
+    '',
+    k('intro'),
+    '',
+  ];
+  for (const item of items) {
+    lines.push(`- **${item.label}** — ${k(item.guidanceKey)}`);
+  }
+  return lines.join('\n');
+}
+
 // F1 (commit 3): Skills companion-package section. Rendered unconditionally
 // after the pattern-appendix so the agent encounters it as enrichment-after-
 // completion. Closes recon-report F1 + dogfood §3.5 (consumer-agent had zero
