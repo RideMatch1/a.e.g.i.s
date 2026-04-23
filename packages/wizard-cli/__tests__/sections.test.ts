@@ -352,6 +352,29 @@ describe('renderQualityGates', () => {
   });
 });
 
+describe('renderBuildOrder Phase 2 dashboard stub (D-CLA-05)', () => {
+  it('Phase 2 has a stub-creation step before the gate', () => {
+    const out = renderBuildOrder(ALL_8);
+    expect(out).toMatch(/Create `src\/app\/admin\/dashboard\/page\.tsx` as a Phase-6-replaceable stub/);
+  });
+
+  it('Phase 2 stub-content shows DashboardStub inline', () => {
+    const out = renderBuildOrder(ALL_8);
+    expect(out).toContain('DashboardStub()');
+    expect(out).toContain('Phase-6 stub. Replaced by the real dashboard');
+  });
+
+  it('Phase 6 step 2 explicitly replaces the Phase-2 stub', () => {
+    const out = renderBuildOrder(ALL_8);
+    expect(out).toMatch(/Replace the Phase-2 dashboard stub at `src\/app\/admin\/dashboard\/page\.tsx`/);
+  });
+
+  it('Phase 2 gate text references landing on the stub', () => {
+    const out = renderBuildOrder(ALL_8);
+    expect(out).toMatch(/lands on the stub from step 4 — full dashboard arrives in Phase 6/);
+  });
+});
+
 describe('renderDsgvoChecklist', () => {
   it('emits a non-null string when dsgvo_kit enabled', () => {
     const out = renderDsgvoChecklist(buildConfig());
