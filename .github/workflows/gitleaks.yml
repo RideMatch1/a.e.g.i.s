@@ -27,8 +27,18 @@ jobs:
       - name: Run gitleaks
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.9
         env:
-          # License token is not required for public repositories.
-          # Scan config uses gitleaks defaults (broad coverage of AWS,
-          # GCP, GitHub, Slack, Stripe, generic high-entropy strings).
+          # Required by gitleaks-action v2.3+ for pull-request events so
+          # the action can read the PR metadata from the GitHub API.
+          # Read-only access is sufficient; no write permissions needed.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # License token is not required for public repositories owned
+          # by individual users. Scan config uses gitleaks defaults
+          # (broad coverage of AWS, GCP, GitHub, Slack, Stripe, generic
+          # high-entropy strings).
           GITLEAKS_ENABLE_SUMMARY: "true"
-          GITLEAKS_ENABLE_COMMENTS: "true"
+          # Comments-on-PR disabled: Dependabot PRs run with a read-only
+          # GITHUB_TOKEN by default and cannot post comments, which would
+          # cause consistent failures on weekly dep-update PRs. Summary
+          # in the workflow log is the authoritative signal; the SARIF
+          # artifact uploads to code-scanning for richer review.
+          GITLEAKS_ENABLE_COMMENTS: "false"
