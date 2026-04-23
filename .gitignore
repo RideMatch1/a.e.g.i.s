@@ -26,3 +26,11 @@ scripts/scrub-terms.local.txt
 # local publish rehearsals. They can accidentally get git-added and
 # should never land in a commit.
 packages/*/*.tgz
+
+# Scanner integration-test fixture scratch-dirs. Tests under
+# packages/scanners/__tests__/ write into these paths as ephemeral
+# tsconfig-resolution roots (multi-file-fixtures.ts, type-resolve.test.ts).
+# They surface in `git status --short` after `pnpm -r test` runs; scoped
+# to the known benchmark vulnerable-app src-root so unrelated paths
+# with the same prefix are NOT auto-ignored.
+packages/benchmark/vulnerable-app/src/__aegis_*/
