@@ -74,6 +74,34 @@ npm view @aegis-scan/cli@<version> dist.attestations.provenance.predicateType
 npm view @aegis-scan/cli@<version> scripts
 ```
 
+## Responsible-use posture for `@aegis-scan/skills`
+
+The skills library ships as an opt-in sub-package
+(`@aegis-scan/skills`). Its offensive-category content — forked from
+SnailSploit/Claude-Red with per-file attribution preserved — is
+methodology documentation for authorized testing only. Use is scoped
+to:
+
+- Authorized security testing of systems you own or have explicit
+  written permission to test.
+- Bug-bounty engagements strictly within the agreed scope.
+- CTF competitions and educational environments.
+- Defensive security research — understanding attack classes to
+  defend against them.
+
+Use against systems you do not own or have explicit permission to
+test is unauthorized and likely illegal in most jurisdictions. AEGIS
+provides methodology; responsible use is the operator's obligation.
+We will cooperate with legitimate abuse reports via the disclosure
+channel above.
+
+AEGIS does not provide legal counsel. If you are uncertain whether a
+test is authorized or whether a specific activity falls within the
+scope of your engagement, consult your own legal advisor before
+proceeding. Written authorization specific to the test scope
+(systems, time-window, allowed actions, prohibited actions) is the
+operator's baseline obligation.
+
 ## Security-focused design decisions
 
 These are deliberate design choices that may look like bugs but are intended behavior:
