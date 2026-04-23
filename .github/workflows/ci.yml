@@ -18,6 +18,8 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Supply-chain — dep cooldown lint (closes rushed-update window)
+        run: bash scripts/check-dep-cooldown.sh
       - run: pnpm build
       - name: Lint — real type-drift gate across 5 shipped packages (v0.16.3 D-CA-002)
         run: pnpm lint
