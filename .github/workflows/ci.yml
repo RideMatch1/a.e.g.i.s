@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1 — SHA-pinned per v0.16.3 D-CA-003 (C2-threat-class self-advice-followed)
+      - name: Supply-chain — enforce GHA action SHA-pin policy (closes tj-actions-class)
+        run: bash scripts/check-gha-sha-pin.sh
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320  # v4.3.0 — SHA-pinned per v0.16.3 D-CA-003
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0 — SHA-pinned per v0.16.3 D-CA-003
         with:
