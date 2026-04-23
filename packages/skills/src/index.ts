@@ -1,9 +1,17 @@
 /**
- * @aegis-scan/skills entry point.
+ * `@aegis-scan/skills` programmatic entry point.
  *
- * This file is an intentional stub for commit #1 scaffold. The full
- * manifest plus CLI commands (list, info, install) land in commit #5.
- * Keeping the stub empty during scaffold prevents the tsc build from
- * pulling in incomplete re-exports while the package-skeleton stabilizes.
+ * Re-exports the skill-loader plus the three CLI handlers so
+ * downstream tooling (e.g. a future aegis-scan plugin, a wizard-cli
+ * brief-generator hook, or direct agent-SDK invocations) can build
+ * on the same introspection surface without shelling out to the bin.
  */
-export {};
+export {
+  loadAllSkills,
+  resolveSkillsRoot,
+  type LoadedSkill,
+} from './skills-loader.js';
+
+export { runList, type ListOptions } from './commands/list.js';
+export { runInfo, type InfoOptions } from './commands/info.js';
+export { runInstall, type InstallOptions } from './commands/install.js';

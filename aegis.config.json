@@ -19,6 +19,11 @@
       "reason": "Wizard CLI package: console output IS the user interface (wizard prompts, success banners, next-step hints). console.log/error/warn are intentional and map to stdout/stderr as required for a command-line tool, not debug artifacts. Same architectural class as the existing packages/cli/src suppression for the sibling scanner CLI."
     },
     {
+      "file": "packages/skills/src/**/*.ts",
+      "rule": "console-checker",
+      "reason": "Skills CLI package: console output IS the user interface (catalog listing, per-skill info output, install progress, error messages). console.log/error/warn are intentional and map to stdout/stderr as required for a command-line tool, not debug artifacts. Mirrors the existing packages/cli/src and packages/wizard-cli/src suppressions for the two sibling CLI packages under the @aegis-scan and @aegis-wizard namespaces."
+    },
+    {
       "file": "packages/scanners/src/**/*.ts",
       "rule": "console-checker",
       "reason": "Scanner source files log diagnostic output during scan orchestration (duration, progress, warnings). Not debug artifacts; not end-user-facing in a web context."
