@@ -1,6 +1,6 @@
 {
   "name": "@aegis-wizard/cli",
-  "version": "0.17.2",
+  "version": "0.17.3",
   "description": "AEGIS Wizard — scaffold-wizard + knowledge-base + brief-generator CLI. Asks thorough questions, compiles answers + patterns into an agent-consumable Markdown brief for building institutional-grade Next.js + Supabase + shadcn SaaS in one day. Complementary to @aegis-scan/cli (the SAST scanner); run both together.",
   "license": "MIT",
   "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",

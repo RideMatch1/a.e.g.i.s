@@ -8,6 +8,55 @@ by dogfood-audit + recon-report findings, not by a fixed schedule.
 
 ---
 
+## [0.17.3] — 2026-04-24 — "consistency-polish + M2-closure + scanner-gitignore-awareness"
+
+### Fixed (external audit v0.17.2 closures)
+
+- **M (H3 partial-regression)** — `{{LOCALE_PREFIX}}` placeholder now threads through Phase 5 prose (steps 1, 2, 3) via the existing `substitute()` chain in `generator.ts`. Integration-test spans all 3 claim surfaces (pattern body, Phase 5 prose, gate-invocation) × both `i18n_strategy` values (`url-prefix`, `none`), per advisor memory `feedback_consistency_fix_test_scope.md`. Closes the "consistent across pattern + prose + gate" sub-claim under both strategies. The gate-script's `IMPRESSUM_PATH` default stays `[locale]/` (wizard default), with an explicit-arg escape-hatch documented in the fixture + embedded-script comment for non-i18n scaffolds. (audit-finding M)
+- **L (prod-check-doc in tarball)** — `docs/security/prod-check-2026-04-23.md` now ships inside the npm tarball at `package/dist/docs/security/`. `scripts/copy-wizard-assets.mjs` extends to copy `docs/security/*.md` at build time alongside the existing pattern-copy step. External consumers verify the v0.17.1 D-OTH-01 + D-OTH-02 dev-only closures directly from the published artifact (no GitHub visit required). (audit-finding L)
+- **L (pedagogical literal)** — `logger-pii-safe.md` replaces `api_key: 'sk_live_abc123'` with `'sk_live_EXAMPLE'` (+ matching redact-example `sk***LE`). External gitleaks (run without our `.gitleaks.toml`) no longer matches the generic-api-key rule on the tarball. Pedagogy preserved via explicit placeholder convention, consistent with SC-8 Class-3b discipline. (audit-finding L)
+- **L (SBOM comment-reality)** — `scripts/generate-sbom.sh` comment now documents that cdxgen 12.1.x outputs CycloneDX 1.6 while 12.2+ outputs 1.7; the script is a thin wrapper and cdxgen's own version selects the spec. On Renovate-driven cdxgen bumps (post-14d-cooldown), the emitted specVersion auto-updates. (audit-finding L)
+- **L (commit-count framing)** — canonical template adopted for Meta + tag-message: "N total atomic commits (X + Y + this version-bump)". v0.17.2 artifacts are frozen (tag already shipped); v0.17.3 + future releases follow this convention. (audit-finding L)
+
+### Changed (structural)
+
+- **Scanner `walkFiles` honors `.gitignore`** — `packages/core/src/utils.ts::walkFiles()` now loads `.gitignore` at the root-dir via the `ignore` npm package (kaelzhang, ~900k weekly downloads, gitignore(5)-spec compliant, ~20KB) and composes with any child `.gitignore` files encountered during the walk. Negation rules (`!pattern`), directory-only patterns (`pattern/`), and anchored patterns (`/pattern`) all handled by the library per spec. New fourth parameter `opts.respectGitignore` defaults to `true`; scanner-internal tests that need full walks regardless (benchmark canary-fixtures) can opt out via `{ respectGitignore: false }`. Backward-compat: all 59 existing `walkFiles` call-sites stay 3-arg shape. Closes the v0.17.2 dogfood-paradox where parallel-session operator-local work in gitignored trees polluted self-scan output. The v0.17.2 r3 path-filter at §6 gate-formula becomes vestigial; returns to natural total-count metric.
+
+### Added (i18n infrastructure — M2 closure)
+
+- **DE phase-body-prose i18n** — `build_order.phase_N_body` keys (phases 1-10) added to both `en.json` and `de.json` as string-arrays for translator ergonomics. New `getMessageArray()` helper in `src/brief/i18n/index.ts` mirrors `getMessage()` fallback semantics. `renderBuildOrder` in `src/brief/sections.ts` threads through `getMessageArray` + replaces the `{GATE}` literal marker per-line (not a UPPER_SNAKE `substitute()`-placeholder). DE brief no longer leaks hardcoded English phase-body prose. Code snippets + file paths + command names stay language-agnostic per README `--lang=de` scope. (closes v0.17.2 deferred M2)
+
+### Changed (CI — Node-24 migration Sub-arc A)
+
+- **13 SHA-pinned action bumps** across non-publish workflows prepare for Node-20 runner deprecation on 2026-06-02:
+  - `actions/checkout` v4.3.1 → v6.0.2 (6 files: ci, codeql, gitleaks, npm-version-watch, release, scorecard)
+  - `actions/setup-node` v4.4.0 → v6.4.0 (3 files: ci, npm-version-watch, release)
+  - `github/codeql-action` v3.28.1 → v4.35.2 (4 sub-actions: init, autobuild, analyze, upload-sarif across codeql.yml + scorecard.yml)
+  - `pnpm/action-setup` comment-fix v4.3.0 → v5.0.0 (ci.yml; SHA was already on v5 at initial pinning per plan-doc §5.3 — doc-rot repair)
+- All SHA-pin-policy preserved (25/25 PINNED pre + post). As a byproduct this also resolves the pre-existing doc-rot where 4 files carried a stale `v5.0.1` comment on the actual `v4.3.1` checkout SHA. Sub-arc B (3 publish-workflow bumps + 3 pnpm comment-fixes) remains deferred to a separate maintainer-GO cycle before the 2026-06-02 deadline.
+
+### Deferred (planned for v0.17.4 / v0.18 / v0.2 skills-arc)
+
+- **Cookie-banner + login-form i18n rewrite** (carried from v0.17.1 + v0.17.2 §9) — ~5-10 pattern-files + dedicated i18n-pass arc
+- **Composed-middleware-with-next-intl recipe** (v0.2 skills-arc first defensive skill)
+- **Generator-side conditional-emit for optional pattern-fields** (`{{#if FIELD}}…{{/if}}` template construct, v0.18 candidate)
+- **Phase-ordering review** (audit v0.17.1 L9 deeper, v0.18 candidate)
+- **`tsc removeComments: true`** for published artifacts (trade-off review, v0.18 candidate)
+- **Node-24 migration Sub-arc B** (6 publish-workflow SHA-bumps + 3 pnpm comment-fixes, separate maintainer-GO cycle before 2026-06-02)
+- **gitleaks-action PR #207 checkpoint** (2026-05-15 — if upstream PR still unmerged, pivot to bash + gitleaks-binary invocation per plan-doc §4.3 Option C)
+- **OIDC Trusted Publishers** (v0.18 fortress item, G-16)
+- **cosign tarball-signing** (v0.2 supply-chain hardening, 2nd attestation layer)
+- **SBOM-as-GitHub-Release-asset** (v0.2 supply-chain candidate)
+- **OpenSSF Best Practices Badge** (v1.0 stretch)
+- **Threat model doc** (`docs/security/THREAT-MODEL.md`, v0.18)
+
+### Meta
+
+- Triggered by independent external audit of `@aegis-wizard/cli@0.17.2` (2026-04-24, `~/aegis-wizard-v0172-audit/AUDIT-V0172.md`). Verdict: SHIP-WITH-CAVEATS, 0 critical, 0 high, 1 medium, 4 low — 72% reduction from v0.17.1's 18 findings. All 5 closed in this cycle + M2 deferred-closure + structural scanner-gitignore-awareness + Node-24 Sub-arc A. Self-scan: `1000/S/0 FORTRESS` preserved; now achieved via natural scanner-gitignore-awareness instead of the v0.17.2 r3 path-filter workaround.
+- **11 total atomic commits on the v0.17.3 arc** (1 scanner-structural SC-1 + 5 audit-fix B1-B5 + 4 Node-24 SHA-bumps SC-2.1-2.4 + this version-bump B6). Closes audit v0.17.2 M + L×4 + v0.17.2-deferred M2 + v0.17.2-B1-checkpoint-queued scanner-gitignore + Node-24 Sub-arc A.
+
+---
+
 ## [0.17.2] — 2026-04-24 — "post-audit fortress-completion"
 
 ### Fixed (external audit closures)
