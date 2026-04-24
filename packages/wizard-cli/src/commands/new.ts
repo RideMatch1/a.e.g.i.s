@@ -19,7 +19,7 @@
  *   2 - write failure (permissions, mid-run-abort, brief-generation threw)
  *   3 - schema-validation failure (impossible for wizard output; non-interactive path)
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,6 +29,7 @@ import { AegisConfigSchema, type AegisConfig } from '../wizard/schema.js';
 import { runWizard } from '../wizard/flow.js';
 import { loadAllPatterns } from '../patterns/loader.js';
 import { derivePatterns, resolvePatterns } from '../brief/pattern-selector.js';
+import { readSelfVersion } from '../brief/self-version.js';
 import { generateBrief } from '../brief/generator.js';
 
 export const EXIT_OK = 0;
@@ -77,14 +78,6 @@ function normalizeLang(value: string | undefined): BriefLang | null {
   if (!value) return 'en';
   if (VALID_LANGS.includes(value as BriefLang)) return value as BriefLang;
   return null;
-}
-
-/** Read own version out of package.json at runtime (same trick as index.ts). */
-function readSelfVersion(): string {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const pkgPath = join(here, '..', '..', 'package.json');
-  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { version: string };
-  return pkg.version;
 }
 
 /**

@@ -31,6 +31,7 @@ import {
   buildReservedPlaceholders,
 } from '../template/substitute.js';
 import { buildPatternPlaceholders } from './pattern-placeholders.js';
+import { readSelfVersion } from './self-version.js';
 import {
   renderHeader,
   renderAgentInstructions,
@@ -140,11 +141,28 @@ export function generateBrief(
     .join('\n\n---\n\n');
 
   // Compute reserved placeholder values from the config.
+  // v0.17.2 M3 + L8 — the brief's provenance header was user-controllable
+  // via config.aegis_version (schema regex had no upper anchor, generator
+  // piped the value straight through). That produced headers like "AEGIS
+  // Wizard v0.14.2" coming out of a v0.17.1 CLI. Fix: always read the
+  // running CLI's own package.json via readSelfVersion(), and warn to
+  // stderr when the config's aegis_version disagrees so the operator
+  // knows the override happened. Callers who want to pin the header for
+  // a test or regression-probe can still pass opts.aegisWizardVersion.
+  const selfVersion = readSelfVersion();
+  if (
+    opts.aegisWizardVersion === undefined &&
+    config.aegis_version !== selfVersion
+  ) {
+    console.warn(
+      `[aegis-wizard] config.aegis_version="${config.aegis_version}" does not match running CLI version "${selfVersion}". Brief provenance header will use the actual running version.`,
+    );
+  }
   const reserved = buildReservedPlaceholders(
     {
       projectName: config.identity.project_name,
       appName: config.identity.app_name,
-      aegisWizardVersion: opts.aegisWizardVersion ?? config.aegis_version,
+      aegisWizardVersion: opts.aegisWizardVersion ?? selfVersion,
       defaultLocale: config.localization.default_locale,
       locales: config.localization.locales,
       generatedAt: config.generated_at,

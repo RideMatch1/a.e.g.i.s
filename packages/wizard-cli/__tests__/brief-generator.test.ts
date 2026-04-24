@@ -11,7 +11,7 @@
  *     resolve via buildReservedPlaceholders
  *   - Section separators balanced (---)
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { generateBrief } from '../src/brief/generator.js';
 import { AegisConfigSchema, type AegisConfig } from '../src/wizard/schema.js';
 import type { LoadedPattern } from '../src/patterns/loader.js';
@@ -274,18 +274,46 @@ describe('generateBrief - config-gating', () => {
 });
 
 describe('generateBrief - version rendering', () => {
-  it('uses opts.aegisWizardVersion over config.aegis_version when provided', () => {
+  it('uses opts.aegisWizardVersion when provided (explicit caller-override, no warn)', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const out = generateBrief(buildConfig(), ALL_8, {
       aegisWizardVersion: '0.99.9',
       uuidFactory: FIXED_UUID_FACTORY,
     });
     expect(out).toContain('AEGIS Wizard v0.99.9');
+    // No warn: the caller explicitly pinned the version.
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
-  it('falls back to config.aegis_version when opts.aegisWizardVersion absent', () => {
+  it('falls back to readSelfVersion() when opts.aegisWizardVersion absent (M3 audit fix)', async () => {
+    // The test config carries aegis_version: '0.17.0' from buildConfig().
+    // Pre-M3 behavior: header printed '0.17.0' (lied — not the CLI that ran).
+    // Post-M3 behavior: header prints the running CLI's actual version.
+    const { readSelfVersion } = await import('../src/brief/self-version.js');
+    const selfVersion = readSelfVersion();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const out = generateBrief(buildConfig(), ALL_8, {
       uuidFactory: FIXED_UUID_FACTORY,
     });
-    expect(out).toContain('AEGIS Wizard v0.17.0');
+    expect(out).toContain(`AEGIS Wizard v${selfVersion}`);
+    expect(out).not.toContain('AEGIS Wizard v0.17.0');
+    warnSpy.mockRestore();
+  });
+
+  it('warns to stderr when config.aegis_version diverges from the running CLI version (M3 audit fix)', async () => {
+    const { readSelfVersion } = await import('../src/brief/self-version.js');
+    const selfVersion = readSelfVersion();
+    // Guard: if the build somehow sets the package version to '0.17.0' the
+    // mismatch check below would pass vacuously. Skip assertions if they match.
+    if (selfVersion === '0.17.0') return;
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    generateBrief(buildConfig(), ALL_8, { uuidFactory: FIXED_UUID_FACTORY });
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const warnMsg = warnSpy.mock.calls[0]![0] as string;
+    expect(warnMsg).toContain('config.aegis_version="0.17.0"');
+    expect(warnMsg).toContain(`running CLI version "${selfVersion}"`);
+    warnSpy.mockRestore();
   });
 });

@@ -376,7 +376,10 @@ export const AegisConfigSchema = z.object({
   $schema: z
     .literal('https://aegis.dev/schemas/config-v1.json')
     .default('https://aegis.dev/schemas/config-v1.json'),
-  aegis_version: z.string().regex(/^\d+\.\d+\.\d+/),
+  aegis_version: z.string().regex(/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/, {
+    message:
+      'aegis_version must be strict semver (e.g. 0.17.2 or 0.17.2-beta.1); no arbitrary trailing chars',
+  }),
   generated_at: z.string().datetime(),
 
   identity: ProjectIdentitySchema,

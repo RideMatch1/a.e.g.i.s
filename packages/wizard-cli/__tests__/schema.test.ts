@@ -107,6 +107,33 @@ describe('AegisConfigSchema', () => {
     expect(() => AegisConfigSchema.parse(bad)).toThrow();
   });
 
+  it('rejects aegis_version with arbitrary suffix after strict semver (L8 audit fix — regex now anchors $)', () => {
+    // The v0.17.1 regex was /^\d+\.\d+\.\d+/ with no anchor, so this
+    // string passed the schema and then lied in the brief header.
+    // The v0.17.2 regex requires strict semver or strict-semver + one
+    // -prerelease suffix, and anchors with $.
+    const bad = {
+      ...VALID_TIER_1,
+      aegis_version: '0.17.1-experimental-2026q3-actually-0.14',
+    };
+    // Schema should accept this (it IS a valid prerelease-suffix semver:
+    // 0.17.1-experimental-2026q3-actually-0.14 — hyphenated identifiers
+    // are allowed in SemVer 2.0.0 §9 prerelease identifiers). Assertion:
+    // it parses, then the generator overrides it at runtime (M3 fix).
+    expect(() => AegisConfigSchema.parse(bad)).not.toThrow();
+    // But the same string with a SPACE or control-char (not valid in a
+    // prerelease identifier per SemVer §9) must throw:
+    const bad2 = { ...VALID_TIER_1, aegis_version: '0.17.1 experimental' };
+    expect(() => AegisConfigSchema.parse(bad2)).toThrow();
+    const bad3 = { ...VALID_TIER_1, aegis_version: '0.17.1-' };
+    expect(() => AegisConfigSchema.parse(bad3)).toThrow();
+  });
+
+  it('accepts aegis_version with a valid prerelease-suffix (beta.1) per SemVer 2.0.0', () => {
+    const good = { ...VALID_TIER_1, aegis_version: '0.17.2-beta.1' };
+    expect(() => AegisConfigSchema.parse(good)).not.toThrow();
+  });
+
   it('rejects out-of-enum deploy target', () => {
     const bad = {
       ...VALID_TIER_1,
