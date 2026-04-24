@@ -79,6 +79,10 @@ aegis-wizard new <project-name> [flags]
 
 **`--lang=en` coverage caveat:** the cookie-banner, AGB page, and datenschutz-admin components currently ship hardcoded German labels regardless of `--lang=en`. Phase-step body prose and pattern-body code-block headings also remain English in both modes. A dedicated i18n-pass arc (tracked in the per-package Deferred block) rewrites those strings in a future minor.
 
+**Brief-filename derivation:** the brief output filename is built from `config.identity.project_name`, not the CLI positional `<project-name>` argument. When the two diverge intentionally (e.g., regenerating a DE variant of the same project into a separate `--output-dir` while keeping the same config), the emitted file is `<config.identity.project_name>-brief.md` rather than `<cli-positional-arg>-brief.md`. Rename after generation if a different filename is desired.
+
+**Phase 2 gate with custom SMTP:** the brief's Phase 2 gate asks the agent to sign up a new user, confirm email, and log in. On a fresh scaffold this works out of the box because Supabase's default email delivery is functional for the project's `<project>.supabase.co` domain. Production deployments that have swapped in a custom SMTP provider need the Phase 9 env-vars (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`) in place before the Phase 2 gate can pass against the production project. A future phase-ordering review may reorder the gates; until then, run Phase 2 against a dev project first and re-verify on prod after Phase 9.
+
 ## Stack (locked)
 
 | Layer | Tech |
