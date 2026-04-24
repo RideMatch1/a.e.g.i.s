@@ -12,7 +12,7 @@
  *   - partially (4/7)  → exit 1 with the missing-class diagnostic
  */
 import { execSync } from 'node:child_process';
-import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -118,6 +118,32 @@ describe('Impressum gate (D-COM-05, bash-3-compat shell script)', () => {
     expect(exit).toBe(1);
     expect(stderr).toMatch(/only 4\/7/);
     expect(stderr).toMatch(/5-Handelsregister/);
+  });
+
+  it('byte-equality with shipped script (M4, audit) — embedded script in legal-pages-de.md is identical to the fixture', () => {
+    // M4: the fixture + the consumer-shipped script must never drift.
+    // Consumer pastes the shipped script into their scaffold. Tests
+    // verify the fixture. If the two diverge, tests pass but production
+    // run breaks in subtle ways (different stderr-routing, different
+    // variable names). Byte-equality check catches this at CI-time.
+    const fixture = readFileSync(SCRIPT_PATH, 'utf-8').trim();
+    const patternPath = resolve(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'docs',
+      'patterns',
+      'compliance',
+      'legal-pages-de.md',
+    );
+    const patternBody = readFileSync(patternPath, 'utf-8');
+    // Extract the embedded script — it lives between the ```bash and ``` fences
+    // immediately following the "### Impressum field-completeness gate" heading.
+    const m = patternBody.match(/### Impressum field-completeness gate[\s\S]*?```bash\n([\s\S]*?)```/);
+    expect(m).not.toBeNull();
+    const embedded = m![1].trim();
+    expect(embedded).toBe(fixture);
   });
 
   it('FIXTURE 4 (M1, audit) — Impressum with empty-placeholder broken HTML exits 1 with empty-HTML diagnostic', () => {
