@@ -1,4 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mkdirSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 const { mockCommandExists, mockExec } = vi.hoisted(() => ({
   mockCommandExists: vi.fn(),
@@ -113,5 +116,54 @@ describe('gitleaksScanner', () => {
     // Description must NOT contain the actual secret value
     expect(result.findings[0].description).not.toContain(secretValue);
     expect(result.findings[0].description).toContain('Remove this secret');
+  });
+
+  // SCP-1 stable-scope tests (audit v0.17.3 §4.1 L1(a) via option-c documentation).
+  // Codify current gitleaks-wrapper scan-scope semantics as regression-guards.
+  // See CHANGELOG [0.16.5] for the documented scope-limitation rationale.
+  describe('scan-scope stability (SCP-1, audit v0.17.3 §4.1 L1(a))', () => {
+    beforeEach(() => {
+      mockExec.mockClear();
+      mockCommandExists.mockResolvedValue(true);
+      mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
+    });
+
+    it('git-mode (project has .git): args omit --no-git — gitignore-respect inherited from git-history', async () => {
+      const projectPath = join(tmpdir(), `aegis-gitleaks-gitmode-${Date.now()}`);
+      mkdirSync(join(projectPath, '.git'), { recursive: true });
+
+      try {
+        await gitleaksScanner.scan(projectPath, MOCK_CONFIG);
+
+        expect(mockExec).toHaveBeenCalledTimes(1);
+        const [cmd, args] = mockExec.mock.calls[0] as [string, string[]];
+        expect(cmd).toBe('gitleaks');
+        expect(args).toContain('detect');
+        expect(args).toContain('--source');
+        expect(args).toContain(projectPath);
+        expect(args).not.toContain('--no-git');
+      } finally {
+        rmSync(projectPath, { recursive: true, force: true });
+      }
+    });
+
+    it('--no-git mode (project lacks .git): args include --no-git — documented scope-limitation', async () => {
+      // Non-existent path → existsSync(.git) = false → wrapper adds --no-git.
+      // Documents that in this mode gitleaks walks the filesystem directly,
+      // independent of walkFiles gitignore-awareness. Operators restrict scope
+      // via .gitleaks.toml path-allowlist; code-fix deferred to v0.18
+      // scan-root-composition arc.
+      const projectPath = join(tmpdir(), `aegis-gitleaks-nogitmode-${Date.now()}`);
+      // Intentionally DO NOT create projectPath — existsSync returns false.
+
+      await gitleaksScanner.scan(projectPath, MOCK_CONFIG);
+
+      expect(mockExec).toHaveBeenCalledTimes(1);
+      const [cmd, args] = mockExec.mock.calls[0] as [string, string[]];
+      expect(cmd).toBe('gitleaks');
+      expect(args).toContain('--no-git');
+      expect(args).toContain('--source');
+      expect(args).toContain(projectPath);
+    });
   });
 });
