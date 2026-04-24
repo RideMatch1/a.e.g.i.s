@@ -687,7 +687,7 @@ export function renderEnvVars(
   }
   if (patterns.some((p) => p.frontmatter.name === 'logger-pii-safe')) {
     lines.push(
-      'ENCRYPTION_KEY=0af1b2c3d4...64-hex-chars   # openssl rand -hex 32 (if encrypted-at-rest fields)',
+      'ENCRYPTION_KEY=<64-hex-chars>                # openssl rand -hex 32 (if encrypted-at-rest fields)',
     );
   }
 

@@ -1,42 +1,66 @@
 # .gitleaks.toml — AEGIS gitleaks configuration.
 #
-# Purpose: extend the upstream default ruleset with a scoped allowlist
-# for the snailsploit-fork pedagogical content rooted at
-#   packages/skills/skills/offensive/snailsploit-fork/
+# Purpose: extend the upstream default ruleset with scoped allowlists
+# for paths where secret-like strings are legitimate (pedagogical docs,
+# upstream forks kept byte-identical, scanner's own test fixtures, and
+# benchmark canary fixtures that are the validation surface by design).
 #
-# Rationale:
-#   - The fork is byte-identical to upstream red-team source (see
-#     packages/skills/ATTRIBUTION.md and CHANGELOG.md). Modifying the
-#     content to strip example-strings would violate the fork's
-#     byte-identical guarantee and the quarterly-sync invariant that
-#     scripts/sync-upstream.sh enforces.
-#   - The flagged tokens are RFC 6455 WebSocket-handshake test-vectors
-#     embedded inside pedagogical curl-command examples (e.g. the
-#     base64 literal "dGhlIHNhbXBsZSBub25jZQ==" decodes to the RFC's
-#     canonical "the sample nonce" string). Not secrets.
+# Design:
+#   - Each allowlist entry covers one structural class with its own
+#     rationale (hence [[allowlists]] array-of-tables over single
+#     [allowlist] — scales to multiple distinct classes cleanly).
+#   - Scope is tightly path-bounded. Every file outside these paths
+#     continues to run the full upstream ruleset (generic-api-key, AWS,
+#     GCP, GitHub, Slack, Stripe, high-entropy, plus whatever the
+#     default ruleset extends over time).
 #   - Independent coverage against real leaks in published content is
-#     provided by the tarball-scrub gate in .github/workflows/
-#     publish-skills.yml, which caught the v0.1.0 ship-incident —
-#     allowlisting this path does not relax that gate.
+#     provided by the tarball-scrub gates in .github/workflows/
+#     publish-*.yml. Those gates operate on tarball contents
+#     (dist/ + README + CHANGELOG + ATTRIBUTION) which do NOT include
+#     test fixtures, canary fixtures, or pedagogical docs. Allowlisting
+#     these paths here does NOT relax the production-ship-path coverage.
 #
-# Scope is tightly path-bounded: only the snailsploit-fork subtree is
-# exempted. Every other file in the repo continues to run the full
-# upstream ruleset (generic-api-key, AWS, GCP, GitHub, Slack, Stripe,
-# high-entropy, plus whatever the default ruleset extends over time).
-#
-# Historical reference: three findings reported on the 2026-04-23
-# main-push at commit 8508aa6 — all RuleID generic-api-key, all
-# base64-encoded RFC WebSocket test-vectors:
-#   packages/skills/skills/offensive/snailsploit-fork/
-#     request-smuggling/SKILL.md:603
-#     parameter-pollution/SKILL.md:222
-#     race-condition/SKILL.md:407
+# Historical reference:
+#   2026-04-23 v0.17.1 main-push: three findings reported on snailsploit-
+#     fork subtree (all RuleID generic-api-key, all base64-encoded RFC
+#     WebSocket test-vectors). Allowlist 1 below covers that class.
+#   2026-04-24 v0.17.2 SC-8: empirical full-enumeration of the
+#     self-scan 0/F/48 baseline classified all 48 findings as gitleaks
+#     FPs in 3 structural classes — scanner test fixtures (23),
+#     benchmark canary fixtures (23), pedagogical docs + one brief-
+#     generator literal (2). The brief-generator literal was fixed in
+#     source (`ENCRYPTION_KEY=<64-hex-chars>` placeholder replaces the
+#     hex-prefix that tripped gitleaks' generic-api-key rule) so no
+#     allowlist entry is needed for that one file. Allowlists 2-4
+#     below cover the remaining three classes.
 
 [extend]
 useDefault = true
 
-[allowlist]
-description = "snailsploit-fork — byte-identical upstream pedagogical content"
+[[allowlists]]
+description = "snailsploit-fork — byte-identical upstream pedagogical content (RFC 6455 WebSocket test-vectors)"
 paths = [
     '''^packages/skills/skills/offensive/snailsploit-fork/''',
 ]
+
+[[allowlists]]
+description = "AEGIS scanner's own test fixtures — by-design secret-like strings for detection validation (entropy-scanner, jwt-detector, crypto-auditor, gitleaks wrapper, trufflehog wrapper, integration.fix-guidance)"
+paths = [
+    '''^packages/scanners/__tests__/''',
+]
+
+[[allowlists]]
+description = "AEGIS benchmark canary fixtures — both TP-* (true-positive) and FP-* (false-positive) validation surface; the directory IS the benchmark by design"
+paths = [
+    '''^packages/benchmark/canary-fixtures/''',
+]
+
+[[allowlists]]
+description = "Pedagogical docs: PII-safe-logger example shows an api_key getting redacted (the literal IS the teaching point)"
+paths = [
+    '''^docs/patterns/foundation/logger-pii-safe\.md$''',
+]
+
+[[allowlists]]
+description = "Historic literal placeholder: 'ENCRYPTION_KEY=0af1b2c3d4...64-hex-chars' appeared in packages/wizard-cli/src/brief/sections.ts in commit 975c5bb as an env-var-template for the consumer's openssl-rand-hex-32 output. Working-tree value replaced with angle-bracket placeholder '<64-hex-chars>' in v0.17.2 SC-8 — this regex suppresses the historic-commit finding in gitleaks git-history mode. Pattern is unique (contains the literal ellipsis + suffix text) so no false-negative risk on real 64-hex-char secrets."
+regexes = ['''0af1b2c3d4\.{3}64-hex-chars''']
