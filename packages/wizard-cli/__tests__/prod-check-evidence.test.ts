@@ -42,3 +42,31 @@ describe('H4 — prod-check evidence is shipped + scrub-clean (audit)', () => {
     expect(body).not.toMatch(/dogfood-saas-build/);
   });
 });
+
+describe('B2 — prod-check evidence ships inside the published tarball (audit v0.17.2 L)', () => {
+  // v0.17.2 L finding: the evidence doc existed in the repo but NOT in the
+  // tarball, so external consumers couldn't verify the dev-only closure
+  // claim without visiting GitHub. v0.17.3 B2 fix: extend copy-wizard-assets.mjs
+  // to copy docs/security/*.md → dist/docs/security/. The package.json
+  // `files` array already includes "dist", so the evidence now ships via
+  // that entry without needing an `../../docs/` path in files-array (which
+  // npm rejects — files must be package-root-relative).
+  const DIST_EVIDENCE_PATH = resolve(
+    __dirname,
+    '..',
+    'dist',
+    'docs',
+    'security',
+    'prod-check-2026-04-23.md',
+  );
+
+  it('prod-check doc is copied into packages/wizard-cli/dist/docs/security/ at build time', () => {
+    expect(existsSync(DIST_EVIDENCE_PATH)).toBe(true);
+  });
+
+  it('dist-copy body matches the source-repo body byte-identically (no drift)', () => {
+    const src = readFileSync(EVIDENCE_PATH, 'utf-8');
+    const dst = readFileSync(DIST_EVIDENCE_PATH, 'utf-8');
+    expect(dst).toBe(src);
+  });
+});

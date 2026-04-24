@@ -23,6 +23,12 @@ const srcRoot = join(pkgRoot, 'src');
 const distRoot = join(pkgRoot, 'dist');
 const patternsSrc = join(repoRoot, 'docs', 'patterns');
 const patternsDst = join(distRoot, 'docs', 'patterns');
+// v0.17.3 B2 — also copy docs/security/ evidence docs (audit-verified claims
+// like prod-check-2026-04-23.md with curl-output evidence for dev-only
+// closures). External consumers get the evidence directly from the tarball
+// instead of having to visit the GitHub repo.
+const securitySrc = join(repoRoot, 'docs', 'security');
+const securityDst = join(distRoot, 'docs', 'security');
 
 if (!existsSync(distRoot)) {
   console.error(`[copy-wizard-assets] dist/ does not exist; run tsc first.`);
@@ -74,3 +80,15 @@ if (!existsSync(patternsSrc)) {
 const mds = walk(patternsSrc, '.md');
 const mdCopied = copyTree(mds, patternsSrc, patternsDst);
 console.log(`[copy-wizard-assets] ${mdCopied} pattern .md file(s) copied (${mds.length} scanned).`);
+
+// v0.17.3 B2 — copy docs/security/*.md (audit evidence docs). If the
+// directory does not exist yet, skip silently (not a fatal error; the
+// wizard works without these docs — they only add tarball-shipped
+// closure-proof).
+if (existsSync(securitySrc)) {
+  const secMds = walk(securitySrc, '.md');
+  const secCopied = copyTree(secMds, securitySrc, securityDst);
+  console.log(`[copy-wizard-assets] ${secCopied} security .md file(s) copied (${secMds.length} scanned).`);
+} else {
+  console.log(`[copy-wizard-assets] 0 security .md file(s) — docs/security/ does not exist.`);
+}
