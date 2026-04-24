@@ -104,12 +104,30 @@ jobs:
             exit 1
           fi
 
+      - name: Generate CycloneDX SBOM (supply-chain visibility — SBOM-first)
+        # End-user-side verifiability: the SBOM enumerates every transitive
+        # dep with version + license + import-evidence, so a downstream
+        # consumer can compare against the registry-served manifest and
+        # detect drift independently of npm provenance. SLSA + SBOM are
+        # complementary trust-layers: provenance proves who built it,
+        # SBOM proves what is in it.
+        #
+        # MUST run BEFORE the pack-for-scrub step so that the tarball
+        # verified by the scrub-gate + manifest-confusion-gate below is
+        # byte-identical to the tarball pnpm publishes. Earlier order
+        # (scrub → manifest → SBOM → publish) caused pnpm publish to
+        # re-pack with the SBOM appended, so the published tarball-B
+        # contained SBOM JSON that no gate had seen.
+        run: bash scripts/generate-sbom.sh packages/wizard-cli
+
       - name: Verify no internal-codename leaks in shipped tarball
         # Safety-net between the local Rule #13 commit-msg hook and the
         # published binary: if a scrub-term slipped past the developer
         # hook (stale install, hook bypassed, or a new term added to
         # the local list without matching here) the tarball-extract
         # grep below catches it before npm ever sees the bits.
+        # SBOM-first ordering means the tarball packed here now contains
+        # sbom.cdx.json, so the scrub-gate also covers the SBOM JSON.
         run: |
           cd packages/wizard-cli
           pnpm pack --pack-destination /tmp/tarball-scrub
@@ -134,15 +152,6 @@ jobs:
         run: |
           TARBALL=$(ls /tmp/tarball-scrub/*.tgz | head -1)
           node scripts/check-manifest-confusion.mjs packages/wizard-cli "$TARBALL"
-
-      - name: Generate CycloneDX SBOM (supply-chain visibility)
-        # End-user-side verifiability: the SBOM enumerates every transitive
-        # dep with version + license + import-evidence, so a downstream
-        # consumer can compare against the registry-served manifest and
-        # detect drift independently of npm provenance. SLSA + SBOM are
-        # complementary trust-layers: provenance proves who built it,
-        # SBOM proves what is in it.
-        run: bash scripts/generate-sbom.sh packages/wizard-cli
 
       - name: Publish @aegis-wizard/cli with provenance
         env:

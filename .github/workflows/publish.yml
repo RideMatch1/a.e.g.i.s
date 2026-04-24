@@ -76,33 +76,38 @@ jobs:
             exit 1
           fi
 
-      - name: Manifest-confusion gate (per-package tarball vs source)
-        # Closes the threat-class disclosed by Darcy Clarke (June 2024):
-        # a malicious tarball can ship a package.json that diverges from
-        # what the registry-API exposes. We pre-pack each scanner-family
-        # package, compare its tarball-manifest against its source-
-        # manifest on security-critical fields (deps, scripts, bin, etc.),
-        # and refuse to publish on any divergence. This runs in addition
-        # to (not instead of) the SLSA v1 provenance attestation.
+      - name: Generate SBOM + manifest-confusion gate per package (SBOM-first)
+        # Closes two threat-classes in a single per-package loop:
+        #
+        #   1. Manifest-confusion (Darcy Clarke, June 2024): a malicious
+        #      tarball can ship a package.json that diverges from what
+        #      the registry-API exposes. We pre-pack each scanner-family
+        #      package, compare its tarball-manifest against its source-
+        #      manifest on 12 security-critical fields (deps, scripts,
+        #      bin, etc.), and refuse to publish on divergence.
+        #
+        #   2. Supply-chain visibility: the SBOM enumerates every
+        #      transitive dep with version + license + import-evidence +
+        #      source-file-location. Downstream consumers can compare
+        #      against the registry-served manifest and detect drift
+        #      independently of npm provenance. SLSA + SBOM are
+        #      complementary: provenance proves WHO built it, SBOM
+        #      proves WHAT is in it.
+        #
+        # SBOM-first ordering: the SBOM is generated INTO packages/<pkg>/
+        # BEFORE pnpm pack runs, so the tarball that the manifest-confusion
+        # gate verifies is byte-identical to the tarball pnpm publishes in
+        # the next step. Earlier ordering (pack → manifest-check →
+        # SBOM-write → pnpm-r-publish-repacks) caused the published tarball
+        # to contain SBOM JSON that the manifest-gate had not seen.
         run: |
           mkdir -p /tmp/manifest-confusion-tarballs
           for pkg in core scanners reporters cli mcp-server; do
+            bash scripts/generate-sbom.sh "packages/$pkg"
             (cd "packages/$pkg" && pnpm pack --pack-destination /tmp/manifest-confusion-tarballs --silent)
             TARBALL=$(ls /tmp/manifest-confusion-tarballs/aegis-scan-$pkg-*.tgz | tail -1)
             echo "▸ Checking @aegis-scan/$pkg → $(basename "$TARBALL")"
             node scripts/check-manifest-confusion.mjs "packages/$pkg" "$TARBALL"
-          done
-
-      - name: Generate CycloneDX SBOM per package (supply-chain visibility)
-        # End-user-side verifiability: the SBOM enumerates every transitive
-        # dep with version + license + import-evidence, so a downstream
-        # consumer can compare against the registry-served manifest and
-        # detect drift independently of npm provenance. SLSA + SBOM are
-        # complementary trust-layers: provenance proves who built it,
-        # SBOM proves what is in it.
-        run: |
-          for pkg in core scanners reporters cli mcp-server; do
-            bash scripts/generate-sbom.sh "packages/$pkg"
           done
 
       - name: Publish to npm with provenance

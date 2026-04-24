@@ -4,4 +4,5 @@
 # Re-seeded 2026-04-22 for v0.17 Day-1 wizard-cli scaffold — adds @clack/prompts, gray-matter transitively via new packages/wizard-cli/package.json.
 # Re-seeded 2026-04-23 for v0.17 Day-2 preset-loader — adds yaml package to wizard-cli for YAML preset-manifests.
 # Re-seeded 2026-04-23 for v0.18 skills-v0.1.0 commit #1 — adds @aegis-scan/skills package (vitest devDependency only, no runtime deps in scaffold).
-sha256:4324e28c1a980373d82b75182fc74a1eba6a03bd98f2a9da9cfefb442c9b7edc  pnpm-lock.yaml
+# Re-seeded 2026-04-24 for v0.17.2 SC-7 — adds @cyclonedx/cdxgen@12.1.4 to root devDependencies (exact pin, cooldown-lint visible) so SBOM-generator runs via pnpm exec instead of pnpm dlx.
+sha256:c9dfd792936b72a22b68ed5822fcff50627a61453ab5cd493017bc85e0d8d505  pnpm-lock.yaml

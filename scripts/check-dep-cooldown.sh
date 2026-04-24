@@ -42,6 +42,7 @@ CRITICAL_DEPS=(
   "typescript"
   "vitest"
   "turbo"
+  "@cyclonedx/cdxgen"
 )
 
 is_critical() {

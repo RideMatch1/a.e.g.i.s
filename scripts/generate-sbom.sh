@@ -7,9 +7,11 @@
 # verify the package's exact dep-graph against the registry-served bits
 # without re-resolving from package-lock or pnpm-lock files.
 #
-# Tool: @cyclonedx/cdxgen v12.x — pnpm-aware, multi-manager. Pinned to
-# a major-line in the workflow invocation; the dep-cooldown lint covers
-# any cdxgen point-release that shows up via Renovate.
+# Tool: @cyclonedx/cdxgen v12.x — pnpm-aware, multi-manager. Pinned via
+# root package.json devDependencies + pnpm-lock.yaml (exact version, no
+# caret) so the dep-cooldown-lint + SHA-pin enforcers can see it.
+# Invoked via `pnpm exec cdxgen`; earlier iterations used `pnpm dlx
+# @cyclonedx/cdxgen@^12.2.0` which bypassed both gates.
 #
 # Output:
 #   - <package-dir>/sbom.cdx.json (gitignored; published WITHIN the
@@ -33,18 +35,23 @@ fi
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SBOM_OUT="$REPO_ROOT/$PACKAGE_DIR/sbom.cdx.json"
 
-# Pin cdxgen to a known major; allow Renovate to bump within the major after
-# the dep-cooldown window elapses.
-CDXGEN_VERSION="^12.2.0"
+# cdxgen version comes from root package.json devDependencies (exact pin)
+# resolved via pnpm-lock.yaml. Read it back here for log-visibility only.
+# Strip ANSI-escape codes from the `--version` stdout before extracting.
+CDXGEN_VERSION=$(pnpm exec cdxgen --version 2>/dev/null \
+  | head -1 \
+  | sed $'s/\x1b\\[[0-9]*m//g' \
+  | awk '{print $NF}' \
+  || echo 'unknown')
 
 echo "▸ Generating CycloneDX SBOM for $PACKAGE_DIR"
-echo "  tool:    @cyclonedx/cdxgen@$CDXGEN_VERSION"
+echo "  tool:    @cyclonedx/cdxgen@$CDXGEN_VERSION (from root devDeps)"
 echo "  output:  $SBOM_OUT"
 
 # Run cdxgen with pnpm-aware project type (-t pnpm). cdxgen does its own
 # install-with-ignore-scripts under the hood so we do not pollute the runner's
 # node_modules.
-pnpm dlx "@cyclonedx/cdxgen@$CDXGEN_VERSION" \
+pnpm exec cdxgen \
   -t pnpm \
   -o "$SBOM_OUT" \
   --no-recurse \
