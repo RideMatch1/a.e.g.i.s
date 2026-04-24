@@ -28,6 +28,17 @@ const PATTERN_PATH = resolve(
   'middleware-hardened.md',
 );
 
+const I18N_PATTERN_PATH = resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'docs',
+  'patterns',
+  'foundation',
+  'i18n-next-intl.md',
+);
+
 function buildPattern(name: string): LoadedPattern {
   return {
     frontmatter: {
@@ -108,5 +119,25 @@ describe('brief-renderer Phase 2 step 1 — middleware → proxy rename', () => 
     const out = renderBuildOrderVerbose(SAAS_STARTER);
     expect(out).toMatch(/Copy foundation\/middleware-hardened to `proxy\.ts`/);
     expect(out).not.toMatch(/Copy foundation\/middleware-hardened to `middleware\.ts`/);
+  });
+});
+
+describe('H2 — i18n-next-intl pattern aligned with proxy.ts idiom (audit)', () => {
+  const i18nBody = readFileSync(I18N_PATTERN_PATH, 'utf-8');
+
+  it('does not contain export async function middleware', () => {
+    expect(i18nBody).not.toMatch(/^export async function middleware\(/m);
+  });
+
+  it('does not contain ### `src/middleware.ts` file-section heading', () => {
+    expect(i18nBody).not.toMatch(/^### `src\/middleware\.ts`/m);
+  });
+
+  it('contains export async function proxy', () => {
+    expect(i18nBody).toMatch(/^export async function proxy\(/m);
+  });
+
+  it('contains illustrative-only warning referencing v0.2 composition skill', () => {
+    expect(i18nBody).toMatch(/illustrative.*v0\.2.*compos/i);
   });
 });

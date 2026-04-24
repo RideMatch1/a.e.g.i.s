@@ -109,11 +109,13 @@ export default getRequestConfig(async ({ requestLocale }) => {
 });
 ```
 
-### `src/middleware.ts` (extend existing middleware from `middleware-hardened`)
+### `proxy.ts` (extend the proxy emitted by `middleware-hardened` — illustrative only until v0.2 composition skill ships)
 
 ```typescript
-// If you have an existing middleware.ts from middleware-hardened pattern,
-// add the next-intl matcher alongside. Otherwise wrap existing middleware.
+// If you have an existing proxy.ts from the middleware-hardened pattern,
+// add the next-intl matcher alongside. Otherwise wrap the existing proxy.
+// Note: this composition is illustrative — the canonical recipe ships in
+// v0.2 (middleware-next-intl-compose skill).
 
 import createIntlMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
@@ -122,7 +124,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // 1. Run security-headers + rate-limit + auth-gate first (from middleware-hardened)
   // ... existing code from middleware-hardened pattern ...
 
