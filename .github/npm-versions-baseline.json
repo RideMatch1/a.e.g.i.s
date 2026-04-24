@@ -3,11 +3,11 @@
   "_note": "Baseline of intentionally-published npm versions. The npm-version-watch weekly cron compares live registry state against this file and opens a tamper-alert issue on any drift. When a new version is intentionally published via one of the publish*.yml workflows, update the matching entry via PR as part of the ship-sequence before the tag-push.",
   "_last_reviewed": "2026-04-24",
   "packages": {
-    "@aegis-scan/core": "0.16.4",
-    "@aegis-scan/scanners": "0.16.4",
-    "@aegis-scan/reporters": "0.16.4",
-    "@aegis-scan/cli": "0.16.4",
-    "@aegis-scan/mcp-server": "0.16.4",
+    "@aegis-scan/core": "0.16.5",
+    "@aegis-scan/scanners": "0.16.5",
+    "@aegis-scan/reporters": "0.16.5",
+    "@aegis-scan/cli": "0.16.5",
+    "@aegis-scan/mcp-server": "0.16.5",
     "@aegis-wizard/cli": "0.17.3",
     "@aegis-scan/skills": "0.1.1"
   },
