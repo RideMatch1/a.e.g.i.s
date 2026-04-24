@@ -25,7 +25,18 @@ by dogfood-audit + recon-report findings, not by a fixed schedule.
 - H3 institutional-discipline note: closed after 3 patch-cycles (v0.17.2 B3, v0.17.3 B1, v0.17.4 WB-1). Advisor-memory `feedback_consistency_fix_test_scope §Amendment 2026-04-24` now mandates exhaustive-grep surface-discovery before fix-spec enumeration; prevents recurrence of this class. Discovery-doc durable at operator-local planning-tree (gitignored) as audit-trail.
 - L4 (regexTarget gap) from v0.17.3 audit §4.3: closed by inclusion — hotfix `251cc2e` adding explicit `regexTarget = "match"` to `.gitleaks.toml` entries 5+6 is on main pre-dating this release. v0.17.4 tarball naturally ships with the hardened config. No dedicated commit.
 - Companion release this cycle: `@aegis-scan/*@0.16.5` (scanner-family matrix) shipped via `v0.16.5` tag hours earlier, carrying SC-1 walkFiles gitignore-awareness + L1(a) gitleaks-wrapper scope-documentation to scanner-consumers. See `CHANGELOG.md` root [0.16.5] entry.
-- Arc commits (`git log wizard-v0.17.3..wizard-v0.17.4 --oneline | wc -l` = 3 total): WB-1 H3 final-closure (170fea7) + WB-2 L2 template (9c0caa7) + WB-3 version-bump (this commit).
+- Arc commits (`git log wizard-v0.17.3..wizard-v0.17.4 --oneline | wc -l` = 11 total — per L2 tag-message template Rule 3 range-breakdown qualifier for multi-namespace cycles):
+  - Wizard-primary this release (4 commits):
+    - WB-1 `170fea7`  fix(patterns): H3 final-closure (exhaustive-grep)
+    - WB-2 `9c0caa7`  docs(contributing): canonical tag-message template
+    - WB-3 `35d9eac`  chore(wizard): version 0.17.4 — H3 + L2
+    - WB-4 (this)     chore(wizard): correct [0.17.4] CHANGELOG range-count per L2 Rule 3
+  - Published-elsewhere this range (7 commits):
+    - `251cc2e`  post-v0.17.3-ship hotfix (gitleaks regexTarget hardening)
+    - `950c1e1`, `fbcdec6`, `41a9532`  Arc-C Node-24 Sub-arc B (3 publish-*.yml SHA-bumps, merge-only)
+    - `a54f4dc`, `df19890`  Arc-A scanner-family v0.16.5 (shipped on v0.16.5 tag same cycle)
+    - `ad130cc`  Arc-A post-ship baseline-PR (.github/npm-versions-baseline.json)
+  - Arithmetic self-check: 4 + 7 = 11 ✓ (L2 Rule 2 sub-count disclosure). Range-breakdown qualifier applied (L2 Rule 3). Literal count matches wc -l (L2 Rule 1).
 
 ## [0.17.3] — 2026-04-24 — "consistency-polish + M2-closure + scanner-gitignore-awareness"
 
