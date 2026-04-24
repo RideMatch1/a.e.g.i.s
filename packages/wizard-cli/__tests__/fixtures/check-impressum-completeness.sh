@@ -26,7 +26,7 @@ CLASS_NAMES=(
   "7-Telefon"
 )
 CLASS_PATTERNS=(
-  'straße|strasse|str\.|anschrift'
+  'straße|strasse|str\.|anschrift|\b[a-zäöüß]+(weg|allee|platz|ring|chaussee|damm|pfad|ufer)\b'
   '[0-9]{5}'
   'mailto:|e-mail:|kontakt:|email:'
   'geschäftsführer|geschaeftsfuehrer|gf:|vertreten durch|inhaber'

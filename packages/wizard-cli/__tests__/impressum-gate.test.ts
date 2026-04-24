@@ -146,6 +146,37 @@ describe('Impressum gate (D-COM-05, bash-3-compat shell script)', () => {
     expect(embedded).toBe(fixture);
   });
 
+  it('FIXTURE 5 (M5, audit) — sole-proprietor with -weg street suffix exits 0 (regex covers non-Straße suffixes)', () => {
+    // M5: the 1-Anschrift class regex previously only matched
+    // straße|strasse|str\.|anschrift. A legitimate sole-proprietor
+    // Impressum with "Beispielweg 42" as the address was false-negatived
+    // (gate reported 1-Anschrift missing). The regex now also matches
+    // 8 common German non-Straße suffixes: weg|allee|platz|ring|
+    // chaussee|damm|pfad|ufer. Fixture covers 1+2+3+4+7 = 5/7 → PASS.
+    const fxPath = join(tmpDir, 'beispielweg.tsx');
+    writeFileSync(
+      fxPath,
+      [
+        'export default function Impressum() {',
+        '  return (',
+        '    <main>',
+        '      <h1>Impressum</h1>',
+        '      <p>Beispielweg 42</p>',
+        '      <p>10115 Berlin</p>',
+        '      <p>E-Mail: kontakt@example.com</p>',
+        '      <p>Inhaber: Max Mustermann</p>',
+        '      <p>Telefon: +49 30 1234567</p>',
+        '    </main>',
+        '  );',
+        '}',
+      ].join('\n'),
+    );
+    const { exit, stdout } = runGate(fxPath);
+    expect(exit).toBe(0);
+    expect(stdout).toMatch(/PASS: 5\/7/);
+    expect(stdout).toMatch(/1-Anschrift/);
+  });
+
   it('FIXTURE 4 (M1, audit) — Impressum with empty-placeholder broken HTML exits 1 with empty-HTML diagnostic', () => {
     const fxPath = join(tmpDir, 'empty-html.tsx');
     writeFileSync(
