@@ -33,7 +33,7 @@ by dogfood-audit + recon-report findings, not by a fixed schedule.
 
 - Three ESLint errors in shipped pattern code: datenschutz page uses `<Link>` from `next/link` instead of `<a>`; cookie-banner `setShowBanner(true)` inside first-mount useEffect is deferred via `queueMicrotask` to satisfy React Compiler's set-state-in-effect rule; orphan `// eslint-disable-next-line no-restricted-imports` removed from admin.ts (the underlying rule is not configured in the scaffold's eslint config, so the directive itself generated `unused-eslint-disable` warnings). Scaffolded projects now lint-pass out-of-the-box on Next.js 16 default config.
 
-### Closed (dev-only — no prod-impact, verified via F-MAJ-1 prod-check 2026-04-23)
+### Closed (dev-only — no prod-impact, verified via prod-check 2026-04-23 — see [`docs/security/prod-check-2026-04-23.md`](../../docs/security/prod-check-2026-04-23.md) for curl-output evidence)
 
 - **Security-headers-drop on intl-handled responses** — dogfood §3.7#1 observed dev-mode-only. Production build of the dogfood scaffold (next@16.2.4) emits the full security-header set on `/de` (CSP with strict-dynamic + unique nonce, HSTS 2-year preload-eligible, x-frame-options DENY, x-content-type-options nosniff, permissions-policy, referrer-policy, COOP+CORP same-origin). Turbopack dev-server caching was the culprit; no pattern-code fix needed.
 - **`/api/admin/*` returns 404 instead of 401** — dogfood §3.7#2 observed dev-mode-only. Production build returns `401 Unauthorized` (not `404`) on unauth `/api/admin/*` probe, with full security-header set on the error response. No pattern-code fix needed.
