@@ -15,6 +15,20 @@ shown with the reason the target wasn't met.
 
 - For `@aegis-wizard/cli` 0.17.1 and later, see [`packages/wizard-cli/CHANGELOG.md`](packages/wizard-cli/CHANGELOG.md). This root CHANGELOG covers the scanner family (`@aegis-scan/*`) + top-level arc-summary entries only.
 
+## [Unreleased — cleanup] — 2026-04-24 — "vscode-extension retirement + README-honesty"
+
+### Withdrawn
+
+- **`packages/vscode-extension/` package (was `aegis-vscode` @ 0.2.0)** — withdrawn from the monorepo. The extension lived in-repo but was never shipped to the VS Code Marketplace and had no adoption signal. Retiring the package removes a dormant maintenance-surface + fixes the README-overpromise ("Ships a VS Code extension") that shipped in prior release notes. Consumers who had built the extension locally via `code --install-extension` will continue to have a working local install; future upgrades are not planned.
+
+### Changed (README-honesty)
+
+- **GitHub Action framing clarified** — README previously described "a GitHub Action with PR comments" suggesting marketplace-discoverability. The action is in-repo at `ci/github-action/action.yml` and usable via `uses: RideMatch1/a.e.g.i.s/ci/github-action@<tag>` pinned to a released tag. README updated to reflect this distribution-path honestly.
+
+### Meta
+
+- Neither change triggers an npm publish; no `@aegis-scan/*` or `@aegis-wizard/cli` source touched. Monorepo-wide hygiene only. `.github/workflows/release.yml` (vscode-extension-only workflow) deleted alongside the package. Tests, self-scan, all gate-enforcers remain at post-v0.17.4 baseline.
+
 ## [0.16.5] — 2026-04-25 — "scanner-family SC-1 publish + L1(a) gitleaks-wrapper scope-documentation"
 
 ### Changed (structural)

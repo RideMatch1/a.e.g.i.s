@@ -46,7 +46,6 @@ Post-1.0 will commit to a longer support window; policy will be written into thi
 
 - AEGIS CLI, scanners, reporters, core orchestrator.
 - MCP server (`packages/mcp-server/`).
-- VS Code extension (`packages/vscode-extension/`).
 - Shipped benchmark and test fixtures — bugs that cause AEGIS to crash, produce wrong findings on the vulnerable-app benchmark, or leak data from the scanning environment.
 
 **Out-of-scope**:

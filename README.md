@@ -9,7 +9,7 @@
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 [![npm](https://img.shields.io/npm/v/@aegis-scan/cli?label=%40aegis-scan%2Fcli)](https://www.npmjs.com/package/@aegis-scan/cli)
 
-Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers plus 16 external-tool wrappers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, VS Code extension, and GitHub Action.
+Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers plus 16 external-tool wrappers, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, and a GitHub-Actions recipe for CI integration.
 
 ---
 
@@ -34,7 +34,7 @@ db.query(query);                                   // sink: SQL Injection (CWE-8
 
 Per-CWE sanitizer awareness: `parseInt()` blocks SQL injection but not XSS, `DOMPurify.sanitize()` blocks XSS but not SQL injection, `encodeURIComponent()` blocks SSRF but not path traversal (frameworks decode before fs access).
 
-Suite composition: **40** regex scanners + **1** AST taint analyzer + **1** RPC-specific SQLi scanner (built-in), **16** external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** live attack probes, **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, a VS Code extension, and a GitHub Action with PR comments.
+Suite composition: **40** regex scanners + **1** AST taint analyzer + **1** RPC-specific SQLi scanner (built-in), **16** external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** live attack probes, **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, and a reusable GitHub-Actions recipe (at `ci/github-action/`) that posts PR comments with the score + top findings.
 
 ---
 
@@ -488,31 +488,11 @@ Low-friction for developers who already run Claude Code / Cursor — your assist
 
 ---
 
-## VS Code Extension (preview)
-
-An extension lives in `packages/vscode-extension/` and ships with this repo (currently at `0.2.0`, not yet on the VS Code Marketplace). It exposes:
-
-- `AEGIS: Scan Workspace` command
-- `AEGIS: Scan Current File` command
-- `AEGIS: Show Security Score` command
-- Configurable `aegis.autoScanOnSave` + `aegis.severity.minimum` settings
-
-Build from source:
-
-```bash
-cd packages/vscode-extension
-pnpm install && pnpm run build
-pnpm run package   # produces .vsix
-code --install-extension aegis-vscode-0.2.0.vsix
-```
-
-Marketplace publishing is planned for a future release; feedback on the current surface is welcome via Issues.
-
----
-
 ## CI/CD — GitHub Action
 
 Drop-in security gate for any GitHub Actions workflow. Posts a PR comment with score, severity table, and top findings; fails the build when the score drops below a configurable threshold.
+
+**Distribution note:** the action lives in-repo at `ci/github-action/action.yml` (not published to the GitHub Marketplace). Consumers reference it via `uses: RideMatch1/a.e.g.i.s/ci/github-action@<tag>` pinning to a released tag (e.g. `v0.16.5`).
 
 ```yaml
 name: Security

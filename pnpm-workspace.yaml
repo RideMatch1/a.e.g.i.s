@@ -1,4 +1,3 @@
 packages:
   - "packages/*"
   - "packages/benchmark/vulnerable-app"
-  - "!packages/vscode-extension"
