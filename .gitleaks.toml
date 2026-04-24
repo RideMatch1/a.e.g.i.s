@@ -64,3 +64,8 @@ paths = [
 [[allowlists]]
 description = "Historic literal placeholder: 'ENCRYPTION_KEY=0af1b2c3d4...64-hex-chars' appeared in packages/wizard-cli/src/brief/sections.ts in commit 975c5bb as an env-var-template for the consumer's openssl-rand-hex-32 output. Working-tree value replaced with angle-bracket placeholder '<64-hex-chars>' in v0.17.2 SC-8 — this regex suppresses the historic-commit finding in gitleaks git-history mode. Pattern is unique (contains the literal ellipsis + suffix text) so no false-negative risk on real 64-hex-char secrets."
 regexes = ['''0af1b2c3d4\.{3}64-hex-chars''']
+
+[[allowlists]]
+description = "CHANGELOG historic-literal reference: v0.17.3 B3 obfuscated the pedagogical api_key in docs/patterns/foundation/logger-pii-safe.md from 'sk_live_abc123' to 'sk_live_EXAMPLE'. The CHANGELOG entry documenting that fix quotes the pre-fix literal verbatim for audit-trail. Gitleaks matches the verbatim quote even though it is narrative documentation of a fix (not a live credential) and does not ship in the tarball (CHANGELOG.md excluded from wizard-cli's files-array). Same class as allowlist 5 (ENCRYPTION_KEY historic placeholder). Scope: paths+regexes AND-combine in gitleaks v8, so this only fires in .md files; real Stripe-live-keys are 32-char random (not 'abc123'), zero false-negative risk on real secrets."
+regexes = ['''sk_live_abc123''']
+paths = ['''\.md$''']
