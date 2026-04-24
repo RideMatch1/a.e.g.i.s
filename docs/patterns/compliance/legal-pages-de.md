@@ -407,7 +407,7 @@ See `/admin/rechtliches` in related-preset if included.
 3. **Datenschutz not matching reality.** E.g., listing Google Analytics but actually using PostHog — that's a false-statement. Match the Datenschutz to what you actually do.
 4. **No mention of Supabase as processor.** If data leaves your direct control (which Supabase does — it's a hosted DB), list the processor + their AVV.
 5. **Missing contact-email in Impressum.** Required by §5 TMG/DDG — just a street-address is not enough.
-6. **Template-placeholders not substituted.** Ship-check: `grep -r "{{" src/app/impressum src/app/datenschutz` should return zero matches post-generation.
+6. **Template-placeholders not substituted.** Ship-check: `grep -r "{{" src/app/{{LOCALE_PREFIX}}impressum src/app/{{LOCALE_PREFIX}}datenschutz` should return zero matches post-generation.
 7. **Using "Haftungsausschluss für externe Links" — outdated.** Case-law updated; the standard §7 DDG disclaimer above is current.
 
 ---
@@ -424,7 +424,7 @@ See `/admin/rechtliches` in related-preset if included.
 
 ```bash
 # No unsubstituted placeholders
-grep -rn "{{" src/app/impressum src/app/datenschutz src/app/agb
+grep -rn "{{" src/app/{{LOCALE_PREFIX}}impressum src/app/{{LOCALE_PREFIX}}datenschutz src/app/{{LOCALE_PREFIX}}agb
 # expect: zero matches
 
 # Build + type-check

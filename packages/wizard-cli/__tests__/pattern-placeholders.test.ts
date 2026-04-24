@@ -389,3 +389,99 @@ describe('LOCALE_PREFIX consistency across all 3 surfaces × 2 strategies (v0.17
     expect(embedded).toBe(fixture);
   });
 });
+
+/**
+ * v0.17.4 WB-1 — H3 final-closure additions per amendment-discipline.
+ *
+ * Exhaustive-grep on legal-pages-de.md found 4 hits (dispatch §D3
+ * hypothesized 3). Per-hit classification (discovery-report at
+ * aegis-precision/v0174-wb1-discovery-report.md):
+ *   - line 410 (Common-pitfalls #6 ship-check)   → to-fix
+ *   - line 427 (Quality-gate bash grep)          → to-fix
+ *   - line 459 (escape-hatch-doc comment)        → intentional-literal
+ *   - line 462 (IMPRESSUM_PATH default)          → already-correct
+ *                                                 (v0.17.3 B1 conscious KEEP)
+ *
+ * These 4 assertions close the 3rd-cycle H3 partial-regression by:
+ *   1+2. Rendering pattern body through substitute(), asserting both
+ *        to-fix surfaces resolve correctly under both i18n_strategy values
+ *   3. Verifying the escape-hatch-doc comment survives byte-exact
+ *      (placeholderizing would break pedagogical comment semantics)
+ *   4. Verifying IMPRESSUM_PATH default preserves the [locale]/ literal
+ *      as codified by v0.17.3 B1 commit 948c4d9 (regression-guard for
+ *      a previously-implicit decision, made explicit by amendment)
+ *
+ * Per advisor memory `feedback_consistency_fix_test_scope §Amendment
+ * 2026-04-24` — exhaustive-grep surface-discovery + per-hit classification
+ * prevents the 4th-recurrence pattern this cycle. H3 now has 5 of 5
+ * flat-path-class surfaces locked (3 pattern-body headings + 2 Phase-5
+ * prose in v0.17.3 B1; 2 Common-pitfalls + Quality-gate in this cycle)
+ * plus 2 conscious-literal sites regression-guarded.
+ */
+describe('LOCALE_PREFIX WB-1 additions — 4 newly-classified surfaces (v0.17.4, audit v0.17.3 §3.1 M)', () => {
+  const legalPagesBody = readFileSync(LEGAL_PAGES_PATH, 'utf-8');
+
+  // Assertion 1: Common-pitfalls #6 ship-check × 2 strategies (line 410)
+  it.each([
+    { strategy: 'url-prefix' as const, expectedPrefix: '[locale]/' },
+    { strategy: 'none' as const, expectedPrefix: '' },
+  ])(
+    'to-fix line 410 (Common-pitfalls #6 ship-check): resolves paths under $strategy',
+    ({ strategy, expectedPrefix }) => {
+      const config = buildConfig({
+        localization: { ...buildConfig().localization, i18n_strategy: strategy },
+      });
+      const reserved = buildReserved(config);
+      const map = buildPatternPlaceholders({ config, reserved });
+      const rendered = substitute(legalPagesBody, map);
+
+      expect(rendered).toContain(
+        `grep -r "{{" src/app/${expectedPrefix}impressum src/app/${expectedPrefix}datenschutz`,
+      );
+      expect(rendered).not.toMatch(/\{\{LOCALE_PREFIX\}\}/);
+    },
+  );
+
+  // Assertion 2: Quality-gate bash grep × 2 strategies (line 427)
+  it.each([
+    { strategy: 'url-prefix' as const, expectedPrefix: '[locale]/' },
+    { strategy: 'none' as const, expectedPrefix: '' },
+  ])(
+    'to-fix line 427 (Quality-gate bash grep): resolves all 3 paths under $strategy',
+    ({ strategy, expectedPrefix }) => {
+      const config = buildConfig({
+        localization: { ...buildConfig().localization, i18n_strategy: strategy },
+      });
+      const reserved = buildReserved(config);
+      const map = buildPatternPlaceholders({ config, reserved });
+      const rendered = substitute(legalPagesBody, map);
+
+      expect(rendered).toContain(
+        `grep -rn "{{" src/app/${expectedPrefix}impressum src/app/${expectedPrefix}datenschutz src/app/${expectedPrefix}agb`,
+      );
+      expect(rendered).not.toMatch(/\{\{LOCALE_PREFIX\}\}/);
+    },
+  );
+
+  // Assertion 3: Line 459 escape-hatch-doc literal-preservation
+  it('intentional-literal line 459 (escape-hatch-doc): comment survives byte-exact', () => {
+    // Placeholderizing this example-path would break the pedagogical
+    // intent of the comment (which explains to non-i18n operators what
+    // explicit path to pass). KEEP literal per dispatch §D3.
+    expect(legalPagesBody).toMatch(
+      /# arg: bash check-impressum-completeness\.sh src\/app\/impressum\/page\.tsx/,
+    );
+  });
+
+  // Assertion 4: Line 462 IMPRESSUM_PATH default literal-preservation
+  it('already-correct line 462 (IMPRESSUM_PATH default): [locale]/ literal preserved (v0.17.3 B1 conscious KEEP)', () => {
+    // v0.17.3 B1 commit 948c4d9 body: "gate-script unchanged — continues
+    // to use locale-prefixed path for default config". Amendment-
+    // discipline codifies this previously-implicit decision as an
+    // explicit regression-guard. If a future cycle tries to make the
+    // default config-responsive, this test fails → forces re-review.
+    expect(legalPagesBody).toMatch(
+      /IMPRESSUM_PATH="\$\{1:-src\/app\/\[locale\]\/impressum\/page\.tsx\}"/,
+    );
+  });
+});
