@@ -228,7 +228,7 @@ logger.info('Payment processed', {
     address_street: '123 Main',        // → [redacted]
   },
   metadata: {
-    api_key: 'sk_live_abc123',        // → sk***23
+    api_key: 'sk_live_EXAMPLE',       // → sk***LE
   },
 });
 
