@@ -484,6 +484,15 @@ echo "TMG §5 field-class markers found: $COUNT/7"
 echo "  Found:  ${FOUND:-none}"
 echo "  Missing:${MISSING:-none}"
 
+# v0.17.2 M1 — empty-placeholder broken-HTML detection.
+# Optional pattern-fields (DPO, HRB, Vertretungsberechtigter) substituted
+# to empty strings while their wrapper-tags still render produce
+# semantically-broken HTML the {{placeholder}} grep gate cannot see:
+# <a href="mailto:"></a>, <a href=""></a>, <p></p>. Fail the gate on
+# any of those patterns so the broken render is caught before ship.
+EMPTY_HTML=$(grep -nE 'href="mailto:"|href=""|<[a-z]+>[[:space:]]*</[a-z]+>' "$IMPRESSUM_PATH" || true)
+[[ -z "$EMPTY_HTML" ]] || { echo "::error::Impressum contains empty-placeholder HTML (broken render):"; echo "$EMPTY_HTML"; echo "Cause: optional pattern-fields substituted to empty strings while wrapper-tags still rendered."; exit 1; }
+
 [[ $COUNT -ge 5 ]] || { echo "::error::Impressum incomplete — only $COUNT/7 (need >=5). Missing:$MISSING. Abmahnung-risk €500-2000."; exit 1; }
 echo "Impressum gate PASS: $COUNT/7 field-classes present (threshold >=5)."
 ```

@@ -119,4 +119,36 @@ describe('Impressum gate (D-COM-05, bash-3-compat shell script)', () => {
     expect(stderr).toMatch(/only 4\/7/);
     expect(stderr).toMatch(/5-Handelsregister/);
   });
+
+  it('FIXTURE 4 (M1, audit) — Impressum with empty-placeholder broken HTML exits 1 with empty-HTML diagnostic', () => {
+    const fxPath = join(tmpDir, 'empty-html.tsx');
+    writeFileSync(
+      fxPath,
+      [
+        'export default function Impressum() {',
+        '  return (',
+        '    <main>',
+        '      <h1>Impressum</h1>',
+        '      <p>AEGIS Test GmbH</p>',
+        '      <p>Hauptstraße 42</p>',
+        '      <p>12345 Berlin</p>',
+        '      <p>E-Mail: kontakt@example.com</p>',
+        '      <p>Telefon: +49 30 1234567</p>',
+        '      <p>Geschäftsführer: Max Mustermann</p>',
+        '      <p>Handelsregister: Amtsgericht Berlin, HRB 123456</p>',
+        '      <p>USt-IdNr: DE123456789</p>',
+        '      <p>',
+        '        Datenschutzbeauftragter:',
+        '        E-Mail: <a href="mailto:"></a>',
+        '      </p>',
+        '    </main>',
+        '  );',
+        '}',
+      ].join('\n'),
+    );
+    const { exit, stderr } = runGate(fxPath);
+    expect(exit).toBe(1);
+    expect(stderr).toMatch(/empty-placeholder|broken render/i);
+    expect(stderr).toMatch(/href="mailto:"/);
+  });
 });
