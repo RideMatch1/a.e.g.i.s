@@ -18,7 +18,12 @@ describe('D-OTH-08 — legal-pages-de datenschutz uses <Link> not <a> for intern
   const body = readFileSync(resolve(PATTERN_DIR, 'compliance', 'legal-pages-de.md'), 'utf-8');
 
   it('imports Link from next/link in the datenschutz page', () => {
-    expect(body).toMatch(/### `src\/app\/datenschutz\/page\.tsx`[\s\S]*?import Link from 'next\/link'/);
+    // Heading carries the {{LOCALE_PREFIX}} placeholder added in v0.17.2 H3 fix;
+    // resolver emits '[locale]/' when i18n is active, '' otherwise (see
+    // pattern-placeholders.test.ts for the substitution integration-tests).
+    expect(body).toMatch(
+      /### `src\/app\/\{\{LOCALE_PREFIX\}\}datenschutz\/page\.tsx`[\s\S]*?import Link from 'next\/link'/,
+    );
   });
 
   it('Daten-Selbstverwaltung link uses <Link href> instead of <a href>', () => {

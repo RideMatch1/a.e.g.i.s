@@ -7,10 +7,23 @@
  * to empty strings rather than undefined, and that runtime-env
  * snippets are wrapped in TypeScript-valid expressions.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { AegisConfigSchema, type AegisConfig } from '../src/wizard/schema.js';
 import { buildPatternPlaceholders } from '../src/brief/pattern-placeholders.js';
-import { buildReservedPlaceholders } from '../src/template/substitute.js';
+import { buildReservedPlaceholders, substitute } from '../src/template/substitute.js';
+
+const LEGAL_PAGES_PATH = resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'docs',
+  'patterns',
+  'compliance',
+  'legal-pages-de.md',
+);
 
 function buildConfig(overrides: Partial<AegisConfig> = {}): AegisConfig {
   const base = AegisConfigSchema.parse({
@@ -77,6 +90,7 @@ describe('buildPatternPlaceholders — required placeholder coverage', () => {
     'DPO_NAME',
     'EXTRA_SENSITIVE_KEYS_JSON',
     'LOCALES_JSON',
+    'LOCALE_PREFIX',
     'LOG_RETENTION_DAYS',
     'AUDIT_RETENTION_MONTHS',
     'PROJECT_NAME',
@@ -197,5 +211,55 @@ describe('buildPatternPlaceholders — reserved passthrough', () => {
     expect(map.APP_NAME).toBe(reserved.APP_NAME);
     expect(map.DEFAULT_LOCALE).toBe(reserved.DEFAULT_LOCALE);
     expect(map.DEFAULT_TENANT_ID).toBe(reserved.DEFAULT_TENANT_ID);
+  });
+});
+
+describe('LOCALE_PREFIX placeholder resolution (H3, audit)', () => {
+  it('substitutes [locale]/ when i18n_strategy=url-prefix (default)', () => {
+    const config = buildConfig();
+    const reserved = buildReserved(config);
+    const map = buildPatternPlaceholders({ config, reserved });
+    expect(map.LOCALE_PREFIX).toBe('[locale]/');
+  });
+
+  it('substitutes empty string when i18n_strategy=none', () => {
+    const config = buildConfig({
+      localization: { ...buildConfig().localization, i18n_strategy: 'none' },
+    });
+    const reserved = buildReserved(config);
+    const map = buildPatternPlaceholders({ config, reserved });
+    expect(map.LOCALE_PREFIX).toBe('');
+  });
+});
+
+describe('LOCALE_PREFIX end-to-end substitution (H3 integration, per advisor ISSUE-3)', () => {
+  const legalPagesBody = readFileSync(LEGAL_PAGES_PATH, 'utf-8');
+
+  it('substitutes pattern heading to [locale]/ path when i18n_strategy=url-prefix', () => {
+    const config = buildConfig();
+    const reserved = buildReserved(config);
+    const map = buildPatternPlaceholders({ config, reserved });
+    const rendered = substitute(legalPagesBody, map);
+    expect(rendered).toMatch(/^### `src\/app\/\[locale\]\/impressum\/page\.tsx`/m);
+    expect(rendered).not.toMatch(/^### `src\/app\/impressum\/page\.tsx`/m);
+  });
+
+  it('substitutes pattern heading to flat path when i18n_strategy=none', () => {
+    const config = buildConfig({
+      localization: { ...buildConfig().localization, i18n_strategy: 'none' },
+    });
+    const reserved = buildReserved(config);
+    const map = buildPatternPlaceholders({ config, reserved });
+    const rendered = substitute(legalPagesBody, map);
+    expect(rendered).toMatch(/^### `src\/app\/impressum\/page\.tsx`/m);
+    expect(rendered).not.toMatch(/^### `src\/app\/\[locale\]\/impressum/m);
+  });
+
+  it('never emits literal {{LOCALE_PREFIX}} after substitution', () => {
+    const config = buildConfig();
+    const reserved = buildReserved(config);
+    const map = buildPatternPlaceholders({ config, reserved });
+    const rendered = substitute(legalPagesBody, map);
+    expect(rendered).not.toMatch(/\{\{LOCALE_PREFIX\}\}/);
   });
 });

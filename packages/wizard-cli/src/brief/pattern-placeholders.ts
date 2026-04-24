@@ -86,8 +86,15 @@ export function buildPatternPlaceholders(
     PUBLIC_PROFILE_FIELDS_JSON: JSON.stringify(config.rbac.public_profile_fields),
 
     // Localization — LOCALES_JSON mirrors the reserved LOCALES value
-    // under the pattern-conventional *_JSON suffix.
+    // under the pattern-conventional *_JSON suffix. LOCALE_PREFIX is a
+    // path-segment placeholder: resolves to '[locale]/' when i18n is
+    // active so legal-page file-section headings become
+    // `src/app/[locale]/impressum/page.tsx`, and empty when i18n is off
+    // so they stay `src/app/impressum/page.tsx`. Closes audit H3
+    // (pattern body, Phase-5 prose, and gate-script default all used
+    // to disagree on the path shape).
     LOCALES_JSON: JSON.stringify(config.localization.locales),
+    LOCALE_PREFIX: config.localization.i18n_strategy !== 'none' ? '[locale]/' : '',
 
     // Advanced security — emit runtime-env snippets so a substituted
     // pattern body still compiles cleanly and reads the real

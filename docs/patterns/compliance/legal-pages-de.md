@@ -76,7 +76,7 @@ No new dependencies.
 
 ## Files to create
 
-### `src/app/impressum/page.tsx`
+### `src/app/{{LOCALE_PREFIX}}impressum/page.tsx`
 
 ```typescript
 import { Metadata } from 'next';
@@ -172,7 +172,7 @@ export default function ImpressumPage() {
 }
 ```
 
-### `src/app/datenschutz/page.tsx`
+### `src/app/{{LOCALE_PREFIX}}datenschutz/page.tsx`
 
 ```typescript
 import { Metadata } from 'next';
@@ -300,7 +300,7 @@ export default function DatenschutzPage() {
 }
 ```
 
-### `src/app/agb/page.tsx` (optional — only if B2B or paid-services)
+### `src/app/{{LOCALE_PREFIX}}agb/page.tsx` (optional — only if B2B or paid-services)
 
 ```typescript
 import { Metadata } from 'next';
