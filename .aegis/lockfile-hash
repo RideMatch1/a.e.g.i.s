@@ -5,4 +5,5 @@
 # Re-seeded 2026-04-23 for v0.17 Day-2 preset-loader — adds yaml package to wizard-cli for YAML preset-manifests.
 # Re-seeded 2026-04-23 for v0.18 skills-v0.1.0 commit #1 — adds @aegis-scan/skills package (vitest devDependency only, no runtime deps in scaffold).
 # Re-seeded 2026-04-24 for v0.17.2 SC-7 — adds @cyclonedx/cdxgen@12.1.4 to root devDependencies (exact pin, cooldown-lint visible) so SBOM-generator runs via pnpm exec instead of pnpm dlx.
-sha256:c9dfd792936b72a22b68ed5822fcff50627a61453ab5cd493017bc85e0d8d505  pnpm-lock.yaml
+# Re-seeded 2026-04-24 for v0.17.3 SC-1 — adds ignore@7.0.5 to packages/core/package.json dependencies (gitignore-aware walkFiles, closes dogfood-paradox structurally; replaces v0.17.2 r3 path-filter workaround).
+sha256:5f62b85ad4654b2457d60abe571d36f9dad37bb84271b2bb5c5374102fbafcae  pnpm-lock.yaml

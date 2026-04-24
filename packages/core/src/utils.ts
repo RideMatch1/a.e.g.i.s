@@ -1,7 +1,14 @@
 import * as childProcess from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import ignoreLib from 'ignore';
 import picomatch from 'picomatch';
+
+// ignore@7's default export is the factory; destructure for consistent call-shape.
+const createIgnore = ignoreLib as unknown as () => {
+  add(patterns: string | readonly string[]): ReturnType<typeof createIgnore>;
+  ignores(pathname: string): boolean;
+};
 
 export interface ExecOptions {
   cwd?: string;
@@ -123,16 +130,64 @@ function isGlobPattern(pattern: string): boolean {
   return /[*?[{]/.test(pattern);
 }
 
+/**
+ * v0.17.3 SC-1 — gitignore-aware walking via the `ignore` npm package
+ * (gitignore(5)-spec compliant, ~900k weekly downloads, battle-tested).
+ *
+ * Default ON: closes the v0.17.2 dogfood-paradox where parallel-session
+ * operator-local work in `aegis-precision/` polluted self-scan output
+ * and required a workaround path-filter at the §6 gate-check. With this
+ * on, the scanner honors the repo's `.gitignore` at project-root and
+ * any composed child `.gitignore` files encountered during the walk.
+ *
+ * Opt-out via `opts.respectGitignore = false` for scanner-internal
+ * test-fixtures that need a full walk regardless of ignore-state.
+ */
+export interface WalkFilesOptions {
+  respectGitignore?: boolean;
+}
+
+/** Load a `.gitignore` file's patterns; returns [] when absent/unreadable. */
+function readGitignorePatterns(gitignorePath: string): string[] {
+  try {
+    const raw = fs.readFileSync(gitignorePath, 'utf-8');
+    return raw
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith('#'));
+  } catch {
+    return [];
+  }
+}
+
 export function walkFiles(
   dir: string,
   ignore: string[] = [],
   extensions: string[] = [],
+  opts: WalkFilesOptions = {},
 ): string[] {
+  const respectGitignore = opts.respectGitignore ?? true;
   const resolvedDir = path.resolve(dir);
-  const cacheKey = `${resolvedDir}:${ignore.join(',')}:${extensions.join(',')}`;
+  const cacheKey = `${resolvedDir}:${ignore.join(',')}:${extensions.join(',')}:gi=${respectGitignore ? '1' : '0'}`;
 
   const cached = _walkFilesCache.get(cacheKey);
   if (cached) return cached;
+
+  // Pre-load root `.gitignore` when enabled. Child `.gitignore` files
+  // encountered during walk compose via their own `ignore` instance keyed
+  // by containing-dir relative to resolvedDir. Composition order: a file
+  // is filtered if the ROOT matcher OR any ANCESTOR matcher between root
+  // and the file's containing dir ignores it. Negation (`!pattern`) is
+  // handled by the `ignore` library per gitignore(5) spec.
+  const rootGitignoreMatcher = respectGitignore
+    ? (() => {
+        const rootPatterns = readGitignorePatterns(path.join(resolvedDir, '.gitignore'));
+        if (rootPatterns.length === 0) return null;
+        return createIgnore().add(rootPatterns);
+      })()
+    : null;
+  /** dirRelative (from resolvedDir) → ignore-matcher for that subdir's .gitignore */
+  const childMatchers = new Map<string, ReturnType<typeof createIgnore>>();
 
   // Split ignore entries into any-depth (bare) and root-only (leading `/`).
   // v0.15.4 D-C-001 — each bucket compiles its patterns via picomatch so
@@ -163,6 +218,36 @@ export function walkFiles(
   const results: string[] = [];
   const visited = new Set<string>();
 
+  /**
+   * gitignore-check: path is considered ignored iff the root matcher OR any
+   * ancestor child-matcher (up the chain to resolvedDir) reports ignored.
+   * The `ignore` library interprets paths relative to the matcher's base.
+   * Returns false if respectGitignore is off or no matchers exist.
+   */
+  function isGitignored(fullPath: string, isDir: boolean): boolean {
+    if (!respectGitignore) return false;
+    const rel = path.relative(resolvedDir, fullPath);
+    if (rel.length === 0) return false;
+    // `ignore` treats trailing-slash as directory; pass explicit relPath.
+    const relForCheck = isDir ? `${rel}/` : rel;
+    if (rootGitignoreMatcher && rootGitignoreMatcher.ignores(relForCheck)) return true;
+    // Walk ancestor child-matchers: for a file at a/b/c.ts, check matchers
+    // attached to 'a/b', 'a', root (root already checked).
+    let cursor = path.dirname(rel);
+    while (cursor && cursor !== '.') {
+      const matcher = childMatchers.get(cursor);
+      if (matcher) {
+        const relFromCursor = path.relative(cursor, rel);
+        const cursorRel = isDir ? `${relFromCursor}/` : relFromCursor;
+        if (matcher.ignores(cursorRel)) return true;
+      }
+      const parent = path.dirname(cursor);
+      if (parent === cursor) break;
+      cursor = parent;
+    }
+    return false;
+  }
+
   function walk(current: string, atRoot: boolean): void {
     // Resolve symlinks to detect cycles
     let realPath: string;
@@ -173,6 +258,19 @@ export function walkFiles(
     }
     if (visited.has(realPath)) return;
     visited.add(realPath);
+
+    // If this subdir has its own .gitignore, attach a child-matcher keyed
+    // by its path relative to resolvedDir. Root .gitignore already loaded.
+    if (respectGitignore && current !== resolvedDir) {
+      const subGitignore = path.join(current, '.gitignore');
+      if (fs.existsSync(subGitignore)) {
+        const subPatterns = readGitignorePatterns(subGitignore);
+        if (subPatterns.length > 0) {
+          const key = path.relative(resolvedDir, current);
+          childMatchers.set(key, createIgnore().add(subPatterns));
+        }
+      }
+    }
 
     let entries: fs.Dirent[];
     try {
@@ -189,12 +287,16 @@ export function walkFiles(
         // Dir-level filter — both literal and glob patterns apply to dirs.
         if (matchDirAnyDepth(entry.name) || matchDirAnyDepth(relPath)) continue;
         if (atRoot && (matchDirRootOnly(entry.name) || matchDirRootOnly(relPath))) continue;
+        // SC-1: honor .gitignore for directories (prunes the walk early)
+        if (isGitignored(fullPath, true)) continue;
         walk(fullPath, false);
       } else if (entry.isFile()) {
         // File-level filter — only glob-patterns apply, preserving
         // backward-compat for literal-string ignore entries.
         if (matchFileAnyDepth(entry.name) || matchFileAnyDepth(relPath)) continue;
         if (atRoot && (matchFileRootOnly(entry.name) || matchFileRootOnly(relPath))) continue;
+        // SC-1: honor .gitignore for files
+        if (isGitignored(fullPath, false)) continue;
 
         if (extensions.length > 0) {
           // Fix: path.extname returns '.ts' — slice(1) removes the dot to match ['ts', 'js']
