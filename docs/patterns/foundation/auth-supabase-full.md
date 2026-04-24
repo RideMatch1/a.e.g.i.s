@@ -53,7 +53,7 @@ Complete auth-UI + server-actions for Supabase Auth. Covers password-login, sign
 
 ```bash
 # Required shadcn components for auth UI
-npx shadcn@latest add button input label card form alert
+npx shadcn@latest add button input label card alert
 
 # npm dependencies (if not already installed by multi-tenant-supabase)
 npm install react-hook-form @hookform/resolvers zod
