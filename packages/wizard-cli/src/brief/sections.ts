@@ -220,7 +220,7 @@ export function renderInstallation(
     '# 1. Bootstrap Next.js',
     `npx create-next-app@latest ${projectName} \\`,
     '  --typescript --tailwind --eslint --app --src-dir \\',
-    '  --import-alias "@/*" --disable-git',
+    '  --import-alias "@/*"',
     `cd ${projectName}`,
     'git init',
     '',

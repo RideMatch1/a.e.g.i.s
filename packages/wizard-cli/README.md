@@ -68,6 +68,7 @@ aegis-wizard new <project-name> [flags]
   -m, --output-mode <m>   brief | scaffold | both (default: both)
   -v, --verbose-brief     Emit verbose brief with prose + rationale
   -l, --lang <lang>       Brief language: en (default) | de
+  -f, --force             Overwrite existing output files without prompting
 ```
 
 `--output-mode=scaffold` writes only `aegis.config.json` (no brief). `--output-mode=brief` writes only the brief. `--output-mode=both` (the default) writes both.
@@ -75,6 +76,8 @@ aegis-wizard new <project-name> [flags]
 `--verbose-brief` adds prose paragraphs before each code-block explaining why each pattern / rule / command exists, plus "alternatives considered" notes on major decisions. The structure stays identical; the difference is explanation density. Expect ~1.5x the terse line count.
 
 `--lang=de` switches the brief's static strings to German. Dynamic interpolations (file paths, command names, pattern references, URLs) stay language-agnostic. All four combinations — terse+en, terse+de, verbose+en, verbose+de — produce functionally-equivalent scaffolds.
+
+**`--lang=en` coverage caveat:** the cookie-banner, AGB page, and datenschutz-admin components currently ship hardcoded German labels regardless of `--lang=en`. Phase-step body prose and pattern-body code-block headings also remain English in both modes. A dedicated i18n-pass arc (tracked in the per-package Deferred block) rewrites those strings in a future minor.
 
 ## Stack (locked)
 
@@ -107,7 +110,7 @@ The `saas-starter` preset bundles 8 production-hardened patterns shipped in `doc
 - `dsgvo-kit` — cookie-banner, consent-versioning, data-export, account-deletion with 30-day grace
 - `legal-pages-de` — Impressum / Datenschutz / AGB templates for DE-jurisdiction operators
 
-See the [pattern catalog](../../docs/patterns/index.md) for the full listing.
+See the [pattern catalog](https://github.com/RideMatch1/a.e.g.i.s/blob/main/docs/patterns/index.md) for the full listing.
 
 ## Relationship to `@aegis-scan`
 

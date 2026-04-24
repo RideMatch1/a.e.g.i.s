@@ -13,6 +13,8 @@ shown with the reason the target wasn't met.
 
 ## [Unreleased]
 
+- For `@aegis-wizard/cli` 0.17.1 and later, see [`packages/wizard-cli/CHANGELOG.md`](packages/wizard-cli/CHANGELOG.md). This root CHANGELOG covers the scanner family (`@aegis-scan/*`) + top-level arc-summary entries only.
+
 ## [0.17.0] — 2026-04-23 — "wizard-cli-initial"
 
 First release of a new sibling package, `@aegis-wizard/cli`, the AEGIS
