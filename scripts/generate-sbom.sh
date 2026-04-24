@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 # AEGIS supply-chain hardening — CycloneDX SBOM generation.
 #
-# Generates a CycloneDX 1.7 Software Bill-of-Materials for the given
+# Generates a CycloneDX Software Bill-of-Materials for the given
 # package, capturing every transitive runtime dep with version + license
 # + source-file location + import-evidence. Consumers + auditors can
 # verify the package's exact dep-graph against the registry-served bits
 # without re-resolving from package-lock or pnpm-lock files.
+#
+# specVersion: cdxgen 12.1.x outputs CycloneDX 1.6; cdxgen 12.2+ outputs
+# CycloneDX 1.7. cdxgen selects the spec version based on its own
+# version; this script is a thin wrapper and does not override. On
+# Renovate-driven cdxgen bumps to 12.2+ (post-14d-cooldown), the
+# emitted sbom.cdx.json's specVersion auto-updates accordingly.
 #
 # Tool: @cyclonedx/cdxgen v12.x — pnpm-aware, multi-manager. Pinned via
 # root package.json devDependencies + pnpm-lock.yaml (exact version, no
