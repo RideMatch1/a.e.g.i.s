@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2 — SHA-pinned per v0.16.3 D-CA-003; Node-24 runner-support per v0.17.3 SC-2 (Node-20 deprecation 2026-06-02)
       - name: Supply-chain — enforce GHA action SHA-pin policy (closes tj-actions-class)
         run: bash scripts/check-gha-sha-pin.sh
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320  # v4.3.0 — SHA-pinned per v0.16.3 D-CA-003
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320  # v5.0.0 (runs.using=node24) — SHA-pinned per v0.16.3 D-CA-003; plan-doc §5.3 confirms the SHA has been on v5 since initial pinning (this commit-fix corrects the stale v4.3.0 comment without touching the pin)
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0 — SHA-pinned per v0.16.3 D-CA-003; Node-24 per v0.17.3 SC-2
         with:
           node-version: 20
