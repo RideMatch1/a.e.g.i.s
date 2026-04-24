@@ -85,15 +85,111 @@
     "heading": "Build-Reihenfolge",
     "intro": "**Strikt von oben nach unten. Nach jeder Phase die Quality-Gates-Sektion ausführen. Falls ein Gate fehlschlägt, vor der nächsten Phase stoppen und fixen.**",
     "phase_1_foundation": "Phase 1 - Foundation (~2h)",
+    "phase_1_body": [
+      "1. Alle `npm install`- und `shadcn add`-Befehle aus der Installation-Sektion ausführen",
+      "2. Pattern-Dateien von foundation/multi-tenant-supabase nach `src/lib/` kopieren:",
+      "   - `lib/supabase/{admin,client,server}.ts`",
+      "   - `lib/api/{client-ip,tenant-guard}.ts`",
+      "   - `lib/utils/tenant-resolver.ts`",
+      "3. foundation/logger-pii-safe nach `lib/utils/logger.ts` kopieren",
+      "4. foundation/rbac-requirerole nach `lib/api/require-role.ts` kopieren",
+      "5. Migration `00001_base_tenants_profiles.sql` anwenden",
+      "6. **{GATE}:** `npm run build` exit 0; Tests grün"
+    ],
     "phase_2_middleware": "Phase 2 - Middleware + Auth (~2h)",
+    "phase_2_body": [
+      "1. foundation/middleware-hardened nach `proxy.ts` kopieren",
+      "2. foundation/auth-supabase-full in die Auth-Seiten und -Komponenten kopieren (login, signup, forgot-password, update-password, callback)",
+      "3. `src/app/admin/layout.tsx` mit Auth-Check plus Sidebar-Wrapper anlegen",
+      "4. `src/app/admin/dashboard/page.tsx` als Phase-6-ersetzbaren Stub anlegen, damit das Gate schon vor dem vollen Dashboard bestehbar ist:",
+      "   ```tsx",
+      "   // Stub — Phase 6 ersetzt dies mit dem vollen Dashboard.",
+      "   export default function DashboardStub() {",
+      "     return (",
+      "       <div className=\"p-8\">",
+      "         <h1>Dashboard</h1>",
+      "         <p>Phase-6-Stub. Wird in Phase 6 Schritt 2 durch das echte Dashboard ersetzt.</p>",
+      "       </div>",
+      "     );",
+      "   }",
+      "   ```",
+      "5. **{GATE}:** Im Browser neuen Nutzer anlegen, E-Mail bestätigen, einloggen; Redirect auf `/admin/dashboard` funktioniert (landet auf dem Stub aus Schritt 4 — das volle Dashboard kommt in Phase 6)."
+    ],
     "phase_3_i18n": "Phase 3 - i18n (~1h)",
+    "phase_3_body": [
+      "1. foundation/i18n-next-intl-Dateien kopieren (routing, navigation, request configs plus Middleware-Erweiterung plus messages-JSON)",
+      "2. Alle Seiten unter `src/app/[locale]/` verschieben",
+      "3. Alle hartcodierten Strings auf `t('key')` via `useTranslations` oder `getTranslations` umstellen",
+      "4. **{GATE}:** `/de/admin/dashboard` und `/en/admin/dashboard` funktionieren beide; `LanguageSwitcher` schaltet um"
+    ],
     "phase_4_dsgvo": "Phase 4 - DSGVO-Kit (~2h)",
+    "phase_4_body": [
+      "1. compliance/dsgvo-kit-Dateien kopieren: SQL-Migration, CookieBanner, API-Routes, `/admin/mein-bereich/datenschutz`-Seite",
+      "2. `<CookieBanner />` im Root-Layout mounten",
+      "3. Migration `00010_dsgvo.sql` anwenden",
+      "4. pg_cron via Supabase-SQL-Editor aktivieren:",
+      "   ```sql",
+      "   CREATE EXTENSION IF NOT EXISTS pg_cron;",
+      "   -- Prüfen, ob die Projekt-Stufe pg_cron enthält:",
+      "   SELECT extname FROM pg_extension WHERE extname = 'pg_cron';",
+      "   -- Erwartet: 1 Zeile.",
+      "   ```",
+      "5. Deletion-Queue-Processor schedulen + Job-Registrierung verifizieren:",
+      "   ```sql",
+      "   SELECT cron.schedule(",
+      "     'dsgvo-deletion',",
+      "     '0 * * * *',",
+      "     $$ CALL public.process_deletion_queue(); $$",
+      "   );",
+      "   SELECT * FROM cron.job WHERE jobname = 'dsgvo-deletion';",
+      "   -- Erwartet: 1 Zeile mit schedule='0 * * * *' und active=true.",
+      "   ```",
+      "6. **{GATE}:** Cookie-Banner erscheint beim ersten Besuch; `/api/dsgvo/export` lädt JSON herunter; `/api/dsgvo/delete` legt einen Eintrag in `deletion_queue` an; pg_cron-Job 'dsgvo-deletion' ist per Schritt 5 aktiv verifiziert."
+    ],
     "phase_5_legal": "Phase 5 - Rechtliche Seiten (~1h)",
+    "phase_5_body": [
+      "1. compliance/legal-pages-de nach `src/app/{{LOCALE_PREFIX}}impressum`, `src/app/{{LOCALE_PREFIX}}datenschutz`, `src/app/{{LOCALE_PREFIX}}agb` kopieren",
+      "2. Sicherstellen, dass alle `{{placeholders}}` substituiert sind (grep `{{` liefert keine Treffer in `src/app/{{LOCALE_PREFIX}}{impressum,datenschutz,agb}/`)",
+      "3. Impressum-Feld-Vollständigkeitsprüfung ausführen: `bash scripts/check-impressum-completeness.sh src/app/{{LOCALE_PREFIX}}impressum/page.tsx` — verifiziert mindestens 5 der 7 TMG §5 / DDG-Feldklassen (Anschrift, PLZ, E-Mail, Vertretungsberechtigter, Handelsregister/HRB, USt-IdNr, Telefon). Ein leeres Impressum bricht mit Exit 1 und Diagnose der fehlenden Klassen ab. Defense-in-depth mit dem C5-Schema-Refine, der dieselbe Lücke bereits beim Config-Parsen erkennt. Abmahnungs-Risiko €500-2000 bei leerer Veröffentlichung.",
+      "4. **{GATE}:** Seiten rendern ohne Placeholder-Leaks UND Impressum-Vollständigkeits-Skript besteht UND Footer-Links funktionieren von allen Admin-Seiten"
+    ],
     "phase_6_admin": "Phase 6 - Admin-Shell (~2h)",
+    "phase_6_body": [
+      "1. `<Sidebar />` mit 5 Sektionen bauen (Dashboard, Mein-Bereich, Einstellungen, Rechtliches, Audit-Log falls DSGVO aktiv)",
+      "2. Den Phase-2-Dashboard-Stub in `src/app/admin/dashboard/page.tsx` durch das volle Dashboard ersetzen: Willkommensnachricht, optional 3 KPI-Kacheln (Umsatz, Anmeldungen, Abwanderung) und einen Aktivitäts-Feed.",
+      "3. `/admin/einstellungen` mit Tabs bauen (Allgemein, Benachrichtigungen, Sicherheit)",
+      "4. `/admin/mein-bereich` Profilseite mit Editierformular bauen",
+      "5. `/admin/audit-log` Admin-only-Listenansicht bauen (falls DSGVO aktiv)",
+      "6. **{GATE}:** Alle Admin-Seiten erreichbar und responsive; Rollen-basierte Sichtbarkeit funktioniert"
+    ],
     "phase_7_testing": "Phase 7 - Testing-Gerüst (~1h)",
+    "phase_7_body": [
+      "1. Vitest und Testing-Library konfigurieren: `vitest.config.ts` plus `test-utils.ts`",
+      "2. Playwright konfigurieren: `playwright.config.ts` plus grundlegender Golden-Path-Test",
+      "3. Smoke-Tests pro Pattern schreiben (aus der Test-example-Sektion jedes Patterns)",
+      "4. **{GATE}:** `npm run test` und `npm run test:e2e` beide grün"
+    ],
     "phase_8_cicd": "Phase 8 - CI/CD (~1h)",
+    "phase_8_body": [
+      "1. `.github/workflows/ci.yml` mit checkout, setup-node, npm ci, npm run build, npm run test, npx -y @aegis-scan/cli scan anlegen",
+      "2. **{GATE}:** Commit löst CI aus; build + tests + aegis-scan alle grün"
+    ],
     "phase_9_deploy": "Phase 9 - Deployment-Konfiguration (~1h)",
+    "phase_9_body": [
+      "1. `Dockerfile` mit node:22-alpine Multi-Stage-Build und `output: 'standalone'`-Target anlegen",
+      "2. `next.config.ts` auf `output: 'standalone'` umstellen",
+      "3. `.dockerignore` und `docker-compose.yml` anlegen",
+      "4. `.env.production`-Checkliste dokumentieren",
+      "**{GATE}:** `docker build` läuft erfolgreich; `docker run -p 3000:3000 <project>` rendert auf localhost:3000"
+    ],
     "phase_10_final": "Phase 10 - Finale Verifikation (~30min)",
+    "phase_10_body": [
+      "1. Die VOLLE Quality-Gate-Suite unten ausführen",
+      "2. Jeden Befund beheben",
+      "3. `.env.example` und `README.md` mit projektspezifischen Infos schreiben",
+      "4. `POST-BUILD-REPORT.md` schreiben (nach dem Post-Build-Report-Template)",
+      "5. **{GATE}:** Alle Quality-Gates grün; Handover vom Nutzer freigegeben"
+    ],
     "gate": "Gate"
   },
   "quality_gates": {

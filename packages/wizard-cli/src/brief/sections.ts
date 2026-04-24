@@ -18,7 +18,7 @@
  */
 import type { AegisConfig } from '../wizard/schema.js';
 import type { LoadedPattern } from '../patterns/loader.js';
-import { getMessage, type BriefLang } from './i18n/index.js';
+import { getMessage, getMessageArray, type BriefLang } from './i18n/index.js';
 import { sanitizeForBrief } from './sanitize.js';
 
 // ============================================================================
@@ -468,49 +468,37 @@ export function renderApiRoutes(patterns: readonly LoadedPattern[], lang: BriefL
 
 export function renderBuildOrder(patterns: readonly LoadedPattern[], lang: BriefLang = 'en'): string {
   const k = (key: string): string => getMessage(lang, `build_order.${key}`);
+  const gateLabel = k('gate');
+
+  // v0.17.3 B5 (M2 closure) — phase-body prose now lives in i18n catalogs
+  // under build_order.phase_N_body as string-arrays. `{GATE}` literal in
+  // the catalog body gets replaced with the resolved gate-label at render
+  // time (not a UPPER_SNAKE placeholder, so the substitute() engine does
+  // not touch it). Dynamic interpolations (file paths, command names,
+  // pattern refs, URLs) stay language-agnostic — they appear verbatim in
+  // both en.json and de.json bodies by convention.
+  const renderBody = (bodyKey: string): string[] =>
+    getMessageArray(lang, `build_order.${bodyKey}`).map((line) =>
+      line.replace(/\{GATE\}/g, gateLabel),
+    );
+
   const lines: string[] = [
     `# ${k('heading')}`,
     '',
     k('intro'),
     '',
     `## ${k('phase_1_foundation')}`,
-    '1. Run all `npm install` plus `shadcn add` commands from the Installation section',
-    '2. Copy foundation/multi-tenant-supabase pattern files to `src/lib/`:',
-    '   - `lib/supabase/{admin,client,server}.ts`',
-    '   - `lib/api/{client-ip,tenant-guard}.ts`',
-    '   - `lib/utils/tenant-resolver.ts`',
-    '3. Copy foundation/logger-pii-safe to `lib/utils/logger.ts`',
-    '4. Copy foundation/rbac-requirerole to `lib/api/require-role.ts`',
-    '5. Apply migration `00001_base_tenants_profiles.sql`',
-    '6. **Gate:** `npm run build` exit 0; tests pass',
+    ...renderBody('phase_1_body'),
     '',
     `## ${k('phase_2_middleware')}`,
-    '1. Copy foundation/middleware-hardened to `proxy.ts`',
-    '2. Copy foundation/auth-supabase-full to auth pages plus components (login, signup, forgot-password, update-password, callback)',
-    '3. Create `src/app/admin/layout.tsx` with auth-check plus Sidebar wrapper',
-    '4. Create `src/app/admin/dashboard/page.tsx` as a Phase-6-replaceable stub so the gate is satisfiable before the full dashboard exists:',
-    '   ```tsx',
-    '   // Stub — Phase 6 replaces this with the full dashboard.',
-    '   export default function DashboardStub() {',
-    '     return (',
-    '       <div className="p-8">',
-    '         <h1>Dashboard</h1>',
-    '         <p>Phase-6 stub. Replaced by the real dashboard in Phase 6 step 2.</p>',
-    '       </div>',
-    '     );',
-    '   }',
-    '   ```',
-    `5. **${k('gate')}:** Sign up new user in browser, confirm email, log in, redirect to \`/admin/dashboard\` works (lands on the stub from step 4 — full dashboard arrives in Phase 6).`,
+    ...renderBody('phase_2_body'),
     '',
   ];
 
   if (patterns.some((p) => p.frontmatter.name === 'i18n-next-intl')) {
     lines.push(
       `## ${k('phase_3_i18n')}`,
-      '1. Copy foundation/i18n-next-intl files (routing, navigation, request configs plus middleware extension plus messages JSON)',
-      '2. Move all pages under `src/app/[locale]/`',
-      '3. Update all hardcoded strings to use `t(\'key\')` via `useTranslations` or `getTranslations`',
-      '4. **Gate:** `/de/admin/dashboard` plus `/en/admin/dashboard` both work; `LanguageSwitcher` toggles',
+      ...renderBody('phase_3_body'),
       '',
     );
   }
@@ -518,79 +506,39 @@ export function renderBuildOrder(patterns: readonly LoadedPattern[], lang: Brief
   if (patterns.some((p) => p.frontmatter.name === 'dsgvo-kit')) {
     lines.push(
       `## ${k('phase_4_dsgvo')}`,
-      '1. Copy compliance/dsgvo-kit files: SQL migration, CookieBanner, API routes, `/admin/mein-bereich/datenschutz` page',
-      '2. Mount `<CookieBanner />` in root layout',
-      '3. Apply migration `00010_dsgvo.sql`',
-      '4. Enable pg_cron via the Supabase SQL editor:',
-      '   ```sql',
-      '   CREATE EXTENSION IF NOT EXISTS pg_cron;',
-      '   -- Verify the project tier includes pg_cron:',
-      "   SELECT extname FROM pg_extension WHERE extname = 'pg_cron';",
-      '   -- Expect: 1 row.',
-      '   ```',
-      '5. Schedule the deletion-queue processor + verify the job is registered:',
-      '   ```sql',
-      '   SELECT cron.schedule(',
-      "     'dsgvo-deletion',",
-      "     '0 * * * *',",
-      '     $$ CALL public.process_deletion_queue(); $$',
-      '   );',
-      "   SELECT * FROM cron.job WHERE jobname = 'dsgvo-deletion';",
-      "   -- Expect: 1 row with schedule='0 * * * *' and active=true.",
-      '   ```',
-      `6. **${k('gate')}:** Cookie-banner shows on first-visit; \`/api/dsgvo/export\` downloads JSON; \`/api/dsgvo/delete\` schedules entry in deletion_queue; pg_cron job 'dsgvo-deletion' verified active per step 5.`,
+      ...renderBody('phase_4_body'),
       '',
     );
   }
 
   if (patterns.some((p) => p.frontmatter.name === 'legal-pages-de')) {
-    // v0.17.3 B1 — LOCALE_PREFIX threaded through Phase 5 prose so the
-    // path-shape of Copy-step, grep-step, and gate-invocation stays in
-    // sync with the pattern-body file-section heading under BOTH i18n
-    // strategies (url-prefix → "[locale]/", none → ""). Closes the
-    // v0.17.2 audit H3 partial-regression.
+    // v0.17.3 B1 — LOCALE_PREFIX placeholder is in the en.json / de.json
+    // phase_5_body entries; the substitute() engine resolves it at render-
+    // time per the wizard's i18n_strategy (url-prefix → "[locale]/",
+    // none → ""). Phase-body prose stays in sync with pattern-body
+    // file-section headings under BOTH strategies.
     lines.push(
       `## ${k('phase_5_legal')}`,
-      '1. Copy compliance/legal-pages-de to `src/app/{{LOCALE_PREFIX}}impressum`, `src/app/{{LOCALE_PREFIX}}datenschutz`, `src/app/{{LOCALE_PREFIX}}agb`',
-      '2. Verify all `{{placeholders}}` are substituted (grep `{{` returns no matches in `src/app/{{LOCALE_PREFIX}}{impressum,datenschutz,agb}/`)',
-      '3. Run the Impressum field-completeness check: `bash scripts/check-impressum-completeness.sh src/app/{{LOCALE_PREFIX}}impressum/page.tsx` — verifies >=5 of the 7 TMG §5 / DDG field-classes (Anschrift, PLZ, E-Mail, Vertretungsberechtigter, Handelsregister/HRB, USt-IdNr, Telefon). Empty-field Impressum exits 1 with a diagnostic naming the missing classes. Defense-in-depth with the C5 schema-refine that catches the same gap at config-parse-time. Abmahnung-risk €500-2000 if shipped empty.',
-      `4. **${k('gate')}:** Pages render without placeholder-leakage AND Impressum-completeness script PASSes AND footer-links work from all admin pages`,
+      ...renderBody('phase_5_body'),
       '',
     );
   }
 
   lines.push(
     `## ${k('phase_6_admin')}`,
-    '1. Build `<Sidebar />` with 5 sections (Dashboard, Mein-Bereich, Einstellungen, Rechtliches, Audit-Log if DSGVO enabled)',
-    '2. Replace the Phase-2 dashboard stub at `src/app/admin/dashboard/page.tsx` with the full dashboard: welcome-message, optional 3 KPI-tiles (revenue, signups, churn), and a recent-activity feed.',
-    '3. Build `/admin/einstellungen` with tabs (Allgemein, Benachrichtigungen, Sicherheit)',
-    '4. Build `/admin/mein-bereich` profile-page with edit-form',
-    '5. Build `/admin/audit-log` admin-only list-view (if DSGVO enabled)',
-    `6. **${k('gate')}:** All admin-pages accessible plus responsive; role-based visibility works`,
+    ...renderBody('phase_6_body'),
     '',
     `## ${k('phase_7_testing')}`,
-    '1. Configure Vitest plus Testing-Library: `vitest.config.ts` plus `test-utils.ts`',
-    '2. Configure Playwright: `playwright.config.ts` plus basic golden-path test',
-    '3. Author smoke-tests per pattern (from each pattern\'s Test example section)',
-    `4. **${k('gate')}:** \`npm run test\` plus \`npm run test:e2e\` both pass`,
+    ...renderBody('phase_7_body'),
     '',
     `## ${k('phase_8_cicd')}`,
-    '1. Create `.github/workflows/ci.yml` with checkout, setup-node, npm ci, npm run build, npm run test, npx -y @aegis-scan/cli scan',
-    `2. **${k('gate')}:** Commit triggers CI; build plus tests plus aegis-scan all green`,
+    ...renderBody('phase_8_body'),
     '',
     `## ${k('phase_9_deploy')}`,
-    '1. Create `Dockerfile` with node:22-alpine multi-stage build and `output: \'standalone\'` target',
-    '2. Update `next.config.ts` with `output: \'standalone\'`',
-    '3. Create `.dockerignore` plus `docker-compose.yml`',
-    '4. Document `.env.production` checklist',
-    `**${k('gate')}:** \`docker build\` succeeds; \`docker run -p 3000:3000 <project>\` renders at localhost:3000`,
+    ...renderBody('phase_9_body'),
     '',
     `## ${k('phase_10_final')}`,
-    '1. Run the FULL quality-gate-suite below',
-    '2. Fix any finding',
-    '3. Write `.env.example` plus `README.md` with project-specific info',
-    '4. Write `POST-BUILD-REPORT.md` (per the Post-Build Report template section)',
-    `5. **${k('gate')}:** All quality-gates green; user-approved handover`,
+    ...renderBody('phase_10_body'),
   );
 
   return lines.join('\n');

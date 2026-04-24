@@ -50,6 +50,27 @@ function lookup(catalog: MessageCatalog, dotPath: string): string | null {
   return typeof cursor === 'string' ? cursor : null;
 }
 
+/**
+ * v0.17.3 B5 (M2 closure) — array-valued message lookup for
+ * phase-body-prose (arrays of strings, one line per array entry). Keeps
+ * the JSON catalog shape clean so translators work with line-arrays
+ * rather than embedded-\n escape hell.
+ */
+function lookupArray(catalog: MessageCatalog, dotPath: string): string[] | null {
+  const parts = dotPath.split('.');
+  let cursor: unknown = catalog;
+  for (const p of parts) {
+    if (cursor && typeof cursor === 'object' && p in (cursor as Record<string, unknown>)) {
+      cursor = (cursor as Record<string, unknown>)[p];
+    } else {
+      return null;
+    }
+  }
+  if (!Array.isArray(cursor)) return null;
+  if (!cursor.every((x) => typeof x === 'string')) return null;
+  return cursor as string[];
+}
+
 export function getMessage(lang: BriefLang, key: string): string {
   const primary = lookup(CATALOGS[lang], key);
   if (primary !== null) return primary;
@@ -73,6 +94,37 @@ export function getMessage(lang: BriefLang, key: string): string {
   // Key missing in both languages — that's a catalog bug.
   throw new Error(
     `i18n: message key "${key}" missing in both "${lang}" and "en" catalogs. ` +
+      'This is a brief-generator bug — check src/brief/i18n/en.json.',
+  );
+}
+
+/**
+ * v0.17.3 B5 — get a string-array-valued i18n message (e.g. phase-body-prose
+ * stored as a line-array for translator ergonomics). Same fallback semantics
+ * as getMessage: missing in requested lang → fall back to English with one-
+ * time stderr warn; missing in both → throw.
+ */
+export function getMessageArray(lang: BriefLang, key: string): string[] {
+  const primary = lookupArray(CATALOGS[lang], key);
+  if (primary !== null) return primary;
+
+  if (lang !== 'en') {
+    const fallback = lookupArray(CATALOGS.en, key);
+    if (fallback !== null) {
+      const warnKey = `${lang}:${key}`;
+      if (!warnedMissing.has(warnKey)) {
+        warnedMissing.add(warnKey);
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[i18n] Missing translation ${lang}:${key} — falling back to English.`,
+        );
+      }
+      return fallback;
+    }
+  }
+
+  throw new Error(
+    `i18n: array-message key "${key}" missing in both "${lang}" and "en" catalogs. ` +
       'This is a brief-generator bug — check src/brief/i18n/en.json.',
   );
 }
