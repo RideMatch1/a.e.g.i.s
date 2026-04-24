@@ -8,6 +8,25 @@ by dogfood-audit + recon-report findings, not by a fixed schedule.
 
 ---
 
+## [0.17.4] — 2026-04-25 — "H3 final-closure + L2 template-adoption"
+
+### Fixed (external audit v0.17.3 closures)
+
+- **M (H3 partial-regression #3)** — exhaustive-grep sweep of `docs/patterns/compliance/legal-pages-de.md` per amendment discipline surfaced 4 hits (dispatch §D3 hypothesized 3). Classification:
+    - Line 410 (Common-pitfalls #6 ship-check) → fixed with `{{LOCALE_PREFIX}}`
+    - Line 427 (Quality-gate bash grep) → fixed with `{{LOCALE_PREFIX}}`
+    - Line 459 (escape-hatch-doc comment) → intentionally kept literal (placeholderizing would defeat pedagogical comment purpose)
+    - Line 462 (IMPRESSUM_PATH default) → already-correct per v0.17.3 B1 conscious KEEP decision (uses `[locale]/` form); codified as regression-guard this cycle (amendment surfaced the implicit decision explicitly)
+  Integration-test extended +6 assertion-instances (2 strategies × 2 to-fix surfaces + 2 literal-preservation). `wizard-cli` tests 298 → 304. (audit-finding v0.17.3 §3.1)
+- **L (tag-message canonical template)** — `docs/contributing/tag-message-template.md` establishes canonical shape with 3 MANDATORY discipline rules: (1) literal `wc -l` count match, (2) sub-count disclosure rule preventing narrative arithmetic-ambiguity, (3) range-breakdown qualifier for multi-namespace release-ranges. v0.17.4 + v0.16.5 (this cycle) are the first applications; the scanner-family v0.16.5 tag-message used the range-breakdown qualifier (114 total = 2 scanner-primary + 112 published-elsewhere) as precedent. (audit-finding v0.17.3 §4.2)
+
+### Meta
+
+- H3 institutional-discipline note: closed after 3 patch-cycles (v0.17.2 B3, v0.17.3 B1, v0.17.4 WB-1). Advisor-memory `feedback_consistency_fix_test_scope §Amendment 2026-04-24` now mandates exhaustive-grep surface-discovery before fix-spec enumeration; prevents recurrence of this class. Discovery-doc durable at operator-local planning-tree (gitignored) as audit-trail.
+- L4 (regexTarget gap) from v0.17.3 audit §4.3: closed by inclusion — hotfix `251cc2e` adding explicit `regexTarget = "match"` to `.gitleaks.toml` entries 5+6 is on main pre-dating this release. v0.17.4 tarball naturally ships with the hardened config. No dedicated commit.
+- Companion release this cycle: `@aegis-scan/*@0.16.5` (scanner-family matrix) shipped via `v0.16.5` tag hours earlier, carrying SC-1 walkFiles gitignore-awareness + L1(a) gitleaks-wrapper scope-documentation to scanner-consumers. See `CHANGELOG.md` root [0.16.5] entry.
+- Arc commits (`git log wizard-v0.17.3..wizard-v0.17.4 --oneline | wc -l` = 3 total): WB-1 H3 final-closure (170fea7) + WB-2 L2 template (9c0caa7) + WB-3 version-bump (this commit).
+
 ## [0.17.3] — 2026-04-24 — "consistency-polish + M2-closure + scanner-gitignore-awareness"
 
 ### Fixed (external audit v0.17.2 closures)
