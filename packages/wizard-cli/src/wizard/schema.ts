@@ -412,7 +412,7 @@ export const AegisConfigSchema = z.object({
     // F3 forward: if integrations.ai.features includes 'chat', then features.chat
     // must be both enabled AND ai_powered. Otherwise the user has declared an
     // AI-chat integration whose chat-feature is silently off — incoherent config
-    // surfaced post-recon §10 + dispatch-brief commit 1.
+    // that previously shipped as a silent gap until v0.17.1.
     if (!cfg.integrations.ai.features.includes('chat')) return true;
     return cfg.features.chat.enabled && cfg.features.chat.ai_powered;
   },
@@ -439,12 +439,12 @@ export const AegisConfigSchema = z.object({
   },
 ).refine(
   (cfg) => {
-    // C5 (commit 2): TMG §5 Impressumspflicht. If dsgvo_kit is on AND
+    // C5 (v0.17.1): TMG §5 Impressumspflicht. If dsgvo_kit is on AND
     // 'impressum' is in legal_pages, compliance.company_address must exist
     // with street, zip_city, email all non-empty. Wizard v0.17.0 emitted
     // Impressum pages with empty fields that passed the placeholder-grep
-    // gate but represented real Abmahnung risk (recon §10 C5; dogfood
-    // §3.2#5 + §3.7#6). Defense-in-depth with commit 8's gate-rewrite.
+    // gate but represented real Abmahnung risk. Defense-in-depth with the
+    // runtime Impressum-completeness gate shipped alongside this schema.
     if (!cfg.compliance.dsgvo_kit) return true;
     if (!cfg.compliance.legal_pages.includes('impressum')) return true;
     const ca = cfg.compliance.company_address;

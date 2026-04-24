@@ -1213,12 +1213,11 @@ export function renderPatternAppendixVerbose(
   return blocks.join('\n\n');
 }
 
-// F2 (commit 4): Enabled-features section. Surfaces wizard-config features
+// F2 (v0.17.1): Enabled-features section. Surfaces wizard-config features
 // the v0.17.0 saas-starter pattern-library does not cover with a dedicated
 // pattern, so the agent sees them as visible gaps instead of silent drops.
-// Conditional-emit per D7: returns null when no enabled-uncovered features
-// exist (clean-config briefs stay clean). Closes recon-report F2 +
-// dogfood §3.2#4 + §3.5.
+// Conditional-emit: returns null when no enabled-uncovered features exist
+// (clean-config briefs stay clean).
 //
 // hasPatternFor() uses substring-match. Naive but works for v0.17.0 saas-
 // starter where NO foundation/compliance pattern-name contains a feature-
@@ -1386,10 +1385,10 @@ export function renderEnabledFeaturesSection(
   return lines.join('\n');
 }
 
-// F1 (commit 3): Skills companion-package section. Rendered unconditionally
+// F1 (v0.17.1): Skills companion-package section. Rendered unconditionally
 // after the pattern-appendix so the agent encounters it as enrichment-after-
-// completion. Closes recon-report F1 + dogfood §3.5 (consumer-agent had zero
-// visibility into the @aegis-scan/skills sibling).
+// completion — closes the pre-v0.17.1 brief-gap where consumer-agents had
+// zero visibility into the @aegis-scan/skills sibling.
 export function renderSkillsSection(lang: BriefLang = 'en'): string {
   const k = (key: string): string => getMessage(lang, `skills.${key}`);
   return [

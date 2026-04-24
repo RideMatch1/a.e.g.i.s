@@ -21,6 +21,8 @@ jobs:
       - name: Supply-chain — dep cooldown lint (closes rushed-update window)
         run: bash scripts/check-dep-cooldown.sh
       - run: pnpm build
+      - name: Supply-chain — dist/ planning-artifact leak gate (audit L1)
+        run: bash scripts/check-dist-codename-leak.sh
       - name: Lint — real type-drift gate across 5 shipped packages (v0.16.3 D-CA-002)
         run: pnpm lint
       - run: pnpm test
