@@ -15,6 +15,55 @@ shown with the reason the target wasn't met.
 
 - For `@aegis-wizard/cli` 0.17.1 and later, see [`packages/wizard-cli/CHANGELOG.md`](packages/wizard-cli/CHANGELOG.md). This root CHANGELOG covers the scanner family (`@aegis-scan/*`) + top-level arc-summary entries only.
 
+## [0.16.5] — 2026-04-25 — "scanner-family SC-1 publish + L1(a) gitleaks-wrapper scope-documentation"
+
+### Changed (structural)
+
+- **Scanner `walkFiles` honors `.gitignore`** — the v0.17.3 SC-1
+  structural fix (committed `4eae994`, shipped in source but not in any
+  scanner-family tarball until now) reaches consumers via this release.
+  `packages/core/src/utils.ts::walkFiles()` loads project-root
+  `.gitignore` via the `ignore` npm package and composes with child
+  `.gitignore` files. Negation rules + anchored patterns + directory-
+  only patterns all handled. Backward-compat: `opts.respectGitignore =
+  false` for scanner-internal tests needing full walks. Consumers
+  installing `@aegis-scan/cli@0.16.5` get gitignore-aware scanner
+  behavior for crypto-auditor + entropy-scanner + all other walkFiles-
+  using scanners.
+
+### Documented (external audit v0.17.3 closures)
+
+- **L1(a) — gitleaks-wrapper scope-limitation documented + stability-
+  tested** — v0.17.3 SC-1 `walkFiles` gitignore-awareness covers
+  AEGIS-native scanners but the gitleaks external-wrapper at
+  `packages/scanners/src/secrets/gitleaks.ts` invokes the gitleaks
+  binary directly and bypasses walkFiles. Per v0.17.3 audit §4.1
+  "document explicitly that gitleaks coverage is independent of
+  walkFiles opt-out semantics", this release codifies the scope in
+  documentation rather than a code-fix (deferred to v0.18 scan-root-
+  composition arc):
+    - **git-mode** (project has `.git/`): wrapper omits `--no-git`;
+      gitleaks scans git-history; `.gitignore` is inherently respected
+      because gitignored files are not git-tracked.
+    - **`--no-git` mode** (project lacks `.git/`): wrapper passes
+      `--no-git`; gitleaks walks the filesystem directly; `.gitignore`
+      is NOT respected by the wrapper. Operators can restrict scope
+      via `.gitleaks.toml` `paths-allowlist` if needed.
+  Two regression-guard tests codify both modes as stable invariants
+  (scanner-test count 1322 → 1324). (audit-finding v0.17.3 §4.1)
+
+### Meta
+
+- 5 scanner-family packages (`@aegis-scan/core`, `scanners`,
+  `reporters`, `mcp-server`, `cli`) ship together in lockstep per
+  publish.yml matrix.
+- Self-scan on published tarball via `node @aegis-scan/cli scan <path>`:
+  now respects `.gitignore` natively for walkFiles-using scanners (SC-1
+  publish-delivery). gitleaks-wrapper scope per §L1(a) above.
+- Closes audit v0.17.3 §4.1 L1(a) (documented-scope) + L1(b) (publish-
+  delivery). §4.1 code-fix for gitleaks-wrapper deferred to v0.18
+  scan-root-composition arc.
+
 ## [0.17.0] — 2026-04-23 — "wizard-cli-initial"
 
 First release of a new sibling package, `@aegis-wizard/cli`, the AEGIS
