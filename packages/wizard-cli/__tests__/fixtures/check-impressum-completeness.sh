@@ -9,6 +9,11 @@
 
 set -euo pipefail
 
+# Default path assumes an i18n-enabled scaffold (wizard's i18n_strategy='url-prefix'
+# default). For non-i18n scaffolds (i18n_strategy='none'), pass the explicit path
+# arg: bash check-impressum-completeness.sh src/app/impressum/page.tsx  (the
+# brief's Phase 5 prose already emits the correct path via the resolved
+# LOCALE_PREFIX placeholder — just copy-paste).
 IMPRESSUM_PATH="${1:-src/app/[locale]/impressum/page.tsx}"
 
 if [[ ! -f "$IMPRESSUM_PATH" ]]; then

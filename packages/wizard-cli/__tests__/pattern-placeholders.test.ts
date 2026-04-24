@@ -13,6 +13,8 @@ import { describe, it, expect } from 'vitest';
 import { AegisConfigSchema, type AegisConfig } from '../src/wizard/schema.js';
 import { buildPatternPlaceholders } from '../src/brief/pattern-placeholders.js';
 import { buildReservedPlaceholders, substitute } from '../src/template/substitute.js';
+import { renderBuildOrder } from '../src/brief/sections.js';
+import type { LoadedPattern } from '../src/patterns/loader.js';
 
 const LEGAL_PAGES_PATH = resolve(
   __dirname,
@@ -261,5 +263,129 @@ describe('LOCALE_PREFIX end-to-end substitution (H3 integration, per advisor ISS
     const map = buildPatternPlaceholders({ config, reserved });
     const rendered = substitute(legalPagesBody, map);
     expect(rendered).not.toMatch(/\{\{LOCALE_PREFIX\}\}/);
+  });
+});
+
+/**
+ * v0.17.3 B1 — consistency-fix integration-tests spanning all 3 claim surfaces
+ * (per advisor memory `feedback_consistency_fix_test_scope.md`):
+ *
+ *   1. pattern-body file-section heading (v0.17.2 B3 already covered)
+ *   2. Phase 5 prose renderer in sections.ts (new in v0.17.3 B1)
+ *   3. embedded gate-script default path + explicit-arg escape hatch
+ *
+ * The v0.17.2 H3 fix covered only surface 1; this cycle's B1 extends the
+ * test-matrix to 2 + 3. Both i18n strategies (url-prefix + none) exercised
+ * in each surface — preventing the partial-regression recurrence that
+ * motivated this commit.
+ */
+describe('LOCALE_PREFIX consistency across all 3 surfaces × 2 strategies (v0.17.3 B1, audit v0.17.2 M)', () => {
+  it.each([
+    { strategy: 'url-prefix' as const, expectedPrefix: '[locale]/' },
+    { strategy: 'none' as const, expectedPrefix: '' },
+  ])(
+    'surface 2 (Phase 5 prose): all 3 steps use the $strategy-resolved path',
+    ({ strategy, expectedPrefix }) => {
+      const config = buildConfig({
+        localization: { ...buildConfig().localization, i18n_strategy: strategy },
+      });
+      const reserved = buildReserved(config);
+      const map = buildPatternPlaceholders({ config, reserved });
+
+      // Render Phase 5 prose via renderBuildOrder. Only fires when legal-pages-de
+      // is in the selected-patterns set — we build a minimal stub below.
+      const stubPatterns: LoadedPattern[] = [
+        {
+          frontmatter: {
+            name: 'legal-pages-de',
+            category: 'compliance',
+            title: 'Legal Pages (DE)',
+            description: 'Test stub for legal-pages-de pattern — B1 Phase 5 prose integration.',
+            version: 1,
+            dependencies: { npm: [], shadcn: [], supabase: [] },
+            placeholders: [],
+            brief_section: 'Compliance',
+            tags: [],
+            related: [],
+            conflicts_with: [],
+            aegis_scan_baseline: 960,
+            deprecated: false,
+          },
+          body: '',
+          sourcePath: '/tmp/legal.md',
+          relativePath: 'compliance/legal-pages-de.md',
+        },
+      ];
+      const rawProse = renderBuildOrder(stubPatterns, 'en');
+      const resolvedProse = substitute(rawProse, map);
+
+      // Step 1: Copy-step paths
+      expect(resolvedProse).toContain(`src/app/${expectedPrefix}impressum`);
+      expect(resolvedProse).toContain(`src/app/${expectedPrefix}datenschutz`);
+      expect(resolvedProse).toContain(`src/app/${expectedPrefix}agb`);
+
+      // Step 2: grep-step path
+      expect(resolvedProse).toContain(
+        `src/app/${expectedPrefix}{impressum,datenschutz,agb}/`,
+      );
+
+      // Step 3: gate-invocation path
+      expect(resolvedProse).toContain(
+        `bash scripts/check-impressum-completeness.sh src/app/${expectedPrefix}impressum/page.tsx`,
+      );
+
+      // No literal placeholder survives substitution
+      expect(resolvedProse).not.toMatch(/\{\{LOCALE_PREFIX\}\}/);
+    },
+  );
+
+  it('surface 3 (gate-script default): hardcoded to [locale]/ path with explicit-arg escape-hatch comment', () => {
+    // The gate-script's default PATH stays [locale]/ (wizard default i18n=url-prefix)
+    // because the script is copied verbatim into the scaffold. Non-i18n scaffolds
+    // use the explicit path arg emitted by Phase 5 prose step 3 — the test above
+    // asserts the prose emits the correct explicit arg under i18n=none. Together
+    // this closes all 3 surfaces of the H3 "consistent across pattern + prose +
+    // gate" CHANGELOG sub-claim.
+    const fixturePath = resolve(
+      __dirname,
+      'fixtures',
+      'check-impressum-completeness.sh',
+    );
+    const fixture = readFileSync(fixturePath, 'utf-8');
+    expect(fixture).toContain(
+      'IMPRESSUM_PATH="${1:-src/app/[locale]/impressum/page.tsx}"',
+    );
+    // Explicit-arg escape-hatch documented in comment above the default
+    // (the comment spans multiple lines; use [\s\S] to cross newlines)
+    expect(fixture).toMatch(/non-i18n scaffolds[\s\S]*LOCALE_PREFIX/);
+    expect(fixture).toMatch(/explicit[\s\S]*path[\s\S]*arg/);
+  });
+
+  it('byte-equality preserved between fixture and embedded script after B1 comment addition', () => {
+    // Re-asserts the M4 byte-equality invariant survives the B1 edit
+    // (we added the same comment to both fixture AND embedded script).
+    const fixturePath = resolve(
+      __dirname,
+      'fixtures',
+      'check-impressum-completeness.sh',
+    );
+    const patternPath = resolve(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'docs',
+      'patterns',
+      'compliance',
+      'legal-pages-de.md',
+    );
+    const fixture = readFileSync(fixturePath, 'utf-8').trim();
+    const patternBody = readFileSync(patternPath, 'utf-8');
+    const m = patternBody.match(
+      /### Impressum field-completeness gate[\s\S]*?```bash\n([\s\S]*?)```/,
+    );
+    expect(m).not.toBeNull();
+    const embedded = m![1].trim();
+    expect(embedded).toBe(fixture);
   });
 });
