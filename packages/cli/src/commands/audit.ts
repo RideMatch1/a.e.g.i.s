@@ -34,7 +34,7 @@ export async function runAudit(path: string, options: AuditOptions): Promise<num
     // Diff mode: resolve changed files
     if (options.diff) {
       try {
-        const changedFiles = getChangedFiles(resolvedPath, options.diff);
+        const changedFiles = await getChangedFiles(resolvedPath, options.diff);
         config.diffFiles = changedFiles;
         spinner.text = `Diff mode: ${changedFiles.length} files changed vs ${options.diff}`;
       } catch (err) {

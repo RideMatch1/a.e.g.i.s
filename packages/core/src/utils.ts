@@ -335,16 +335,49 @@ export function readFileSafe(filePath: string): string | null {
 }
 
 /**
+ * Validate a git ref-name to reject shell-metacharacters + git-invalid syntax.
+ * Defense-in-depth on top of execFile (which doesn't invoke a shell). Belt-
+ * and-suspenders: even if execFile semantics regress, the validator catches
+ * the attack before reaching git.
+ *
+ * Closes AUDIT-AEGIS-SCAN-V0165 §1 C1 (CWE-78).
+ */
+function isValidGitRef(ref: string): boolean {
+  // git check-ref-format permits some shell-metas (&, |, >, <, `) so we
+  // pre-filter MORE strictly: ref must match a conservative subset of git's
+  // grammar that excludes ALL shell-actively-parsed characters.
+  if (typeof ref !== 'string' || ref.length === 0 || ref.length > 256) return false;
+  // Reject: whitespace, all shell-metachars, .., leading -.
+  if (/[\s&|><`;$(){}[\]!*?\\'"#]/.test(ref)) return false;
+  if (ref.includes('..')) return false;
+  if (ref.startsWith('-')) return false;
+  return true;
+}
+
+/**
  * Get files changed between a base ref and HEAD using `git diff --name-only`.
  * Returns absolute paths. Throws if git is not available or the ref is invalid.
+ *
+ * Uses execFile (NOT execSync with shell-string) to prevent CWE-78 OS command
+ * injection through baseRef (CLI arg). Closes AUDIT-AEGIS-SCAN-V0165 §1 C1.
  */
-export function getChangedFiles(projectPath: string, baseRef: string): string[] {
+export async function getChangedFiles(
+  projectPath: string,
+  baseRef: string,
+): Promise<string[]> {
+  if (!isValidGitRef(baseRef)) {
+    throw new Error(`Invalid git ref (rejected by isValidGitRef): ${JSON.stringify(baseRef)}`);
+  }
   const resolvedPath = path.resolve(projectPath);
-  const result = childProcess.execSync(
-    `git diff --name-only --diff-filter=ACMRT ${baseRef}...HEAD`,
-    { cwd: resolvedPath, encoding: 'utf-8', timeout: 10_000 },
+  const { stdout, exitCode, stderr } = await exec(
+    'git',
+    ['diff', '--name-only', '--diff-filter=ACMRT', `${baseRef}...HEAD`],
+    { cwd: resolvedPath, timeout: 10_000 },
   );
-  return result
+  if (exitCode !== 0) {
+    throw new Error(`git diff failed (exit ${exitCode}): ${stderr.trim()}`);
+  }
+  return stdout
     .trim()
     .split('\n')
     .filter((line) => line.length > 0)
