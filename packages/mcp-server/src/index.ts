@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -10,9 +13,19 @@ import {
   handleFixSuggestion,
 } from './handlers.js';
 
+// Read version from package.json so MCP serverInfo.version stays in
+// lockstep with the published @aegis-scan/mcp-server version. Closes
+// AUDIT-AEGIS-SCAN-V0165 §3 M3 (was hardcoded "0.2.0" while package
+// shipped at 0.16.x — broke 5-package lockstep-honesty signal).
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkgJson = JSON.parse(
+  readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'),
+) as { version: string };
+
 const server = new McpServer({
   name: 'aegis-mcp',
-  version: '0.2.0',
+  version: pkgJson.version,
 });
 
 // ---------------------------------------------------------------------------
