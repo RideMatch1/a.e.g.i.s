@@ -15,19 +15,56 @@ shown with the reason the target wasn't met.
 
 - For `@aegis-wizard/cli` 0.17.1 and later, see [`packages/wizard-cli/CHANGELOG.md`](packages/wizard-cli/CHANGELOG.md). This root CHANGELOG covers the scanner family (`@aegis-scan/*`) + top-level arc-summary entries only.
 
-## [Unreleased — cleanup] — 2026-04-24 — "vscode-extension retirement + README-honesty"
+## [0.16.6] — 2026-04-25 — "EMERGENCY: CMDi + GHA-template-injection patch"
 
-### Withdrawn
+### Security advisory — UPGRADE REQUIRED
 
-- **`packages/vscode-extension/` package (was `aegis-vscode` @ 0.2.0)** — withdrawn from the monorepo. The extension lived in-repo but was never shipped to the VS Code Marketplace and had no adoption signal. Retiring the package removes a dormant maintenance-surface + fixes the README-overpromise ("Ships a VS Code extension") that shipped in prior release notes. Consumers who had built the extension locally via `code --install-extension` will continue to have a working local install; future upgrades are not planned.
+This release fixes **two CRITICAL vulnerabilities** discovered by an external first-time-audit of `@aegis-scan/*` `@0.16.5` (AUDIT-AEGIS-SCAN-V0165). Both are empirically-reproducible RCE-class issues. **Consumers running v0.16.5 or earlier should upgrade immediately**:
 
-### Changed (README-honesty)
+```bash
+npm install -g @aegis-scan/cli@0.16.6
+```
+
+### Fixed (CRITICAL)
+
+- **C1 — CWE-78 OS command injection in `getChangedFiles()`** — `@aegis-scan/core`'s `getChangedFiles(projectPath, baseRef)` is reachable through `aegis scan/audit --diff <ref>`. It interpolated `baseRef` directly into a shell-string passed to `execSync`. Attacker-controlled `baseRef` (CLI flag value, OR — via the GitHub Action recipe with `diff-against: ${{ github.event.pull_request.head.ref }}` — a PR branch name containing `&` since git permits `&` in refnames but the shell parses it as command-separator) achieves arbitrary command execution. Fix: argv-style `execFile` (no shell) + `isValidGitRef()` strict pre-filter that rejects shell-metacharacters. Tests added: 12 new in `packages/core/__tests__/utils.test.ts` covering 6 metachar classes (`;`, `&`, `` ` ``, `$()`, `|`, `>`), 4 git-invalid shapes, and 2 positive cases. Empirically reproduced + fix-verified end-to-end this session. _Audit: AUDIT-AEGIS-SCAN-V0165 §1 C1._
+
+- **C2 — GitHub Actions template-string injection in `ci/github-action/action.yml`** — `${{ inputs.mode }}`, `${{ inputs.path }}`, `${{ inputs.diff-against }}`, `${{ inputs.aegis-version }}`, `${{ inputs.upload-sarif }}`, `${{ inputs.fail-on-blocker }}`, and `${{ inputs.fail-below }}` were interpolated directly into shell commands. ANY of these containing shell-metachars triggered command execution on the runner BEFORE the AEGIS CLI was invoked (independent of C1). Propagated to consumer repos via `aegis init`'s workflow template. Fix: pass inputs via `env:` (literal expansion in bash, no parser re-invocation), validate `aegis-version` shape (regex), validate `mode` against `scan|audit` allowlist, run `npm audit signatures` post-install. Init-template inherits the fix by-reference; consumers running pre-v0.16.6 init outputs should bump their `aegis-version` pin to `v0.16.6` (workflow-edit OR re-run `aegis init`). Regression-guard tests added: 6 new in `packages/cli/__tests__/ci-hardening.test.ts`. _Audit: AUDIT-AEGIS-SCAN-V0165 §1 C2._
+
+### Fixed (HIGH)
+
+- **H1 — GH Action installs from git-clone+pnpm-build (bypasses npm SLSA chain); default version stale at v0.11.2** — install step now uses `npm install -g @aegis-scan/cli@<version>` so consumers ride the SLSA attestation chain (verifiable via `npm audit signatures`). Default `aegis-version` bumped `v0.11.2 → v0.16.6`. Bundled with C2 closure (same file). Setup-pnpm step removed (no longer needed). _Audit: AUDIT-AEGIS-SCAN-V0165 §2 H1._
+
+### Fixed (MEDIUM)
+
+- **M3 — MCP server reported hardcoded version "0.2.0"** — runtime `serverInfo.version` now reads from `package.json` at module load via `fileURLToPath(import.meta.url)` + `readFileSync`, preserving the 5-package lockstep-honesty claim. Bundled with the lockstep version-bump commit. 3 new tests in `packages/mcp-server/__tests__/version.test.ts`. _Audit: AUDIT-AEGIS-SCAN-V0165 §3 M3._
+
+### Withdrawn (within range, operator-cleanup)
+
+- **`packages/vscode-extension/` package (was `aegis-vscode` @ 0.2.0)** — withdrawn from the monorepo (commits `8ac03ed` + `af2180a`, 2026-04-24). The extension lived in-repo but was never shipped to the VS Code Marketplace and had no adoption signal. Retiring the package removes a dormant maintenance-surface + fixes the README-overpromise ("Ships a VS Code extension") that shipped in prior release notes. Consumers who had built the extension locally via `code --install-extension` will continue to have a working local install; future upgrades are not planned. No `@aegis-scan/*` source touched.
+
+### Changed (README-honesty, within range)
 
 - **GitHub Action framing clarified** — README previously described "a GitHub Action with PR comments" suggesting marketplace-discoverability. The action is in-repo at `ci/github-action/action.yml` and usable via `uses: RideMatch1/a.e.g.i.s/ci/github-action@<tag>` pinned to a released tag. README updated to reflect this distribution-path honestly.
 
+### Deferred to v0.17 minor follow-up
+
+The same audit found 1 additional MEDIUM (**M1** — `TAINT_SOURCES` registry blind-spot for CLI / library / `process.argv` sources; the structural reason self-scan didn't catch C1), 1 MEDIUM (**M2** — multi-hop taint chain depth), 1 MEDIUM (**M4** — self-scan FORTRESS framing, closed by closing M1), 7 LOW (**L1**–**L7**), and 2 NIT findings. These are queued for v0.17 minor cleanup; they are not RCE-class and not ship-blockers. See `docs/audit-runbooks/external-audit-scanner-family-v0165.md` §3-§4 for full details. **M1 is the highest-priority v0.17 item** — closing it makes a fresh AUDIT-AEGIS-SCAN-V017 produce a 0/0/0/0 closure for all C/H/M/L from V0165.
+
 ### Meta
 
-- Neither change triggers an npm publish; no `@aegis-scan/*` or `@aegis-wizard/cli` source touched. Monorepo-wide hygiene only. `.github/workflows/release.yml` (vscode-extension-only workflow) deleted alongside the package. Tests, self-scan, all gate-enforcers remain at post-v0.17.4 baseline.
+- 5 scanner-family packages ship together in lockstep per `publish.yml` matrix: `@aegis-scan/{core,scanners,reporters,cli,mcp-server}@0.16.6`.
+- `@aegis-scan/skills` `@0.1.1` ships an emergency safety-rails patch separately as `skills-v0.1.2` (companion release, separate dispatch — closes AUDIT-AEGIS-SKILLS-V011 §1 C-01 + §2 H-01 + H-02).
+- `@aegis-wizard/cli` `@0.17.4` unchanged this release; not affected by C1 or C2.
+- Self-caught vs externally-caught: the C1 + C2 + H1 + M3 fixes are EXTERNALLY-driven (first-time external scanner-family audit landed the findings). The internal self-scan reported FORTRESS while shipping the CWE-78 — the registry blind-spot M1 is the structural cause. Closing M1 in v0.17 is the institutional follow-up.
+- Test-count: 2651 → 2672 (+21: core +12, mcp-server +3, cli +6).
+- Per L2 tag-message template Rule 3 range-breakdown qualifier:
+  ```
+  $ git log v0.16.5..v0.16.6 --oneline | wc -l
+  15 total
+  ```
+  - **Scanner-family-primary this release (7 commits):** SC-0 audit-runbooks track + SC-1 C1 fix + SC-2 C2+H1 fix + SC-3 init-template + SC-4 M3 fix + SC-5 regression-guards + SC-6 lockstep version-bump.
+  - **Published-elsewhere this range (8 commits):** wizard-v0.17.4 cycle (3 commits: SC-1 + WB-3 + WB-4), L2 template-canonical (1 commit), v0.17.3 H3 final-closure (1 commit), vscode-extension retirement Part-1+Part-2 (2 commits), `@aegis-scan/*` baseline-PR @0.16.5 (1 commit). All 8 already documented in their respective package CHANGELOG / commit-stream; not re-summarized here per L2 Rule 1 (one canonical home per change).
 
 ## [0.16.5] — 2026-04-25 — "scanner-family SC-1 publish + L1(a) gitleaks-wrapper scope-documentation"
 
