@@ -34,9 +34,9 @@ inputs:
     required: false
     default: ''
   aegis-version:
-    description: 'AEGIS version/ref to use (branch, tag, or commit SHA). IMPORTANT: keep this pinned to a specific tag (v0.11.2) rather than a floating branch like `main` — pinning guarantees reproducible CI across commits + prevents silent regressions when AEGIS itself updates. The default is bumped per release as a release-checklist item.'
+    description: 'AEGIS version pin (v<major>.<minor>.<patch>). STRICT format — no floating refs (no `main`, no `latest`). SECURITY: pin v0.16.6+ to inherit the C1+C2 fixes; earlier versions had CWE-78 in the --diff path. Bump per release as a release-checklist item.'
     required: false
-    default: 'v0.11.2'
+    default: 'v0.16.6'
 
 outputs:
   score:
@@ -63,42 +63,82 @@ runs:
       with:
         node-version: '20'
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-
-    - name: Install AEGIS
+    - name: Install AEGIS via npm (rides SLSA attestation chain)
       shell: bash
+      env:
+        # Closes AUDIT-AEGIS-SCAN-V0165 §1 C2 — env-var pattern instead of
+        # ${{ inputs.X }} shell-substitution. Bash variable expansion is
+        # literal; no parser re-invocation.
+        AEGIS_VERSION: ${{ inputs.aegis-version }}
       run: |
-        AEGIS_DIR="${RUNNER_TEMP}/aegis"
-        git clone --depth 1 --branch ${{ inputs.aegis-version }} https://github.com/RideMatch1/a.e.g.i.s.git "${AEGIS_DIR}"
-        cd "${AEGIS_DIR}"
-        pnpm install --frozen-lockfile
-        pnpm build
-        echo "AEGIS_CLI=${AEGIS_DIR}/packages/cli/dist/index.js" >> $GITHUB_ENV
+        # Strict shape-validation BEFORE passing to npm (defense-in-depth)
+        if ! [[ "$AEGIS_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::aegis-version must match v<major>.<minor>.<patch> (got: $AEGIS_VERSION)"
+          exit 1
+        fi
+        SEMVER="${AEGIS_VERSION#v}"
+        # H1 closure: install from npm (rides SLSA chain) instead of
+        # git-clone+pnpm-build. Faster, attested, no rebuild.
+        npm install -g "@aegis-scan/cli@${SEMVER}"
+        # Verify the SLSA attestation chain on the installed package.
+        # Non-fatal warning if non-zero — npm audit signatures returns 1
+        # on missing-attestation legacy versions; the attestation IS there
+        # for >=0.16.6, but we don't want to break consumers on transient
+        # registry issues.
+        npm audit signatures "@aegis-scan/cli" 2>&1 || \
+          echo "::warning::npm audit signatures returned non-zero — review attestation chain"
+        # Resolve the installed binary path
+        AEGIS_CLI_PATH="$(npm root -g)/@aegis-scan/cli/dist/index.js"
+        if [ ! -f "$AEGIS_CLI_PATH" ]; then
+          echo "::error::AEGIS install failed — $AEGIS_CLI_PATH not found"
+          exit 1
+        fi
+        echo "AEGIS_CLI=${AEGIS_CLI_PATH}" >> "$GITHUB_ENV"
 
     - name: Run AEGIS scan
       id: scan
       shell: bash
+      env:
+        # CRITICAL: pass GHA-context inputs via env, NOT via shell-substitution.
+        # Closes AUDIT-AEGIS-SCAN-V0165 §1 C2 (GHA template-string injection).
+        # ${{ inputs.X }} is textually substituted before bash parses, allowing
+        # arbitrary command execution if X contains shell-metachars.
+        # env-var passing avoids that — bash variable expansion is literal.
+        MODE: ${{ inputs.mode }}
+        SCAN_PATH: ${{ inputs.path }}
+        DIFF_AGAINST: ${{ inputs.diff-against }}
+        UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+        FAIL_ON_BLOCKER: ${{ inputs.fail-on-blocker }}
+        FAIL_BELOW: ${{ inputs.fail-below }}
       run: |
         set +e
 
-        # Build diff flag if configured
-        DIFF_FLAG=""
-        if [ -n "${{ inputs.diff-against }}" ]; then
-          DIFF_FLAG="--diff ${{ inputs.diff-against }}"
+        # Validate inputs (defense-in-depth even with env-var passing)
+        case "$MODE" in
+          scan|audit) ;;
+          *) echo "::error::mode must be 'scan' or 'audit' (got: $MODE)"; exit 1 ;;
+        esac
+
+        # Build the diff flag as a bash array — handles the empty case
+        # cleanly without word-splitting issues. DIFF_AGAINST is then
+        # validated again by AEGIS CLI's own isValidGitRef (post-v0.16.6
+        # C1 fix).
+        DIFF_FLAG=()
+        if [ -n "$DIFF_AGAINST" ]; then
+          DIFF_FLAG=(--diff "$DIFF_AGAINST")
         fi
 
         # Run scan with JSON output for machine parsing.
         # v0.9.2: capture stderr instead of discarding it — cryptic
-        # parse errors used to mask the real failure when AEGIS
-        # itself crashed. stderr is surfaced below if the JSON is
-        # malformed.
-        node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --format json --no-color > aegis-results.json 2>aegis-stderr.log
+        # parse errors used to mask the real failure when AEGIS itself
+        # crashed. stderr is surfaced below if the JSON is malformed.
+        node "${AEGIS_CLI}" "$MODE" "$SCAN_PATH" "${DIFF_FLAG[@]}" \
+          --format json --no-color > aegis-results.json 2>aegis-stderr.log
         EXIT_CODE=$?
 
-        # Validate JSON before attempting to parse (prevents the
-        # cryptic `Cannot find module` / unexpected-token errors that
-        # used to confuse users when AEGIS crashed upstream).
+        # Validate JSON before attempting to parse (prevents the cryptic
+        # `Cannot find module` / unexpected-token errors that used to
+        # confuse users when AEGIS crashed upstream).
         if [ ! -s aegis-results.json ] || ! node -e "JSON.parse(require('fs').readFileSync('aegis-results.json','utf8'))" 2>/dev/null; then
           echo "::error::AEGIS scan produced empty or invalid JSON (exit $EXIT_CODE). stderr:"
           if [ -s aegis-stderr.log ]; then
@@ -116,29 +156,31 @@ runs:
         FINDINGS=$(node -e "const d=require('./aegis-results.json'); console.log(d.findings.length)")
         BLOCKED=$(node -e "const d=require('./aegis-results.json'); console.log(d.blocked)")
 
-        echo "score=${SCORE}" >> $GITHUB_OUTPUT
-        echo "grade=${GRADE}" >> $GITHUB_OUTPUT
-        echo "badge=${BADGE}" >> $GITHUB_OUTPUT
-        echo "findings=${FINDINGS}" >> $GITHUB_OUTPUT
-        echo "blocked=${BLOCKED}" >> $GITHUB_OUTPUT
+        {
+          echo "score=${SCORE}"
+          echo "grade=${GRADE}"
+          echo "badge=${BADGE}"
+          echo "findings=${FINDINGS}"
+          echo "blocked=${BLOCKED}"
+        } >> "$GITHUB_OUTPUT"
 
         # Terminal output for the CI log (stderr kept visible so
         # diagnostics aren't swallowed by `|| true`).
-        node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --no-color || true
+        node "${AEGIS_CLI}" "$MODE" "$SCAN_PATH" "${DIFF_FLAG[@]}" --no-color || true
 
         # Generate SARIF if requested.
-        if [ "${{ inputs.upload-sarif }}" = "true" ]; then
-          node "${AEGIS_CLI}" ${{ inputs.mode }} ${{ inputs.path }} ${DIFF_FLAG} --format sarif --no-color > aegis-results.sarif
+        if [ "$UPLOAD_SARIF" = "true" ]; then
+          node "${AEGIS_CLI}" "$MODE" "$SCAN_PATH" "${DIFF_FLAG[@]}" \
+            --format sarif --no-color > aegis-results.sarif
         fi
 
         # Check fail conditions
-        if [ "${{ inputs.fail-on-blocker }}" = "true" ] && [ "${BLOCKED}" = "true" ]; then
+        if [ "$FAIL_ON_BLOCKER" = "true" ] && [ "$BLOCKED" = "true" ]; then
           echo "::error::AEGIS detected blocker findings — score forced to 0"
           exit 1
         fi
 
-        FAIL_BELOW=${{ inputs.fail-below }}
-        if [ "${FAIL_BELOW}" -gt 0 ] 2>/dev/null && [ "${SCORE}" -lt "${FAIL_BELOW}" ]; then
+        if [ "$FAIL_BELOW" -gt 0 ] 2>/dev/null && [ "$SCORE" -lt "$FAIL_BELOW" ]; then
           echo "::error::AEGIS score ${SCORE} is below threshold ${FAIL_BELOW}"
           exit 1
         fi
