@@ -68,13 +68,13 @@ The same audit found 1 additional MEDIUM (**M1** — `TAINT_SOURCES` registry bl
 - `@aegis-scan/skills` `@0.1.1` ships an emergency safety-rails patch separately as `skills-v0.1.2` (companion release, separate dispatch — closes AUDIT-AEGIS-SKILLS-V011 §1 C-01 + §2 H-01 + H-02).
 - `@aegis-wizard/cli` `@0.17.4` unchanged this release; not affected by C1 or C2.
 - Self-caught vs externally-caught: the C1 + C2 + H1 + M3 fixes are EXTERNALLY-driven (first-time external scanner-family audit landed the findings). The internal self-scan reported FORTRESS while shipping the CWE-78 — the registry blind-spot M1 is the structural cause. Closing M1 in v0.17 is the institutional follow-up.
-- Test-count: 2651 → 2672 (+21: core +12, mcp-server +3, cli +6).
+- Test-count: 2651 → 2701 (+50: core +12 utils.test.ts, mcp-server +3 version.test.ts, cli +6 ci-hardening.test.ts, scanners +29 across 3 new DAST adapter test-files).
 - Per L2 tag-message template Rule 3 range-breakdown qualifier:
   ```
   $ git log v0.16.5..v0.16.6 --oneline | wc -l
-  15 total
+  19 total
   ```
-  - **Scanner-family-primary this release (7 commits):** SC-0 audit-runbooks track + SC-1 C1 fix + SC-2 C2+H1 fix + SC-3 init-template + SC-4 M3 fix + SC-5 regression-guards + SC-6 lockstep version-bump.
+  - **Scanner-family-primary this release (11 commits):** SC-0 audit-runbooks track + SC-1 C1 fix + SC-2 C2+H1 fix + SC-3 init-template + SC-4 M3 fix + SC-5 regression-guards + SC-6 lockstep version-bump + 87dafa5 `feat(scanners): +3 DAST-Adapters` (Strix/PTAI/Pentest-Swarm-AI, 16→19 external) + SC-7 reference-cleanup 16→19 + SC-8 CHANGELOG `Added (DAST adapters)` sub-section + SC-9 DAST adapter smoke-tests (+29).
   - **Published-elsewhere this range (8 commits):** wizard-v0.17.4 cycle (3 commits: SC-1 + WB-3 + WB-4), L2 template-canonical (1 commit), v0.17.3 H3 final-closure (1 commit), vscode-extension retirement Part-1+Part-2 (2 commits), `@aegis-scan/*` baseline-PR @0.16.5 (1 commit). All 8 already documented in their respective package CHANGELOG / commit-stream; not re-summarized here per L2 Rule 1 (one canonical home per change).
 
 ## [0.16.5] — 2026-04-25 — "scanner-family SC-1 publish + L1(a) gitleaks-wrapper scope-documentation"
