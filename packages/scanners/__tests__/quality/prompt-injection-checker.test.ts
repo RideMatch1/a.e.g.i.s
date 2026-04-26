@@ -245,4 +245,38 @@ describe('promptInjectionCheckerScanner — path-invariance (D-CA-001 contract, 
     const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
     expect(result.findings.filter((f) => f.scanner === 'prompt-injection-checker')).toHaveLength(0);
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // M-01 detection (post-2026-04-26 brutal-load audit):
+  // The narrow-sanitizer pattern that strips only `^system:` line-prefix
+  // is bypassable. AEGIS should flag this pattern so future audits catch
+  // the weakness statically.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const NARROW_SANITIZER_SHAPE = [
+    'export async function POST(request: NextRequest) {',
+    '  const body = await request.json();',
+    '  const { messages } = body;',
+    '  const sanitizedMessages = messages.map((m: { role: string; content: string }) => ({',
+    '    role: m.role,',
+    '    content: m.content',
+    "      .replace(/^\\s*(?:system|SYSTEM)\\s*:/gm, '[blocked]:')",
+    "      .replace(/\\x00/g, ''),",
+    '  }));',
+    '  const aiResponse = await mistral.chat.complete({ model: "mistral-large", messages: sanitizedMessages });',
+    '  return new Response(JSON.stringify(aiResponse));',
+    '}',
+  ].join('\n');
+
+  it('M-01: flags narrow inbound chat-message sanitizer (only ^system: prefix stripped — bypassable per brutal-load 2026-04-26)', async () => {
+    mkdirSync(join(projectPath, 'src/app/api/ai/chat'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/ai/chat/route.ts'), NARROW_SANITIZER_SHAPE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const m01Hits = result.findings.filter((f) =>
+      f.scanner === 'prompt-injection-checker' &&
+      (f.title || '').includes('too narrow')
+    );
+    expect(m01Hits.length).toBeGreaterThan(0);
+    expect(m01Hits[0].description).toMatch(/markdown|verbatim|semantic|brutal-load/i);
+  });
 });
