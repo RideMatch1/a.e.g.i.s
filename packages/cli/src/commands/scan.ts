@@ -14,17 +14,25 @@ const FAST_CATEGORIES: ScanCategory[] = [
 
 /**
  * v0.15.2 Item-7 — denominator for the cold-install-UX banner text.
- * v0.15.4 D-N-003 — corrected inventory. AEGIS ships external-tool
- * wrappers for 16 third-party scanners (semgrep, bearer, gitleaks,
- * trufflehog, osv-scanner, npm-audit, license-checker, nuclei, zap,
- * trivy, hadolint, checkov, testssl, react-doctor, axe-lighthouse,
- * lighthouse-performance). The supply-chain scanner was previously
- * mis-listed here — it's internal (reads lockfiles and package.json
- * directly, no third-party binary) and must NOT count toward the
- * denominator or the unavailable-list. Bump this constant when
- * adding a new external-tool wrapper so the banner fraction stays
- * honest; classification is enforced at the source by each scanner's
- * Scanner.isExternal field (v0.15.4+).
+ * v0.15.4 D-N-003 — corrected inventory.
+ * v0.16.6 (post-emergency-fix bundle) — bumped 16 → 19 with the addition
+ * of three LLM-agent pentest framework wrappers (Strix, PTAI, Pentest-
+ * Swarm-AI), all gated behind `--mode pentest` because they consume
+ * LLM-API-tokens. The supply-chain scanner remains internal (reads
+ * lockfiles and package.json directly, no third-party binary) and must
+ * NOT count toward the denominator or the unavailable-list.
+ *
+ * Current 19-tool inventory (in `EXTERNAL_INSTALL_HINTS` map order):
+ *   - SAST/DAST/secret/dep (16): semgrep, bearer, gitleaks, trufflehog,
+ *     osv-scanner, npm-audit, license-checker, nuclei, zap, trivy,
+ *     hadolint, checkov, testssl, react-doctor, axe-lighthouse,
+ *     lighthouse-performance.
+ *   - LLM-agent pentest (3, --mode pentest only): strix, ptai,
+ *     pentestswarm.
+ *
+ * Bump this constant when adding a new external-tool wrapper so the
+ * banner fraction stays honest; classification is enforced at the source
+ * by each scanner's Scanner.isExternal field (v0.15.4+).
  */
 const TOTAL_EXTERNAL_TOOLS = 19;
 

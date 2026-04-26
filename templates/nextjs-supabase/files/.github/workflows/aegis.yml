@@ -21,9 +21,11 @@ permissions:
 
 # External scanner versions — pinned for CI reproducibility.
 # Bump here when an upstream fix is needed. These four are AEGIS's
-# CI-installable defaults; the full 16-tool pipeline includes
-# Docker-based scanners (ZAP, Lighthouse) — see the README
-# "Enabling the full pipeline" section for local install.
+# CI-installable defaults; the full 19-tool pipeline includes
+# Docker-based scanners (ZAP, Lighthouse), plus 3 LLM-agent pentest
+# frameworks (Strix, PTAI, Pentest-Swarm-AI — opt-in via `--mode pentest`,
+# require LLM-API-keys) — see the README "Enabling the full pipeline"
+# section for local install.
 env:
   SEMGREP_VERSION: "1.94.0"
   OSV_SCANNER_VERSION: "v1.9.2"

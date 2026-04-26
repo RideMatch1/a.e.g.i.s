@@ -297,7 +297,7 @@ integration) see the **GitHub Action** section of the
 
 ## 7. What's next
 
-- **[Full scanner list](../README.md#what-aegis-finds-that-generic-sast-tools-miss)** — 42 built-in scanners + 16 external tool wrappers
+- **[Full scanner list](../README.md#what-aegis-finds-that-generic-sast-tools-miss)** — 42 built-in scanners + 19 external tool wrappers (16 SAST/DAST + 3 LLM-agent pentest frameworks, gated behind `--mode pentest`)
 - **[Scoring rules](../README.md#scoring)** — how the 0-1000 score is weighted
 - **[Custom rules](./custom-rules.md)** — project-specific sources / sinks / sanitizers
 - **[Suppression DSL](./suppressions.md)** — inline + config, all supported forms
