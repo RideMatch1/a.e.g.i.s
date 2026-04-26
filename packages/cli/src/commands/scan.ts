@@ -26,7 +26,7 @@ const FAST_CATEGORIES: ScanCategory[] = [
  * honest; classification is enforced at the source by each scanner's
  * Scanner.isExternal field (v0.15.4+).
  */
-const TOTAL_EXTERNAL_TOOLS = 16;
+const TOTAL_EXTERNAL_TOOLS = 19;
 
 /**
  * v0.15.6 D-B-001 — per-scanner install-hints for the cold-install-UX
@@ -53,6 +53,9 @@ const EXTERNAL_INSTALL_HINTS: Record<string, string> = {
   'license-checker': 'npm i -g license-checker',
   nuclei: 'brew install nuclei',
   zap: 'docker pull owasp/zap2docker-stable',
+  strix: 'curl -sSL https://strix.ai/install | bash  (requires Docker + LLM_API_KEY env)',
+  ptai: 'pip install ptai  (requires ANTHROPIC_API_KEY or OPENAI_API_KEY env)',
+  pentestswarm: 'brew install Armur-Ai/tap/pentestswarm  (requires PENTESTSWARM_ORCHESTRATOR_API_KEY env)',
   trivy: 'brew install trivy',
   hadolint: 'brew install hadolint',
   checkov: 'pip install checkov',

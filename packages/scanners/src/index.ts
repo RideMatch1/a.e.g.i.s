@@ -48,6 +48,9 @@ import { licenseCheckerScanner } from './dependencies/license-checker.js';
 import { reactDoctorScanner } from './react/react-doctor.js';
 import { nucleiScanner } from './dast/nuclei.js';
 import { zapScanner } from './dast/zap.js';
+import { strixScanner } from './dast/strix.js';
+import { ptaiScanner } from './dast/ptai.js';
+import { pentestSwarmScanner } from './dast/pentestswarm.js';
 import { trufflehogScanner } from './secrets/trufflehog.js';
 import { supplyChainScanner } from './dependencies/supply-chain.js';
 import { trivyScanner } from './infrastructure/trivy.js';
@@ -110,6 +113,9 @@ export function getAllScanners(): Scanner[] {
     reactDoctorScanner,
     nucleiScanner,
     zapScanner,
+    strixScanner,
+    ptaiScanner,
+    pentestSwarmScanner,
     trufflehogScanner,
     supplyChainScanner,
     trivyScanner,
@@ -192,6 +198,9 @@ export {
   reactDoctorScanner,
   nucleiScanner,
   zapScanner,
+  strixScanner,
+  ptaiScanner,
+  pentestSwarmScanner,
   trufflehogScanner,
   supplyChainScanner,
   trivyScanner,
