@@ -1089,7 +1089,7 @@ test-suite 1272 of 1272 across 77 files.
   five new entries to `packages/core/src/config.ts` DEFAULT_IGNORE —
   `Templates*`, `third_party`, `third-party`, `**/*.min.js`,
   `**/*.min.css`. Closes Round-4 audit-finding 🔴 D-C-001 where 27%
-  of Sonnenhof-class (`Templates1/Larkon-*_v1.0/`) findings were
+  of vendor-template-class (`Templates1/Larkon-*_v1.0/`) findings were
   vendor-template-noise including six spurious JWT-detector
   criticals on template-demo-code. Case-sensitive `Templates*`
   deliberately preserves lowercase `templates/` as legit-source

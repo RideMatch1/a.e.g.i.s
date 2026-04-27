@@ -2,7 +2,7 @@
   "id": "v0154-FP-templates-glob-ignored",
   "cwe": 798,
   "type": "FP",
-  "description": "Vendor-template dir `Templates1/` (Sonnenhof-class canary — the primary Round-4 D-C-001 audit-finding target) contains template-demo code with a literal JWT-format string. Post-v0.15.4 D-C-001, the new `Templates*` glob in DEFAULT_IGNORE must cause walkFiles to skip this directory entirely — jwt-detector must NOT fire on vendor-template-demo files. Pre-v0.15.4 (RED-baseline) the scanner DOES fire because `Templates*` is not in the ignore-list; this canary codifies the fix-delta.",
+  "description": "Vendor-template dir `Templates1/` (vendor-template-class canary — the primary Round-4 D-C-001 audit-finding target) contains template-demo code with a literal JWT-format string. Post-v0.15.4 D-C-001, the new `Templates*` glob in DEFAULT_IGNORE must cause walkFiles to skip this directory entirely — jwt-detector must NOT fire on vendor-template-demo files. Pre-v0.15.4 (RED-baseline) the scanner DOES fire because `Templates*` is not in the ignore-list; this canary codifies the fix-delta.",
   "expected": [
     { "scanner": "jwt-detector", "cwe": 798 }
   ]
