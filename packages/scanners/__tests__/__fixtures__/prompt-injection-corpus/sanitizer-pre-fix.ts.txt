@@ -1,0 +1,42 @@
+// Source: AEGIS Field-Report 2026-04-27 §Setup, lines 43-56
+// Original-Autor: Alexander Hertle (Neon Arc / UCOS Engine)
+// This is the PRE-FIX shape that AEGIS prompt-injection-checker should
+// flag with all four sub-class detections (Beobachtungen 1-4).
+// File extension is .txt to keep it out of TypeScript compile graph
+// AND out of walkFiles' ['ts','js'] filter — it is loaded explicitly
+// by tests via readFileSync + writeFileSync into a temp project before
+// the scanner runs.
+
+export function sanitizeChatInput(input: string): string {
+  return input
+    .replace(/\x00/g, '')
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[​-‏‪-‮﻿]/g, '')
+    .replace(/^\s*(?:system|SYSTEM)\s*:/gm, '[blocked]:')
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n{4,}/g, '\n\n\n')
+    .trim();
+}
+
+// Field-Report §2 reverse-order example — html-strip BEFORE marker-detect.
+// The field-report describes this as the bug shape; the §Setup code above
+// has the correct order, so this helper exists to exercise the §2 detector
+// in the same fixture.
+export function sanitizeChatInputReverseOrder(input: string): string {
+  return input
+    .replace(/<[^>]*>/g, '')
+    .replace(/^\s*(?:system|SYSTEM)\s*:/gm, '[blocked]:');
+}
+
+// Bonus: a neighbouring file with the role-gated map shape (Sub-Klasse 4).
+// In the real route handler this is in route.ts; co-located here for the
+// fixture so a single scan picks up all four sub-classes at once.
+export async function POST(request: Request) {
+  const { messages } = await request.json() as { messages: Array<{role: string; content: string}> };
+  const sanitized = messages.map(m => ({
+    ...m,
+    content: m.role === 'user' ? sanitizeChatInput(m.content) : m.content,
+  }));
+  return new Response(JSON.stringify({ messages: sanitized }));
+}

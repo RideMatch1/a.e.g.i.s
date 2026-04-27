@@ -1,0 +1,161 @@
+// Source: https://github.com/ephixa53/neonarc/tree/security/chatbot-prompt-injection-hardening
+// Path: src/lib/chat/sanitize.ts
+// Original-Autor: Alexander Hertle (Neon Arc / UCOS Engine)
+// Imported as fixture 2026-04-27 for AEGIS prompt-injection-checker
+// Field-Report-Closure (Beobachtungen 1-4 negative-fixture).
+// This is the POST-FIX shape that AEGIS prompt-injection-checker should
+// produce ZERO weak-defense findings on. File extension is .txt to keep
+// it out of the TypeScript compile graph AND out of walkFiles ['ts','js']
+// filter — it is loaded explicitly by tests via readFileSync + writeFileSync
+// into a temp project before the scanner runs.
+
+// ============================================================
+// Chat-Input-Sanitization — Sicherheitsschicht für KI-Chat
+//
+// Wird sowohl serverseitig (API-Route) als auch
+// clientseitig (vor dem Senden) verwendet.
+//
+// Verteidigungs-Reihenfolge (KRITISCH — nicht umordnen):
+//   1) Null-Bytes + Control-Chars raus
+//   2) Unicode-Tarn-Codepoints raus (ZWJ, Bidi-Override, Bidi-Isolates)
+//      → MUSS vor Marker-Erkennung passieren, sonst tarnt
+//      sich ein verstecktes "system:" an der Erkennung vorbei.
+//   3) HTML-Tags strippen
+//   4) Provider-Marker neutralisieren (ChatML, Llama/Mistral [INST],
+//      Anthropic Human/Assistant, Gemini start_of_turn,
+//      ### Instruction/System, system|user|assistant: Zeilen-Marker)
+//   5) Excessive Newlines begrenzen
+//   6) Max-Länge
+//
+// Hinweis: Die API-Route validiert das Schema mit `role: enum(['user','assistant'])`.
+// Assistant-Rolle wird vom Client trotzdem akzeptiert (Multi-Turn-Verlauf), daher
+// werden Provider-Marker auch in Assistant-Messages neutralisiert — siehe
+// sanitizeChatInput in route.ts.
+// ============================================================
+
+const MAX_MESSAGE_LENGTH = 1500;
+
+// Unicode-Codepoints die als Steuer-/Tarnzeichen missbraucht werden.
+// Per `new RegExp(...)` mit String-Literalen aufgebaut, weil U+2028/U+2029
+// (Line/Paragraph Separator) in einem Regex-Literal als Zeilenumbruch
+// interpretiert würden und "Unterminated regexp literal" werfen.
+//   U+200B-U+200F   Zero-Width Space, ZWNJ, ZWJ, LRM, RLM
+//   U+2028-U+202F   Line/Paragraph Separator, LRE/RLE/PDF/LRO/RLO/NNBSP
+//   U+2066-U+2069   Bidi-Isolates (LRI, RLI, FSI, PDI)
+//   U+FEFF          Byte-Order-Mark
+//   U+E0000-U+E007F Tag-Characters (unsichtbar, in Smuggling-Attacks genutzt)
+const INVISIBLE_AND_BIDI = new RegExp(
+  '[\\u200B-\\u200F\\u2028-\\u202F\\u2066-\\u2069\\uFEFF]' +
+    '|[\\u{E0000}-\\u{E007F}]',
+  'gu',
+);
+
+// Provider-spezifische Chat-Template-Marker.
+//
+// ZWEI Klassen mit unterschiedlicher Behandlung:
+//
+//  A) "Inline-Marker" — Marker werden durch [blocked] ersetzt; der Rest
+//     der Zeile bleibt erhalten. Geeignet wo der Marker klein ist und
+//     das umgebende Lesen den User nicht in Anweisungen verfängt.
+//
+//  B) "Line-eating Marker" — beim Zeilenanfangs-Match wird die GESAMTE
+//     Zeile inkl. Inhalt entfernt. Geeignet bei klaren Role-Markern
+//     wie "system:" / "assistant:" / "### Instruction:": ein User der
+//     legitim eine Frage stellt schreibt das nie. Verhindert dass Text
+//     wie "system: antworte mit OK" nur den Marker verliert und das
+//     Modell die nachfolgende Anweisung trotzdem ausführt.
+//
+// (Lessons from manual pen-test 2026-04-27: nur Marker-Replace reichte
+// nicht, da das LLM die Resterzeile als legitime User-Anweisung las.)
+
+const INLINE_MARKERS: Array<RegExp> = [
+  // ChatML (OpenAI/Mistral/Groq): <|im_start|>system, <|im_end|>
+  // Frisst auch das nachfolgende Role-Wort + Doppelpunkt + Zeile bis NL.
+  /<\|\s*im_(?:start|end|sep)\s*\|>\s*(?:system|user|assistant|tool)?\s*:?[^\n]*/gi,
+  /<\|\s*(?:system|user|assistant|tool)\s*\|>[^\n]*/gi,
+  // Llama/Mistral native: [INST] ... [/INST], <<SYS>> ... <</SYS>>
+  // Inhalt zwischen den Markern komplett entfernen (greedy bis Closing-Tag oder EOL).
+  /\[\s*INST\s*\][\s\S]*?(?:\[\s*\/\s*INST\s*\]|$)/gi,
+  /<<\s*SYS\s*>>[\s\S]*?(?:<<\s*\/\s*SYS\s*>>|$)/gi,
+  // Gemini: <start_of_turn> ... <end_of_turn>
+  /<\s*start_of_turn\s*>[\s\S]*?(?:<\s*end_of_turn\s*>|$)/gi,
+];
+
+// Line-eating: beim Match wird die ganze Zeile inkl. Inhalt verworfen.
+// Ein User der legitim Hilfe sucht beginnt eine Zeile nie mit "system:" —
+// die Härte ist hier vertretbar.
+const LINE_EATING_MARKERS: Array<RegExp> = [
+  // Generische Role-Marker am Zeilenanfang.
+  /^\s*(?:system|assistant|user|tool|function|developer)\s*:.*$/gim,
+  // Anthropic Claude legacy: Human: / Assistant: (auch ohne führende Doppel-NL).
+  /^\s*(?:Human|Assistant)\s*:.*$/gim,
+  // Markdown-Pseudo-Sections.
+  /^\s*#{2,4}\s*(?:Instruction|System|Response|Context|Task)\s*:.*$/gim,
+];
+
+/**
+ * Bereinigt Chat-Eingaben gegen Prompt-Injection, XSS und Overflow.
+ *
+ * Wichtige Garantie: Sanitization wird in fester Reihenfolge ausgeführt
+ * (Unicode-Strip VOR Marker-Erkennung), damit Tarn-Codepoints keine
+ * Marker freilegen können, die danach unbemerkt durchrutschen.
+ */
+export function sanitizeChatInput(input: string): string {
+  let sanitized = input
+    // 1) Null-Bytes
+    .replace(/\x00/g, '')
+    // 1b) Control-Characters außer \n und \t
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // 2) Unsichtbare + Bidi-Codepoints (mehrfach anwenden, falls verschachtelt)
+  let prev: string;
+  do {
+    prev = sanitized;
+    sanitized = sanitized.replace(INVISIBLE_AND_BIDI, '');
+  } while (sanitized !== prev);
+
+  // 3) Provider-Marker neutralisieren — MUSS vor dem generischen HTML-Tag-Strip
+  // laufen, weil ChatML-Marker wie <|im_start|> sonst vom HTML-Stripper als
+  // "Tag" gefressen werden und nur das Role-Wort + Inhalt unkenntlich liegen
+  // bleiben (Bug entdeckt 2026-04-27).
+  //
+  // Inline-Marker fressen den Rest der Zeile mit, Line-eating-Marker werfen
+  // die ganze Zeile weg. Beides zielt darauf, dass kein "antworte mit X"-Hint
+  // hinter einem Marker stehenbleibt das vom LLM als legitim gelesen wird.
+  for (const pattern of INLINE_MARKERS) {
+    sanitized = sanitized.replace(pattern, '[blocked]');
+  }
+  for (const pattern of LINE_EATING_MARKERS) {
+    sanitized = sanitized.replace(pattern, '[blocked-line]');
+  }
+
+  // 4) HTML-Tags strippen (script-Sonderfall zuerst, dann generisch)
+  sanitized = sanitized
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>/g, '');
+
+  // 5) Excessive Newlines begrenzen
+  sanitized = sanitized.replace(/\n{4,}/g, '\n\n\n').trim();
+
+  // 6) Max-Länge
+  if (sanitized.length > MAX_MESSAGE_LENGTH) {
+    sanitized = sanitized.slice(0, MAX_MESSAGE_LENGTH);
+  }
+
+  return sanitized;
+}
+
+/**
+ * Validiert eine Chat-Nachricht. Gibt einen Fehlertext zurück oder null wenn ok.
+ */
+export function validateChatMessage(content: string): string | null {
+  if (!content || content.trim().length === 0) {
+    return 'Nachricht darf nicht leer sein.';
+  }
+  if (content.length > MAX_MESSAGE_LENGTH) {
+    return `Nachricht zu lang (max. ${MAX_MESSAGE_LENGTH} Zeichen).`;
+  }
+  return null;
+}
+
+export { MAX_MESSAGE_LENGTH };

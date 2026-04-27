@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -571,13 +571,98 @@ describe('promptInjectionCheckerScanner — Sub-Klasse 2: html-strip-before-mark
     expect(result.findings.filter((f) => f.title.includes('html-strip precedes'))).toHaveLength(0);
   });
 
-  it('flags within the ±40-line boundary', async () => {
-    const LINES = ['function clean(s: string) {', "  return s.replace(/<[^>]*>/g, '')"];
-    for (let i = 0; i < 35; i++) LINES.push(`    /* line ${i} */`);
-    LINES.push("    .replace(/^\\s*system\\s*:/gm, '[blocked]:');");
-    LINES.push('}');
-    writeFileSync(join(projectPath, 'within.ts'), LINES.join('\n'));
+  it('flags chain that spans newlines + whitespace (multi-line chained .replace())', async () => {
+    const VULN = [
+      'function clean(s: string) {',
+      "  return s",
+      "    .replace(/<[^>]*>/g, '')",
+      "    .replace(/^\\s*system\\s*:/gm, '[blocked]:');",
+      '}',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'spread.ts'), VULN);
     const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
     expect(result.findings.filter((f) => f.title.includes('html-strip precedes')).length).toBeGreaterThan(0);
+  });
+
+  it('does NOT flag two safe sanitizers in the same file (no false-cross-link)', async () => {
+    // Both functions chain marker-detect BEFORE html-strip (correct order).
+    const TWO_SAFE = [
+      'function safeA(s: string) {',
+      "  return s.replace(/^\\s*system\\s*:/gm, '[blocked]:').replace(/<[^>]*>/g, '');",
+      '}',
+      '',
+      'function safeB(s: string) {',
+      "  return s.replace(/^\\s*assistant\\s*:/gm, '[blocked]:').replace(/<[^>]*>/g, '');",
+      '}',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'two-safe.ts'), TWO_SAFE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('html-strip precedes'))).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Field-Report 2026-04-27 — End-to-end fixtures.
+//
+// Pre-fix sanitizer (the field-report's documented vulnerable shape) MUST
+// produce findings for each of Sub-Klasse 1, 2, 3, 4.
+//
+// Post-fix sanitizer (sourced from
+// https://github.com/ephixa53/neonarc/tree/security/chatbot-prompt-injection-hardening
+// path src/lib/chat/sanitize.ts — the hardened production version that
+// closes Beobachtungen 1-4) MUST produce ZERO weak-defense findings.
+//
+// Fixture files live as `.txt` so they are not picked up by walkFiles'
+// ['ts','js'] extension filter — they are written into a temp project as
+// `.ts` files only by the tests below.
+// ─────────────────────────────────────────────────────────────────────────
+
+const FIXTURES_DIR = join(__dirname, '..', '__fixtures__', 'prompt-injection-corpus');
+
+describe('promptInjectionCheckerScanner — Field-Report end-to-end fixtures', () => {
+  let projectPath: string;
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('PRE-FIX fixture produces ≥1 finding per Sub-Klasse 1, 2, 3, 4', async () => {
+    const preFixSource = readFileSync(join(FIXTURES_DIR, 'sanitizer-pre-fix.ts.txt'), 'utf-8');
+    mkdirSync(join(projectPath, 'src/lib/chat'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/lib/chat/sanitize.ts'), preFixSource);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+
+    const sub1 = result.findings.filter((f) => f.title.includes('marker-only-replace'));
+    const sub2 = result.findings.filter((f) => f.title.includes('html-strip precedes'));
+    const sub3 = result.findings.filter((f) => f.title.includes('Bidi-strip set'));
+    const sub4 = result.findings.filter((f) => f.title.includes('role-gated'));
+
+    expect(sub1.length, 'Sub-Klasse 1 (marker-only-replace) expected ≥1').toBeGreaterThan(0);
+    expect(sub2.length, 'Sub-Klasse 2 (html-strip-precedes-marker) expected ≥1').toBeGreaterThan(0);
+    expect(sub3.length, 'Sub-Klasse 3 (incomplete-bidi-strip-set) expected ≥1').toBeGreaterThan(0);
+    expect(sub4.length, 'Sub-Klasse 4 (incomplete-role-coverage) expected ≥1').toBeGreaterThan(0);
+  });
+
+  it('POST-FIX fixture (neonarc hardened sanitize.ts) produces ZERO weak-defense findings', async () => {
+    const postFixSource = readFileSync(join(FIXTURES_DIR, 'sanitizer-post-fix.ts.txt'), 'utf-8');
+    mkdirSync(join(projectPath, 'src/lib/chat'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/lib/chat/sanitize.ts'), postFixSource);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+
+    const weakDefenseTitles = [
+      'too narrow', // M-01
+      'role-gated', // Sub-4
+      'Bidi-strip set', // Sub-3
+      'marker-only-replace', // Sub-1
+      'html-strip precedes', // Sub-2
+    ];
+    const weakDefenseHits = result.findings.filter((f) =>
+      weakDefenseTitles.some((t) => f.title.includes(t)),
+    );
+    expect(
+      weakDefenseHits,
+      `Post-fix sanitizer produced unexpected weak-defense findings: ${weakDefenseHits
+        .map((h) => h.title)
+        .join(', ')}`,
+    ).toEqual([]);
   });
 });
