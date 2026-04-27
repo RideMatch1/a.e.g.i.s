@@ -84,15 +84,16 @@ program
 
 program
   .command('siege [path]')
-  .description('Multi-phase adversary simulation against a live target (requires --target)')
+  .description('Multi-phase adversary simulation against a live target (requires --target or --roe)')
   .requiredOption('-t, --target <url>', 'Target URL for siege (required)')
+  .option('--roe <path>', 'Rules of Engagement JSON file (APTS-SE-001 conformant). Validates target scope + temporal envelope before engagement start.')
   .option('-f, --format <format>', 'Output format: terminal (default), json, sarif, html, markdown', 'terminal')
   .option('--confirm', 'Acknowledge authorization to send live attack traffic')
   .option('--no-color', 'Disable colored output')
   .action(
     async (
       path: string | undefined,
-      options: { target: string; format: string; confirm: boolean; color: boolean },
+      options: { target: string; roe?: string; format: string; confirm: boolean; color: boolean },
     ) => {
       if (!options.color) {
         chalk.level = 0;

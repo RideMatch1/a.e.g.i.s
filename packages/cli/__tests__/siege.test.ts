@@ -49,6 +49,32 @@ vi.mock('@aegis-scan/core', () => ({
   walkFiles: vi.fn().mockReturnValue([]),
   readFileSafe: vi.fn().mockReturnValue(null),
   detectStack: vi.fn(),
+  // RoE module exports — siege now imports loadRoE/synthesizeMinimalRoE/
+  // validateTemporalEnvelope/validateTargetInScope. The synthesized-RoE
+  // path runs when --roe is not provided; validators return decisions
+  // the siege handler treats as a precondition for proceeding.
+  loadRoE: vi.fn(),
+  synthesizeMinimalRoE: vi.fn().mockReturnValue({
+    roe_id: 'test-synthesized',
+    spec_version: '0.1.0',
+    operator: { organization: 'test', authorized_by: 'test', contact: 'test' },
+    authorization: {
+      statement: 'AEGIS-synthesized minimal RoE for tests (twenty plus chars).',
+      signature_method: 'operator-attested',
+    },
+    in_scope: { domains: [{ pattern: 'example.com', includeSubdomains: false }], ip_ranges: [], repository_paths: [] },
+    out_of_scope: { domains: [], ip_ranges: [], paths: [] },
+    asset_criticality: [],
+    temporal: {
+      start: new Date(Date.now() - 1000).toISOString(),
+      end: new Date(Date.now() + 60_000).toISOString(),
+      timezone: 'UTC',
+      blackout_windows: [],
+    },
+    stop_conditions: { on_critical_finding: 'halt' },
+  }),
+  validateTemporalEnvelope: vi.fn().mockReturnValue({ allowed: true, reason: 'mocked-temporal-ok' }),
+  validateTargetInScope: vi.fn().mockReturnValue({ allowed: true, reason: 'mocked-scope-ok' }),
 }));
 
 vi.mock('@aegis-scan/reporters', () => ({

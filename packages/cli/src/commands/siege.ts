@@ -1,6 +1,16 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { loadConfig, Orchestrator, walkFiles, readFileSafe } from '@aegis-scan/core';
+import {
+  loadConfig,
+  Orchestrator,
+  walkFiles,
+  readFileSafe,
+  loadRoE,
+  synthesizeMinimalRoE,
+  validateTemporalEnvelope,
+  validateTargetInScope,
+  type RoE,
+} from '@aegis-scan/core';
 import type { AuditResult, Finding, ScanCategory } from '@aegis-scan/core';
 import { getAllScanners, getAttackScanners } from '@aegis-scan/scanners';
 import { selectReporter, writeStdout } from '../utils.js';
@@ -8,6 +18,7 @@ import { relative } from 'path';
 
 export interface SiegeOptions {
   target: string;
+  roe?: string;
   format?: string;
   confirm?: boolean;
   color?: boolean;
@@ -211,6 +222,41 @@ export async function runSiege(
   }
 
   const resolvedPath = path || process.cwd();
+
+  // --- RoE gate (APTS-SE-001 / SE-003 / SE-004 / SE-006 / AL-006 / AL-014) ---
+  let roe: RoE;
+  if (options.roe) {
+    const result = loadRoE(options.roe);
+    if (!result.ok) {
+      console.error(chalk.red(`\nRoE validation failed (${result.phase}):`));
+      console.error(chalk.red(result.error));
+      console.error(chalk.dim('\nFix the RoE file or omit --roe to fall back to a synthesized minimal RoE.'));
+      return 1;
+    }
+    roe = result.roe;
+    console.log(chalk.dim(`  RoE loaded: ${roe.roe_id} (${roe.operator.organization}, authorized by ${roe.operator.authorized_by})`));
+
+    // Pre-engagement temporal-envelope check (APTS-SE-004 + SE-008)
+    const temporal = validateTemporalEnvelope(roe);
+    if (!temporal.allowed) {
+      console.error(chalk.red(`\nRoE temporal-envelope check failed:`));
+      console.error(chalk.red(`  ${temporal.reason}`));
+      return 1;
+    }
+
+    // Pre-engagement target-in-scope check (APTS-SE-003 + SE-006 + AL-006)
+    const scope = validateTargetInScope(options.target, roe);
+    if (!scope.allowed) {
+      console.error(chalk.red(`\nRoE scope check failed:`));
+      console.error(chalk.red(`  ${scope.reason}`));
+      return 1;
+    }
+    console.log(chalk.dim(`  RoE scope: ${scope.reason}`));
+  } else {
+    roe = synthesizeMinimalRoE(options.target);
+    console.log(chalk.yellow(`  No --roe file provided — synthesized minimal RoE (${roe.roe_id}). For institutional engagements, author a Rules-of-Engagement JSON file per APTS-SE-001.`));
+  }
+
   const spinner = ora('Verifying target reachability...').start();
 
   try {
@@ -237,6 +283,12 @@ export async function runSiege(
 
     // --- Phase 1: Reconnaissance ---
     const recon = await runReconnaissance(resolvedPath, options.target, spinner);
+    // APTS-SE-008 — per-phase temporal-envelope recheck after each phase
+    const tAfter1 = validateTemporalEnvelope(roe);
+    if (!tAfter1.allowed) {
+      spinner.fail(`Temporal envelope check failed after Phase 1 (recon): ${tAfter1.reason}`);
+      return 1;
+    }
 
     console.log(chalk.cyan(`  Discovered ${recon.routeCount} routes, ${recon.endpointCount} endpoints, framework: ${recon.framework}`));
     if (recon.tlsInfo) {
@@ -245,6 +297,11 @@ export async function runSiege(
 
     // --- Phase 2: Vulnerability Discovery ---
     const auditResult = await runVulnerabilityDiscovery(resolvedPath, options.target, spinner);
+    const tAfter2 = validateTemporalEnvelope(roe);
+    if (!tAfter2.allowed) {
+      spinner.fail(`Temporal envelope check failed after Phase 2 (discovery): ${tAfter2.reason}`);
+      return 1;
+    }
     const highCritical = auditResult.findings.filter(
       (f) => f.severity === 'high' || f.severity === 'critical' || f.severity === 'blocker',
     );
@@ -257,6 +314,11 @@ export async function runSiege(
       highCritical.length,
       spinner,
     );
+    const tAfter3 = validateTemporalEnvelope(roe);
+    if (!tAfter3.allowed) {
+      spinner.fail(`Temporal envelope check failed after Phase 3 (exploitation): ${tAfter3.reason}`);
+      return 1;
+    }
     console.log(chalk.cyan(`  Verified ${attackFindings.length} vulnerabilities via live probes`));
 
     // --- Phase 4: Report Generation ---

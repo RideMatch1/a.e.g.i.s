@@ -27,3 +27,17 @@ export {
   passesPrecisionGate,
   type PrecisionTier,
 } from './precision-tiers.js';
+export {
+  RoESchema,
+  validateTargetInScope,
+  validateTemporalEnvelope,
+  getAssetCriticality,
+  validateAction,
+  synthesizeMinimalRoE,
+  loadRoE,
+  type RoE,
+  type ValidationDecision,
+  type RoEParseResult,
+  type RoEParseSuccess,
+  type RoEParseFailure,
+} from './roe/index.js';
