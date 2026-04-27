@@ -26,7 +26,7 @@
 | `docs/compliance/owasp-apts/attribution.md` | CC BY-SA 4.0 attribution + AEGIS license note | required by upstream license |
 | `README.md` (root) | New "OWASP-APTS Conformance Posture" section linking to the new subtree | modified |
 | `CHANGELOG.md` | Unreleased entry | modified |
-| `aegis-precision/v018-apts-phase1-handover.md` | Phase-2 punch list, executor notes, post-ship hand-over | original |
+| `<corpus-precision-cache>/v018-apts-phase1-handover.md` | Phase-2 punch list, executor notes, post-ship hand-over | original |
 
 ---
 
@@ -162,8 +162,8 @@ CC BY-SA-licensed files are clearly identified above.
 
 Run:
 ```bash
-test -f /Users/lukashertle/Developer/projects/aegis/docs/compliance/owasp-apts/README.md && \
-test -f /Users/lukashertle/Developer/projects/aegis/docs/compliance/owasp-apts/attribution.md && \
+test -f <repo-root>/docs/compliance/owasp-apts/README.md && \
+test -f <repo-root>/docs/compliance/owasp-apts/attribution.md && \
 echo OK
 ```
 Expected: `OK`
@@ -172,7 +172,7 @@ Expected: `OK`
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 grep -cE '\]\(\./[a-zA-Z0-9.-]+\.(md|json)\)' docs/compliance/owasp-apts/README.md
 ```
 Expected: `6` (links to CONFORMANCE-CLAIM.md, conformance.json, EVIDENCE-MANIFEST.md, FOUNDATION-MODEL-DISCLOSURE.md, gap-summary.md, attribution.md). The link to the design spec at `../../design/...` does NOT match because of the `./` prefix-anchor in the regex — that's intentional, we only count the in-subtree cross-refs.
@@ -195,7 +195,7 @@ git commit -m "docs(compliance): add OWASP-APTS subtree README + CC BY-SA 4.0 at
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 ls packages/scanners/src/dast/ 2>&1 && \
 echo "---fix-mode---" && \
 ls packages/cli/src/commands/fix.ts packages/cli/src/fix/ 2>&1
@@ -266,7 +266,7 @@ AEGIS provides templates for this in
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 grep -cE '^## Wrapper:' docs/compliance/owasp-apts/FOUNDATION-MODEL-DISCLOSURE.md
 ```
 Expected: `3` (one per wrapper) + the fix-mode under its own ## section. Adjust regex to match the structure actually written.
@@ -474,7 +474,7 @@ Pre-classified:
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 python3 -c "
 import json
 with open('docs/compliance/owasp-apts/conformance.json') as f:
@@ -536,7 +536,7 @@ write a section under `## Gap Notes`.
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 python3 -c "
 import json
 with open('docs/compliance/owasp-apts/conformance.json') as f:
@@ -595,7 +595,7 @@ Structure:
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 python3 -c "
 import json, re
 with open('docs/compliance/owasp-apts/conformance.json') as f:
@@ -622,7 +622,7 @@ Expected: `OK`
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 HEAD=$(git rev-parse HEAD) && \
 sed -i.bak "s|\`<git-rev-parse-HEAD-output>\`|\`$HEAD\`|" docs/compliance/owasp-apts/EVIDENCE-MANIFEST.md && \
 rm docs/compliance/owasp-apts/EVIDENCE-MANIFEST.md.bak && \
@@ -664,7 +664,7 @@ Header sections:
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 python3 -c "
 import json
 from collections import Counter, defaultdict
@@ -698,7 +698,7 @@ Paste the output into the Domain Summary section.
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 grep -E '\(\.\/[A-Z-]+\.md\)' docs/compliance/owasp-apts/CONFORMANCE-CLAIM.md
 ```
 Expected: at least 3 internal links (to FOUNDATION-MODEL-DISCLOSURE, EVIDENCE-MANIFEST, attribution).
@@ -770,7 +770,7 @@ publishing the gap, not the claim.
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 python3 -c "
 import json
 with open('docs/compliance/owasp-apts/conformance.json') as f:
@@ -851,7 +851,7 @@ Find the **Unreleased** section in `CHANGELOG.md` (top of file) and add under "A
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 grep -A 2 "OWASP-APTS Conformance Posture" README.md | head -5
 ```
 Expected: shows the new section.
@@ -860,7 +860,7 @@ Expected: shows the new section.
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 head -50 CHANGELOG.md | grep -E "^## |^### " | head -10
 ```
 Expected: shows the section structure; the new entry should fit existing pattern.
@@ -877,7 +877,7 @@ git commit -m "docs(readme): surface OWASP-APTS Conformance Posture + CHANGELOG 
 ## Task 8: Handover doc
 
 **Files:**
-- Create: `aegis-precision/v018-apts-phase1-handover.md`
+- Create: `<corpus-precision-cache>/v018-apts-phase1-handover.md`
 
 - [ ] **Step 1: Write the handover**
 
@@ -929,7 +929,7 @@ Phase 1 publication is the baseline. Re-assess on:
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 python3 -c "
 import json
 with open('docs/compliance/owasp-apts/conformance.json') as f:
@@ -950,12 +950,12 @@ Paste the output into the handover doc, then replace each `TBD` with a concrete 
 
 - [ ] **Step 3: Commit**
 
-The directory `aegis-precision/` is in the local-scrub-list, so the
+The directory `<corpus-precision-cache>/` is in the local-scrub-list, so the
 commit message must NOT reference it by name. The diff shows the path;
 the message describes it obliquely.
 
 ```bash
-git add aegis-precision/v018-apts-phase1-handover.md
+git add <corpus-precision-cache>/v018-apts-phase1-handover.md
 git commit -m "docs(handover): APTS Phase-1 closure note + Phase-2 punch list"
 ```
 
@@ -969,7 +969,7 @@ After Task 8 completes, run this final sweep:
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 ls docs/compliance/owasp-apts/ && \
 echo "--- expected: 7 files (README, CONFORMANCE-CLAIM, conformance.json, EVIDENCE-MANIFEST, FOUNDATION-MODEL-DISCLOSURE, gap-summary, attribution) ---"
 ```
@@ -992,7 +992,7 @@ Expected: 7 files in the subtree, plus the handover doc + README + CHANGELOG mod
 
 Run:
 ```bash
-cd /Users/lukashertle/Developer/projects/aegis && \
+cd <repo-root> && \
 git log --oneline main..HEAD 2>&1 | head -10
 ```
 Expected: 8 commits in the order: foundation → fmd → conformance.json → evidence → claim → gap-summary → readme/changelog → handover.
@@ -1000,7 +1000,7 @@ Expected: 8 commits in the order: foundation → fmd → conformance.json → ev
 If the head-count of commits is right and all validations passed:
 **Phase 1 ship is complete.**
 
-After ship, surface the batched checkpoint to the user (per spec): WP-B starts (parallel), WP-C/D/E need explicit GO. See `aegis-precision/v018-apts-phase1-handover.md` for the punch list.
+After ship, surface the batched checkpoint to the user (per spec): WP-B starts (parallel), WP-C/D/E need explicit GO. See `<corpus-precision-cache>/v018-apts-phase1-handover.md` for the punch list.
 
 ---
 

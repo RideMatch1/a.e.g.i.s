@@ -228,9 +228,9 @@ Any gap discovered during the incident becomes a new step here.
 
 ### 5.3 Update the fortress plan
 
-In `aegis-precision/v017-supply-chain-fortress-plan.md`, add any new
-defense layer identified. Schedule the v0.17.x or v0.18 work that
-implements it.
+In the local corpus-precision cache (`<corpus-precision-cache>/v017-supply-chain-fortress-plan.md`),
+add any new defense layer identified. Schedule the v0.17.x or v0.18
+work that implements it.
 
 ### 5.4 Re-verify supply-chain posture end-to-end
 

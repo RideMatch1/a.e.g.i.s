@@ -120,9 +120,10 @@ the standard `description` field — no new schema field required.
 
 ## Round-4 audit context
 
-This heuristic closes Round-4 external-review finding
-[🔴 D-C-002](../aegis-precision/v0153-round4-dispatch-brief.md) where
-the Operator-SaaS-class Spa-App routes
-`/api/public/spa/[slug]/{booking,chat,rating,treatments,checkout,[token]/cancel}`
-were F-blocking first-scans on 4 of 4 audit-sample CRITICALs despite
+This heuristic closes Round-4 external-review finding D-C-002 (corpus-
+precision dispatch brief, archived in the local corpus-precision cache;
+not a public artifact) where an Operator-SaaS-class live-target had
+routes
+`/api/public/<scope>/[slug]/{booking,chat,rating,treatments,checkout,[token]/cancel}`
+F-blocking first-scans on 4 of 4 audit-sample CRITICALs despite
 `[slug]` being the architectural tenant-discriminant.
