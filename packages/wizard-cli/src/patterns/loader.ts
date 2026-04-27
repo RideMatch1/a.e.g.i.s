@@ -108,10 +108,33 @@ async function walkMarkdownFiles(dir: string, out: string[]): Promise<void> {
 /**
  * Load every valid pattern-file under `baseDir` (recursively). Invalid files
  * throw on first encounter — caller can catch and report aggregate errors.
+ *
+ * Top-level files in `baseDir` itself (e.g. `docs/patterns/index.md`,
+ * `docs/patterns/ai-chat-defense-framework.md`) are NOT loaded — patterns
+ * MUST live in a `<category>/` subdirectory per the loader contract
+ * (Invariant 1: category-frontmatter-must-match-parent-dir). Top-level
+ * `.md` files are reference docs, indexes, or schema files.
  */
 export async function loadAllPatterns(baseDir: string): Promise<LoadedPattern[]> {
+  // Only walk SUBDIRECTORIES of baseDir for pattern files — top-level
+  // entries in baseDir are reference docs, not patterns.
+  let topEntries: string[];
+  try {
+    topEntries = await readdir(baseDir);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw new Error(
+      `loadAllPatterns failed at ${baseDir}: ${(err as Error).message}`,
+    );
+  }
+
   const files: string[] = [];
-  await walkMarkdownFiles(baseDir, files);
+  for (const e of topEntries) {
+    const p = join(baseDir, e);
+    const st = await stat(p).catch(() => null);
+    if (!st || !st.isDirectory()) continue;
+    await walkMarkdownFiles(p, files);
+  }
   files.sort();
 
   const loaded: LoadedPattern[] = [];
