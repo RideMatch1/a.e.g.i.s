@@ -212,7 +212,29 @@ async function main(): Promise<void> {
   await server.connect(transport);
 }
 
-main().catch((err) => {
-  process.stderr.write(`AEGIS MCP Server fatal error: ${err instanceof Error ? err.message : String(err)}\n`);
-  process.exit(1);
-});
+// Guard the entry-point invocation so `import('./src/index.js')` does NOT
+// trigger a stdio connection. Test code imports this module to assert
+// version-reporting is in lockstep with package.json, and a stdio connect
+// from within the test process would block on closed stdin in CI (vitest
+// timeout 5s). When the module is the actual node entry-point the URL of
+// import.meta matches the resolved process.argv[1].
+//
+// Failure mode this fixes: CI mcp-server version.test.ts timeout in 5000ms
+// (regression from 25acb6d, 2026-04-25; CI red since 2026-04-26 14:21).
+const isEntryPoint = (() => {
+  try {
+    const argv1 = process.argv[1];
+    if (!argv1) return false;
+    const argvUrl = new URL(`file://${argv1}`).href;
+    return import.meta.url === argvUrl;
+  } catch {
+    return false;
+  }
+})();
+
+if (isEntryPoint) {
+  main().catch((err) => {
+    process.stderr.write(`AEGIS MCP Server fatal error: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(1);
+  });
+}
