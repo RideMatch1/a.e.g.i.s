@@ -12,6 +12,18 @@ and quality-audit completion, not by a fixed schedule.
 
 ---
 
+## [0.2.1] — 2026-04-28 — "list --category compliance hotfix"
+
+### Fixed
+
+- **`aegis-skills list --category compliance` was rejected** by the CLI's hardcoded `VALID_CATEGORIES` whitelist in `packages/skills/src/commands/list.ts:19`. The whitelist still listed only the four pre-v0.2.0 categories (`offensive`, `defensive`, `mitre-mapped`, `ops`) and mismatched the actual on-disk category set, so callers filtering to the new `compliance` category got `Error: --category must be one of …` instead of the brutaler-anwalt entry. Added `compliance` to the whitelist + updated the JSDoc + updated the `--help` text in `bin.ts`. The unit-tests already covered category-filter happy-path on the existing categories; this hotfix relies on the post-publish manual smoke (`npx -y @aegis-scan/skills@0.2.1 list --category compliance` returns brutaler-anwalt) for evidence.
+
+### Meta
+
+- Same-day patch on top of `0.2.0`. The bug was caught by a post-publish manual install + run, not by source-side tests — class-lesson logged: every new category-string surface needs an end-to-end CLI smoke before tag-push, not just a manifest-test.
+
+---
+
 ## [0.2.0] — 2026-04-27 — "four-category-population + compliance with brutaler-anwalt"
 
 ### Added — four category populations (defensive / mitre-mapped / ops / compliance)

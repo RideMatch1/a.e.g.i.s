@@ -3,7 +3,7 @@
  *
  * Flags:
  *   --category <name>  Filter to a single category: offensive / defensive
- *                      / mitre-mapped / ops / all (default).
+ *                      / mitre-mapped / ops / compliance / all (default).
  *   --source <name>    Filter to a single source-namespace within a
  *                      category (e.g. snailsploit-fork). Default: all.
  *   --json             Machine-readable output for scripts or tests.
@@ -16,7 +16,14 @@ export interface ListOptions {
   json?: boolean;
 }
 
-const VALID_CATEGORIES = new Set(['all', 'offensive', 'defensive', 'mitre-mapped', 'ops']);
+const VALID_CATEGORIES = new Set([
+  'all',
+  'offensive',
+  'defensive',
+  'mitre-mapped',
+  'ops',
+  'compliance',
+]);
 
 export function runList(options: ListOptions = {}): number {
   const categoryFilter = (options.category ?? 'all').toLowerCase();

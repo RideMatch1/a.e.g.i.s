@@ -35,7 +35,7 @@ Commands:
             Default target: ~/.claude/skills/user/aegis-skills/
 
 List options:
-  --category <cat>   Filter to offensive / defensive / mitre-mapped / ops / all
+  --category <cat>   Filter to offensive / defensive / mitre-mapped / ops / compliance / all
   --source <src>     Filter to one source-namespace (e.g. snailsploit-fork)
   --json             Machine-readable output
 
