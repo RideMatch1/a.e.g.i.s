@@ -143,6 +143,15 @@ const ReferencesSchema = z
   })
   .strict();
 
+const SandboxingSchema = z
+  .object({
+    mode: z.enum(['docker', 'firejail', 'none']).default('none'),
+    docker_network: z.string().min(1).optional(),
+    image_overrides: z.record(z.string().min(1), z.string().min(1)).optional(),
+    extra_docker_args: z.array(z.string()).optional(),
+  })
+  .strict();
+
 // ---------------------------------------------------------------------------
 // Top-level RoE schema
 
@@ -159,6 +168,8 @@ export const RoESchema = z
     stop_conditions: StopConditionsSchema.default({ on_critical_finding: 'halt' }),
     notifications: NotificationsSchema.optional(),
     references: ReferencesSchema.optional(),
+    /** APTS-MR-018 — declarative sandboxing constraints for LLM-pentest wrappers. */
+    sandboxing: SandboxingSchema.default({ mode: 'none' }),
   })
   .strict();
 
@@ -376,6 +387,7 @@ export function synthesizeMinimalRoE(
       blackout_windows: [],
     },
     stop_conditions: { on_critical_finding: 'halt' },
+    sandboxing: { mode: 'none' },
   };
 }
 

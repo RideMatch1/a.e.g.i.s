@@ -1,4 +1,11 @@
-import { exec, commandExists, readFileSafe } from '@aegis-scan/core';
+import {
+  exec,
+  commandExists,
+  readFileSafe,
+  wrapForSandbox,
+  validateSandboxMode,
+  validateWrapperResponse,
+} from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
@@ -111,11 +118,17 @@ export const ptaiScanner: Scanner = {
     const reportDir = mkdtempSync(join(tmpdir(), 'aegis-ptai-'));
     const reportPath = join(reportDir, 'report.sarif');
 
-    const result = await exec(
+    // APTS-MR-018 — sandbox-mode wrap; default 'none' is pass-through.
+    const sandboxMode = validateSandboxMode(process.env.AEGIS_SANDBOX_MODE).mode ?? 'none';
+    const wrapped = wrapForSandbox(
+      'ptai',
       'ptai',
       ['start', target, '--non-interactive', '--output', reportPath, '--format', 'sarif'],
-      { timeout: 30 * 60_000 }, // ptai can run for 15-60min; cap at 30min
+      sandboxMode,
     );
+    const result = await exec(wrapped.binary, wrapped.args, {
+      timeout: 30 * 60_000, // ptai can run for 15-60min; cap at 30min
+    });
 
     if (result.exitCode > 1) {
       rmSync(reportDir, { recursive: true, force: true });
@@ -154,6 +167,21 @@ export const ptaiScanner: Scanner = {
         duration: Date.now() - start,
         available: true,
         error: `ptai SARIF-parse failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+
+    // APTS-MR-002 — wrapper-output validation. SARIF runs[].results[] is the
+    // top-level shape PtAI emits; deeper validation is not enforced here, but
+    // structural mismatch is rejected.
+    const validation = validateWrapperResponse('ptai', report);
+    if (!validation.ok) {
+      return {
+        scanner: 'ptai',
+        category: 'dast',
+        findings: [],
+        duration: Date.now() - start,
+        available: true,
+        error: `ptai response failed MR-002 validation: ${validation.reason}`,
       };
     }
 

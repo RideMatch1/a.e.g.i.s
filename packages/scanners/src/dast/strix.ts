@@ -1,4 +1,10 @@
-import { exec, commandExists } from '@aegis-scan/core';
+import {
+  exec,
+  commandExists,
+  wrapForSandbox,
+  validateSandboxMode,
+  validateWrapperResponse,
+} from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
 /**
@@ -95,12 +101,16 @@ export const strixScanner: Scanner = {
     }
 
     // -n = non-interactive (CI/headless), --output json
-    // Default timeout 15min — strix can take 5-30min per target depending on scope
-    const result = await exec(
+    // Default timeout 15min — strix can take 5-30min per target depending on scope.
+    // APTS-MR-018 — when AEGIS_SANDBOX_MODE is set, route exec through the sandboxer.
+    const sandboxMode = validateSandboxMode(process.env.AEGIS_SANDBOX_MODE).mode ?? 'none';
+    const wrapped = wrapForSandbox(
+      'strix',
       'strix',
       ['--target', target, '-n', '--output', 'json'],
-      { timeout: 15 * 60_000 },
+      sandboxMode,
     );
+    const result = await exec(wrapped.binary, wrapped.args, { timeout: 15 * 60_000 });
 
     if (result.exitCode > 1) {
       return {
@@ -139,7 +149,20 @@ export const strixScanner: Scanner = {
       };
     }
 
-    const items = report.findings ?? report.vulnerabilities ?? report.results ?? [];
+    // APTS-MR-002 — validate + sanitize wrapper output before propagating into Findings.
+    const validation = validateWrapperResponse('strix', report);
+    if (!validation.ok) {
+      return {
+        scanner: 'strix',
+        category: 'dast',
+        findings: [],
+        duration: Date.now() - start,
+        available: true,
+        error: `strix response failed MR-002 validation: ${validation.reason}`,
+      };
+    }
+    const cleaned = (validation.cleaned ?? report) as StrixReport;
+    const items = cleaned.findings ?? cleaned.vulnerabilities ?? cleaned.results ?? [];
     const findings: Finding[] = [];
     let idCounter = 1;
 

@@ -98,13 +98,14 @@ program
   .option('--state-file <path>', 'JSONL event-stream + state snapshot file (APTS-HO-002/006/008 — enables resume + signal-based pause/kill).')
   .option('--resume <path>', 'Resume from a prior --state-file. Skips already-completed phases and continues from the next.')
   .option('--notify-webhook <url>', 'Webhook URL to POST high-signal events (engagement-start, critical-finding, halt, kill, completion). Repeatable.', collectMulti, [])
+  .option('--sandbox-mode <mode>', 'Wrap LLM-pentest invocations through a sandboxer (APTS-MR-018). Values: docker | firejail | none (default).', 'none')
   .option('-f, --format <format>', 'Output format: terminal (default), json, sarif, html, markdown', 'terminal')
   .option('--confirm', 'Acknowledge authorization to send live attack traffic')
   .option('--no-color', 'Disable colored output')
   .action(
     async (
       path: string | undefined,
-      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; format: string; confirm: boolean; color: boolean },
+      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; sandboxMode?: string; format: string; confirm: boolean; color: boolean },
     ) => {
       if (!options.color) {
         chalk.level = 0;

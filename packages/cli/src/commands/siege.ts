@@ -19,10 +19,19 @@ import {
   installSignalHandlers,
   dispatchNotification,
   ChainedEmitter,
+  pinConfig,
+  verifyConfig,
+  safeFetch,
+  isSafeFetchRejection,
+  detectAuthorityClaim,
+  detectScopeExpansion,
+  composeEgressAllowlist,
+  validateSandboxMode,
   type RoE,
   type EngagementState,
   type EventSink,
   type NotificationConfig,
+  type ConfigPin,
 } from '@aegis-scan/core';
 import type { AuditResult, Finding, ScanCategory } from '@aegis-scan/core';
 import { getAllScanners, getAttackScanners } from '@aegis-scan/scanners';
@@ -38,6 +47,8 @@ export interface SiegeOptions {
   resume?: string;
   /** Webhook URL(s) to POST critical events (engagement-start, critical-finding, halt, kill, completion). Repeatable. */
   notifyWebhook?: string[];
+  /** Sandbox mode for LLM-pentest wrappers (APTS-MR-018). One of: docker | firejail | none. Default none. */
+  sandboxMode?: string;
   format?: string;
   confirm?: boolean;
   color?: boolean;
@@ -67,14 +78,15 @@ async function runReconnaissance(
   let framework = 'unknown';
   let tlsInfo: string | null = null;
 
-  // Tech fingerprinting via HTTP headers
+  // Tech fingerprinting via HTTP headers — APTS-MR-007/008/009 safeFetch
+  // hardened path (manual redirect re-validation, DNS-rebind defense, SSRF
+  // guard against private/link-local/cloud-metadata IPs).
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
-    const response = await fetch(target, {
+    const response = await safeFetch(target, {
       method: 'HEAD',
       signal: controller.signal,
-      redirect: 'follow',
     });
     clearTimeout(timeout);
 
@@ -97,7 +109,12 @@ async function runReconnaissance(
     if (target.startsWith('https://')) {
       tlsInfo = 'HTTPS enabled';
     }
-  } catch {
+  } catch (err) {
+    if (isSafeFetchRejection(err)) {
+      // safeFetch rejected the URL outright — this is a policy event, not a
+      // network blip. Surface it so the operator sees why recon was skipped.
+      spinner.warn(`safeFetch rejected target ${target}: ${err.reason}`);
+    }
     // Target unreachable for fingerprinting — continue
   }
 
@@ -276,6 +293,25 @@ export async function runSiege(
     console.log(chalk.yellow(`  No --roe file provided — synthesized minimal RoE (${roe.roe_id}). For institutional engagements, author a Rules-of-Engagement JSON file per APTS-SE-001.`));
   }
 
+  // --- APTS-MR-018: validate sandbox-mode flag, propagate to wrapper child processes via env. ---
+  const sandboxValidation = validateSandboxMode(options.sandboxMode);
+  if (!sandboxValidation.ok) {
+    console.error(chalk.red(`\n--sandbox-mode validation failed: ${sandboxValidation.reason}`));
+    return 1;
+  }
+  const sandboxMode = sandboxValidation.mode ?? roe.sandboxing.mode;
+  // RoE sandboxing.mode acts as a policy floor — if the operator declared
+  // a stricter mode in the RoE, the CLI flag cannot weaken it.
+  const effectiveSandboxMode =
+    roe.sandboxing.mode !== 'none' && sandboxMode === 'none' ? roe.sandboxing.mode : sandboxMode;
+
+  // --- APTS-MR-011: compose egress allowlist from RoE in_scope + LLM-essentials,
+  //     propagate to wrapper child processes. Wrappers consume AEGIS_EGRESS_ALLOWLIST;
+  //     in docker mode the allowlist is enforced via the chosen network. ---
+  const egressAllowlist = composeEgressAllowlist(roe, { includeLlmEssentials: true });
+  process.env.AEGIS_SANDBOX_MODE = effectiveSandboxMode;
+  process.env.AEGIS_EGRESS_ALLOWLIST = egressAllowlist.envValue;
+
   // --- Cluster-2: engagement-id + state + JSONL event channel (APTS-HO-002/006/008/015) ---
   let engagementId = `siege-${new Date().toISOString().replace(/[:.]/g, '-')}-${Math.random().toString(36).slice(2, 8)}`;
   let completedPhases: ('recon' | 'discovery' | 'exploitation' | 'reporting')[] = [];
@@ -325,6 +361,62 @@ export async function runSiege(
       mode: 'siege',
     }),
   );
+
+  // APTS-MR-004 + MR-012: pin the SHA-256 of the canonical RoE at engagement-start.
+  // verifyConfig is re-called at every phase boundary; mismatch → halt.
+  const roePin: ConfigPin = pinConfig('roe', roe);
+  emit(
+    makeEvent(engagementId, 'scope-validation', {
+      target: roe.roe_id,
+      action: 'roe-config-integrity-pin',
+      allowed: true,
+      reason: `RoE pinned: hash=${roePin.hash} at ${roePin.pinned_at}`,
+      apts_refs: ['APTS-MR-004', 'APTS-MR-012'],
+    }),
+  );
+
+  /**
+   * Halt the engagement when a finding-text scan trips a manipulation-resistance
+   * detector (authority claim or scope-expansion social engineering). Emits a
+   * critical-finding event with stop_action 'halt' so the audit trail captures
+   * the trigger; caller short-circuits the orchestration loop afterward.
+   */
+  const haltOnFindingTextRisk = (f: Finding): { halt: boolean; reason?: string } => {
+    const text = `${f.title}\n${f.description ?? ''}`;
+    const authorityCheck = detectAuthorityClaim(text);
+    if (authorityCheck.suggested_action === 'reject') {
+      emit(
+        makeEvent(engagementId, 'critical-finding', {
+          finding_id: f.id,
+          severity: f.severity,
+          title: f.title,
+          ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+          stop_action: 'halt',
+        }),
+      );
+      return {
+        halt: true,
+        reason: `APTS-MR-005 authority-claim "${authorityCheck.claim}" rejected — operator confirmation required (matched "${authorityCheck.matched_phrase ?? ''}")`,
+      };
+    }
+    const scopeCheck = detectScopeExpansion(text);
+    if (scopeCheck.detected) {
+      emit(
+        makeEvent(engagementId, 'critical-finding', {
+          finding_id: f.id,
+          severity: f.severity,
+          title: f.title,
+          ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+          stop_action: 'halt',
+        }),
+      );
+      return {
+        halt: true,
+        reason: `APTS-MR-010 scope-expansion phrase ("${scopeCheck.kind}") in finding text — engagement halted (matched "${scopeCheck.matched_phrase ?? ''}")`,
+      };
+    }
+    return { halt: false };
+  };
 
   // APTS-SE-015: scope-enforcement audit event captures the in-scope decision
   // that authorized this engagement. The chained emission means any future
@@ -377,20 +469,30 @@ export async function runSiege(
   const spinner = ora('Verifying target reachability...').start();
 
   try {
-    // Verify target is reachable
+    // Verify target is reachable — APTS-MR-007/008/009 hardened path
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
-      const res = await fetch(options.target, {
+      const res = await safeFetch(options.target, {
         method: 'HEAD',
         signal: controller.signal,
-        redirect: 'follow',
       });
       clearTimeout(timeout);
       if (!res.ok && res.status >= 500) {
         spinner.warn(`Target returned ${res.status} — proceeding anyway`);
       }
     } catch (fetchErr) {
+      if (isSafeFetchRejection(fetchErr)) {
+        spinner.fail(`Target ${options.target} rejected by safeFetch policy: ${fetchErr.reason}`);
+        emit(
+          makeEvent(engagementId, 'halt', {
+            reason: `APTS-MR-007/008/009 safeFetch rejected target: ${fetchErr.reason}`,
+            apts_refs: ['APTS-MR-007', 'APTS-MR-008', 'APTS-MR-009'],
+          }),
+        );
+        handlers.uninstall();
+        return 1;
+      }
       spinner.fail(`Target unreachable: ${options.target}`);
       const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
       console.error(chalk.red(`  ${msg}`));
@@ -411,6 +513,14 @@ export async function runSiege(
       if (!tAfter1.allowed) {
         spinner.fail(`Temporal envelope check failed after Phase 1 (recon): ${tAfter1.reason}`);
         emit(makeEvent(engagementId, 'halt', { reason: tAfter1.reason, apts_refs: tAfter1.apts_refs }));
+        handlers.uninstall();
+        return 1;
+      }
+      // APTS-MR-004 + MR-012 — verify pinned RoE config integrity at phase boundary.
+      const cAfter1 = verifyConfig(roe, roePin);
+      if (!cAfter1.ok) {
+        spinner.fail(`Config integrity check failed after Phase 1 (recon): ${cAfter1.reason}`);
+        emit(makeEvent(engagementId, 'halt', { reason: cAfter1.reason ?? 'config integrity violation', apts_refs: cAfter1.apts_refs }));
         handlers.uninstall();
         return 1;
       }
@@ -455,6 +565,13 @@ export async function runSiege(
         handlers.uninstall();
         return 1;
       }
+      const cAfter2 = verifyConfig(roe, roePin);
+      if (!cAfter2.ok) {
+        spinner.fail(`Config integrity check failed after Phase 2 (discovery): ${cAfter2.reason}`);
+        emit(makeEvent(engagementId, 'halt', { reason: cAfter2.reason ?? 'config integrity violation', apts_refs: cAfter2.apts_refs }));
+        handlers.uninstall();
+        return 1;
+      }
       // Stream individual findings as JSONL events; flag criticals for stop_conditions.
       for (const f of auditResult.findings) {
         emit(findingEvent(engagementId, f));
@@ -466,6 +583,14 @@ export async function runSiege(
             ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
             stop_action: roe.stop_conditions.on_critical_finding,
           }));
+        }
+        // APTS-MR-005 + MR-010 — finding-text manipulation-resistance scan.
+        const risk = haltOnFindingTextRisk(f);
+        if (risk.halt) {
+          spinner.fail(`Manipulation-resistance halt: ${risk.reason}`);
+          emit(makeEvent(engagementId, 'halt', { reason: risk.reason ?? 'manipulation-resistance halt', apts_refs: ['APTS-MR-005', 'APTS-MR-010'] }));
+          handlers.uninstall();
+          return 1;
         }
       }
       findingsCarried.push(...auditResult.findings);
@@ -499,6 +624,13 @@ export async function runSiege(
         handlers.uninstall();
         return 1;
       }
+      const cAfter3 = verifyConfig(roe, roePin);
+      if (!cAfter3.ok) {
+        spinner.fail(`Config integrity check failed after Phase 3 (exploitation): ${cAfter3.reason}`);
+        emit(makeEvent(engagementId, 'halt', { reason: cAfter3.reason ?? 'config integrity violation', apts_refs: cAfter3.apts_refs }));
+        handlers.uninstall();
+        return 1;
+      }
       for (const f of attackFindings) {
         emit(findingEvent(engagementId, f));
         if (isCriticalSeverity(f.severity)) {
@@ -509,6 +641,13 @@ export async function runSiege(
             ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
             stop_action: roe.stop_conditions.on_critical_finding,
           }));
+        }
+        const risk = haltOnFindingTextRisk(f);
+        if (risk.halt) {
+          spinner.fail(`Manipulation-resistance halt: ${risk.reason}`);
+          emit(makeEvent(engagementId, 'halt', { reason: risk.reason ?? 'manipulation-resistance halt', apts_refs: ['APTS-MR-005', 'APTS-MR-010'] }));
+          handlers.uninstall();
+          return 1;
         }
       }
       findingsCarried.push(...attackFindings);

@@ -11,6 +11,19 @@ vi.mock('@aegis-scan/core', () => ({
   walkFiles: () => [],
   isTestFile: (filePath: string) =>
     /\.(test|spec|e2e)\.(ts|tsx|js|jsx|mjs|cjs)$/.test(filePath),
+  // APTS-MR-018 / MR-002 — sandbox + response validation are pass-through by
+  // default. Tests can override per-case with vi.mocked().mockReturnValueOnce.
+  validateSandboxMode: vi.fn().mockReturnValue({ ok: true, mode: 'none' }),
+  wrapForSandbox: vi.fn().mockImplementation((_name, binary, args) => ({
+    binary,
+    args: [...args],
+    envAdditions: {},
+    sandboxed: false,
+    mode_applied: 'none',
+  })),
+  validateWrapperResponse: vi
+    .fn()
+    .mockImplementation((_name, raw) => ({ ok: true, cleaned: raw, apts_refs: ['APTS-MR-002'] })),
 }));
 
 import { strixScanner } from '../../src/dast/strix.js';
