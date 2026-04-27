@@ -75,25 +75,25 @@ Summary: AEGIS does not pin a foundation model. The operator chooses the provide
 
 | Domain | Total Tier-1 | Met | Partially | Not Met | N/A | Planned |
 |---|---|---|---|---|---|---|
-| Scope Enforcement (SE) | 9 | 2 | 4 | 3 | 0 | 0 |
+| Scope Enforcement (SE) | 9 | 8 | 1 | 0 | 0 | 0 |
 | Safety Controls (SC) | 6 | 0 | 4 | 2 | 0 | 0 |
 | Human Oversight (HO) | 13 | 0 | 3 | 10 | 0 | 0 |
-| Graduated Autonomy (AL) | 11 | 2 | 6 | 3 | 0 | 0 |
+| Graduated Autonomy (AL) | 11 | 4 | 4 | 3 | 0 | 0 |
 | Auditability (AR) | 7 | 2 | 2 | 3 | 0 | 0 |
 | Manipulation Resistance (MR) | 13 | 2 | 6 | 5 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **15** | **28** | **27** | **2** | **0** |
+| **Total** | **72** | **23** | **23** | **24** | **2** | **0** |
 
-**MET total: 15/72 (21%).** This is the honest baseline. APTS forbids partial credit for a conformance claim; this is therefore explicitly a Readiness Assessment, not a claim.
+**MET total: 23/72 (32%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped after the Phase-1 baseline and closed 8 entries (SE-001/003/004/005/006/008 + AL-006/014). APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
 
 ---
 
 ## Per-domain narrative
 
-### Scope Enforcement (SE) — 2/9 MET
+### Scope Enforcement (SE) — 8/9 MET
 
-The SAST-side scope is mature (`aegis.config.json` + `excludePaths` is a battle-tested deny-list shape). The autonomous-engagement-side RoE is minimal (`siege --target URL --confirm`) — Phase 2 introduces a machine-readable RoE schema with temporal envelopes, asset-criticality classification, and per-action scope validation.
+After Phase 2 Cluster-1, the autonomous-engagement-side RoE is structured. SE-001 (RoE specification + validation), SE-003 (domain scope + wildcard), SE-004 (temporal envelope), SE-005 (asset criticality), SE-006 (pre-action scope validation), SE-008 (per-phase temporal monitoring) all flipped to MET via the new RoE schema + validators + CLI integration. SE-009 (hard deny lists) was already MET via `aegis.config.json` excludePaths. Only SE-015 (separate scope-enforcement audit log with hash-chain integrity) remains partial — closure depends on Cluster-3 hash-chain work.
 
 ### Safety Controls (SC) — 0/6 MET
 
@@ -103,9 +103,9 @@ The weakest currently-shipping baseline at the orchestrator layer. AEGIS today r
 
 Largest gap cluster. AEGIS today provides one decision point at engagement start (`siege --confirm`) and one termination path (Ctrl+C). The Phase-2 plan introduces a structured intervention API: pause/redirect/kill via SIGUSR1 + a JSONL-streamed engagement state, plus multi-channel notification hooks (Slack/email/PagerDuty/webhooks) for the escalation triggers.
 
-### Graduated Autonomy (AL) — 2/11 MET
+### Graduated Autonomy (AL) — 4/11 MET
 
-The two MET entries (AL-002 human-directed target/technique selection, AL-003 operator-configured parameters) reflect AEGIS's CLI-first, config-strict design. The PARTIAL/NOT-MET items are about the metadata layer (no AL-level tagging per scanner) and the runtime gating (no real-time approval gates). Phase 2 introduces AL-level metadata fields per scanner registration plus an approval-gate API.
+After Phase 2 Cluster-1, AL-006 (basic scope validation policy DSL) and AL-014 (multi-axis boundary definition framework) flipped to MET via the RoE schema. AL-002 (human-directed target/technique selection) and AL-003 (operator-configured parameters) were already MET. Remaining gaps: AL-001 (formal AL-level tagging per scanner), AL-004 (per-phase confirmation), AL-005 (logging not yet hash-signed), AL-008 (real-time approval gates), AL-011 (escalation triggers), AL-012 (kill switch), AL-016 (continuous boundary monitoring) — closures distributed across Phase 2 Clusters 2/3/5.
 
 ### Auditability (AR) — 2/7 MET
 
@@ -178,6 +178,7 @@ The Phase-2 punch list is tracked in the project's handover doc and re-flected i
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-04-27 | 1.0 | Initial Tier-1 Readiness Assessment publication. 15/72 MET, 28 PARTIAL, 27 NOT-MET, 2 N/A. Pinned at HEAD `551c63f989ed6f088ad642b79241fd531a1b82d5`. |
+| 2026-04-27 | 1.1 | Phase 2 Cluster-1 ship — machine-readable RoE schema + scope-object DSL. 8 entries flip MET (SE-001/003/004/005/006/008 + AL-006/014). New: 23/72 MET, 23 PARTIAL, 24 NOT-MET, 2 N/A. |
 
 ---
 

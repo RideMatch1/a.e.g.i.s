@@ -166,6 +166,40 @@ to exist at the pinned HEAD SHA.
 - **Captured at:** 2026-04-27
 - **Sensitivity:** public
 
+### `ev-roe-schema`
+
+- **Type:** code-schema + tests
+- **Paths:**
+  - `packages/core/src/roe/types.ts` — Zod-strict RoE schema (RoESchema). Captures operator authorization (organization, authorized_by, contact, ≥20-char attestation statement, signature_method), in_scope (domains with wildcard + includeSubdomains, IP CIDRs IPv4/IPv6, repository_paths), out_of_scope deny-list (domains, IP ranges, paths), asset_criticality (pattern + classification critical/high/medium/low), temporal envelope (start/end/timezone + blackout_windows), stop_conditions, optional notifications and references.
+  - `packages/core/__tests__/roe.test.ts` — schema + validator + loader tests; covers positive validation, every rejection mode (empty roe_id, wrong spec_version, short authorization statement, scheme-in-domain, malformed CIDR, end-before-start, unknown top-level field).
+- **What it proves:** APTS-SE-001 (Rules of Engagement Specification + Validation), APTS-SE-003 (Domain Scope + Wildcard Handling), APTS-SE-004 (Temporal Boundary), APTS-SE-005 (Asset Criticality Classification), APTS-AL-006 (Basic Scope Validation policy DSL), APTS-AL-014 (Boundary Definition Framework).
+- **How to verify:** `pnpm -F @aegis-scan/core test -- roe.test.ts` runs every schema-validation case. Inspect `RoESchema` for the field shape; the operator-readable structure mirrors the APTS Conformance_Claim_Template.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-roe-validators`
+
+- **Type:** code-validator + tests
+- **Paths:**
+  - `packages/core/src/roe/types.ts` — `validateTargetInScope` (deny-list precedence, IP CIDR check, wildcard domain matching), `validateTemporalEnvelope` (envelope start/end + blackout windows), `getAssetCriticality` (first-match-wins classification), `validateAction` (composite gate combining temporal + scope + criticality).
+  - `packages/core/__tests__/roe.test.ts` — every validator covered with positive + negative cases, including deny-wins-over-in-scope, blackout window mid-engagement, classification first-match precedence, composite-gate cascading rejection.
+- **What it proves:** APTS-SE-003 (Domain Scope Validation), APTS-SE-004 (Temporal Boundary), APTS-SE-005 (Asset Criticality), APTS-SE-006 (Pre-Action Scope Validation), APTS-SE-008 (Temporal Compliance Monitoring), APTS-AL-006 (Basic Scope Validation), APTS-AL-014 (Boundary Enforcement).
+- **How to verify:** Run the test suite; inspect each validator function for the per-CWE-style decision shape with explicit `apts_refs` field tying the decision back to the APTS requirement(s) it satisfies or violates.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-roe-cli-integration`
+
+- **Type:** code-integration
+- **Paths:**
+  - `packages/cli/src/index.ts` — `aegis siege --roe <path>` flag declaration.
+  - `packages/cli/src/commands/siege.ts` — pre-engagement RoE load + temporal-envelope check + target-in-scope check; falls back to `synthesizeMinimalRoE` with a yellow operator-warning when `--roe` is omitted; per-phase `validateTemporalEnvelope` recheck after each of the 4 siege phases (recon → discovery → exploitation → reporting), with halt-on-expiry.
+  - `packages/cli/__tests__/siege.test.ts` — siege orchestration tests with mocked validators.
+- **What it proves:** APTS-SE-001 (RoE specification + validation pipeline), APTS-SE-006 (pre-action scope validation), APTS-SE-008 (per-phase temporal-compliance monitoring).
+- **How to verify:** Run `aegis siege . --target https://example.com --roe ./engagement.json --confirm` against an example RoE — the CLI loads + validates + halts on any rejection. Without `--roe`, the synthesized-RoE warning surfaces.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
 ---
 
 ## Gap Notes (`partially_met`, `not_met`, `not_applicable`)
@@ -175,13 +209,9 @@ The handover doc tracks the same set with sequencing + ETA.
 
 ### Scope Enforcement (SE) — gaps
 
-- **APTS-SE-001 (Rules of Engagement Specification and Validation) — partially_met:** `aegis siege --target URL --confirm` is a minimal pre-engagement gesture. **Phase-2 plan:** machine-readable RoE schema (YAML/JSON) consumed at engagement start, with operator-signed acknowledgement field and temporal envelope.
-- **APTS-SE-003 (Domain Scope Validation and Wildcard Handling) — partially_met:** Single `--target URL` is host-validated; wildcard / subdomain semantics not modelled. **Phase-2 plan:** scope-object with `domains: [{ pattern, includeSubdomains }]`.
-- **APTS-SE-004 (Temporal Boundary and Timezone Handling) — not_met:** No scheduled-window enforcement. **Phase-2 plan:** RoE-schema temporal envelope + pre-action time-window check.
-- **APTS-SE-005 (Asset Criticality Classification and Integration) — not_met:** No criticality metadata consumed. **Phase-2 plan:** scope-object asset-criticality field; scanner-level severity-modulation by asset class.
-- **APTS-SE-006 (Pre-Action Scope Validation) — partially_met:** `--confirm` is one-shot at engagement start. **Phase-2 plan:** per-action scope-object validation in the siege phase loop.
-- **APTS-SE-008 (Temporal Scope Compliance Monitoring) — not_met:** No live monitoring. **Phase-2 plan:** ticking-clock check in the engagement loop with auto-halt past the temporal envelope.
-- **APTS-SE-015 (Scope Enforcement Audit and Compliance Verification) — partially_met:** JSON output captures targets but not a separate audit trail. **Phase-2 plan:** dedicated scope-audit log channel with hash-chain (combines with AR-012 closure).
+> **Closed by Phase 2 Cluster-1** (RoE schema + scope-object DSL): SE-001, SE-003, SE-004, SE-005, SE-006, SE-008. See `ev-roe-schema`, `ev-roe-validators`, `ev-roe-cli-integration` above.
+
+- **APTS-SE-015 (Scope Enforcement Audit and Compliance Verification) — partially_met:** JSON output captures targets and `roe_id` is logged at engagement start; no separate scope-enforcement audit trail with hash-chain integrity. **Phase-2 plan:** dedicated scope-audit log channel — combines with AR-010 + AR-012 closure (Cluster-3 hash-chain work).
 
 ### Safety Controls (SC) — gaps
 
@@ -213,11 +243,11 @@ The handover doc tracks the same set with sequencing + ETA.
 - **APTS-AL-001 — partially_met:** No formal AL-level tags. **Phase-2 plan:** AL-level metadata field per scanner registration; orchestrator labels each engagement-phase with the AL-level it operates under.
 - **APTS-AL-004 — partially_met:** siege-phase chain is operator-confirmed once. **Phase-2 plan:** per-phase confirmation prompt (or RoE-acknowledged auto-chain disclosure).
 - **APTS-AL-005 — partially_met:** Logs not signed. **Phase-2 plan:** combine with AR-010 hash-chain.
-- **APTS-AL-006 — partially_met:** Path-level only. **Phase-2 plan:** scope-object DSL covering paths + domains + assets + temporal envelope.
-- **APTS-AL-008 — not_met:** **Phase-2 plan:** real-time approval-gate API (combines with HO-002 intervention API).
-- **APTS-AL-011 — not_met:** **Phase-2 plan:** structured exception-handling framework with escalation triggers.
-- **APTS-AL-012 — partially_met:** Only Ctrl+C. **Phase-2 plan:** combine with SC-009 multi-path kill + HO-006 graceful pause.
-- **APTS-AL-014 — partially_met:** Single boundary axis. **Phase-2 plan:** boundary-definition DSL (multi-axis: paths, domains, time, assets, autonomy-level).
+- **APTS-AL-008 — not_met:** **Phase-2 plan:** real-time approval-gate API (combines with HO-002 intervention API, Cluster-2 work).
+- **APTS-AL-011 — not_met:** **Phase-2 plan:** structured exception-handling framework with escalation triggers (Cluster-2 — partial closure via the RoE `stop_conditions` field already shipped).
+- **APTS-AL-012 — partially_met:** Only Ctrl+C. **Phase-2 plan:** combine with SC-009 multi-path kill + HO-006 graceful pause (Cluster-2 + Cluster-5).
+
+> **Closed by Phase 2 Cluster-1** (RoE schema + scope-object DSL): AL-006, AL-014. See `ev-roe-schema`, `ev-roe-validators` above.
 - **APTS-AL-016 — not_met:** **Phase-2 plan:** continuous boundary-monitor that re-validates the scope-object on every scanner-emit.
 
 ### Auditability (AR) — gaps

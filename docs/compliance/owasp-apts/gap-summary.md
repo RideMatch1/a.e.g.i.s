@@ -2,27 +2,35 @@
 
 ## Headline
 
-AEGIS Autonomous Pentest Layer is currently **15/72 MET (21%)** on
-OWASP-APTS Tier-1 (Phase 1 Readiness Assessment). Phase 2 closes the
-remaining 55 gaps and converts this into a full Tier-1 Conformance Claim.
+AEGIS Autonomous Pentest Layer is currently **23/72 MET (32%)** on
+OWASP-APTS Tier-1 (Phase 1 Readiness Assessment + Phase 2 Cluster-1
+ship on the same day). Phase 2's remaining four clusters close the
+remaining 47 gaps and convert this into a full Tier-1 Conformance Claim.
 
 This is **not** a conformance claim. APTS forbids partial credit; a
 Tier-1 conformance claim is achievable only after 100% MET. We're
 publishing the gap, not the claim.
 
+**Phase-2 Cluster-1 (RoE schema) shipped — closes 8 entries.** The
+machine-readable Rules-of-Engagement schema (Zod-strict JSON) plus the
+in-scope/out-of-scope/temporal/asset-criticality validators plus the
+`aegis siege --roe <path>` CLI integration flipped SE-001, SE-003,
+SE-004, SE-005, SE-006, SE-008, AL-006, and AL-014 from
+partially_met/not_met to met.
+
 ## Per-domain breakdown
 
 | Domain | Total Tier-1 | Met | Partially | Not Met | N/A | Planned |
 |---|---|---|---|---|---|---|
-| Scope Enforcement (SE) | 9 | 2 | 4 | 3 | 0 | 0 |
+| Scope Enforcement (SE) | 9 | 8 | 1 | 0 | 0 | 0 |
 | Safety Controls (SC) | 6 | 0 | 4 | 2 | 0 | 0 |
 | Human Oversight (HO) | 13 | 0 | 3 | 10 | 0 | 0 |
-| Graduated Autonomy (AL) | 11 | 2 | 6 | 3 | 0 | 0 |
+| Graduated Autonomy (AL) | 11 | 4 | 4 | 3 | 0 | 0 |
 | Auditability (AR) | 7 | 2 | 2 | 3 | 0 | 0 |
 | Manipulation Resistance (MR) | 13 | 2 | 6 | 5 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **15** | **28** | **27** | **2** | **0** |
+| **Total** | **72** | **23** | **23** | **24** | **2** | **0** |
 
 ## Strongest domains today
 
@@ -77,43 +85,44 @@ Mostly resolved by HO closure (real-time approval gates) + boundary-DSL work. Ph
 - **Boundary-definition DSL** — multi-axis (paths, domains, time, assets, autonomy-level) replacing the current path-only `excludePaths` (AL-006 + AL-014).
 - **Continuous boundary-monitor** that re-validates the scope-object on every scanner-emit (AL-016).
 
-### 6. Scope Enforcement (SE) — 2/9 MET
+### 6. Scope Enforcement (SE) — 8/9 MET (Cluster-1 shipped)
 
-Phase-2 plan:
-
-- **Machine-readable RoE schema** (YAML/JSON) consumed at engagement start, with operator-signed acknowledgement field, temporal envelope, and asset-criticality classification (closes SE-001 + SE-003 + SE-004 + SE-005).
-- **Per-action scope-object validation** in the siege phase loop (SE-006).
-- **Live temporal-compliance monitor** with auto-halt past the temporal envelope (SE-008).
-- **Dedicated scope-audit log channel** with hash-chain — combines with AR-012 closure (SE-015).
+Cluster-1 closed SE-001/003/004/005/006/008 in one shot via the
+machine-readable RoE schema. Only SE-015 (separate audit log with
+hash-chain integrity) remains, and that closure rolls into Cluster-3
+(hash-chained audit-log file). No additional SE-specific work needed
+in clusters 2/4/5/6.
 
 ## Phase-2 cluster ordering (closure leverage)
 
-| Order | Cluster | Closes | Lift |
-|---|---|---|---|
-| 1 | RoE schema + scope object | SE-001/003/004/005/006 + AL-006/014 | 7 entries |
-| 2 | Intervention API + state-stream | HO-002/006/007/008 + AL-008/012 | 6 entries |
-| 3 | Hash-chain + signed evidence | AR-010/012 + AL-005 + SE-015 | 4 entries |
-| 4 | Orchestrator-side MR | MR-001/002/004/005/007/008/009/010/011/012/018 | 11 entries |
-| 5 | Multi-path kill + health monitor | SC-009/010/015 + AL-016 | 4 entries |
-| 6 | CIA scoring | SC-001 + HO-012 | 2 entries |
+| Order | Cluster | Closes | Lift | Status |
+|---|---|---|---|---|
+| 1 | RoE schema + scope object | SE-001/003/004/005/006/008 + AL-006/014 | 8 entries | **shipped 2026-04-27** |
+| 2 | Intervention API + state-stream | HO-002/006/007/008 + AL-008/012 | 6 entries | queued |
+| 3 | Hash-chain + signed evidence | AR-010/012 + AL-005 + SE-015 | 4 entries | queued |
+| 4 | Orchestrator-side MR | MR-001/002/004/005/007/008/009/010/011/012/018 | 11 entries | queued |
+| 5 | Multi-path kill + health monitor | SC-009/010/015 + AL-016 | 4 entries | queued |
+| 6 | CIA scoring | SC-001 + HO-012 | 2 entries | queued |
 
-Six cluster-deliverables plausibly close 34 of the 55 remaining gaps.
-The other 21 are smaller per-entry items distributed across the
-narrative-form Gap Notes in [`EVIDENCE-MANIFEST.md`](./EVIDENCE-MANIFEST.md).
+Cluster-1 shipped 8/72 entries on the same day as the Phase-1 baseline
+(15/72 → 23/72). Remaining five clusters plausibly close 27 of the 49
+remaining gaps. The other 22 are smaller per-entry items distributed
+across the narrative-form Gap Notes in [`EVIDENCE-MANIFEST.md`](./EVIDENCE-MANIFEST.md).
 
 ## Phase-2 ETA
 
-8-12 weeks from Phase-1 publication for the full Tier-1 Conformance
-Claim (all 72 MET). Cluster-1 (RoE schema) is the natural starting
-point — high-leverage, no external dependencies, cleanly testable.
+7-11 weeks from now for the full Tier-1 Conformance Claim (all 72 MET).
+Cluster-2 (intervention API + state-stream) is the next natural step
+— it unlocks both the HO gaps (Human Oversight) and AL-008/012 in one
+deliverable.
 
 ## What this is NOT
 
 - This is **not** a conformance claim.
 - AEGIS does **not** today claim OWASP-APTS Tier-1 conformance.
-- The marketing-defensible claim from this Phase-1 release is:
-  *"AEGIS publishes its OWASP-APTS Tier-1 Readiness Assessment — the first OSS pentest platform with a public APTS conformance posture."*
-- After Phase 2 ships, the claim becomes:
+- The marketing-defensible claim from this release is:
+  *"AEGIS publishes its OWASP-APTS Tier-1 Readiness Assessment — the first OSS pentest platform with a public APTS conformance posture, with Cluster-1 of Phase 2 (machine-readable Rules-of-Engagement schema) already shipped."*
+- After Phase 2 fully ships, the claim becomes:
   *"AEGIS publishes its full OWASP-APTS Tier-1 Conformance Claim — every Tier-1 requirement met with traceable evidence."*
 
 See the design spec at [`docs/design/2026-04-27-owasp-apts-conformance.md`](../../design/2026-04-27-owasp-apts-conformance.md) for the staged 1→2→3 plan.
