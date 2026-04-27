@@ -1,0 +1,120 @@
+{
+  "claim_id": "aegis-apts-readiness-2026-04-27",
+  "standard_version": "0.1.0",
+  "published_at": "2026-04-27T00:00:00Z",
+  "assessment_date": "2026-04-27",
+  "assessment_type": "internal_self_assessment",
+  "assessment_phase": "Tier-1 Readiness Assessment (NOT a conformance claim)",
+  "claim_owner": {
+    "organization": "AEGIS maintainer team",
+    "contact": "https://github.com/RideMatch1/a.e.g.i.s/issues"
+  },
+  "platform": {
+    "platform_name": "AEGIS Autonomous Pentest Layer",
+    "platform_version": "@aegis-scan/cli v0.16.6 (siege-mode + LLM-pentest wrappers)",
+    "operator_type": "open_source_project",
+    "deployment_model": "self_hosted_by_consumer",
+    "foundation_model_disclosure_reference": "FOUNDATION-MODEL-DISCLOSURE.md"
+  },
+  "claimed_conformance": {
+    "claimed_tier": 1,
+    "claim_type": "readiness_assessment",
+    "claimed_domains": ["SE", "SC", "HO", "AL", "AR", "MR", "TP", "RP"],
+    "autonomy_levels_supported": ["L1", "L2"],
+    "assessment_scope": {
+      "in_scope": [
+        "aegis siege (4-phase live-attack simulation)",
+        "Strix LLM-pentest wrapper",
+        "PTAI LLM-pentest wrapper",
+        "Pentest-Swarm-AI LLM-pentest wrapper",
+        "CLI orchestration of the above"
+      ],
+      "out_of_scope": [
+        "deterministic SAST scanners (aegis scan / aegis audit)",
+        "@aegis-scan/skills methodology library",
+        "@aegis-wizard/cli scaffold generator"
+      ]
+    }
+  },
+  "requirements": [
+    { "requirement_id": "APTS-SE-001", "status": "partially_met", "rationale": "aegis siege --target URL --confirm is a minimal pre-engagement gesture; no machine-readable RoE schema, no signed acknowledgement, no temporal envelope yet." },
+    { "requirement_id": "APTS-SE-002", "status": "met", "rationale": "ssrf-checker enforces RFC 1918 / private-IP / link-local block-rules in code paths and at config-schema level.", "evidence_refs": ["ev-ssrf-rfc1918"] },
+    { "requirement_id": "APTS-SE-003", "status": "partially_met", "rationale": "Single --target URL is accepted and host-validated; wildcard / subdomain-scope semantics are not modelled." },
+    { "requirement_id": "APTS-SE-004", "status": "not_met", "rationale": "No scheduled-window enforcement or timezone-aware temporal boundary enforcement today." },
+    { "requirement_id": "APTS-SE-005", "status": "not_met", "rationale": "No asset-criticality classification metadata is consumed or required by the orchestrator." },
+    { "requirement_id": "APTS-SE-006", "status": "partially_met", "rationale": "siege --confirm flag is a pre-action gate; not a structured per-action validation against a formal scope object." },
+    { "requirement_id": "APTS-SE-008", "status": "not_met", "rationale": "No live temporal-compliance monitor; runs proceed once started until completion or operator interrupt." },
+    { "requirement_id": "APTS-SE-009", "status": "met", "rationale": "aegis.config.json excludePaths + per-target opt-out provide a hard deny list consumed by every scanner.", "evidence_refs": ["ev-config-deny"] },
+    { "requirement_id": "APTS-SE-015", "status": "partially_met", "rationale": "JSON output captures target + scanner inventory; no separate scope-enforcement audit log distinct from finding output." },
+
+    { "requirement_id": "APTS-SC-001", "status": "partially_met", "rationale": "CWE-based severity (BLOCKER/HIGH/MEDIUM/LOW) is CIA-adjacent; no explicit CIA impact-vector scoring per finding." },
+    { "requirement_id": "APTS-SC-004", "status": "partially_met", "rationale": "Wrappers (Strix/PTAI/Pentest-Swarm-AI) accept their own rate-limit flags; orchestrator-side has no global rate-limit / payload-size envelope." },
+    { "requirement_id": "APTS-SC-009", "status": "partially_met", "rationale": "Ctrl+C terminates the process tree; no formal multi-path kill switch (signal-based, API-based, dead-man-switch)." },
+    { "requirement_id": "APTS-SC-010", "status": "not_met", "rationale": "No health-monitoring or threshold-based automatic halt today." },
+    { "requirement_id": "APTS-SC-015", "status": "not_met", "rationale": "No post-test system-integrity validation step." },
+    { "requirement_id": "APTS-SC-020", "status": "partially_met", "rationale": "Mode-gate (--mode pentest only for LLM wrappers) is an external allowlist of which scanners run; no fine-grained per-action allowlist external to the model." },
+
+    { "requirement_id": "APTS-HO-001", "status": "partially_met", "rationale": "--mode pentest opt-in + siege --confirm are pre-approval gestures for L1/L2 wrappers; no structured authority-matrix per autonomy level." },
+    { "requirement_id": "APTS-HO-002", "status": "not_met", "rationale": "Scan-progress is logged to stdout; no structured intervention surface (no pause/redirect API)." },
+    { "requirement_id": "APTS-HO-003", "status": "not_met", "rationale": "No decision-timeout / default-safe-behavior framework; wrappers run to completion." },
+    { "requirement_id": "APTS-HO-004", "status": "not_met", "rationale": "No formal authority-delegation matrix." },
+    { "requirement_id": "APTS-HO-006", "status": "not_met", "rationale": "No graceful-pause mechanism with state preservation; Ctrl+C terminates without serialized state-dump." },
+    { "requirement_id": "APTS-HO-007", "status": "not_met", "rationale": "No mid-engagement redirect capability." },
+    { "requirement_id": "APTS-HO-008", "status": "not_met", "rationale": "Ctrl+C kills without a state-dump artifact." },
+    { "requirement_id": "APTS-HO-010", "status": "partially_met", "rationale": "siege --confirm is a single mandatory decision point at engagement start; not per-irreversible-action." },
+    { "requirement_id": "APTS-HO-011", "status": "not_met", "rationale": "No structured unexpected-findings escalation framework." },
+    { "requirement_id": "APTS-HO-012", "status": "not_met", "rationale": "No impact-threshold-breach escalation; wrappers continue regardless of finding severity." },
+    { "requirement_id": "APTS-HO-013", "status": "partially_met", "rationale": "Findings carry confidence (high/medium/low) and the [LOW-CONFIDENCE] CI-badge is a low-fidelity escalation signal; no in-engagement confidence-based pause/escalation." },
+    { "requirement_id": "APTS-HO-014", "status": "not_met", "rationale": "No legal/compliance escalation triggers." },
+    { "requirement_id": "APTS-HO-015", "status": "not_met", "rationale": "No multi-channel real-time activity notification (no Slack/email/PagerDuty integration in the orchestrator)." },
+
+    { "requirement_id": "APTS-AL-001", "status": "partially_met", "rationale": "Wrappers execute one technique-per-invocation; orchestrator does not label scanner runs with formal AL-level tags." },
+    { "requirement_id": "APTS-AL-002", "status": "met", "rationale": "Operator passes --target URL and selects scanner mode (scan/audit/siege/...) via CLI; technique selection is human-driven by construction.", "evidence_refs": ["ev-cli-target-selection"] },
+    { "requirement_id": "APTS-AL-003", "status": "met", "rationale": "aegis.config.json is fully operator-authored with strict Zod validation; no parameters are model-chosen at L1.", "evidence_refs": ["ev-config-schema"] },
+    { "requirement_id": "APTS-AL-004", "status": "partially_met", "rationale": "siege has 4 chained phases inside one engagement; operator opt-in via --confirm gates the chain at engagement start, not phase-by-phase." },
+    { "requirement_id": "APTS-AL-005", "status": "partially_met", "rationale": "JSON / SARIF output is reviewable; logs are not cryptographically signed or tamper-evident." },
+    { "requirement_id": "APTS-AL-006", "status": "partially_met", "rationale": "excludePaths + --target validation + scanner per-target opt-out provide basic scope; no formal policy DSL." },
+    { "requirement_id": "APTS-AL-008", "status": "not_met", "rationale": "No real-time human approval gates during a scanner run." },
+    { "requirement_id": "APTS-AL-011", "status": "not_met", "rationale": "No structured escalation triggers / exception handling at orchestrator level." },
+    { "requirement_id": "APTS-AL-012", "status": "partially_met", "rationale": "Ctrl+C is the only kill mechanism; no pause-and-resume." },
+    { "requirement_id": "APTS-AL-014", "status": "partially_met", "rationale": "excludePaths is a path-level boundary; not a multi-axis boundary-definition framework." },
+    { "requirement_id": "APTS-AL-016", "status": "not_met", "rationale": "No continuous boundary-monitoring or breach-detection during runs." },
+
+    { "requirement_id": "APTS-AR-001", "status": "met", "rationale": "Findings emit as structured JSON conforming to the AEGIS Finding schema and as SARIF 2.1.0 via packages/reporters/src/sarif.ts.", "evidence_refs": ["ev-sarif-reporter"] },
+    { "requirement_id": "APTS-AR-002", "status": "partially_met", "rationale": "Scan-progress events emit to stdout (per-scanner start/end); not a formally structured state-transition log." },
+    { "requirement_id": "APTS-AR-004", "status": "met", "rationale": "Each finding carries an explicit confidence field (high/medium/low) wired to per-CWE confidence rules + scanner-specific confidence-downgrade logic.", "evidence_refs": ["ev-finding-confidence"] },
+    { "requirement_id": "APTS-AR-006", "status": "partially_met", "rationale": "Taint chains emit via Finding.relatedLocations + evidence field for SAST; siege-mode does not yet emit alternative-evaluation reasoning." },
+    { "requirement_id": "APTS-AR-010", "status": "not_met", "rationale": "Findings/evidence are not cryptographically hashed today." },
+    { "requirement_id": "APTS-AR-012", "status": "not_met", "rationale": "Logs are append-only files without hash-chain / tamper-evident structure." },
+    { "requirement_id": "APTS-AR-015", "status": "not_met", "rationale": "No formal evidence-classification or sensitive-data-handling policy on emitted artifacts." },
+
+    { "requirement_id": "APTS-MR-001", "status": "partially_met", "rationale": "Each wrapper enforces its own instruction-boundary internally; AEGIS orchestrator has no own enforcement layer." },
+    { "requirement_id": "APTS-MR-002", "status": "partially_met", "rationale": "Wrappers parse their own outputs (e.g., PTAI's SARIF parser); orchestrator does not validate / sanitize wrapper responses beyond JSON-schema conformance." },
+    { "requirement_id": "APTS-MR-003", "status": "met", "rationale": "error-leakage-checker enforces error-neutrality on the scanned-app side; AEGIS itself emits sanitized error messages without stack-traces in JSON output.", "evidence_refs": ["ev-error-neutrality"] },
+    { "requirement_id": "APTS-MR-004", "status": "not_met", "rationale": "aegis.config.json is read at startup; no integrity-verification (hash-pin / signature) at runtime." },
+    { "requirement_id": "APTS-MR-005", "status": "not_met", "rationale": "No authority-claim detection / rejection layer in the orchestrator." },
+    { "requirement_id": "APTS-MR-007", "status": "partially_met", "rationale": "open-redirect-checker exists at SAST level; orchestrator has no own redirect-following policy." },
+    { "requirement_id": "APTS-MR-008", "status": "partially_met", "rationale": "ssrf-checker covers SSRF/redirect prevention at SAST level; live DAST/siege relies on each wrapper's internal controls." },
+    { "requirement_id": "APTS-MR-009", "status": "partially_met", "rationale": "Same coverage as MR-008; no additional orchestrator-side SSRF prevention during testing operations." },
+    { "requirement_id": "APTS-MR-010", "status": "not_met", "rationale": "No scope-expansion-social-engineering prevention at orchestrator level." },
+    { "requirement_id": "APTS-MR-011", "status": "not_met", "rationale": "No out-of-band-communication prevention layer." },
+    { "requirement_id": "APTS-MR-012", "status": "partially_met", "rationale": "aegis.config.json is read once per run and the resulting scope is immutable for that run; not architecturally enforced (operator could mutate file mid-run, no detection)." },
+    { "requirement_id": "APTS-MR-018", "status": "not_met", "rationale": "Wrapper LLM I/O is not architecturally sandboxed beyond what each wrapper does internally." },
+    { "requirement_id": "APTS-MR-019", "status": "met", "rationale": "next-public-leak, entropy-scanner, crypto-auditor, and jwt-detector form a multi-layer credential-protection scanner family covering NEXT_PUBLIC_ leakage, high-entropy strings, hardcoded secrets, and JWT-format credentials.", "evidence_refs": ["ev-credential-protection"] },
+
+    { "requirement_id": "APTS-TP-001", "status": "met", "rationale": "Each wrapper implements isAvailable() with double-gating (binary present + LLM API-key present); orchestrator skips unvetted wrappers with a [LOW-CONFIDENCE] note.", "evidence_refs": ["ev-provider-vetting"] },
+    { "requirement_id": "APTS-TP-003", "status": "partially_met", "rationale": "Operator manages API-key environment variables; AEGIS does not mediate authentication or rotate keys." },
+    { "requirement_id": "APTS-TP-005", "status": "not_met", "rationale": "No formal incident-response / breach-notification workflow for provider-side compromise." },
+    { "requirement_id": "APTS-TP-006", "status": "met", "rationale": "supply-chain scanner + dep-confusion-checker + lockfile integrity checks + monorepo-aware phantom-dep detection cover dependency inventory + supply-chain risk assessment.", "evidence_refs": ["ev-supply-chain"] },
+    { "requirement_id": "APTS-TP-008", "status": "met", "rationale": "config-auditor (Docker/Next.js/Firebase misconfig), header-checker (CSP/HSTS/COOP), and the ci/github-action's pinned-SHA + npm-install hardening cover cloud-config baseline.", "evidence_refs": ["ev-cloud-config"] },
+    { "requirement_id": "APTS-TP-012", "status": "not_applicable", "rationale": "Under the self-hosted-by-consumer deployment model, AEGIS itself does not ingest or persist client data; the operator runs AEGIS locally against their own code. Client-data classification is the operator's responsibility, not AEGIS's." },
+    { "requirement_id": "APTS-TP-013", "status": "partially_met", "rationale": "entropy-scanner + next-public-leak + jwt-detector discover sensitive-data-shaped patterns in source; no broader sensitive-data classification framework (PII/PHI/PCI categories)." },
+    { "requirement_id": "APTS-TP-014", "status": "partially_met", "rationale": "crypto-auditor flags weak algorithms / insecure RNG / hardcoded secrets at SAST level; no orchestrator-side enforcement of in-flight encryption for AEGIS↔wrapper traffic." },
+    { "requirement_id": "APTS-TP-018", "status": "not_applicable", "rationale": "Self-hosted-by-consumer model: AEGIS-side has no tenancy. Operator-side breach notification is the operator's responsibility under their own data-protection regime." },
+    { "requirement_id": "APTS-TP-021", "status": "met", "rationale": "FOUNDATION-MODEL-DISCLOSURE.md documents the BYOM matrix per wrapper + the fix-mode companion; capability-baseline references point to provider model cards at the configured version.", "evidence_refs": ["ev-foundation-model"] },
+
+    { "requirement_id": "APTS-RP-006", "status": "met", "rationale": "[LOW-CONFIDENCE] PR-comment badge + per-CWE confidence rules + per-finding confidence field provide structured FP-rate disclosure on every report.", "evidence_refs": ["ev-fp-disclosure"] },
+    { "requirement_id": "APTS-RP-008", "status": "met", "rationale": "README scanner inventory + getAllScanners() + getAttackScanners() public registry expose vulnerability coverage; CHANGELOG documents per-release scanner additions.", "evidence_refs": ["ev-coverage-disclosure"] },
+    { "requirement_id": "APTS-RP-011", "status": "met", "rationale": "Every report ends with a 0-1000 score + grade (FORTRESS/HARDENED/SOLID/...) + badge that serves as the executive-summary risk overview.", "evidence_refs": ["ev-executive-summary"] }
+  ]
+}
