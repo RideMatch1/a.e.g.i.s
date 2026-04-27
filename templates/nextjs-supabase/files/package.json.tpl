@@ -23,5 +23,8 @@
     "@types/react-dom": "^19.0.0",
     "@types/node": "^22.9.0",
     "vitest": "^3.1.0"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
   }
 }

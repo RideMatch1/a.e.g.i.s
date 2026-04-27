@@ -15,6 +15,38 @@ shown with the reason the target wasn't met.
 
 - For `@aegis-wizard/cli` 0.17.1 and later, see [`packages/wizard-cli/CHANGELOG.md`](packages/wizard-cli/CHANGELOG.md). This root CHANGELOG covers the scanner family (`@aegis-scan/*`) + top-level arc-summary entries only.
 
+---
+
+## [0.17.0] — 2026-04-27 — "Phase-2 conformance build-out + APTS Tier-1 readiness + public-launch polish"
+
+`@aegis-scan/*` family minor bump (`0.16.6` → `0.17.0`) covering the
+Phase-2 Cluster-1..6 conformance build-out + first published OWASP-APTS
+Tier-1 Readiness Assessment + Field-Report-driven detector cluster +
+public-launch polish (CodeQL closure, supply-chain hardening, privacy
+scrub, package metadata + missing READMEs). The `@aegis-wizard/cli`
+sibling stream remains independent (currently 0.17.4 — see its own
+CHANGELOG); the `@aegis-scan/skills` sibling remains at 0.1.1.
+
+### Fixed (CodeQL closure + supply-chain hardening, public-launch polish)
+
+- **CMDI hardening in docker preflight** — `defaultDockerProbe` switched from `execSync` template-string to `execFileSync` argv-array. Closes CodeQL `js/shell-command-constructed-from-input` (alert #112). The risk path was technically out-of-scope per `SECURITY.md` ("privileged local access" — `image_overrides` is operator-controlled RoE config), but the trivial swap removes the latent CMDI vector entirely. (#11)
+- **Dockerfile base-image hash-pinning** — all 4 `FROM` lines across `Dockerfile` + `dockerfiles/sandboxes/{strix,ptai,pentestswarm}.Dockerfile` pinned to immutable `sha256:` digests. Closes CodeQL `PinnedDependenciesID` alerts #105–#108. Pip / go install commands intentionally left unpinned with rationale comment (upstream packages may not exist under those names — WARN-fallback handles miss). (#12)
+- **`runtime/hash.ts` crypto-auditor scoped suppression** — SHA-256 in `packages/core/src/runtime/hash.ts` is the FIPS 180-4 + RFC 6234 hash-chain primitive (APTS-AR-010 + APTS-AR-012), not token generation. crypto-auditor's "consider HMAC" advisory is calibrated for token-issuing code. Same structural class as the existing suppression for `scanners/dependencies` lockfile-content-fingerprinting. (#17)
+
+### Changed (privacy + docs hygiene, public-launch readiness)
+
+- **Privacy scrub** — 17 absolute home-dir path leaks (`/Users/...`) in `docs/design/2026-04-27-owasp-apts-conformance-plan.md` replaced with `<repo-root>` placeholder; 3 private live-target codenames generalised to `live-target-A/B/C` across CHANGELOG + 3 design / runbook docs; 9 references to the local corpus-precision cache directory generalised to `<corpus-precision-cache>/`. Working-tree verification: zero matches for any scrubbed term across `.md` / `.ts` / `.json` / `.yml`. (#15)
+- **README + package metadata refresh** — top-level README version refs (`v0.11.2` → `v0.16.6` in CI-pin example), corpus-table v0.11.2 frozen-baseline disclosure, scanner-count math corrected (`63` → `67` total via authoritative runtime count from `getAllScanners()` + `getAttackScanners()`), external-wrapper count corrected (`17` → `20` — the 3 LLM-agent wrappers Strix / PTAI / Pentest-Swarm-AI were missing from the table). (#13)
+- **Missing READMEs added** — `packages/cli/README.md` (consumer-facing flagship; `cli/package.json files` array already referenced it but the file was missing — silent omission at `npm pack` time), `packages/core/README.md`, `packages/scanners/README.md`, `packages/reporters/README.md`. Corrected `+19 external` → `+20 external` in `cli` + `scanners` package descriptions (Subfinder was missing from the count). (#14)
+- **CONTRIBUTING.md test-count refresh** — `pnpm -r test` claim `1339 green` → `3055 green across 7 packages`; `node packages/benchmark/run.mjs` claim `25/25 strict` → `30/30 strict`. (#16)
+
+### Maintenance (post-merge baseline upkeep, CI cold-start, deps, scaffold-day-0-clean)
+
+- **`@supabase/supabase-js`** prod-deps bump `2.104.0` → `2.104.1` via cooldown-clean dependabot. (#10)
+- **`.aegis/lockfile-hash` baseline re-seed** post-#10 supabase-js bump. Routine post-cooldown-clean dependabot acknowledgment — the supply-chain scanner's lockfile-drift detection fires correctly on every acknowledged dep update; baseline re-seed is the documented closure action. (#17)
+- **CI cold-start timeout bump** — `packages/cli/__tests__/e2e.test.ts` framework timeout `30s` → `60s` to align with the inner `runCli` exec-timeout. CI cold-start can push the scan + JSON-emit path past 30s under runner-resource contention even when the local equivalent runs in ~6s. Same class as `mcp-server/version.test.ts` fix.
+- **Scaffold day-0 npm-audit clean** — added `"overrides": { "postcss": "^8.5.10" }` to `templates/nextjs-supabase/files/package.json.tpl`. The pre-publish `release-smoke` gate flagged the GHSA-qx2v-qp2m-jg93 postcss XSS advisory propagating into the scaffold via the next.js transitive dep tree; the override pins postcss to a patched range so a fresh `aegis new my-saas` produces a moderate-clean baseline on day 0.
+
 ### Added (`prompt-injection-checker` Field-Report cluster, post-audit-fix)
 
 - **Four new sub-class detectors closing the M-01 narrow-sanitizer family.** External Field-Report (`docs/AEGIS-Field-Report-2026-04-27.md`) by Alexander Hertle (Neon Arc / UCOS Engine) — production-deployed AEGIS user since v0.15.6 — empirically demonstrated four detector sub-classes that the existing `prompt-injection-checker` missed against a Mistral-backed production chatbot. All four are now flagged statically, with both positive- and negative-fixture coverage end-to-end.
