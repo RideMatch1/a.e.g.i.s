@@ -9,7 +9,7 @@
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 [![npm](https://img.shields.io/npm/v/@aegis-scan/cli?label=%40aegis-scan%2Fcli)](https://www.npmjs.com/package/@aegis-scan/cli)
 
-Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers plus 19 external-tool wrappers (16 traditional SAST/DAST + 3 LLM-agent pentest frameworks: Strix, PTAI, Pentest-Swarm-AI), AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, and a GitHub-Actions recipe for CI integration.
+Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers plus 20 external-tool wrappers (16 traditional SAST/DAST + 1 passive subdomain-recon + 3 LLM-agent pentest frameworks: Strix, PTAI, Pentest-Swarm-AI), AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, and a GitHub-Actions recipe for CI integration.
 
 ---
 
@@ -179,7 +179,7 @@ AEGIS ships three sibling packages that cover the full pre-ship security lifecyc
 | Package | Role | Quickstart |
 |---|---|---|
 | [`@aegis-wizard/cli`](https://www.npmjs.com/package/@aegis-wizard/cli) | **Build** — interactive scaffold + agent-brief generator for Next.js + Supabase + shadcn SaaS | `npx -y @aegis-wizard/cli new my-saas --interactive` |
-| [`@aegis-scan/cli`](https://www.npmjs.com/package/@aegis-scan/cli) | **Scan** — defensive SAST scanner (five-package family). 42 built-in checkers plus 19 external-tool wrappers (16 SAST/DAST + 3 LLM-agent pentest frameworks), AST-based cross-file taint analysis. | `npx -y @aegis-scan/cli scan ./my-saas` |
+| [`@aegis-scan/cli`](https://www.npmjs.com/package/@aegis-scan/cli) | **Scan** — defensive SAST scanner (five-package family). 42 built-in checkers plus 20 external-tool wrappers (16 SAST/DAST + 1 passive subdomain-recon + 3 LLM-agent pentest frameworks), AST-based cross-file taint analysis. | `npx -y @aegis-scan/cli scan ./my-saas` |
 | [`@aegis-scan/skills`](https://www.npmjs.com/package/@aegis-scan/skills) | **Test** — opt-in red-team skill library for Claude Code and compatible AI agents. Prime your agent with attack-class methodology so you can stress-test what you built before shipping. | `npm i -g @aegis-scan/skills && aegis-skills install` |
 
 Build with the wizard. Scan what you built. Test it red-team-style. Full lifecycle, one toolchain, one attribution-compliant open-source license stack. The three packages release independently (`wizard-v*`, `v*`, and `skills-v*` tag-namespaces) so neither gates the other — but they co-calibrate on architectural assumptions: a wizard-scaffolded project scoring below 960 on scan's grade is treated as a pattern-defect, and an agent running under the skills library can reach for attack classes scan detects defensively.
@@ -438,26 +438,27 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 | `supply-chain` | Dependencies | 829, 1357 | Dependency confusion, typosquatting, lockfile integrity, monorepo-aware phantom-dep detection (handles TS path aliases + pnpm/npm/yarn workspaces + sub-package deps) |
 | `dep-confusion-checker` | Dependencies | 1357 | Scoped packages without private registry mapping |
 
-### External wrappers (16 scanners, auto-skipped when not installed)
+### External wrappers (17 scanners, auto-skipped when not installed)
 
-| Scanner | Install |
-|---------|---------|
-| Semgrep | `brew install semgrep` |
-| Bearer | `brew install bearer` |
-| Gitleaks | `brew install gitleaks` |
-| TruffleHog | `brew install trufflehog` |
-| OSV-Scanner | `brew install osv-scanner` |
-| npm audit | Built into npm |
-| license-checker | `npm i -g license-checker` |
-| Nuclei | `brew install nuclei` |
-| OWASP ZAP | Requires Docker |
-| Trivy | `brew install trivy` |
-| Hadolint | `brew install hadolint` |
-| Checkov | `pip install checkov` |
-| testssl.sh | `brew install testssl` |
-| React Doctor | `npx react-doctor@latest .` |
-| axe / Lighthouse | Requires Chromium |
-| Lighthouse Performance | Requires Chromium |
+| Scanner | Install | Category |
+|---------|---------|----------|
+| Semgrep | `brew install semgrep` | SAST |
+| Bearer | `brew install bearer` | SAST |
+| Gitleaks | `brew install gitleaks` | secrets |
+| TruffleHog | `brew install trufflehog` | secrets |
+| OSV-Scanner | `brew install osv-scanner` | dependencies |
+| npm audit | Built into npm | dependencies |
+| license-checker | `npm i -g license-checker` | dependencies |
+| Nuclei | `brew install nuclei` | DAST |
+| OWASP ZAP | Requires Docker | DAST |
+| Trivy | `brew install trivy` | infrastructure |
+| Hadolint | `brew install hadolint` | infrastructure |
+| Checkov | `pip install checkov` | infrastructure |
+| testssl.sh | `brew install testssl` | TLS |
+| React Doctor | `npx react-doctor@latest .` | quality |
+| axe / Lighthouse | Requires Chromium | accessibility |
+| Lighthouse Performance | Requires Chromium | performance |
+| Subfinder | `brew install subfinder` | recon (passive subdomain — pentest-mode only) |
 
 ### Attack probes (5, siege mode only)
 

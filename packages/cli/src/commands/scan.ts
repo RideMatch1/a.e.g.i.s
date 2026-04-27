@@ -34,7 +34,7 @@ const FAST_CATEGORIES: ScanCategory[] = [
  * banner fraction stays honest; classification is enforced at the source
  * by each scanner's Scanner.isExternal field (v0.15.4+).
  */
-const TOTAL_EXTERNAL_TOOLS = 19;
+const TOTAL_EXTERNAL_TOOLS = 20;
 
 /**
  * v0.15.6 D-B-001 — per-scanner install-hints for the cold-install-UX
