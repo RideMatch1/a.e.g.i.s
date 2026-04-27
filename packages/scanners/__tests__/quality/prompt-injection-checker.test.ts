@@ -435,3 +435,76 @@ describe('promptInjectionCheckerScanner — Sub-Klasse 3: incomplete-bidi-strip-
     expect(hits.length).toBeGreaterThan(0);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Field-Report 2026-04-27 — Sub-Klasse 1: marker-only-replace.
+// .replace(/role-marker/, 'CONST') where the regex doesn't eat the line —
+// imperative content after the marker survives intact.
+// Generalises M-01 (which catches only the specific ^system: shape).
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('promptInjectionCheckerScanner — Sub-Klasse 1: marker-only-replace', () => {
+  let projectPath: string;
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('flags .replace(/^\\s*system:/gm, "[X]") — no line-eating suffix', async () => {
+    const SHAPE = [
+      'function clean(s: string) {',
+      "  return s.replace(/^\\s*(?:system|SYSTEM)\\s*:/gm, '[blocked]:');",
+      '}',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'narrow.ts'), SHAPE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.title.includes('marker-only-replace'));
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits[0].cwe).toBe(77);
+    expect(hits[0].description).toMatch(/Beobachtung 1|line-eating/i);
+  });
+
+  it('flags ChatML marker-only-replace: <|im_start|>', async () => {
+    const SHAPE = [
+      "const out = s.replace(/<\\|im_start\\|>/g, '[X]');",
+    ].join('\n');
+    writeFileSync(join(projectPath, 'chatml.ts'), SHAPE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('marker-only-replace')).length).toBeGreaterThan(0);
+  });
+
+  it('does NOT flag when regex body contains line-eating .*$', async () => {
+    const SHAPE = [
+      "const out = s.replace(/^\\s*system:.*$/gm, '');",
+    ].join('\n');
+    writeFileSync(join(projectPath, 'eats.ts'), SHAPE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('marker-only-replace'))).toHaveLength(0);
+  });
+
+  it('does NOT flag when regex body contains [\\s\\S]* line-eater', async () => {
+    const SHAPE = [
+      "const out = s.replace(/system:[\\s\\S]*/g, '[X]');",
+    ].join('\n');
+    writeFileSync(join(projectPath, 'eats2.ts'), SHAPE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('marker-only-replace'))).toHaveLength(0);
+  });
+
+  it('does NOT flag .replace() with a non-marker regex (e.g. credit-card scrub)', async () => {
+    const SHAPE = [
+      "const redacted = s.replace(/\\d{16}/g, '[CC-REDACTED]');",
+    ].join('\n');
+    writeFileSync(join(projectPath, 'cc.ts'), SHAPE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('marker-only-replace'))).toHaveLength(0);
+  });
+
+  it('does NOT flag userId/username (word-bounded user check)', async () => {
+    const SHAPE = [
+      "const safe = s.replace(/userId|username/g, '[ID]');",
+    ].join('\n');
+    writeFileSync(join(projectPath, 'ids.ts'), SHAPE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('marker-only-replace'))).toHaveLength(0);
+  });
+});
