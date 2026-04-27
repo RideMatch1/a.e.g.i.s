@@ -6,4 +6,5 @@
 # Re-seeded 2026-04-23 for v0.18 skills-v0.1.0 commit #1 — adds @aegis-scan/skills package (vitest devDependency only, no runtime deps in scaffold).
 # Re-seeded 2026-04-24 for v0.17.2 SC-7 — adds @cyclonedx/cdxgen@12.1.4 to root devDependencies (exact pin, cooldown-lint visible) so SBOM-generator runs via pnpm exec instead of pnpm dlx.
 # Re-seeded 2026-04-24 for v0.17.3 SC-1 — adds ignore@7.0.5 to packages/core/package.json dependencies (gitignore-aware walkFiles, closes dogfood-paradox structurally; replaces v0.17.2 r3 path-filter workaround).
-sha256:5f62b85ad4654b2457d60abe571d36f9dad37bb84271b2bb5c5374102fbafcae  pnpm-lock.yaml
+# Re-seeded 2026-04-27 post-merge of #10 (@supabase/supabase-js 2.104.0 -> 2.104.1, prod-deps cooldown-clean dependabot bump).
+sha256:aa9c508060657f2af6e81b0ce8759beb5a0a2d8b44ae69a2bbcc50cef2838cc3  pnpm-lock.yaml
