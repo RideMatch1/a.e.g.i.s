@@ -607,10 +607,9 @@ describe('promptInjectionCheckerScanner — Sub-Klasse 2: html-strip-before-mark
 // Pre-fix sanitizer (the field-report's documented vulnerable shape) MUST
 // produce findings for each of Sub-Klasse 1, 2, 3, 4.
 //
-// Post-fix sanitizer (sourced from
-// https://github.com/ephixa53/neonarc/tree/security/chatbot-prompt-injection-hardening
-// path src/lib/chat/sanitize.ts — the hardened production version that
-// closes Beobachtungen 1-4) MUST produce ZERO weak-defense findings.
+// Post-fix sanitizer (the production hardened src/lib/chat/sanitize.ts
+// shape that closes Beobachtungen 1-4) MUST produce ZERO weak-defense
+// findings.
 //
 // Fixture files live as `.txt` so they are not picked up by walkFiles'
 // ['ts','js'] extension filter — they are written into a temp project as
@@ -642,7 +641,7 @@ describe('promptInjectionCheckerScanner — Field-Report end-to-end fixtures', (
     expect(sub4.length, 'Sub-Klasse 4 (incomplete-role-coverage) expected ≥1').toBeGreaterThan(0);
   });
 
-  it('POST-FIX fixture (neonarc hardened sanitize.ts) produces ZERO weak-defense findings', async () => {
+  it('POST-FIX fixture (production hardened sanitize.ts) produces ZERO weak-defense findings', async () => {
     const postFixSource = readFileSync(join(FIXTURES_DIR, 'sanitizer-post-fix.ts.txt'), 'utf-8');
     mkdirSync(join(projectPath, 'src/lib/chat'), { recursive: true });
     writeFileSync(join(projectPath, 'src/lib/chat/sanitize.ts'), postFixSource);
