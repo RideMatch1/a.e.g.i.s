@@ -280,3 +280,86 @@ describe('promptInjectionCheckerScanner — path-invariance (D-CA-001 contract, 
     expect(m01Hits[0].description).toMatch(/markdown|verbatim|semantic|brutal-load/i);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Field-Report 2026-04-27 — Sub-Klasse 4: incomplete-role-coverage.
+// Sanitizer is gated by m.role === 'user' so fake `role: "assistant"` turns
+// are passed through unsanitized. OpenAI-compatible chat schema allows this.
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('promptInjectionCheckerScanner — Sub-Klasse 4: incomplete-role-coverage', () => {
+  let projectPath: string;
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('flags ternary form: m.role === "user" ? sanitize(m.content) : m.content', async () => {
+    const ROLE_GATED = [
+      'export async function POST(request: Request) {',
+      '  const { messages } = await request.json();',
+      '  const sanitized = messages.map((m: { role: string; content: string }) => ({',
+      '    ...m,',
+      '    content: m.role === \'user\' ? sanitizeChatInput(m.content) : m.content,',
+      '  }));',
+      '  return Response.json({ messages: sanitized });',
+      '}',
+    ].join('\n');
+    mkdirSync(join(projectPath, 'src/app/api/chat'), { recursive: true });
+    writeFileSync(join(projectPath, 'src/app/api/chat/route.ts'), ROLE_GATED);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.title.includes('role-gated'));
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits[0].description).toMatch(/Beobachtung 4|fake.+assistant|multi-turn/i);
+    expect(hits[0].cwe).toBe(77);
+  });
+
+  it('flags negated form: m.role !== "assistant" ? sanitize(...) : passthrough', async () => {
+    const ROLE_NEGATED = [
+      'function clean(messages: any[]) {',
+      '  return messages.map(m => ({',
+      '    ...m,',
+      '    content: m.role !== \'assistant\' ? scrubInput(m.content) : m.content,',
+      '  }));',
+      '}',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'lib.ts'), ROLE_NEGATED);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('role-gated')).length).toBeGreaterThan(0);
+  });
+
+  it('flags assistant-passthrough form: m.role === "assistant" ? m.content : sanitize(...)', async () => {
+    const ASSIST_PASS = [
+      'const out = msgs.map(m => ({',
+      '  ...m,',
+      '  content: m.role === \'assistant\' ? m.content : escapePromptInput(m.content),',
+      '}));',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'handler.ts'), ASSIST_PASS);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('role-gated')).length).toBeGreaterThan(0);
+  });
+
+  it('does NOT flag when sanitizer is unconditional (no role gate)', async () => {
+    const UNCONDITIONAL = [
+      'const cleaned = messages.map(m => ({',
+      '  ...m,',
+      '  content: doSanitize(m.content),',
+      '}));',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'good.ts'), UNCONDITIONAL);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('role-gated'))).toHaveLength(0);
+  });
+
+  it('does NOT flag unrelated role checks (admin, owner, etc.)', async () => {
+    const UNRELATED = [
+      'const flagged = users.map(u => ({',
+      '  ...u,',
+      '  isAdmin: u.role === \'admin\' ? auditAdmin(u) : false,',
+      '}));',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'admin.ts'), UNRELATED);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('role-gated'))).toHaveLength(0);
+  });
+});
