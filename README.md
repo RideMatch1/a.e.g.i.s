@@ -320,11 +320,12 @@ a published APTS conformance posture.
 
 This is a **transparent gap statement**, not a conformance claim. APTS
 forbids partial credit; a Tier-1 conformance claim requires 100% MET on
-all 72 Tier-1 requirements. AEGIS today meets 33 of 72 Tier-1 requirements
-(46% — Phase-1 baseline + Phase-2 Clusters 1 + 2 + 3 shipped, with
-**Scope Enforcement at full 9/9 MET coverage**) and the readiness
-assessment is honest about where the remaining 37 gaps are, with concrete
-closure plans for each.
+all 72 Tier-1 requirements. AEGIS today meets 44 of 72 Tier-1 requirements
+(61% — Phase-1 baseline + Phase-2 Clusters 1 + 2 + 3 + 4 shipped, with
+**three fully-met domains: Scope Enforcement (9/9), Manipulation
+Resistance (13/13), and Reporting (3/3)**) and the readiness assessment
+is honest about where the remaining 26 gaps are, with concrete closure
+plans for each.
 
 - [Tier-1 Readiness Assessment](./docs/compliance/owasp-apts/CONFORMANCE-CLAIM.md)
 - [Gap summary (TL;DR)](./docs/compliance/owasp-apts/gap-summary.md)
