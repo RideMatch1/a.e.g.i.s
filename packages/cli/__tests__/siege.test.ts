@@ -148,6 +148,15 @@ vi.mock('@aegis-scan/core', () => ({
   withPhaseTimeout: vi.fn().mockImplementation(async (p: Promise<unknown>) => ({ timed_out: false, value: await p })),
   derivePhaseTimeoutMs: vi.fn().mockReturnValue(30 * 60_000),
   requestKill: vi.fn(),
+  // Cluster-6 oversight — pass-through defaults; per-test overrides
+  // exercise the halt paths.
+  assignCiaVector: vi.fn().mockReturnValue({ c: 'low', i: 'low', a: 'low' }),
+  evaluateCiaThreshold: vi.fn().mockReturnValue({ breach: false, axes_breached: [], rationale: 'mock-default-no-breach', apts_refs: ['APTS-SC-001'] }),
+  evaluateApprovalGate: vi.fn().mockReturnValue({ allowed: true, reason: 'mock-default-allowed', level: 'L1', apts_refs: ['APTS-HO-001'] }),
+  validateDelegationMatrix: vi.fn().mockReturnValue({ ok: true, errors: [], matrix: [], apts_refs: ['APTS-HO-004'] }),
+  escalateOnSeverity: vi.fn().mockReturnValue({ escalate: false, action: 'continue', reason: 'mock-default-no-escalation', apts_refs: ['APTS-HO-011'] }),
+  escalateOnConfidence: vi.fn().mockReturnValue({ escalate: false, action: 'continue', reason: 'mock-default-no-escalation', apts_refs: ['APTS-HO-013'] }),
+  escalateOnComplianceTrigger: vi.fn().mockReturnValue({ escalate: false, action: 'continue', reason: 'mock-default-no-match', apts_refs: ['APTS-HO-014'] }),
 }));
 
 vi.mock('@aegis-scan/reporters', () => ({
@@ -459,5 +468,108 @@ describe('runSiege', () => {
       'https://example.com',
       expect.objectContaining({ baseline: expect.any(Object) }),
     );
+  });
+
+  // ---------------------------------------------------------------------
+  // Cluster-6 oversight integration tests
+  // ---------------------------------------------------------------------
+
+  it('halts when evaluateApprovalGate denies a phase entry (APTS-HO-001/010)', async () => {
+    const { evaluateApprovalGate } = await import('@aegis-scan/core');
+    vi.mocked(evaluateApprovalGate).mockReturnValueOnce({
+      allowed: false,
+      reason: 'mock recon approval denied',
+      level: 'L1',
+      apts_refs: ['APTS-HO-001', 'APTS-HO-010'],
+    });
+
+    const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(exitCode).toBe(1);
+  });
+
+  it('halts when evaluateCiaThreshold reports breach (APTS-SC-001 + HO-012)', async () => {
+    mockRun.mockResolvedValueOnce({
+      score: 100,
+      grade: 'B',
+      badge: 'OK',
+      blocked: false,
+      breakdown: {},
+      findings: [
+        { id: 'F-cia', severity: 'high', title: 'high-impact finding', description: 'critical asset', cwe: 89 },
+      ],
+      scanResults: [],
+      stack: { framework: 'nextjs' },
+      duration: 100,
+      timestamp: new Date().toISOString(),
+      confidence: 'high',
+    });
+    const { evaluateCiaThreshold, synthesizeMinimalRoE } = await import('@aegis-scan/core');
+    const baseRoE = vi.mocked(synthesizeMinimalRoE).mock.results[0]?.value ?? {};
+    vi.mocked(synthesizeMinimalRoE).mockReturnValueOnce({
+      ...baseRoE,
+      escalation: { cia_threshold: { c: 'high' } },
+    } as never);
+    vi.mocked(evaluateCiaThreshold).mockReturnValueOnce({
+      breach: true,
+      axes_breached: ['c'],
+      rationale: 'mock c-axis breach',
+      apts_refs: ['APTS-SC-001', 'APTS-HO-012'],
+    });
+
+    const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(exitCode).toBe(1);
+  });
+
+  it('halts when escalateOnComplianceTrigger fires with on_match=halt (APTS-HO-014)', async () => {
+    mockRun.mockResolvedValueOnce({
+      score: 100,
+      grade: 'B',
+      badge: 'OK',
+      blocked: false,
+      breakdown: {},
+      findings: [
+        { id: 'F-pci', severity: 'medium', title: 'PCI exposure', description: 'cardholder data leakage' },
+      ],
+      scanResults: [],
+      stack: { framework: 'nextjs' },
+      duration: 100,
+      timestamp: new Date().toISOString(),
+      confidence: 'high',
+    });
+    const { escalateOnComplianceTrigger, synthesizeMinimalRoE } = await import('@aegis-scan/core');
+    const baseRoE = vi.mocked(synthesizeMinimalRoE).mock.results[0]?.value ?? {};
+    vi.mocked(synthesizeMinimalRoE).mockReturnValueOnce({
+      ...baseRoE,
+      compliance_triggers: { regulatory_class: ['PCI'], on_match: 'halt' },
+    } as never);
+    vi.mocked(escalateOnComplianceTrigger).mockReturnValueOnce({
+      escalate: true,
+      action: 'halt',
+      reason: 'mock PCI match',
+      apts_refs: ['APTS-HO-014'],
+    });
+
+    const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(exitCode).toBe(1);
+  });
+
+  it('rejects malformed delegation_matrix at engagement start (APTS-HO-004)', async () => {
+    const { synthesizeMinimalRoE, validateDelegationMatrix } = await import('@aegis-scan/core');
+    const baseRoE = vi.mocked(synthesizeMinimalRoE).mock.results[0]?.value ?? {};
+    vi.mocked(synthesizeMinimalRoE).mockReturnValueOnce({
+      ...baseRoE,
+      authorization: {
+        ...((baseRoE as { authorization?: Record<string, unknown> }).authorization ?? {}),
+        delegation_matrix: 'not-an-array',
+      },
+    } as never);
+    vi.mocked(validateDelegationMatrix).mockReturnValueOnce({
+      ok: false,
+      errors: ['matrix must be an array'],
+      apts_refs: ['APTS-HO-004'],
+    });
+
+    const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(exitCode).toBe(1);
   });
 });

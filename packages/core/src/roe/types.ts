@@ -120,6 +120,13 @@ const SafetyControlsSchema = z
   })
   .strict();
 
+const DelegationEntrySchema = z
+  .object({
+    role: z.string().min(1),
+    can_approve: z.array(z.string().min(1)).min(1),
+  })
+  .strict();
+
 const AuthorizationSchema = z
   .object({
     statement: z.string().min(20, {
@@ -128,6 +135,50 @@ const AuthorizationSchema = z
     }),
     authority_url: z.string().url().optional(),
     signature_method: z.enum(['operator-attested', 'external-signed']).default('operator-attested'),
+    /** APTS-HO-004 — declarative role↔action authority delegation matrix. */
+    delegation_matrix: z.array(DelegationEntrySchema).optional(),
+  })
+  .strict();
+
+const AutonomyLevelPolicySchema = z
+  .object({
+    approval_required: z.boolean().optional(),
+    pre_approved: z.boolean().optional(),
+    irreversible_action_classes: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+
+const AutonomyLevelsSchema = z
+  .object({
+    L1: AutonomyLevelPolicySchema.optional(),
+    L2: AutonomyLevelPolicySchema.optional(),
+    L3: AutonomyLevelPolicySchema.optional(),
+    L4: AutonomyLevelPolicySchema.optional(),
+  })
+  .strict();
+
+const ComplianceTriggersSchema = z
+  .object({
+    regulatory_class: z.array(z.string().min(1)).min(1),
+    on_match: z.enum(['halt', 'notify']).default('halt'),
+  })
+  .strict();
+
+const EscalationPolicySchema = z
+  .object({
+    /** APTS-HO-011 — severity at which an unexpected-finding halt fires. */
+    severity_threshold: z.enum(['info', 'low', 'medium', 'high', 'critical', 'blocker']).optional(),
+    /** APTS-HO-012 — CIA-axis halt thresholds. */
+    cia_threshold: z
+      .object({
+        c: z.enum(['none', 'low', 'medium', 'high']).optional(),
+        i: z.enum(['none', 'low', 'medium', 'high']).optional(),
+        a: z.enum(['none', 'low', 'medium', 'high']).optional(),
+      })
+      .strict()
+      .optional(),
+    /** APTS-HO-013 — when true, low-confidence findings halt-pause the engagement. */
+    pause_on_low_confidence: z.boolean().optional(),
   })
   .strict();
 
@@ -192,6 +243,12 @@ export const RoESchema = z
     sandboxing: SandboxingSchema.default({ mode: 'none' }),
     /** APTS-SC-009/010, HO-003 — declarative safety-control overrides. */
     safety_controls: SafetyControlsSchema.optional(),
+    /** APTS-HO-001/010 — per-autonomy-level pre-approval gating. */
+    autonomy_levels: AutonomyLevelsSchema.optional(),
+    /** APTS-HO-014 — regulatory class triggers for finding-text escalation. */
+    compliance_triggers: ComplianceTriggersSchema.optional(),
+    /** APTS-HO-011/012/013 — escalation thresholds for severity / CIA vector / confidence. */
+    escalation: EscalationPolicySchema.optional(),
   })
   .strict();
 

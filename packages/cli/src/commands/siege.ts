@@ -35,6 +35,13 @@ import {
   detectScopeBreach,
   withPhaseTimeout,
   derivePhaseTimeoutMs,
+  assignCiaVector,
+  evaluateCiaThreshold,
+  evaluateApprovalGate,
+  validateDelegationMatrix,
+  escalateOnSeverity,
+  escalateOnConfidence,
+  escalateOnComplianceTrigger,
   type RoE,
   type EngagementState,
   type EventSink,
@@ -414,6 +421,17 @@ export async function runSiege(
     30 * 60_000,
   );
 
+  // APTS-HO-004 — validate the operator-supplied delegation matrix at engagement start.
+  // Failed validation halts immediately so the audit trail records the bad shape.
+  if (roe.authorization.delegation_matrix !== undefined) {
+    const matrixValidation = validateDelegationMatrix(roe.authorization.delegation_matrix);
+    if (!matrixValidation.ok) {
+      console.error(chalk.red('\nRoE.authorization.delegation_matrix validation failed:'));
+      for (const err of matrixValidation.errors) console.error(chalk.red(`  - ${err}`));
+      return 1;
+    }
+  }
+
   // APTS-MR-004 + MR-012: pin the SHA-256 of the canonical RoE at engagement-start.
   // verifyConfig is re-called at every phase boundary; mismatch → halt.
   const roePin: ConfigPin = pinConfig('roe', roe);
@@ -490,6 +508,86 @@ export async function runSiege(
         halt: true,
         reason: `APTS-AL-016 boundary breach in finding ${f.id}: ${breach.decision.reason}`,
       };
+    }
+    // APTS-SC-001 — assign CIA vector + APTS-HO-012 — evaluate threshold breach.
+    if (!f.cia_vector) {
+      f.cia_vector = assignCiaVector(f);
+    }
+    if (roe.escalation?.cia_threshold) {
+      const cia = evaluateCiaThreshold(f.cia_vector, roe.escalation.cia_threshold);
+      if (cia.breach) {
+        emit(
+          makeEvent(engagementId, 'critical-finding', {
+            finding_id: f.id,
+            severity: f.severity,
+            title: f.title,
+            ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+            stop_action: 'halt',
+          }),
+        );
+        return { halt: true, reason: `APTS-HO-012 ${cia.rationale}` };
+      }
+    }
+    // APTS-HO-011 — severity-based unexpected-finding escalation.
+    const sevDecision = escalateOnSeverity(f, { threshold: roe.escalation?.severity_threshold });
+    if (sevDecision.escalate && sevDecision.action === 'halt') {
+      emit(
+        makeEvent(engagementId, 'critical-finding', {
+          finding_id: f.id,
+          severity: f.severity,
+          title: f.title,
+          ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+          stop_action: 'halt',
+        }),
+      );
+      // Severity-based escalation only halts when the operator has opted in via a non-default threshold;
+      // otherwise the existing critical-finding stop_action path already covers high-severity halts.
+      if (roe.escalation?.severity_threshold !== undefined) {
+        return { halt: true, reason: `APTS-HO-011 ${sevDecision.reason}` };
+      }
+    }
+    // APTS-HO-013 — confidence-based pause when operator opted in.
+    const confDecision = escalateOnConfidence(f, { pause_on_low: roe.escalation?.pause_on_low_confidence });
+    if (confDecision.escalate && confDecision.action === 'halt') {
+      emit(
+        makeEvent(engagementId, 'critical-finding', {
+          finding_id: f.id,
+          severity: f.severity,
+          title: f.title,
+          ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+          stop_action: 'halt',
+        }),
+      );
+      return { halt: true, reason: `APTS-HO-013 ${confDecision.reason}` };
+    }
+    // APTS-HO-014 — regulatory-class compliance trigger.
+    if (roe.compliance_triggers !== undefined) {
+      const compDecision = escalateOnComplianceTrigger(f, roe.compliance_triggers);
+      if (compDecision.escalate && compDecision.action === 'halt') {
+        emit(
+          makeEvent(engagementId, 'critical-finding', {
+            finding_id: f.id,
+            severity: f.severity,
+            title: f.title,
+            ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+            stop_action: 'halt',
+          }),
+        );
+        return { halt: true, reason: `APTS-HO-014 ${compDecision.reason}` };
+      }
+    }
+    return { halt: false };
+  };
+
+  /**
+   * APTS-HO-001 + HO-010 — pre-phase approval gate. Returns `halt: true`
+   * with a reason when the autonomy-level requires approval and none
+   * has been granted; the orchestrator emits a halt event and stops.
+   */
+  const evaluatePhaseApproval = (phase: string): { halt: boolean; reason?: string } => {
+    const decision = evaluateApprovalGate(phase, roe.autonomy_levels, options.confirm === true);
+    if (!decision.allowed) {
+      return { halt: true, reason: `APTS-HO-001/010 ${decision.reason}` };
     }
     return { halt: false };
   };
@@ -610,6 +708,15 @@ export async function runSiege(
     if (completedPhases.includes('recon')) {
       console.log(chalk.dim(`  Skipping Phase 1 (recon) — already completed in resumed engagement.`));
     } else {
+      const reconApproval = evaluatePhaseApproval('recon');
+      if (reconApproval.halt) {
+        spinner.fail(reconApproval.reason ?? 'pre-phase approval required');
+        emit(makeEvent(engagementId, 'halt', { reason: reconApproval.reason ?? 'pre-phase approval required', apts_refs: ['APTS-HO-001', 'APTS-HO-010'] }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
       emit(makeEvent(engagementId, 'phase-transition', { phase: 'recon', transition: 'enter' }));
       const phaseStart = Date.now();
       // APTS-HO-003 — per-phase decision-timeout with default-safe halt.
@@ -686,6 +793,15 @@ export async function runSiege(
         confidence: 'medium',
       } as unknown as AuditResult;
     } else {
+      const discoveryApproval = evaluatePhaseApproval('discovery');
+      if (discoveryApproval.halt) {
+        spinner.fail(discoveryApproval.reason ?? 'pre-phase approval required');
+        emit(makeEvent(engagementId, 'halt', { reason: discoveryApproval.reason ?? 'pre-phase approval required', apts_refs: ['APTS-HO-001', 'APTS-HO-010'] }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
       emit(makeEvent(engagementId, 'phase-transition', { phase: 'discovery', transition: 'enter' }));
       const phaseStart = Date.now();
       const discoveryResult = await withPhaseTimeout(
@@ -767,6 +883,15 @@ export async function runSiege(
       console.log(chalk.dim(`  Skipping Phase 3 (exploitation) — already completed in resumed engagement.`));
       attackFindings = []; // findings already merged in findingsCarried
     } else {
+      const exploitApproval = evaluatePhaseApproval('exploitation');
+      if (exploitApproval.halt) {
+        spinner.fail(exploitApproval.reason ?? 'pre-phase approval required');
+        emit(makeEvent(engagementId, 'halt', { reason: exploitApproval.reason ?? 'pre-phase approval required', apts_refs: ['APTS-HO-001', 'APTS-HO-010'] }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
       emit(makeEvent(engagementId, 'phase-transition', { phase: 'exploitation', transition: 'enter' }));
       const phaseStart = Date.now();
       const exploitResult = await withPhaseTimeout(

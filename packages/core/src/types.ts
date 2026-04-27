@@ -95,7 +95,21 @@ export interface Finding {
    * to mean "scanner's default confidence tier (typically high)".
    */
   confidence?: Confidence;
+  /**
+   * APTS-SC-001 — Confidentiality / Integrity / Availability impact
+   * vector. Each axis is one of `none | low | medium | high`. Populated
+   * by the orchestrator from `assignCiaVector(finding)` after scanner
+   * emit; operators may override per-finding via the suppression
+   * pipeline. Default mappings are CWE-driven; unknown CWE → all-low.
+   */
+  cia_vector?: { c: CiaImpact; i: CiaImpact; a: CiaImpact };
 }
+
+/**
+ * APTS-SC-001 CIA impact ordinal. Lowercased for consistency with
+ * the `severity` enum + Zod-friendly serialization.
+ */
+export type CiaImpact = 'none' | 'low' | 'medium' | 'high';
 
 export interface ScanResult {
   scanner: string;
