@@ -508,3 +508,76 @@ describe('promptInjectionCheckerScanner — Sub-Klasse 1: marker-only-replace', 
     expect(result.findings.filter((f) => f.title.includes('marker-only-replace'))).toHaveLength(0);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Field-Report 2026-04-27 — Sub-Klasse 2: html-strip-before-marker.
+// /<[^>]*>/g eats ChatML wrappers like <|im_start|>system\n... before the
+// role-marker detect can fire. Positional check: html-strip pos < marker pos
+// within ±40 lines.
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('promptInjectionCheckerScanner — Sub-Klasse 2: html-strip-before-marker', () => {
+  let projectPath: string;
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('flags html-strip BEFORE marker-detect in chained .replace()', async () => {
+    const VULN = [
+      'function clean(s: string) {',
+      "  return s.replace(/<[^>]*>/g, '')",
+      "    .replace(/^\\s*(?:system|SYSTEM)\\s*:/gm, '[blocked]:');",
+      '}',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'vuln.ts'), VULN);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.title.includes('html-strip precedes'));
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits[0].cwe).toBe(77);
+    expect(hits[0].description).toMatch(/Beobachtung 2|ChatML/);
+  });
+
+  it('does NOT flag when marker-detect runs BEFORE html-strip (correct order)', async () => {
+    const SAFE = [
+      'function clean(s: string) {',
+      "  return s.replace(/^\\s*(?:system|SYSTEM)\\s*:/gm, '[blocked]:')",
+      "    .replace(/<[^>]*>/g, '');",
+      '}',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'safe.ts'), SAFE);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('html-strip precedes'))).toHaveLength(0);
+  });
+
+  it('does NOT flag when html-strip and marker-detect are >40 lines apart (different functions)', async () => {
+    const FAR = ['function htmlClean(s: string) {', "  return s.replace(/<[^>]*>/g, '');", '}', ''];
+    for (let i = 0; i < 50; i++) FAR.push(`// padding line ${i}`);
+    FAR.push('function markerClean(s: string) {');
+    FAR.push("  return s.replace(/^\\s*system\\s*:/gm, '');");
+    FAR.push('}');
+    writeFileSync(join(projectPath, 'far.ts'), FAR.join('\n'));
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('html-strip precedes'))).toHaveLength(0);
+  });
+
+  it('does NOT flag a file that has only html-strip (no marker-detect at all)', async () => {
+    const HTML_ONLY = [
+      'function clean(s: string) {',
+      "  return s.replace(/<[^>]*>/g, '');",
+      '}',
+    ].join('\n');
+    writeFileSync(join(projectPath, 'html.ts'), HTML_ONLY);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('html-strip precedes'))).toHaveLength(0);
+  });
+
+  it('flags within the ±40-line boundary', async () => {
+    const LINES = ['function clean(s: string) {', "  return s.replace(/<[^>]*>/g, '')"];
+    for (let i = 0; i < 35; i++) LINES.push(`    /* line ${i} */`);
+    LINES.push("    .replace(/^\\s*system\\s*:/gm, '[blocked]:');");
+    LINES.push('}');
+    writeFileSync(join(projectPath, 'within.ts'), LINES.join('\n'));
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    expect(result.findings.filter((f) => f.title.includes('html-strip precedes')).length).toBeGreaterThan(0);
+  });
+});
