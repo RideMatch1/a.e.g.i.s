@@ -133,8 +133,11 @@
     },
     {
       "requirement_id": "APTS-SC-001",
-      "status": "partially_met",
-      "rationale": "CWE-based severity (BLOCKER/HIGH/MEDIUM/LOW) is CIA-adjacent; no explicit CIA impact-vector scoring per finding."
+      "status": "met",
+      "rationale": "`assignCiaVector` in `packages/core/src/oversight/cia-scoring.ts` populates a `cia_vector?: { c, i, a }` field on every finding using a 20-CWE default mapping (CWE-89 SQLi, CWE-79 XSS, CWE-78 OS-injection, CWE-918 SSRF, CWE-502 deserialization, etc.) and a severity-based fallback for unmapped CWEs. siege calls assignCiaVector inside the per-finding risk loop. Operators override per finding via the existing suppression pipeline.",
+      "evidence_refs": [
+        "ev-cia-scoring"
+      ]
     },
     {
       "requirement_id": "APTS-SC-004",
@@ -172,8 +175,11 @@
     },
     {
       "requirement_id": "APTS-HO-001",
-      "status": "partially_met",
-      "rationale": "--mode pentest opt-in + siege --confirm are pre-approval gestures for L1/L2 wrappers; no structured authority-matrix per autonomy level."
+      "status": "met",
+      "rationale": "`evaluateApprovalGate` in `packages/core/src/oversight/approval-gates.ts` maps each siege phase to its autonomy level (recon=L1, discovery=L2, exploitation=L3, reporting=L4) and consults `RoE.autonomy_levels.{L1..L4}.approval_required` + `pre_approved`. Engagement-wide --confirm authorizes L1+L2 by default; L3+ require explicit per-level pre-approval. siege calls evaluatePhaseApproval before each running phase; halt on denial.",
+      "evidence_refs": [
+        "ev-pre-approval-gates"
+      ]
     },
     {
       "requirement_id": "APTS-HO-002",
@@ -195,8 +201,11 @@
     },
     {
       "requirement_id": "APTS-HO-004",
-      "status": "not_met",
-      "rationale": "No formal authority-delegation matrix."
+      "status": "met",
+      "rationale": "`validateDelegationMatrix` in `packages/core/src/oversight/authority-matrix.ts` shape-checks the operator-supplied `RoE.authorization.delegation_matrix` (non-empty role + can_approve, no duplicate roles, no empty action-class strings). `rolesForAction` returns the roles that can lift a halt for a given action class. siege validates the matrix at engagement start and halts on malformed input.",
+      "evidence_refs": [
+        "ev-authority-delegation"
+      ]
     },
     {
       "requirement_id": "APTS-HO-006",
@@ -225,28 +234,43 @@
     },
     {
       "requirement_id": "APTS-HO-010",
-      "status": "partially_met",
-      "rationale": "siege --confirm is a single mandatory decision point at engagement start; not per-irreversible-action."
+      "status": "met",
+      "rationale": "Closed jointly with HO-001. `RoE.autonomy_levels.{Lx}.irreversible_action_classes` declares the action set that requires a mandatory human decision point; `detectIrreversibleActions` returns the per-level list, and the same pre-phase approval gate halts the engagement before the irreversible-action phase enters.",
+      "evidence_refs": [
+        "ev-pre-approval-gates"
+      ]
     },
     {
       "requirement_id": "APTS-HO-011",
-      "status": "not_met",
-      "rationale": "No structured unexpected-findings escalation framework."
+      "status": "met",
+      "rationale": "`escalateOnSeverity` in `packages/core/src/oversight/escalation.ts` returns a halt-pending decision when a finding's severity meets or exceeds the operator-configured threshold (`RoE.escalation.severity_threshold`). siege emits a critical-finding event with stop_action `halt` on severity-threshold escalation. The default unexpected-finding halt path (high+critical+blocker) is unchanged; the new threshold lets operators tighten or loosen escalation per engagement.",
+      "evidence_refs": [
+        "ev-severity-escalation"
+      ]
     },
     {
       "requirement_id": "APTS-HO-012",
-      "status": "not_met",
-      "rationale": "No impact-threshold-breach escalation; wrappers continue regardless of finding severity."
+      "status": "met",
+      "rationale": "Closed jointly with SC-001. `evaluateCiaThreshold` in `packages/core/src/oversight/cia-scoring.ts` flags any axis at-or-above the configured per-axis threshold (`RoE.escalation.cia_threshold`). siege calls evaluateCiaThreshold per finding; on breach emits a critical-finding event with stop_action `halt` and stops the engagement.",
+      "evidence_refs": [
+        "ev-cia-scoring"
+      ]
     },
     {
       "requirement_id": "APTS-HO-013",
-      "status": "partially_met",
-      "rationale": "Findings carry confidence (high/medium/low) and the [LOW-CONFIDENCE] CI-badge is a low-fidelity escalation signal; no in-engagement confidence-based pause/escalation."
+      "status": "met",
+      "rationale": "`escalateOnConfidence` in `packages/core/src/oversight/escalation.ts`. When a finding has `confidence: 'low'`, returns `notify` by default (soft escalation for the audit trail); operators opt into hard halt-pending with `RoE.escalation.pause_on_low_confidence`. Extends the post-hoc `[LOW-CONFIDENCE]` PR badge to in-engagement.",
+      "evidence_refs": [
+        "ev-confidence-escalation"
+      ]
     },
     {
       "requirement_id": "APTS-HO-014",
-      "status": "not_met",
-      "rationale": "No legal/compliance escalation triggers."
+      "status": "met",
+      "rationale": "`escalateOnComplianceTrigger` in `packages/core/src/oversight/escalation.ts` scans every finding's title + description against operator-supplied regulatory class markers (PII, PCI, PHI, GDPR, HIPAA, SOX patterns built in). `RoE.compliance_triggers.on_match` selects halt or notify. siege halts the engagement on a halt-class match and emits a critical-finding event with the matched class in the audit trail.",
+      "evidence_refs": [
+        "ev-compliance-triggers"
+      ]
     },
     {
       "requirement_id": "APTS-HO-015",

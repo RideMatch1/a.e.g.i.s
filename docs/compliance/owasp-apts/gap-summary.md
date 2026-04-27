@@ -2,13 +2,16 @@
 
 ## Headline
 
-AEGIS Autonomous Pentest Layer is currently **49/72 MET (68%)** on
+AEGIS Autonomous Pentest Layer is currently **57/72 MET (79%)** on
 OWASP-APTS Tier-1 (Phase 1 baseline + Phase 2 Clusters 1 + 2 + 3 + 4 + 5
-shipped on the same day). **Three domains remain fully met: Scope
-Enforcement (SE 9/9), Manipulation Resistance (MR 13/13), and Reporting
-(RP 3/3).** Phase 2's remaining cluster (Cluster-6, 8 reqs) closes a
-further 8 gaps and converges on full Tier-1 closure for HO + SC and a
-Tier-1 Conformance Claim.
++ 6 shipped on the same day). **Three domains remain fully met:
+Scope Enforcement (SE 9/9), Manipulation Resistance (MR 13/13), and
+Reporting (RP 3/3); Human Oversight is near-complete at 11/13.** Phase
+2's planned cluster set is shipped; the remaining 15 entries (10 PARTIAL,
+3 NOT-MET, 2 N/A) are smaller items distributed across HO, AL, AR, TP,
+and SC, deferred to Phase-2.5 (multi-channel notifications, mid-engagement
+redirect) and Phase-3 (per-scanner AL tagging, evidence sensitivity,
+in-flight TLS).
 
 This is **not** a conformance claim. APTS forbids partial credit; a
 Tier-1 conformance claim is achievable only after 100% MET. We're
@@ -26,14 +29,14 @@ partially_met/not_met to met.
 | Domain | Total Tier-1 | Met | Partially | Not Met | N/A | Planned |
 |---|---|---|---|---|---|---|
 | Scope Enforcement (SE) | 9 | 9 | 0 | 0 | 0 | 0 |
-| Safety Controls (SC) | 6 | 3 | 3 | 0 | 0 | 0 |
-| Human Oversight (HO) | 13 | 4 | 4 | 5 | 0 | 0 |
+| Safety Controls (SC) | 6 | 4 | 2 | 0 | 0 | 0 |
+| Human Oversight (HO) | 13 | 11 | 1 | 1 | 0 | 0 |
 | Graduated Autonomy (AL) | 11 | 8 | 3 | 0 | 0 | 0 |
 | Auditability (AR) | 7 | 5 | 1 | 1 | 0 | 0 |
 | Manipulation Resistance (MR) | 13 | 13 | 0 | 0 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **49** | **14** | **7** | **2** | **0** |
+| **Total** | **72** | **57** | **10** | **3** | **2** | **0** |
 
 ## Strongest domains today
 
@@ -107,7 +110,7 @@ in clusters 2/4/5/6.
 | 3 | Hash-chain + per-finding evidence_hash + audit-verify CLI + scope-validation events | AR-010/012 + AL-005 + SE-015 | 4 entries | **shipped 2026-04-27** |
 | 4 | Orchestrator-side MR | MR-001/002/004/005/007/008/009/010/011/012/018 | 11 entries | **shipped 2026-04-27** |
 | 5 | Multi-path kill + health + boundary monitor + decision timeout | SC-009/010/015 + AL-016 + HO-003 | 5 entries | **shipped 2026-04-27** |
-| 6 | CIA scoring + HO oversight stack | SC-001 + HO-001/004/010/011/012/013/014 | 8 entries | queued |
+| 6 | CIA scoring + HO oversight stack | SC-001 + HO-001/004/010/011/012/013/014 | 8 entries | **shipped 2026-04-27** |
 
 Cluster-1 shipped 8/72 entries on the same day as the Phase-1 baseline
 (15/72 → 23/72). Remaining five clusters plausibly close 27 of the 49

@@ -431,6 +431,79 @@ to exist at the pinned HEAD SHA.
 - **Captured at:** 2026-04-27
 - **Sensitivity:** public
 
+### `ev-cia-scoring`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/oversight/cia-scoring.ts` — `assignCiaVector` returns the per-CWE default mapping (CWE-89 SQLi, CWE-79 XSS, CWE-78 OS-injection, CWE-918 SSRF, CWE-502 deserialization, CWE-287 auth failure, etc. — 20 mappings) or the severity-based fallback. `evaluateCiaThreshold` flags axes at-or-above per-axis threshold.
+  - `packages/core/src/types.ts` — Finding gains `cia_vector?: { c, i, a }` + new `CiaImpact` type.
+  - `packages/cli/src/commands/siege.ts` — wired into `haltOnFindingTextRisk`; halt on threshold breach.
+  - `packages/core/__tests__/oversight/cia-scoring.test.ts` — 11 tests (per-CWE, severity fallback, threshold breach, ≥-not->, multi-axis, no-shared-reference).
+- **What it proves:** APTS-SC-001 (Impact Classification + CIA Scoring) + APTS-HO-012 (Impact Threshold Breach Escalation) — joint coverage.
+- **How to verify:** `pnpm -F @aegis-scan/core test cia-scoring` — 11/11 green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-pre-approval-gates`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/oversight/approval-gates.ts` — `evaluateApprovalGate(phase, autonomy_levels, engagementConfirmed)`. Phase→AL mapping (recon=L1, discovery=L2, exploitation=L3, reporting=L4). `detectIrreversibleActions` returns the per-level action class list.
+  - `packages/cli/src/commands/siege.ts` — `evaluatePhaseApproval` invoked before each running phase; halt on denial.
+  - `packages/core/__tests__/oversight/approval-gates.test.ts` — 9 tests (allow paths + deny paths + AL mapping invariant).
+- **What it proves:** APTS-HO-001 (Pre-Approval Gates per AL-level) + APTS-HO-010 (Mandatory Human Decision Points) — joint coverage.
+- **How to verify:** `pnpm -F @aegis-scan/core test approval-gates` — 9/9 green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-authority-delegation`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/oversight/authority-matrix.ts` — `validateDelegationMatrix` shape-checks operator-supplied matrix (non-empty role + can_approve, no duplicate roles, no empty action-class strings). `rolesForAction` returns the roles that can approve a given class.
+  - `packages/cli/src/commands/siege.ts` — validates RoE.authorization.delegation_matrix at engagement start; halt on malformed input.
+  - `packages/core/__tests__/oversight/authority-matrix.test.ts` — 9 tests (every rejection case + valid input + lookup).
+- **What it proves:** APTS-HO-004 (Authority Delegation Matrix).
+- **How to verify:** `pnpm -F @aegis-scan/core test authority-matrix` — 9/9 green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-severity-escalation`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/oversight/escalation.ts` — `escalateOnSeverity` returns halt-pending when severity ≥ threshold. Default `high`; operator override via `RoE.escalation.severity_threshold`.
+  - `packages/cli/src/commands/siege.ts` — wired into `haltOnFindingTextRisk` with operator-threshold check; emits critical-finding event with stop_action `halt`.
+  - `packages/core/__tests__/oversight/escalation.test.ts` — 3 tests for severity escalation paths.
+- **What it proves:** APTS-HO-011 (Unexpected Findings Escalation Framework).
+- **How to verify:** `pnpm -F @aegis-scan/core test escalation` — `escalateOnSeverity` block green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-confidence-escalation`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/oversight/escalation.ts` — `escalateOnConfidence`. When confidence==='low', returns `notify` (soft) or `halt` (hard, operator opt-in via `RoE.escalation.pause_on_low_confidence`).
+  - `packages/cli/src/commands/siege.ts` — wired into `haltOnFindingTextRisk`; halt on hard-pause flag.
+  - `packages/core/__tests__/oversight/escalation.test.ts` — 4 tests for confidence escalation paths.
+- **What it proves:** APTS-HO-013 (Confidence-Based Escalation).
+- **How to verify:** `pnpm -F @aegis-scan/core test escalation` — `escalateOnConfidence` block green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-compliance-triggers`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/oversight/escalation.ts` — `escalateOnComplianceTrigger` scans finding title + description against operator-supplied regulatory class markers. Built-in patterns: PII, PCI, PHI, GDPR, HIPAA, SOX. `on_match` is `halt` (default) or `notify`.
+  - `packages/cli/src/commands/siege.ts` — wired into `haltOnFindingTextRisk` when `RoE.compliance_triggers` is set; halt on halt-class match.
+  - `packages/core/__tests__/oversight/escalation.test.ts` — 5 tests (PCI, notify mode, PII/HIPAA/SOX, no-match, unknown-class graceful).
+- **What it proves:** APTS-HO-014 (Legal/Compliance Escalation Triggers).
+- **How to verify:** `pnpm -F @aegis-scan/core test escalation` — `escalateOnComplianceTrigger` block green. Integration test "halts when escalateOnComplianceTrigger fires with on_match=halt (APTS-HO-014)".
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
 ### `ev-decision-timeout`
 
 - **Type:** code-module + tests + integration
@@ -477,8 +550,9 @@ The handover doc tracks the same set with sequencing + ETA.
 ### Safety Controls (SC) — gaps
 
 > **Closed by Phase 2 Cluster-5** (safety-controls module + per-phase wiring): SC-009, SC-010, SC-015. See `ev-multi-path-kill-switch`, `ev-health-monitor`, `ev-post-test-integrity` above.
+>
+> **Closed by Phase 2 Cluster-6** (CIA scoring + per-finding evaluation): SC-001. See `ev-cia-scoring` above.
 
-- **APTS-SC-001 (Impact Classification and CIA Scoring) — partially_met:** CWE-based severity is CIA-adjacent. **Phase-2 plan:** add CIA impact-vector field to Finding type; populate per-CWE in the scanner emit-path. **Cluster-6.**
 - **APTS-SC-004 (Rate Limiting, Bandwidth, and Payload Constraints) — partially_met:** Per-wrapper. **Phase-2 plan:** orchestrator-level token-bucket / global rate-limit + payload-size envelope.
 - **APTS-SC-020 (Action Allowlist Enforcement External to the Model) — partially_met:** Mode-gate is coarse. **Phase-2 plan:** per-scanner action allowlist consumed by the orchestrator before scanner dispatch.
 
@@ -488,16 +562,10 @@ The handover doc tracks the same set with sequencing + ETA.
 >
 > **Closed by Phase 2 Cluster-5** (decision timeout + default-safe halt): HO-003. See `ev-decision-timeout` above.
 >
+> **Closed by Phase 2 Cluster-6** (oversight module + RoE delegation/autonomy schema): HO-001, HO-004, HO-010, HO-011, HO-012, HO-013, HO-014. See `ev-pre-approval-gates`, `ev-authority-delegation`, `ev-severity-escalation`, `ev-confidence-escalation`, `ev-compliance-triggers` above.
+>
 > **Bumped from not_met to partially_met by Cluster-2:** HO-015 (webhook channel shipped; full multi-channel Slack/email/PagerDuty integration is Cluster-2.5).
-
-- **APTS-HO-001 — partially_met:** `--mode pentest` opt-in is a pre-approval gesture. **Phase-2 plan:** structured per-AL-level pre-approval gate. **Cluster-6.**
-- **APTS-HO-004 — not_met:** **Phase-2 plan:** authority-delegation matrix in the RoE schema. **Cluster-6.**
 - **APTS-HO-007 — not_met:** **Phase-2 plan:** mid-engagement redirect via expanded RoE-edit-then-resume cycle (Cluster-2.5).
-- **APTS-HO-010 — partially_met:** One decision point at start. **Phase-2 plan:** identify per-phase irreversible-action set + add gate per item.
-- **APTS-HO-011 — not_met:** **Phase-2 plan:** unexpected-finding escalation framework (severity > THRESHOLD → operator notification + halt-pending-approval).
-- **APTS-HO-012 — not_met:** **Phase-2 plan:** impact-threshold-breach trigger (combines with SC-001 CIA scoring, Cluster-6).
-- **APTS-HO-013 — partially_met:** `[LOW-CONFIDENCE]` badge is post-hoc. **Phase-2 plan:** in-engagement confidence-based pause.
-- **APTS-HO-014 — not_met:** **Phase-2 plan:** legal/compliance escalation triggers in the RoE schema (regulated-asset class detection).
 - **APTS-HO-015 — partially_met:** Webhook channel shipped (one or more URLs supported simultaneously). **Phase-2 plan:** native multi-channel transport (Slack, email, PagerDuty) — Cluster-2.5.
 
 ### Graduated Autonomy (AL) — gaps
