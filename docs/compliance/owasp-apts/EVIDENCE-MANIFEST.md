@@ -300,6 +300,102 @@ to exist at the pinned HEAD SHA.
 - **Captured at:** 2026-04-27
 - **Sensitivity:** public
 
+### `ev-instruction-boundary`
+
+- **Type:** code-module + tests
+- **Paths:**
+  - `packages/core/src/manipulation-resistance/instruction-boundary.ts` — `enforceInstructionBoundary(wrapperName, action, roe)` checks per-wrapper action allowlist (`WRAPPER_ACTION_ALLOWLIST`), target-in-RoE-scope, and any URL embedded in payloads. Unknown wrappers are deny-by-default.
+  - `packages/core/__tests__/manipulation-resistance/instruction-boundary.test.ts` — 7 tests cover happy path + each rejection class.
+- **What it proves:** APTS-MR-001 (Instruction Boundary Enforcement Architecture) — orchestrator enforces a layer-2 instruction frame on top of every wrapper's internal one.
+- **How to verify:** `pnpm -F @aegis-scan/core test instruction-boundary` — 7/7 green. Read the per-wrapper allowlist constants in the source.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-response-validator`
+
+- **Type:** code-module + tests
+- **Paths:**
+  - `packages/core/src/manipulation-resistance/response-validator.ts` — `validateWrapperResponse` runs per-wrapper Zod schemas (`StrixOutputSchema`, `PtaiOutputSchema`, `PentestswarmOutputSchema`, `SubfinderEntrySchema`); recursive HTML-encode + 16-KiB field-length cap defends against script injection + memory exhaustion.
+  - `packages/scanners/src/dast/{strix,ptai,pentestswarm}.ts` — wrapper-side application post-parse, pre-emit.
+  - `packages/core/__tests__/manipulation-resistance/response-validator.test.ts` — 6 tests on validation; 6 tests on detectAuthorityClaim.
+- **What it proves:** APTS-MR-002 (Response Validation and Sanitization).
+- **How to verify:** `pnpm -F @aegis-scan/core test response-validator` — 12/12 green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-config-integrity`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/manipulation-resistance/config-integrity.ts` — `pinConfig(label, value)` returns `{ hash, pinned_at, label }` (SHA-256 of canonical JSON); `verifyConfig(value, pin)` returns `{ ok, observed_hash, reason? }` and reports drift with both hashes for audit.
+  - `packages/cli/src/commands/siege.ts` — wired at engagement-start (pin) + after each phase (verify); halt on mismatch.
+  - `packages/core/__tests__/manipulation-resistance/config-integrity.test.ts` — 5 tests cover pin shape, ok-on-identity, mismatch on field mutation, canonical-form awareness, and deeply nested array changes.
+- **What it proves:** APTS-MR-004 (Configuration File Integrity Verification) + APTS-MR-012 (Immutable Scope Enforcement Architecture) — joint coverage since the SHA-256 pin includes RoE in_scope/out_of_scope.
+- **How to verify:** `pnpm -F @aegis-scan/core test config-integrity` — 5/5 green. Trace the pin/verify wiring in siege.ts.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-authority-claim-detector`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/manipulation-resistance/response-validator.ts` — `detectAuthorityClaim(text)` returns `{ claim, rationale, matched_phrase, suggested_action, apts_refs }`. RCE / reverse-shell suggest `reject`; root / superuser / assertive admin claims suggest `verify`; bare admin-endpoint findings pass through.
+  - `packages/cli/src/commands/siege.ts` — `haltOnFindingTextRisk` runs detectAuthorityClaim on every finding's title + description; reject suggestions emit a `critical-finding` event with stop_action `halt`.
+- **What it proves:** APTS-MR-005 (Authority Claim Detection and Rejection).
+- **How to verify:** `pnpm -F @aegis-scan/core test response-validator` — 6 tests for the detector. `pnpm -F @aegis-scan/cli test siege` — integration test "halts when authority-claim is rejected in a finding (APTS-MR-005)".
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-orchestrator-safe-fetch`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/manipulation-resistance/redirect-policy.ts` — `safeFetch` rejects non-HTTP(S) protocols, RFC 1918 / link-local / loopback / cloud-metadata IPs, redirects-to-private-IPs, and chains beyond `maxRedirects`. DNS-rebind defense via lookup + per-hop classification. Structured `SafeFetchRejection` error carries APTS refs.
+  - `packages/cli/src/commands/siege.ts` — replaces `fetch` on the recon + reachability paths.
+  - `packages/core/__tests__/manipulation-resistance/redirect-policy.test.ts` — 15 tests: classifyIp coverage + safeFetch rejection classes + redirect re-validation + maxRedirects abort.
+- **What it proves:** APTS-MR-007 (Redirect Following) + APTS-MR-008 (DNS Rebinding) + APTS-MR-009 (SSRF) jointly.
+- **How to verify:** `pnpm -F @aegis-scan/core test redirect-policy` — 15/15 green. The siege integration test "halts when safeFetch rejects target by SSRF policy" exercises the orchestrator-level rejection path.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-scope-expansion-detector`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/manipulation-resistance/scope-expansion-detector.ts` — `detectScopeExpansion(text)` returns `{ detected, kind, rationale, matched_phrase, apts_refs }`. Patterns cover expand-scope, include-subdomain, forward-data, change-target, authorize-action.
+  - `packages/cli/src/commands/siege.ts` — `haltOnFindingTextRisk` runs the detector on every finding emitted by the orchestrator; detection emits a critical-finding event with stop_action `halt`.
+  - `packages/core/__tests__/manipulation-resistance/scope-expansion-detector.test.ts` — 7 tests covering each kind + the negative case + APTS-ref invariant.
+- **What it proves:** APTS-MR-010 (Scope Expansion Social Engineering Prevention).
+- **How to verify:** `pnpm -F @aegis-scan/core test scope-expansion-detector` — 7/7 green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-egress-allowlist`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/manipulation-resistance/oob-blocker.ts` — `composeEgressAllowlist(roe, opts)` builds the per-engagement allowlist from RoE in_scope.domains (with `*.subdomain` expansion), in_scope.ip_ranges, fixed orchestrator-essentials (LLM provider APIs), and operator extras. `withEgressEnv` propagates via AEGIS_EGRESS_ALLOWLIST env var.
+  - `packages/cli/src/commands/siege.ts` — composes + sets `process.env.AEGIS_EGRESS_ALLOWLIST` before scanner dispatch.
+  - `packages/core/__tests__/manipulation-resistance/oob-blocker.test.ts` — 7 tests: scope inclusion, IP-range inclusion, LLM-essentials toggle, extras, sorted env value, env merge.
+- **What it proves:** APTS-MR-011 (Out-of-Band Communication Prevention) — the allowlist is the policy boundary; in `--sandbox-mode docker` it is enforced via the chosen docker network.
+- **How to verify:** `pnpm -F @aegis-scan/core test oob-blocker` — 7/7 green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-wrapper-sandboxing`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/manipulation-resistance/ai-io-boundary.ts` — `validateSandboxMode` + `wrapForSandbox(name, binary, args, mode, opts)`. Docker mode rewrites `exec("strix", args)` → `exec("docker", ["run", "--rm", "--network=aegis-egress", "--security-opt=no-new-privileges", "--cap-drop=ALL", "--read-only", "--tmpfs=/tmp", image, ...args])`. Firejail mode applies `--read-only=/`, `--ipc-namespace`, `--noroot`. Default `none` is back-compat pass-through. Unmapped wrappers fall back to pass-through with a diagnostic env tag.
+  - `packages/cli/src/commands/siege.ts` — `--sandbox-mode <docker|firejail|none>` flag; RoE.sandboxing.mode acts as a stricter floor (CLI cannot weaken). Env propagation via AEGIS_SANDBOX_MODE.
+  - `packages/scanners/src/dast/{strix,ptai,pentestswarm}.ts` — wrapper-side `wrapForSandbox` invocation before exec.
+  - `packages/core/src/roe/types.ts` — `SandboxingSchema` declarative field.
+  - `packages/core/__tests__/manipulation-resistance/ai-io-boundary.test.ts` — 8 tests: mode validation + each transformation including image-override + unmapped-wrapper fallback.
+- **What it proves:** APTS-MR-018 (AI Model Input/Output Architectural Boundary).
+- **How to verify:** `pnpm -F @aegis-scan/core test ai-io-boundary` — 8/8 green. The siege integration test "rejects unknown --sandbox-mode value (APTS-MR-018)" exercises the validator path.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
 ---
 
 ## Gap Notes (`partially_met`, `not_met`, `not_applicable`)
@@ -365,19 +461,13 @@ The handover doc tracks the same set with sequencing + ETA.
 - **APTS-AR-006 — partially_met:** Taint chain only. **Phase-2 plan:** alternative-evaluation reasoning emit for siege-mode autonomous decisions.
 - **APTS-AR-015 — not_met:** **Phase-2 plan:** evidence-classification field on Finding (public / internal / confidential) + sensitivity-aware redaction in reporters.
 
-### Manipulation Resistance (MR) — gaps
+### Manipulation Resistance (MR) — fully met
 
-- **APTS-MR-001 — partially_met:** Wrapper-internal only. **Phase-2 plan:** orchestrator-side instruction-boundary enforcement on wrapper outputs.
-- **APTS-MR-002 — partially_met:** JSON-schema only. **Phase-2 plan:** semantic response validation (sanity-check finding-counts vs known-baseline + manipulation-signature detection).
-- **APTS-MR-004 — not_met:** **Phase-2 plan:** SHA-256 hash-pin of `aegis.config.json` at engagement start; mid-run mutation detection.
-- **APTS-MR-005 — not_met:** **Phase-2 plan:** authority-claim detection in finding text (e.g., wrapper-claimed admin-bypass without verifying; reject without operator confirmation).
-- **APTS-MR-007 — partially_met:** SAST level only. **Phase-2 plan:** orchestrator HTTP-client default redirect-following policy (max-1-redirect, same-origin only).
-- **APTS-MR-008 — partially_met:** Same as MR-007. **Phase-2 plan:** combine with MR-007 closure.
-- **APTS-MR-009 — partially_met:** Same as MR-008. **Phase-2 plan:** combine with MR-008 closure.
-- **APTS-MR-010 — not_met:** **Phase-2 plan:** scope-expansion detector — flag finding text that suggests expanding scope outside the RoE.
-- **APTS-MR-011 — not_met:** **Phase-2 plan:** OOB-communication blocker on wrapper outputs (no DNS exfil, no out-of-engagement HTTP).
-- **APTS-MR-012 — partially_met:** Read-once but no mid-run protection. **Phase-2 plan:** combine with MR-004 hash-pin.
-- **APTS-MR-018 — not_met:** **Phase-2 plan:** per-wrapper container/sandbox isolation profile in the wrapper-launcher.
+> **Closed by Phase 2 Cluster-4** (manipulation-resistance enforcement module + siege wiring): MR-001, MR-002, MR-004, MR-005, MR-007, MR-008, MR-009, MR-010, MR-011, MR-012, MR-018. See `ev-instruction-boundary`, `ev-response-validator`, `ev-config-integrity`, `ev-authority-claim-detector`, `ev-orchestrator-safe-fetch`, `ev-scope-expansion-detector`, `ev-egress-allowlist`, `ev-wrapper-sandboxing` above.
+>
+> **Already met before Phase 2** (per-target rule + scanner family): MR-003 (error-message neutrality), MR-019 (discovered-credential protection).
+>
+> **All 13 MR Tier-1 entries now MET.**
 
 ### Supply Chain Trust (TP) — gaps
 

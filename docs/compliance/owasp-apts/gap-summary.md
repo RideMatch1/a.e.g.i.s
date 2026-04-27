@@ -2,12 +2,12 @@
 
 ## Headline
 
-AEGIS Autonomous Pentest Layer is currently **33/72 MET (46%)** on
-OWASP-APTS Tier-1 (Phase 1 baseline + Phase 2 Clusters 1 + 2 + 3 shipped
-on the same day). **Scope Enforcement (SE) is the first fully-met
-domain (9/9).** Phase 2's remaining three clusters (4 + 5 + 6) close
-the remaining 37 gaps and convert this into a full Tier-1 Conformance
-Claim.
+AEGIS Autonomous Pentest Layer is currently **44/72 MET (61%)** on
+OWASP-APTS Tier-1 (Phase 1 baseline + Phase 2 Clusters 1 + 2 + 3 + 4
+shipped on the same day). **Three domains are now fully met: Scope
+Enforcement (SE 9/9), Manipulation Resistance (MR 13/13), and Reporting
+(RP 3/3).** Phase 2's remaining two clusters (5 + 6) close 13 of the
+remaining 26 gaps and converge on a full Tier-1 Conformance Claim.
 
 This is **not** a conformance claim. APTS forbids partial credit; a
 Tier-1 conformance claim is achievable only after 100% MET. We're
@@ -29,10 +29,10 @@ partially_met/not_met to met.
 | Human Oversight (HO) | 13 | 3 | 4 | 6 | 0 | 0 |
 | Graduated Autonomy (AL) | 11 | 7 | 3 | 1 | 0 | 0 |
 | Auditability (AR) | 7 | 5 | 1 | 1 | 0 | 0 |
-| Manipulation Resistance (MR) | 13 | 2 | 6 | 5 | 0 | 0 |
+| Manipulation Resistance (MR) | 13 | 13 | 0 | 0 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **33** | **21** | **16** | **2** | **0** |
+| **Total** | **72** | **44** | **15** | **11** | **2** | **0** |
 
 ## Strongest domains today
 
@@ -61,15 +61,18 @@ Per-wrapper safety controls today; no orchestrator-level baseline. Phase-2 plan:
 - **Post-test integrity validation** — confirm target service responsiveness + final state-snapshot.
 - **CIA impact-vector field** on Finding type — closes SC-001 + HO-012.
 
-### 3. Manipulation Resistance (MR) — 2/13 MET
+### 3. Manipulation Resistance (MR) — 13/13 MET (Cluster-4 shipped)
 
-Existing MET coverage is on the *targets* AEGIS scans (error-leakage, credential-protection). Orchestrator-side enforcement is net-new. Phase-2 plan:
+After Phase-2 Cluster-4, the new `packages/core/src/manipulation-resistance/` enforcement module + siege wiring close the remaining 11 entries. Module + integration scope:
 
-- **Config integrity verification** — SHA-256 hash-pin of `aegis.config.json` at engagement start; mid-run mutation detection (closes MR-004 + MR-012).
-- **Authority-claim detection** in wrapper outputs — flag claimed admin-bypass without verification (MR-005).
-- **OOB-communication blocker** on wrapper outputs — no DNS exfil, no out-of-engagement HTTP (MR-011).
-- **Orchestrator-side redirect-following policy** — max-1-redirect, same-origin only (MR-007 + MR-008 + MR-009).
-- **Per-wrapper container/sandbox isolation profile** in the wrapper-launcher (MR-018).
+- **Instruction-boundary** — `enforceInstructionBoundary` with per-wrapper action allowlist + RoE scope check on target + payload URLs (MR-001).
+- **Response validation + sanitization** — per-wrapper Zod schemas + 16-KiB cap + HTML encoding before findings emit (MR-002).
+- **Config integrity** — SHA-256 hash-pin at engagement-start + per-phase verifyConfig (MR-004 + MR-012 jointly).
+- **Authority-claim detection** — pattern detector on finding text; reject for RCE / reverse-shell, verify for admin / root claims (MR-005).
+- **safeFetch** — orchestrator-side HTTP egress with manual redirect re-validation, DNS-rebind defense, and IP-class rejection of RFC 1918 / link-local / loopback / cloud-metadata (MR-007 + MR-008 + MR-009 jointly).
+- **Scope-expansion detector** — pattern detector for adversarial directives in finding text; halt-pending on detection (MR-010).
+- **Egress allowlist** — per-engagement allowlist composed from RoE + LLM-essentials, propagated via `AEGIS_EGRESS_ALLOWLIST` env (MR-011).
+- **Wrapper sandboxing** — `--sandbox-mode docker|firejail|none` rewrites wrapper exec; docker mode enforces network restriction (MR-018).
 
 ### 4. Auditability (AR) — 2/7 MET — cryptographic gap
 
@@ -102,7 +105,7 @@ in clusters 2/4/5/6.
 | 1 | RoE schema + scope object | SE-001/003/004/005/006/008 + AL-006/014 | 8 entries | **shipped 2026-04-27** |
 | 2 | Intervention API + JSONL state-stream + signals + webhooks | HO-002/006/008 + AL-011/012 + AR-002 (6 met) + HO-015/AL-008 (2 partial-bumps) | 8 entries | **shipped 2026-04-27** |
 | 3 | Hash-chain + per-finding evidence_hash + audit-verify CLI + scope-validation events | AR-010/012 + AL-005 + SE-015 | 4 entries | **shipped 2026-04-27** |
-| 4 | Orchestrator-side MR | MR-001/002/004/005/007/008/009/010/011/012/018 | 11 entries | queued |
+| 4 | Orchestrator-side MR | MR-001/002/004/005/007/008/009/010/011/012/018 | 11 entries | **shipped 2026-04-27** |
 | 5 | Multi-path kill + health monitor | SC-009/010/015 + AL-016 | 4 entries | queued |
 | 6 | CIA scoring | SC-001 + HO-012 | 2 entries | queued |
 

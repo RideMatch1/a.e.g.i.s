@@ -80,12 +80,12 @@ Summary: AEGIS does not pin a foundation model. The operator chooses the provide
 | Human Oversight (HO) | 13 | 3 | 4 | 6 | 0 | 0 |
 | Graduated Autonomy (AL) | 11 | 7 | 3 | 1 | 0 | 0 |
 | Auditability (AR) | 7 | 5 | 1 | 1 | 0 | 0 |
-| Manipulation Resistance (MR) | 13 | 2 | 6 | 5 | 0 | 0 |
+| Manipulation Resistance (MR) | 13 | 13 | 0 | 0 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **33** | **21** | **16** | **2** | **0** |
+| **Total** | **72** | **44** | **15** | **11** | **2** | **0** |
 
-**MET total: 33/72 (46%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped 8 entries. Phase 2 Cluster-2 (intervention API + JSONL state-stream + signal handlers + webhook dispatcher) shipped 6 + 2 partial-bumps. Phase 2 Cluster-3 (SHA-256 hash-chain + per-finding evidence_hash + `aegis audit-verify` CLI) shipped 4 more (AR-010 + AR-012 + AL-005 + SE-015) — the **SE domain is now fully met (9/9)**. APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
+**MET total: 44/72 (61%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped 8 entries. Phase 2 Cluster-2 (intervention API + JSONL state-stream + signal handlers + webhook dispatcher) shipped 6 + 2 partial-bumps. Phase 2 Cluster-3 (SHA-256 hash-chain + per-finding evidence_hash + `aegis audit-verify` CLI) shipped 4 more (AR-010 + AR-012 + AL-005 + SE-015) — the **SE domain is fully met (9/9)**. Phase 2 Cluster-4 (manipulation-resistance enforcement module + siege wiring) shipped 11 more (MR-001/002/004/005/007/008/009/010/011/012/018) — the **MR domain is now also fully met (13/13)**, joining SE and RP as the third domain at 100%. APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
 
 ---
 
@@ -111,9 +111,9 @@ After Phase 2 Cluster-1, AL-006 (basic scope validation policy DSL) and AL-014 (
 
 JSON output + SARIF 2.1.0 emission cover structured logging (AR-001) and per-finding confidence scoring (AR-004). Cluster-2 JSONL state-stream closed AR-002. Cluster-3 ships the SHA-256 hash-chain (AR-012) + per-finding evidence_hash (AR-010). Only AR-006 (alternative-evaluation reasoning during autonomous decisions) and AR-015 (evidence sensitivity classification) remain — both deferred to later clusters.
 
-### Manipulation Resistance (MR) — 2/13 MET
+### Manipulation Resistance (MR) — 13/13 MET (FULL)
 
-The two MET entries reflect existing scanner coverage on the targets being scanned (MR-003 error-neutrality via `error-leakage-checker`; MR-019 credential-protection via the four-scanner family). The orchestrator-side enforcement (config-integrity verification, authority-claim detection, OOB-communication blocking, model-I/O sandboxing) is net-new for Phase 2.
+After Phase 2 Cluster-4, eleven MR entries flipped to MET via the new `packages/core/src/manipulation-resistance/` enforcement module. The module provides orchestrator-side instruction-boundary enforcement (`enforceInstructionBoundary` with per-wrapper action allowlist, MR-001), wrapper response validation + sanitization (Zod schemas + 16-KiB cap + HTML encoding, MR-002), SHA-256 config-integrity pin + per-phase verification (MR-004 + MR-012 jointly), authority-claim detection with reject/verify suggested actions (MR-005), `safeFetch` with manual-redirect re-validation + DNS-rebind defense + IP-class rejection (MR-007/008/009 jointly), scope-expansion social-engineering pattern detector (MR-010), per-engagement egress allowlist composition + env propagation (MR-011), and `--sandbox-mode <docker|firejail|none>` wrapper-exec rewriting with hard `--network` enforcement under docker (MR-018). The two pre-existing MET entries (MR-003 error-neutrality via `error-leakage-checker`; MR-019 credential-protection via the four-scanner family) join these eleven for full domain coverage. **MR is the third domain to reach 100% Tier-1 MET coverage**, after SE and RP.
 
 ### Supply Chain Trust (TP) — 4/10 MET (+ 2 N/A)
 
@@ -181,6 +181,7 @@ The Phase-2 punch list is tracked in the project's handover doc and re-flected i
 | 2026-04-27 | 1.1 | Phase 2 Cluster-1 ship — machine-readable RoE schema + scope-object DSL. 8 entries flip MET (SE-001/003/004/005/006/008 + AL-006/014). New: 23/72 MET, 23 PARTIAL, 24 NOT-MET, 2 N/A. |
 | 2026-04-27 | 1.2 | Phase 2 Cluster-2 ship — intervention API + JSONL state-stream + signal handlers + webhook dispatcher. 6 entries flip MET (HO-002/006/008 + AL-011/012 + AR-002), 2 entries bump from NOT-MET to PARTIALLY-MET (HO-015, AL-008). New: 29/72 MET, 23 PARTIAL, 18 NOT-MET, 2 N/A. |
 | 2026-04-27 | 1.3 | Phase 2 Cluster-3 ship — SHA-256 hash-chain + per-finding evidence_hash + `aegis audit-verify` CLI + scope-validation audit-event. 4 entries flip MET (AR-010 + AR-012 + AL-005 + SE-015). **SE domain fully met (9/9).** New: 33/72 MET, 21 PARTIAL, 16 NOT-MET, 2 N/A. |
+| 2026-04-27 | 1.4 | Phase 2 Cluster-4 ship — `packages/core/src/manipulation-resistance/` enforcement module + siege wiring. 11 entries flip MET (MR-001/002/004/005/007/008/009/010/011/012/018). **MR domain fully met (13/13).** Three domains now at 100%: SE, MR, RP. New: 44/72 MET, 15 PARTIAL, 11 NOT-MET, 2 N/A. |
 
 ---
 
