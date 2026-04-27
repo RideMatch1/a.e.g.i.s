@@ -54,6 +54,11 @@
       "reason": "Supply-chain-scanner uses createHash for lockfile-integrity-hashing (content-fingerprint of package-lock.json / pnpm-lock.yaml), not for security-token generation. Pattern consistent with existing suppressions on scanners/ast and scanners/quality/* self-matches where crypto primitives serve as detection-infrastructure."
     },
     {
+      "file": "packages/core/src/runtime/hash.ts",
+      "rule": "crypto-auditor",
+      "reason": "runtime/hash.ts uses SHA-256 for canonical-form hashing of audit events (APTS-AR-010 evidence integrity + APTS-AR-012 hash-chain), not for security-token generation. SHA-256 is FIPS 180-4 + RFC 6234 — the correct primitive for content-integrity hash chains. crypto-auditor's 'consider HMAC' advisory is calibrated for token-issuing code; doesn't apply to the hash-chain link primitive. Same structural class as the scanners/dependencies suppression above for lockfile-content-fingerprinting."
+    },
+    {
       "file": "packages/scanners/src/quality/jwt-checker.ts",
       "rule": "crypto-auditor",
       "reason": "JWT-checker contains JWT algorithm names ('none', 'HS256', etc.) as detection literals. crypto-auditor matches the 'none' string as a structural FP on the detection source."

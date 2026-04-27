@@ -7,8 +7,12 @@
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
-// E2E tests spawn real CLI processes — CI runners need more time
-vi.setConfig({ testTimeout: 30_000 });
+// E2E tests spawn real CLI processes — CI runners need more time.
+// 60s aligned with inner runCli exec-timeout; CI cold-start can push the
+// scan + JSON-emit path past 30s under runner-resource contention even
+// when the local equivalent runs in ~6s. Same class as mcp-server's
+// version.test.ts CI cold-start timeout fix (commit 7fcb710).
+vi.setConfig({ testTimeout: 60_000 });
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { mkdtemp, writeFile, readFile, mkdir } from 'node:fs/promises';
