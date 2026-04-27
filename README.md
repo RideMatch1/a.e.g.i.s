@@ -226,7 +226,12 @@ AEGIS is not a Semgrep replacement — it's a **Semgrep multiplier**. When Semgr
 
 AEGIS is tuned against an 8-project public-source corpus. Each finding
 is manually annotated TP/FP and the recurring FP patterns are pinned
-as regression tests. Scores below are post-v0.11.2:
+as regression tests. Scores below are the **frozen v0.11.2 baseline** —
+a fresh corpus run on the v0.17 line is scheduled for the next minor
+release. The methodology, FP-classification rigor, and tuning posture
+are unchanged; absolute numbers may shift slightly with the post-v0.11.2
+precision improvements (Field-Report Sub-Klassen 1-4, scanner-family
+dogfood-driven fixes through v0.16.x).
 
 | Project | Stack | v0.9.5 | v0.10.0 | v0.11.0 | v0.11.1 | v0.11.2 |
 |---|---|---|---|---|---|---|
@@ -388,7 +393,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 
 ---
 
-## Scanners (63 total)
+## Scanners (67 total)
 
 > Authoritative registration: `getAllScanners()` + `getAttackScanners()` in
 > [`packages/scanners/src/index.ts`](./packages/scanners/src/index.ts). Counts
@@ -441,7 +446,7 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 | `supply-chain` | Dependencies | 829, 1357 | Dependency confusion, typosquatting, lockfile integrity, monorepo-aware phantom-dep detection (handles TS path aliases + pnpm/npm/yarn workspaces + sub-package deps) |
 | `dep-confusion-checker` | Dependencies | 1357 | Scoped packages without private registry mapping |
 
-### External wrappers (17 scanners, auto-skipped when not installed)
+### External wrappers (20 scanners, auto-skipped when not installed)
 
 | Scanner | Install | Category |
 |---------|---------|----------|
@@ -462,6 +467,9 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 | axe / Lighthouse | Requires Chromium | accessibility |
 | Lighthouse Performance | Requires Chromium | performance |
 | Subfinder | `brew install subfinder` | recon (passive subdomain — pentest-mode only) |
+| Strix | `pip install strix` (or sandbox image) | LLM-agent pentest |
+| PTAI | `pip install ptai` (or sandbox image) | LLM-agent pentest |
+| Pentest-Swarm-AI | `go install github.com/Armur-Ai/Pentest-Swarm-AI/cmd/pentestswarm@latest` (or sandbox image) | LLM-agent pentest |
 
 ### Attack probes (5, siege mode only)
 
@@ -525,7 +533,7 @@ Low-friction for developers who already run Claude Code / Cursor — your assist
 
 Drop-in security gate for any GitHub Actions workflow. Posts a PR comment with score, severity table, and top findings; fails the build when the score drops below a configurable threshold.
 
-**Distribution note:** the action lives in-repo at `ci/github-action/action.yml` (not published to the GitHub Marketplace). Consumers reference it via `uses: RideMatch1/a.e.g.i.s/ci/github-action@<tag>` pinning to a released tag (e.g. `v0.16.5`).
+**Distribution note:** the action lives in-repo at `ci/github-action/action.yml` (not published to the GitHub Marketplace). Consumers reference it via `uses: RideMatch1/a.e.g.i.s/ci/github-action@<tag>` pinning to a released tag (e.g. `v0.16.6`).
 
 ```yaml
 name: Security
@@ -538,7 +546,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.11.2  # pin to a specific release tag
+      - uses: RideMatch1/a.e.g.i.s/ci/github-action@v0.16.6  # pin to a specific release tag
         with:
           mode: scan           # 'scan' (quick) or 'audit' (full)
           path: .              # project to scan (default: '.')
@@ -546,7 +554,7 @@ jobs:
           comment-on-pr: true  # post PR comment with findings table
 ```
 
-**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.11.2`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
+**Inputs:** `mode`, `path`, `fail-below`, `comment-on-pr`, `upload-sarif`, `diff-against`, `aegis-version`. See `ci/github-action/action.yml` for the full schema. Always pin to a specific release tag (`@v0.16.6`) rather than `@main` — a floating ref can silently break CI when AEGIS itself updates.
 
 ---
 
