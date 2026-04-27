@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
   evaluateApprovalGate,
   detectIrreversibleActions,
+  evaluateIrreversibleGate,
   PHASE_TO_AUTONOMY_LEVEL,
 } from '../../src/oversight/approval-gates.js';
 
@@ -67,6 +68,65 @@ describe('detectIrreversibleActions', () => {
       L3: { irreversible_action_classes: ['data-modify', 'auth-bypass'] },
     });
     expect(r).toEqual(['data-modify', 'auth-bypass']);
+  });
+});
+
+describe('evaluateIrreversibleGate (HO-010 hard gate)', () => {
+  it('allows when no irreversible classes are declared', () => {
+    const r = evaluateIrreversibleGate('recon', { L1: { approval_required: false } });
+    expect(r.allowed).toBe(true);
+    expect(r.classes).toEqual([]);
+    expect(r.apts_refs).toContain('APTS-HO-010');
+  });
+
+  it('allows when policy is undefined', () => {
+    const r = evaluateIrreversibleGate('exploitation', undefined);
+    expect(r.allowed).toBe(true);
+    expect(r.classes).toEqual([]);
+  });
+
+  it('allows when irreversible classes are pre-approved per RoE', () => {
+    const r = evaluateIrreversibleGate('exploitation', {
+      L3: { irreversible_action_classes: ['data-modify', 'auth-bypass'], pre_approved: true },
+    });
+    expect(r.allowed).toBe(true);
+    expect(r.classes).toEqual(['data-modify', 'auth-bypass']);
+    expect(r.reason).toContain('pre-approved');
+  });
+
+  it('denies when irreversible classes declared but pre_approved is missing', () => {
+    const r = evaluateIrreversibleGate('exploitation', {
+      L3: { irreversible_action_classes: ['data-modify'] },
+    });
+    expect(r.allowed).toBe(false);
+    expect(r.classes).toEqual(['data-modify']);
+    expect(r.reason).toContain('not pre-approved');
+    expect(r.apts_refs).toContain('APTS-HO-010');
+  });
+
+  it('denies when irreversible classes declared but pre_approved is false', () => {
+    const r = evaluateIrreversibleGate('discovery', {
+      L2: { irreversible_action_classes: ['data-modify'], pre_approved: false },
+    });
+    expect(r.allowed).toBe(false);
+    expect(r.reason).toContain('--confirm is INSUFFICIENT');
+  });
+
+  it('denies even on L1 when irreversible classes are declared without pre_approved', () => {
+    // This is the key HO-010 semantic: --confirm cannot bypass irreversible-action gating
+    // even on L1 phases. Operator must explicitly opt-in via pre_approved.
+    const r = evaluateIrreversibleGate('recon', {
+      L1: { irreversible_action_classes: ['config-modify'] },
+    });
+    expect(r.allowed).toBe(false);
+    expect(r.classes).toEqual(['config-modify']);
+  });
+
+  it('returns level=null and allows when phase has no AL mapping', () => {
+    const r = evaluateIrreversibleGate('unknown-phase', { L1: { irreversible_action_classes: ['x'] } });
+    expect(r.allowed).toBe(true);
+    expect(r.level).toBeNull();
+    expect(r.classes).toEqual([]);
   });
 });
 

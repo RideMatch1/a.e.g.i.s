@@ -101,13 +101,14 @@ program
   .option('--sandbox-mode <mode>', 'Wrap LLM-pentest invocations through a sandboxer (APTS-MR-018). Values: docker | firejail | none (default).', 'none')
   .option('--heartbeat-url <url>', 'Operator dead-man-switch heartbeat endpoint (APTS-SC-009). HTTPS URL POSTed at the configured interval; consecutive missed responses halt the engagement.')
   .option('--phase-timeout-minutes <n>', 'Per-phase decision timeout (APTS-HO-003). Falls back to RoE.stop_conditions.phase_timeout_minutes or max_duration_minutes/4.', (v: string) => Number.parseInt(v, 10))
+  .option('--allow-loopback', 'Operator opt-in to allow safeFetch against loopback IPs (127.x.x.x, ::1) for legitimate local-pentest workflows. Emits a prominent warning and a "operator-acknowledged-loopback" audit event. NEVER enable in production engagements.')
   .option('-f, --format <format>', 'Output format: terminal (default), json, sarif, html, markdown', 'terminal')
   .option('--confirm', 'Acknowledge authorization to send live attack traffic')
   .option('--no-color', 'Disable colored output')
   .action(
     async (
       path: string | undefined,
-      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; sandboxMode?: string; heartbeatUrl?: string; phaseTimeoutMinutes?: number; format: string; confirm: boolean; color: boolean },
+      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; sandboxMode?: string; heartbeatUrl?: string; phaseTimeoutMinutes?: number; allowLoopback?: boolean; format: string; confirm: boolean; color: boolean },
     ) => {
       if (!options.color) {
         chalk.level = 0;

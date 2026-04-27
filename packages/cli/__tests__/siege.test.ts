@@ -130,6 +130,13 @@ vi.mock('@aegis-scan/core', () => ({
     includes_llm_essentials: true,
   }),
   validateSandboxMode: vi.fn().mockReturnValue({ ok: true, mode: 'none' }),
+  preflightSandboxImages: vi.fn().mockReturnValue({
+    ok: true,
+    missing_images: {},
+    missing_network: false,
+    network_name: 'aegis-egress',
+    apts_refs: ['APTS-MR-018'],
+  }),
   // Cluster-5 safety-controls — siege wires kill watcher, heartbeat,
   // health snapshots, post-test integrity probe, boundary monitor,
   // and per-phase timeout. Defaults are pass-through; per-test
@@ -153,6 +160,7 @@ vi.mock('@aegis-scan/core', () => ({
   assignCiaVector: vi.fn().mockReturnValue({ c: 'low', i: 'low', a: 'low' }),
   evaluateCiaThreshold: vi.fn().mockReturnValue({ breach: false, axes_breached: [], rationale: 'mock-default-no-breach', apts_refs: ['APTS-SC-001'] }),
   evaluateApprovalGate: vi.fn().mockReturnValue({ allowed: true, reason: 'mock-default-allowed', level: 'L1', apts_refs: ['APTS-HO-001'] }),
+  evaluateIrreversibleGate: vi.fn().mockReturnValue({ allowed: true, classes: [], reason: 'mock-default-no-irreversible', level: 'L1', apts_refs: ['APTS-HO-010'] }),
   validateDelegationMatrix: vi.fn().mockReturnValue({ ok: true, errors: [], matrix: [], apts_refs: ['APTS-HO-004'] }),
   escalateOnSeverity: vi.fn().mockReturnValue({ escalate: false, action: 'continue', reason: 'mock-default-no-escalation', apts_refs: ['APTS-HO-011'] }),
   escalateOnConfidence: vi.fn().mockReturnValue({ escalate: false, action: 'continue', reason: 'mock-default-no-escalation', apts_refs: ['APTS-HO-013'] }),
@@ -481,6 +489,40 @@ describe('runSiege', () => {
       reason: 'mock recon approval denied',
       level: 'L1',
       apts_refs: ['APTS-HO-001', 'APTS-HO-010'],
+    });
+
+    const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(exitCode).toBe(1);
+  });
+
+  it('halts when preflightSandboxImages reports missing artifacts (APTS-MR-018 docker preflight)', async () => {
+    const { validateSandboxMode, preflightSandboxImages } = await import('@aegis-scan/core');
+    vi.mocked(validateSandboxMode).mockReturnValueOnce({ ok: true, mode: 'docker' });
+    vi.mocked(preflightSandboxImages).mockReturnValueOnce({
+      ok: false,
+      missing_images: { strix: 'aegis/strix-sandbox:latest' },
+      missing_network: true,
+      network_name: 'aegis-egress',
+      remediation: 'BUILD THE IMAGE FIRST',
+      apts_refs: ['APTS-MR-018'],
+    });
+
+    const exitCode = await runSiege('.', {
+      target: 'https://example.com',
+      sandboxMode: 'docker',
+      confirm: true,
+    });
+    expect(exitCode).toBe(1);
+  });
+
+  it('halts when evaluateIrreversibleGate denies a phase entry (APTS-HO-010 hard gate)', async () => {
+    const { evaluateIrreversibleGate } = await import('@aegis-scan/core');
+    vi.mocked(evaluateIrreversibleGate).mockReturnValueOnce({
+      allowed: false,
+      classes: ['data-modify', 'auth-bypass'],
+      reason: 'mock irreversible classes declared without pre_approved',
+      level: 'L1',
+      apts_refs: ['APTS-HO-010'],
     });
 
     const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });

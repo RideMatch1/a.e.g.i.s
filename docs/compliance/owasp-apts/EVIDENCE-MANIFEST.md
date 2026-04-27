@@ -448,11 +448,24 @@ to exist at the pinned HEAD SHA.
 
 - **Type:** code-module + tests + integration
 - **Paths:**
-  - `packages/core/src/oversight/approval-gates.ts` — `evaluateApprovalGate(phase, autonomy_levels, engagementConfirmed)`. Phase→AL mapping (recon=L1, discovery=L2, exploitation=L3, reporting=L4). `detectIrreversibleActions` returns the per-level action class list.
+  - `packages/core/src/oversight/approval-gates.ts` — `evaluateApprovalGate(phase, autonomy_levels, engagementConfirmed)`. Phase→AL mapping (recon=L1, discovery=L2, exploitation=L3, reporting=L4).
   - `packages/cli/src/commands/siege.ts` — `evaluatePhaseApproval` invoked before each running phase; halt on denial.
-  - `packages/core/__tests__/oversight/approval-gates.test.ts` — 9 tests (allow paths + deny paths + AL mapping invariant).
-- **What it proves:** APTS-HO-001 (Pre-Approval Gates per AL-level) + APTS-HO-010 (Mandatory Human Decision Points) — joint coverage.
-- **How to verify:** `pnpm -F @aegis-scan/core test approval-gates` — 9/9 green.
+  - `packages/core/__tests__/oversight/approval-gates.test.ts` — `evaluateApprovalGate` suite (allow paths + deny paths + AL mapping invariant).
+- **What it proves:** APTS-HO-001 (Pre-Approval Gates per AL-level).
+- **How to verify:** `pnpm -F @aegis-scan/core test approval-gates` — green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-irreversible-gate`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/oversight/approval-gates.ts` — `evaluateIrreversibleGate(phase, autonomy_levels)` is a SECOND independent gate that engagement-wide --confirm CANNOT bypass. Returns `allowed=false` when `irreversible_action_classes` is non-empty AND `pre_approved !== true`. `detectIrreversibleActions` is the per-level lookup helper.
+  - `packages/cli/src/commands/siege.ts` — `evaluatePhaseApproval` calls BOTH `evaluateApprovalGate` and `evaluateIrreversibleGate` before each phase entry; either denial halts the engagement.
+  - `packages/core/__tests__/oversight/approval-gates.test.ts` — `evaluateIrreversibleGate` suite (7 tests: empty/undefined/pre-approved/denied/confirm-insufficient/L1-deny/no-AL-mapping).
+  - `packages/cli/__tests__/siege.test.ts` — halt-path test (`halts when evaluateIrreversibleGate denies a phase entry (APTS-HO-010 hard gate)`).
+- **What it proves:** APTS-HO-010 (Mandatory Human Decision Points) — the hard-gate semantic, where engagement-wide consent cannot authorize irreversible actions implicitly.
+- **How to verify:** `pnpm -F @aegis-scan/core test approval-gates && pnpm -F @aegis-scan/cli test siege` — both green.
 - **Captured at:** 2026-04-27
 - **Sensitivity:** public
 
@@ -524,9 +537,24 @@ to exist at the pinned HEAD SHA.
   - `packages/cli/src/commands/siege.ts` — `--sandbox-mode <docker|firejail|none>` flag; RoE.sandboxing.mode acts as a stricter floor (CLI cannot weaken). Env propagation via AEGIS_SANDBOX_MODE.
   - `packages/scanners/src/dast/{strix,ptai,pentestswarm}.ts` — wrapper-side `wrapForSandbox` invocation before exec.
   - `packages/core/src/roe/types.ts` — `SandboxingSchema` declarative field.
-  - `packages/core/__tests__/manipulation-resistance/ai-io-boundary.test.ts` — 8 tests: mode validation + each transformation including image-override + unmapped-wrapper fallback.
-- **What it proves:** APTS-MR-018 (AI Model Input/Output Architectural Boundary).
-- **How to verify:** `pnpm -F @aegis-scan/core test ai-io-boundary` — 8/8 green. The siege integration test "rejects unknown --sandbox-mode value (APTS-MR-018)" exercises the validator path.
+  - `packages/core/__tests__/manipulation-resistance/ai-io-boundary.test.ts` — mode validation + each transformation including image-override + unmapped-wrapper fallback.
+- **What it proves:** APTS-MR-018 (AI Model Input/Output Architectural Boundary) — code path.
+- **How to verify:** `pnpm -F @aegis-scan/core test ai-io-boundary` — green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-sandbox-preflight`
+
+- **Type:** code-module + tests + integration + dockerfiles + build script
+- **Paths:**
+  - `dockerfiles/sandboxes/strix.Dockerfile`, `dockerfiles/sandboxes/ptai.Dockerfile`, `dockerfiles/sandboxes/pentestswarm.Dockerfile` — authoritative builds for the three sandbox images. Each pins a minimal base, drops to a non-root user, and exposes the upstream LLM-pentest tool as ENTRYPOINT.
+  - `dockerfiles/sandboxes/build.sh` — builds all three images and creates the `aegis-egress` docker network with `--internal=true` (egress restriction at network layer).
+  - `packages/core/src/manipulation-resistance/ai-io-boundary.ts` — `preflightSandboxImages(opts)` probes `docker image inspect <ref>` and `docker network inspect <name>` for every required wrapper image plus the egress network. Returns ok=false with a remediation block listing exactly which artifacts are missing and the build commands.
+  - `packages/cli/src/commands/siege.ts` — runs preflight at engagement-start when `--sandbox-mode=docker` is selected; halts with exit 1 + remediation message when artifacts are missing.
+  - `packages/core/__tests__/manipulation-resistance/ai-io-boundary.test.ts` — `preflightSandboxImages` suite (6 tests: ok-path, missing-image, missing-network, image-override, unmapped-wrapper-skip, custom-network).
+  - `packages/cli/__tests__/siege.test.ts` — halt path: "halts when preflightSandboxImages reports missing artifacts (APTS-MR-018 docker preflight)".
+- **What it proves:** Closes the audit-flagged gap where MR-018 docker mode could be selected against non-existent images. Operators now hit a clear instruction-rich error at engagement-start, not at a wrapper exec deep inside a phase.
+- **How to verify:** `pnpm -F @aegis-scan/core test ai-io-boundary && pnpm -F @aegis-scan/cli test siege` — both green. Live verify: `bash dockerfiles/sandboxes/build.sh` builds the images; `docker image ls 'aegis/*-sandbox'` lists them; `docker network inspect aegis-egress` shows the internal network.
 - **Captured at:** 2026-04-27
 - **Sensitivity:** public
 

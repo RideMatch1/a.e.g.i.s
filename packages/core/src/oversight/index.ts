@@ -18,11 +18,13 @@ export {
 export {
   evaluateApprovalGate,
   detectIrreversibleActions,
+  evaluateIrreversibleGate,
   PHASE_TO_AUTONOMY_LEVEL,
   type AutonomyLevel,
   type AutonomyLevelPolicy,
   type AutonomyLevelsConfig,
   type ApprovalGateDecision,
+  type IrreversibleGateDecision,
 } from './approval-gates.js';
 
 export {

@@ -14,11 +14,18 @@
  *   - `wrapForSandbox` produces the transformation. Wrapper code calls
  *     it before exec; if mode is 'none' the call is a no-op pass-through.
  *   - For docker mode, AEGIS expects a per-wrapper container image
- *     to exist locally (operator-provisioned). The wrapper-image map
- *     keys off the wrapper name; an unmapped wrapper falls back to
- *     pass-through with an explicit warning so unsupported wrappers
- *     do not silently bypass the boundary.
+ *     to exist locally (operator-provisioned via
+ *     `dockerfiles/sandboxes/build.sh`). The wrapper-image map keys off
+ *     the wrapper name; an unmapped wrapper falls back to pass-through
+ *     with an explicit warning so unsupported wrappers do not silently
+ *     bypass the boundary.
+ *   - `preflightSandboxImages` runs at engagement-start when
+ *     --sandbox-mode=docker is selected and verifies that every
+ *     required image and the egress network exist. Missing artifacts
+ *     produce a clear instruction-rich error so operators see exactly
+ *     what to build before re-running.
  */
+import { execSync } from 'node:child_process';
 import type { EgressAllowlist } from './oob-blocker.js';
 
 export type SandboxMode = 'docker' | 'firejail' | 'none';
@@ -172,5 +179,114 @@ export function wrapForSandbox(
     envAdditions,
     sandboxed: true,
     mode_applied: 'docker',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Preflight: verify docker images + egress network exist before engagement.
+
+export interface SandboxPreflightResult {
+  ok: boolean;
+  /** Missing wrapper images (map: wrapperName → image tag). */
+  missing_images: Record<string, string>;
+  /** True when the egress docker network is missing. */
+  missing_network: boolean;
+  /** Network name that was checked. */
+  network_name: string;
+  /** Operator-readable instruction block for fixing the missing artifacts. */
+  remediation?: string;
+  /** APTS refs the preflight closes when ok=true. */
+  apts_refs: string[];
+}
+
+export interface PreflightSandboxOptions {
+  /** Wrappers required by the engagement (e.g. ['strix','ptai']). */
+  wrappers: readonly string[];
+  /** Per-wrapper image override (RoE.sandboxing.image_overrides). */
+  imageOverrides?: Readonly<Record<string, string>>;
+  /** Custom egress network. Defaults to 'aegis-egress'. */
+  dockerNetwork?: string;
+  /**
+   * Probe function for testability. Defaults to running
+   * `docker image inspect <ref>` / `docker network inspect <name>`.
+   * Should resolve true when artifact exists, false otherwise.
+   */
+  probe?: (kind: 'image' | 'network', ref: string) => boolean;
+}
+
+function defaultDockerProbe(kind: 'image' | 'network', ref: string): boolean {
+  try {
+    execSync(`docker ${kind} inspect ${ref}`, {
+      stdio: ['ignore', 'ignore', 'ignore'],
+      timeout: 10_000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Preflight check for `--sandbox-mode=docker`. Verifies every required
+ * wrapper image is present locally and the egress network exists.
+ * Returns `ok=false` with a remediation block when artifacts are missing.
+ *
+ * Call this at engagement start (after `validateSandboxMode` resolves to
+ * 'docker') and halt the engagement when ok=false. Closes the audit-flagged
+ * gap where docker-mode could be selected against non-existent images.
+ */
+export function preflightSandboxImages(
+  opts: PreflightSandboxOptions,
+): SandboxPreflightResult {
+  const probe = opts.probe ?? defaultDockerProbe;
+  const networkName = opts.dockerNetwork ?? 'aegis-egress';
+  const overrides = opts.imageOverrides ?? {};
+  const missing_images: Record<string, string> = {};
+
+  for (const wrapper of opts.wrappers) {
+    const image = overrides[wrapper] ?? DEFAULT_WRAPPER_IMAGES[wrapper];
+    if (!image) continue; // unmapped wrapper — wrapForSandbox falls back
+    if (!probe('image', image)) {
+      missing_images[wrapper] = image;
+    }
+  }
+
+  const missing_network = !probe('network', networkName);
+  const ok = missing_network === false && Object.keys(missing_images).length === 0;
+
+  let remediation: string | undefined;
+  if (!ok) {
+    const lines: string[] = [
+      'APTS-MR-018 sandbox preflight failed.',
+      '',
+    ];
+    if (Object.keys(missing_images).length > 0) {
+      lines.push('Missing docker images:');
+      for (const [wrapper, image] of Object.entries(missing_images)) {
+        lines.push(`  - ${wrapper}: ${image}`);
+      }
+      lines.push('');
+      lines.push('Build them with:');
+      lines.push('  bash dockerfiles/sandboxes/build.sh');
+      lines.push('');
+    }
+    if (missing_network) {
+      lines.push(`Missing docker network: ${networkName}`);
+      lines.push('Create with:');
+      lines.push(`  docker network create --driver=bridge --internal ${networkName}`);
+      lines.push('(or run the build script which creates it automatically.)');
+      lines.push('');
+    }
+    lines.push('After fixing, re-run with --sandbox-mode=docker.');
+    remediation = lines.join('\n');
+  }
+
+  return {
+    ok,
+    missing_images,
+    missing_network,
+    network_name: networkName,
+    remediation,
+    apts_refs: ['APTS-MR-018'],
   };
 }

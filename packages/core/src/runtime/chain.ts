@@ -70,11 +70,28 @@ export interface ChainVerifyFailure {
 export type ChainVerifyResult = ChainVerifyOk | ChainVerifyFailure;
 
 /**
- * Verify the integrity of a JSONL audit-log file. Each line must:
+ * Verify the integrity of a JSONL audit-log file. Each EVENT line must:
  *   - parse as JSON
  *   - carry this_hash + prev_hash fields
  *   - have a this_hash that matches the canonical hash of its other fields
  *   - have a prev_hash that matches the previous line's this_hash (null on line 0)
+ *
+ * Snapshot lines (those with `state_version` but no `event` field) are
+ * SKIPPED — they exist alongside events in the same JSONL file (audit-fix
+ * 2026-04-27 made writeEngagementState append-not-overwrite).
+ *
+ * KNOWN SCOPE LIMIT (audit-fix-2 2026-04-27):
+ *   Snapshot lines are NOT part of the hash chain. An attacker with
+ *   write access to the state-file can post-hoc tamper with snapshot
+ *   fields (`completed_phases`, `findings_so_far`, `paused_at`,
+ *   `reason`) without breaking chain verification. The EVENT timeline
+ *   remains tamper-evident — every state transition emits an event,
+ *   so a tampered snapshot is contradicted by the unchanged event
+ *   stream. Resume-from-snapshot consumers MUST cross-check snapshot
+ *   contents against the event chain before trusting them. Closing
+ *   this gap fully would require chaining snapshot writes through
+ *   ChainedEmitter (snapshot becomes an event with prev_hash +
+ *   this_hash); deferred to a future cluster.
  *
  * Returns ok-with-tail-hash on success, or failure-at-line-N with reason.
  */
@@ -95,6 +112,7 @@ export function verifyAuditChain(path: string): ChainVerifyResult {
   }
   const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
   let prevExpectedHash: string | null = null;
+  let eventsProcessed = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     let parsed: Record<string, unknown>;
@@ -105,8 +123,12 @@ export function verifyAuditChain(path: string): ChainVerifyResult {
         ok: false,
         error: `line ${i}: not valid JSON (${err instanceof Error ? err.message : String(err)})`,
         broken_at: i,
-        total_events_processed: i,
+        total_events_processed: eventsProcessed,
       };
+    }
+    // Skip snapshot lines — they have state_version but no event.
+    if ('state_version' in parsed && !('event' in parsed)) {
+      continue;
     }
     const lineThisHash = parsed.this_hash;
     const linePrevHash = parsed.prev_hash;
@@ -115,7 +137,7 @@ export function verifyAuditChain(path: string): ChainVerifyResult {
         ok: false,
         error: `line ${i}: missing or non-string this_hash`,
         broken_at: i,
-        total_events_processed: i,
+        total_events_processed: eventsProcessed,
       };
     }
     if (linePrevHash !== null && typeof linePrevHash !== 'string') {
@@ -123,7 +145,7 @@ export function verifyAuditChain(path: string): ChainVerifyResult {
         ok: false,
         error: `line ${i}: prev_hash must be string or null`,
         broken_at: i,
-        total_events_processed: i,
+        total_events_processed: eventsProcessed,
       };
     }
     // Recompute the canonical hash of the event without this_hash.
@@ -135,7 +157,7 @@ export function verifyAuditChain(path: string): ChainVerifyResult {
         ok: false,
         error: `line ${i}: this_hash mismatch (event tampered or canonicalization mismatch)`,
         broken_at: i,
-        total_events_processed: i,
+        total_events_processed: eventsProcessed,
       };
     }
     // Check the chain link to the previous event.
@@ -144,10 +166,11 @@ export function verifyAuditChain(path: string): ChainVerifyResult {
         ok: false,
         error: `line ${i}: prev_hash chain break (expected ${prevExpectedHash ?? 'null'}, got ${linePrevHash ?? 'null'})`,
         broken_at: i,
-        total_events_processed: i,
+        total_events_processed: eventsProcessed,
       };
     }
     prevExpectedHash = lineThisHash;
+    eventsProcessed += 1;
   }
-  return { ok: true, total_events: lines.length, tail_hash: prevExpectedHash };
+  return { ok: true, total_events: eventsProcessed, tail_hash: prevExpectedHash };
 }

@@ -7,15 +7,17 @@
  * a state-file (when --state-file is set on siege).
  *
  * Event types:
- *   - engagement-start    — emitted when siege begins (after RoE validated)
- *   - phase-transition    — emitted before/after each of the 4 siege phases
- *   - finding-emitted     — per-finding event so live monitors can react
- *   - critical-finding    — high-severity emission, drives stop-conditions
- *   - intervention        — operator pause/redirect/kill received via signal
- *   - resume              — engagement re-started from a serialized state file
- *   - halt                — engagement stopped (clean termination)
- *   - kill                — engagement aborted (signal-triggered)
- *   - completion          — engagement finished, final scoring emitted
+ *   - engagement-start                  — emitted when siege begins (after RoE validated)
+ *   - phase-transition                  — emitted before/after each of the 4 siege phases
+ *   - finding-emitted                   — per-finding event so live monitors can react
+ *   - critical-finding                  — high-severity emission, drives stop-conditions
+ *   - intervention                      — operator pause/redirect/kill received via signal
+ *   - resume                            — engagement re-started from a serialized state file
+ *   - halt                              — engagement stopped (clean termination)
+ *   - kill                              — engagement aborted (signal-triggered)
+ *   - completion                        — engagement finished, final scoring emitted
+ *   - scope-validation                  — target in/out of scope decision (APTS-SE-015)
+ *   - operator-acknowledged-loopback    — operator opted in to loopback target (--allow-loopback)
  */
 import { writeFileSync, appendFileSync } from 'node:fs';
 import type { Finding, Severity } from '../types.js';
@@ -99,6 +101,12 @@ export type EngagementEvent =
       allowed: boolean;
       reason: string;
       apts_refs?: string[];
+    })
+  | (EngagementEventBase & {
+      event: 'operator-acknowledged-loopback';
+      target: string;
+      apts_refs: string[];
+      warning: string;
     });
 
 /**

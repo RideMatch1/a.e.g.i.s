@@ -16,10 +16,19 @@
  *   - paused_at — ISO-8601 timestamp
  *   - reason — short rationale (e.g. "operator-SIGUSR1", "temporal-expiry")
  *
+ * State-file format (audit-fix 2026-04-27):
+ *   - PURE JSONL. Every line is a single-line JSON object.
+ *   - Snapshots have a `state_version` field; events have `ts` + `event`.
+ *   - Snapshots are APPENDED, not overwritten. `loadEngagementState`
+ *     reads the file line-by-line and returns the LAST snapshot.
+ *   - Previous behavior (overwriting with pretty-printed JSON) was
+ *     destroying events between persistStates and breaking line-oriented
+ *     tools like `jq -c`.
+ *
  * Mid-phase resume is deferred to a future cluster — it requires
  * scanner-level checkpointing which the orchestrator doesn't expose today.
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, appendFileSync, existsSync } from 'node:fs';
 import { z } from 'zod';
 import type { Finding } from '../types.js';
 
@@ -49,8 +58,20 @@ export interface EngagementState {
   reason: string;
 }
 
+/**
+ * Append the engagement-state snapshot as a single JSONL line.
+ *
+ * Was: `writeFileSync(path, JSON.stringify(state, null, 2))` which
+ * overwrote the entire state file — destroying every JSONL event that
+ * had been appended since the last snapshot. The audit on 2026-04-27
+ * flagged this as both a format inconsistency (mixed pretty-JSON +
+ * JSONL) AND a data-loss bug (events between persistStates were lost).
+ *
+ * Now: each call appends one JSONL line. Snapshots and events coexist
+ * in the same file. `loadEngagementState` reads the last snapshot.
+ */
 export function writeEngagementState(path: string, state: EngagementState): void {
-  writeFileSync(path, JSON.stringify(state, null, 2));
+  appendFileSync(path, JSON.stringify(state) + '\n');
 }
 
 export interface LoadStateOk {
@@ -64,6 +85,21 @@ export interface LoadStateFailure {
 }
 export type LoadStateResult = LoadStateOk | LoadStateFailure;
 
+/**
+ * Load the latest engagement-state snapshot from a JSONL state-file.
+ *
+ * Reads line-by-line, identifies snapshot lines by the presence of a
+ * `state_version` field, schema-validates each, and returns the LAST
+ * (most recent) successful match. Event lines (with `ts`+`event`) are
+ * skipped. Malformed lines are skipped with a count tracked for the
+ * debug error path; only snapshots that pass the strict schema are
+ * candidates.
+ *
+ * Back-compat: also accepts a single-object pretty-JSON file (the
+ * pre-audit format). When the entire file parses as one EngagementState
+ * object, return that. This preserves resume-from-pre-audit-state
+ * functionality during the migration window.
+ */
 export function loadEngagementState(path: string): LoadStateResult {
   if (!existsSync(path)) {
     return { ok: false, error: `state file not found at ${path}`, phase: 'file-missing' };
@@ -78,27 +114,70 @@ export function loadEngagementState(path: string): LoadStateResult {
       phase: 'file-missing',
     };
   }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
+
+  // Back-compat: try parsing the whole file as a single JSON snapshot first.
+  // The pre-audit format wrote pretty-printed JSON without JSONL structure.
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const result = EngagementStateSchema.safeParse(parsed);
+      if (result.success) {
+        return { ok: true, state: result.data as unknown as EngagementState };
+      }
+      // Fall through to JSONL parse — the file might be JSONL where the
+      // first event is a single-line snapshot followed by event lines.
+    } catch {
+      // Not a single-object file; fall through to JSONL.
+    }
+  }
+
+  // JSONL: parse line-by-line, return the last successful snapshot.
+  const lines = raw.split('\n').filter((l) => l.trim().length > 0);
+  let lastSnapshot: EngagementState | null = null;
+  let parseErrors = 0;
+  let schemaErrors = 0;
+  for (const line of lines) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(line);
+    } catch {
+      parseErrors += 1;
+      continue;
+    }
+    if (typeof parsed !== 'object' || parsed === null) continue;
+    if (!('state_version' in parsed)) continue; // event line, skip
+    const result = EngagementStateSchema.safeParse(parsed);
+    if (result.success) {
+      lastSnapshot = result.data as unknown as EngagementState;
+    } else {
+      schemaErrors += 1;
+    }
+  }
+
+  if (lastSnapshot) {
+    return { ok: true, state: lastSnapshot };
+  }
+
+  if (parseErrors > 0 && lines.length === parseErrors) {
     return {
       ok: false,
-      error: `state file at ${path} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
+      error: `state file at ${path}: no parseable JSONL line found (${parseErrors} malformed)`,
       phase: 'json-parse',
     };
   }
-  const result = EngagementStateSchema.safeParse(parsed);
-  if (!result.success) {
-    const formatted = result.error.issues
-      .map((issue) => `  ${issue.path.length > 0 ? issue.path.join('.') : '<root>'}: ${issue.message}`)
-      .join('\n');
-    return { ok: false, error: `state schema validation failed:\n${formatted}`, phase: 'schema-validation' };
+  if (schemaErrors > 0) {
+    return {
+      ok: false,
+      error: `state file at ${path}: ${schemaErrors} snapshot-shaped lines failed schema validation`,
+      phase: 'schema-validation',
+    };
   }
-  // result.data preserves the schema shape (`findings_so_far: Record<string, unknown>[]`).
-  // We cast to EngagementState because the schema permits arbitrary Finding-shaped
-  // objects pass-through (resume must accept any Finding the orchestrator emits).
-  return { ok: true, state: result.data as unknown as EngagementState };
+  return {
+    ok: false,
+    error: `state file at ${path} contains no engagement-state snapshot`,
+    phase: 'schema-validation',
+  };
 }
 
 /**

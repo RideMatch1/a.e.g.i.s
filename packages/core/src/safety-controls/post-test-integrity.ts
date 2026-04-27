@@ -40,6 +40,8 @@ export interface IntegrityProbeOptions {
   max_response_delta_ms?: number;
   /** Probe timeout in ms. Default 10_000. */
   timeout_ms?: number;
+  /** Operator opt-in to permit loopback probe. Mirrors siege --allow-loopback. */
+  allowLoopback?: boolean;
   /** Override safeFetch — for tests. */
   fetchImpl?: typeof safeFetch;
 }
@@ -59,7 +61,11 @@ export async function probeTargetIntegrity(
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetchImpl(target, { method: 'HEAD', signal: controller.signal });
+    const res = await fetchImpl(target, {
+      method: 'HEAD',
+      signal: controller.signal,
+      allowLoopback: opts.allowLoopback === true,
+    });
     clearTimeout(timeout);
     const elapsed = Date.now() - start;
     const observed: IntegrityProbeResult['observed'] = {

@@ -235,9 +235,10 @@
     {
       "requirement_id": "APTS-HO-010",
       "status": "met",
-      "rationale": "Closed jointly with HO-001. `RoE.autonomy_levels.{Lx}.irreversible_action_classes` declares the action set that requires a mandatory human decision point; `detectIrreversibleActions` returns the per-level list, and the same pre-phase approval gate halts the engagement before the irreversible-action phase enters.",
+      "rationale": "Two-tier hard gate at phase entry. (1) `evaluateApprovalGate` (HO-001) enforces per-AL approval. (2) `evaluateIrreversibleGate` is a SECOND independent check that engagement-wide --confirm CANNOT bypass: when `RoE.autonomy_levels.{Lx}.irreversible_action_classes` is non-empty, the phase halts unless `RoE.autonomy_levels.{Lx}.pre_approved=true` is also set. Both gates wired in `siege.ts:evaluatePhaseApproval` and called before each of the four phases (recon/discovery/exploitation/reporting). The previous single-gate design — where --confirm authorized L1+L2 even with irreversible classes — was a documented gap that has been closed in this revision; HO-010 now requires explicit per-level pre-approval for irreversible actions regardless of autonomy level. Tested in `packages/core/__tests__/oversight/approval-gates.test.ts` (`evaluateIrreversibleGate` suite, 7 cases) and `packages/cli/__tests__/siege.test.ts` (halt path).",
       "evidence_refs": [
-        "ev-pre-approval-gates"
+        "ev-pre-approval-gates",
+        "ev-irreversible-gate"
       ]
     },
     {
@@ -515,9 +516,10 @@
     {
       "requirement_id": "APTS-MR-018",
       "status": "met",
-      "rationale": "Architectural sandbox boundary via `--sandbox-mode <docker|firejail|none>` siege flag and per-wrapper `wrapForSandbox` invocation transformation. Docker mode rewrites `exec(\"strix\", args)` to `exec(\"docker\", [\"run\", \"--rm\", \"--network=aegis-egress\", \"--security-opt=no-new-privileges\", \"--cap-drop=ALL\", \"--read-only\", \"--tmpfs=/tmp\", image, ...args])`; firejail mode applies `--read-only=/`, `--ipc-namespace`, `--noroot`. Default `none` is back-compat pass-through; operators opt in via flag or RoE.sandboxing.mode (RoE-floor takes precedence over CLI when stricter). All three LLM-pentest wrappers (strix, ptai, pentestswarm) consume the env at exec time.",
+      "rationale": "Architectural sandbox boundary via `--sandbox-mode <docker|firejail|none>` siege flag and per-wrapper `wrapForSandbox` invocation transformation. Docker mode rewrites `exec(\"strix\", args)` to `exec(\"docker\", [\"run\", \"--rm\", \"--network=aegis-egress\", \"--security-opt=no-new-privileges\", \"--cap-drop=ALL\", \"--read-only\", \"--tmpfs=/tmp\", image, ...args])`; firejail mode applies `--read-only=/`, `--ipc-namespace`, `--noroot`. Sandbox container images are authoritatively built from `dockerfiles/sandboxes/{strix,ptai,pentestswarm}.Dockerfile` via `bash dockerfiles/sandboxes/build.sh`, which also creates the `aegis-egress` docker network with `--internal` (no external egress). At engagement-start when --sandbox-mode=docker is selected, `preflightSandboxImages` verifies each required image and the egress network exist locally; missing artifacts produce a remediation block and halt the engagement (closes the audit-flagged gap where docker-mode could be selected against non-existent images). RoE-floor takes precedence over CLI when stricter; image_overrides + custom docker_network supported via RoE.sandboxing. All three LLM-pentest wrappers (strix, ptai, pentestswarm) call wrapForSandbox at exec time.",
       "evidence_refs": [
-        "ev-wrapper-sandboxing"
+        "ev-wrapper-sandboxing",
+        "ev-sandbox-preflight"
       ]
     },
     {

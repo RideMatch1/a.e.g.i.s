@@ -1,10 +1,11 @@
 /**
  * APTS-MR-018 — AI input/output sandbox boundary tests.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   validateSandboxMode,
   wrapForSandbox,
+  preflightSandboxImages,
   SANDBOX_MODES,
   DEFAULT_WRAPPER_IMAGES,
 } from '../../src/manipulation-resistance/ai-io-boundary.js';
@@ -105,5 +106,83 @@ describe('wrapForSandbox', () => {
     const w = wrapForSandbox('strix', 'strix', [], 'docker', { allowlist, imageOverride: 'private/strix:custom' });
     expect(w.args).toContain('private/strix:custom');
     expect(w.args).not.toContain(DEFAULT_WRAPPER_IMAGES.strix);
+  });
+});
+
+describe('preflightSandboxImages — APTS-MR-018 docker preflight', () => {
+  it('returns ok=true when every required image and the network exist', () => {
+    const probe = vi.fn(() => true);
+    const r = preflightSandboxImages({
+      wrappers: ['strix', 'ptai', 'pentestswarm'],
+      probe,
+    });
+    expect(r.ok).toBe(true);
+    expect(r.missing_network).toBe(false);
+    expect(Object.keys(r.missing_images)).toEqual([]);
+    expect(r.network_name).toBe('aegis-egress');
+    expect(r.apts_refs).toContain('APTS-MR-018');
+    expect(r.remediation).toBeUndefined();
+  });
+
+  it('returns ok=false with remediation when an image is missing', () => {
+    const probe = vi.fn((kind, ref) => {
+      if (kind === 'image' && ref.includes('strix')) return false;
+      return true;
+    });
+    const r = preflightSandboxImages({
+      wrappers: ['strix', 'ptai', 'pentestswarm'],
+      probe,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.missing_images).toEqual({ strix: 'aegis/strix-sandbox:latest' });
+    expect(r.missing_network).toBe(false);
+    expect(r.remediation).toContain('Missing docker images');
+    expect(r.remediation).toContain('aegis/strix-sandbox:latest');
+    expect(r.remediation).toContain('bash dockerfiles/sandboxes/build.sh');
+  });
+
+  it('returns ok=false with remediation when the egress network is missing', () => {
+    const probe = vi.fn((kind, _ref) => kind === 'image');
+    const r = preflightSandboxImages({
+      wrappers: ['strix'],
+      probe,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.missing_network).toBe(true);
+    expect(r.remediation).toContain('Missing docker network: aegis-egress');
+    expect(r.remediation).toContain('docker network create');
+    expect(r.remediation).toContain('--internal');
+  });
+
+  it('honors imageOverrides per wrapper', () => {
+    const probe = vi.fn(() => true);
+    const r = preflightSandboxImages({
+      wrappers: ['strix'],
+      imageOverrides: { strix: 'private/strix:v2' },
+      probe,
+    });
+    expect(r.ok).toBe(true);
+    expect(probe).toHaveBeenCalledWith('image', 'private/strix:v2');
+  });
+
+  it('skips unmapped wrappers (they fall back to pass-through in wrapForSandbox)', () => {
+    const probe = vi.fn(() => true);
+    const r = preflightSandboxImages({
+      wrappers: ['unknown-wrapper'],
+      probe,
+    });
+    expect(r.ok).toBe(true);
+    expect(Object.keys(r.missing_images)).toEqual([]);
+  });
+
+  it('honors custom dockerNetwork', () => {
+    const probe = vi.fn(() => true);
+    const r = preflightSandboxImages({
+      wrappers: [],
+      dockerNetwork: 'corp-pentest-egress',
+      probe,
+    });
+    expect(r.network_name).toBe('corp-pentest-egress');
+    expect(probe).toHaveBeenCalledWith('network', 'corp-pentest-egress');
   });
 });

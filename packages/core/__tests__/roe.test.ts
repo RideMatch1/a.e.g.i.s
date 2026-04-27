@@ -303,6 +303,36 @@ describe('synthesizeMinimalRoE — back-compat fallback', () => {
     const end = Date.parse(roe.temporal.end);
     expect(end - start).toBe(30 * 60_000);
   });
+
+  describe('default-strict hardening (audit fix)', () => {
+    it('sets non-trivial safety_controls.health_thresholds (SC-010 active by default)', () => {
+      const roe = synthesizeMinimalRoE('example.com');
+      expect(roe.safety_controls?.health_thresholds?.max_heap_mb).toBeGreaterThan(0);
+      expect(roe.safety_controls?.health_thresholds?.max_error_rate).toBeGreaterThan(0);
+      expect(roe.safety_controls?.health_thresholds?.max_target_response_ms).toBeGreaterThan(0);
+    });
+
+    it('sets autonomy_levels with L3 approval_required=true (HO-001 active by default)', () => {
+      const roe = synthesizeMinimalRoE('example.com');
+      expect(roe.autonomy_levels?.L1?.approval_required).toBe(false);
+      expect(roe.autonomy_levels?.L2?.approval_required).toBe(false);
+      expect(roe.autonomy_levels?.L3?.approval_required).toBe(true);
+      expect(roe.autonomy_levels?.L4?.approval_required).toBe(false);
+    });
+
+    it('sets escalation thresholds (HO-011/012/013 active by default)', () => {
+      const roe = synthesizeMinimalRoE('example.com');
+      expect(roe.escalation?.severity_threshold).toBe('critical');
+      expect(roe.escalation?.cia_threshold).toEqual({ c: 'high', i: 'high', a: 'high' });
+      expect(roe.escalation?.pause_on_low_confidence).toBe(false);
+    });
+
+    it('synthesized RoE with default-strict is still schema-valid', () => {
+      const roe = synthesizeMinimalRoE('example.com');
+      const result = RoESchema.safeParse(roe);
+      expect(result.success).toBe(true);
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

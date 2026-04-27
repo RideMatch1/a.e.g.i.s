@@ -157,6 +157,73 @@ describe('runtime/state', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.phase).toBe('schema-validation');
   });
+
+  describe('JSONL state-file format (audit-fix 2026-04-27)', () => {
+    it('appends snapshots as single-line JSONL, not pretty-printed', () => {
+      const dir = tmp();
+      const file = join(dir, 'state.jsonl');
+      const s = newEngagementState({ engagement_id: 'eng-jsonl', target: 'a.test', roe_id: 'r-1' });
+      writeEngagementState(file, s);
+      const raw = require('node:fs').readFileSync(file, 'utf-8');
+      // Pretty-printed JSON had newlines inside the object; JSONL has only ONE newline (terminator).
+      expect(raw.split('\n').filter((l: string) => l.length > 0).length).toBe(1);
+      expect(raw.endsWith('\n')).toBe(true);
+      expect(raw).not.toContain('\n  '); // no indentation
+    });
+
+    it('returns the LATEST snapshot when multiple are appended', () => {
+      const dir = tmp();
+      const file = join(dir, 'state.jsonl');
+      const s1 = newEngagementState({ engagement_id: 'eng-3', target: 'a.test', roe_id: 'r-1' });
+      writeEngagementState(file, s1);
+      const s2 = { ...s1, completed_phases: ['recon' as const], reason: 'phase-recon-complete' };
+      writeEngagementState(file, s2);
+      const s3 = { ...s2, completed_phases: ['recon' as const, 'discovery' as const], reason: 'phase-discovery-complete' };
+      writeEngagementState(file, s3);
+      const loaded = loadEngagementState(file);
+      expect(loaded.ok).toBe(true);
+      if (loaded.ok) {
+        expect(loaded.state.completed_phases).toEqual(['recon', 'discovery']);
+        expect(loaded.state.reason).toBe('phase-discovery-complete');
+      }
+    });
+
+    it('skips event lines and returns the snapshot in a mixed JSONL stream', () => {
+      const dir = tmp();
+      const file = join(dir, 'state.jsonl');
+      const s = newEngagementState({ engagement_id: 'eng-4', target: 'b.test', roe_id: 'r-2' });
+      writeEngagementState(file, s);
+      // Append event lines (the events.ts channel does this in production).
+      require('node:fs').appendFileSync(file, JSON.stringify({ ts: '2026-04-27T00:00:00Z', engagement_id: 'eng-4', event: 'phase-transition' }) + '\n');
+      require('node:fs').appendFileSync(file, JSON.stringify({ ts: '2026-04-27T00:00:01Z', engagement_id: 'eng-4', event: 'finding' }) + '\n');
+      const loaded = loadEngagementState(file);
+      expect(loaded.ok).toBe(true);
+      if (loaded.ok) {
+        expect(loaded.state.engagement_id).toBe('eng-4');
+      }
+    });
+
+    it('back-compat: still parses a pre-audit pretty-printed single-object file', () => {
+      const dir = tmp();
+      const file = join(dir, 'old-state.json');
+      const s = newEngagementState({ engagement_id: 'eng-old', target: 'c.test', roe_id: 'r-3' });
+      writeFileSync(file, JSON.stringify(s, null, 2));
+      const loaded = loadEngagementState(file);
+      expect(loaded.ok).toBe(true);
+      if (loaded.ok) {
+        expect(loaded.state.engagement_id).toBe('eng-old');
+      }
+    });
+
+    it('returns schema-validation when no snapshot is present', () => {
+      const dir = tmp();
+      const file = join(dir, 'events-only.jsonl');
+      writeFileSync(file, JSON.stringify({ ts: '2026-04-27T00:00:00Z', engagement_id: 'x', event: 'halt' }) + '\n');
+      const loaded = loadEngagementState(file);
+      expect(loaded.ok).toBe(false);
+      if (!loaded.ok) expect(loaded.phase).toBe('schema-validation');
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

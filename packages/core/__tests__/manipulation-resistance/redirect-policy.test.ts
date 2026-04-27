@@ -110,4 +110,65 @@ describe('safeFetch', () => {
       safeFetch('https://routable.example/', { dnsLookup, fetchImpl, maxRedirects: 2 }),
     ).rejects.toMatchObject({ reason: 'redirect-chain-too-long' });
   });
+
+  describe('allowLoopback opt-in (--allow-loopback)', () => {
+    it('rejects loopback by default', async () => {
+      const fetchImpl = vi.fn();
+      await expect(
+        safeFetch('http://127.0.0.1:3000/', { fetchImpl }),
+      ).rejects.toMatchObject({ reason: 'loopback-ip' });
+    });
+
+    it('permits loopback IPv4 when allowLoopback=true', async () => {
+      const fetchImpl = vi.fn(async () => new Response('ok', { status: 200 }));
+      const res = await safeFetch('http://127.0.0.1:3000/', {
+        allowLoopback: true,
+        fetchImpl,
+      });
+      expect(res.status).toBe(200);
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    });
+
+    it('permits loopback IPv6 (::1) when allowLoopback=true', async () => {
+      const fetchImpl = vi.fn(async () => new Response('ok', { status: 200 }));
+      const res = await safeFetch('http://[::1]:3000/', {
+        allowLoopback: true,
+        fetchImpl,
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it('allowLoopback does NOT bypass private-ip rejection', async () => {
+      const dnsLookup = vi.fn(async () => '10.0.0.5');
+      const fetchImpl = vi.fn();
+      await expect(
+        safeFetch('http://corp.internal/', { allowLoopback: true, dnsLookup, fetchImpl }),
+      ).rejects.toMatchObject({ reason: 'private-ip' });
+    });
+
+    it('allowLoopback does NOT bypass cloud-metadata rejection', async () => {
+      const fetchImpl = vi.fn();
+      await expect(
+        safeFetch('http://169.254.169.254/latest/meta-data', { allowLoopback: true, fetchImpl }),
+      ).rejects.toMatchObject({ reason: 'cloud-metadata-ip' });
+    });
+
+    it('allowLoopback does NOT bypass link-local rejection', async () => {
+      const fetchImpl = vi.fn();
+      await expect(
+        safeFetch('http://169.254.5.5/', { allowLoopback: true, fetchImpl }),
+      ).rejects.toMatchObject({ reason: 'link-local-ip' });
+    });
+
+    it('permits loopback when DNS resolves a hostname to 127.0.0.1', async () => {
+      const dnsLookup = vi.fn(async () => '127.0.0.1');
+      const fetchImpl = vi.fn(async () => new Response('ok', { status: 200 }));
+      const res = await safeFetch('http://localhost.example/', {
+        allowLoopback: true,
+        dnsLookup,
+        fetchImpl,
+      });
+      expect(res.status).toBe(200);
+    });
+  });
 });

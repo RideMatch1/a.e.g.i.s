@@ -19,6 +19,7 @@ import type { EngagementState } from './state.js';
 import { writeEngagementState } from './state.js';
 import type { EngagementEvent, EventSink } from './events.js';
 import { emitEvent, makeEvent } from './events.js';
+import type { ChainedEmitter } from './chain.js';
 
 export type DumpReason = 'SIGINT' | 'SIGTERM' | 'SIGUSR1' | 'SIGUSR2';
 
@@ -31,6 +32,14 @@ export interface SignalHandlerOptions {
   eventSink: EventSink;
   /** Engagement-id used by emit helpers. */
   engagementId: string;
+  /**
+   * Optional ChainedEmitter — when provided, the kill/intervention event
+   * is appended to the same hash chain as the regular siege events so
+   * `audit-verify` continues to validate the full timeline. Without this
+   * option, the event is emitted directly via emitEvent (un-chained),
+   * which is the legacy path for back-compat.
+   */
+  chainEmitter?: ChainedEmitter;
   /**
    * Optional: process.exit hook (defaults to real process.exit). Tests
    * inject a no-op to verify the cleanup path without halting the test.
@@ -81,7 +90,15 @@ export function installSignalHandlers(opts: SignalHandlerOptions): InstalledHand
             reason: 'operator-paused',
           });
     try {
-      emitEvent(ev, opts.eventSink);
+      // Chain the event into the same hash-chain as regular siege events
+      // when a ChainedEmitter is provided. This keeps audit-verify happy
+      // when the engagement is killed mid-flight (otherwise the kill
+      // event would be a chain break).
+      if (opts.chainEmitter) {
+        opts.chainEmitter.emit(ev);
+      } else {
+        emitEvent(ev, opts.eventSink);
+      }
     } catch {
       // best-effort
     }

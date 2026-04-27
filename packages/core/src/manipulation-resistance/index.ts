@@ -53,10 +53,13 @@ export {
 export {
   validateSandboxMode,
   wrapForSandbox,
+  preflightSandboxImages,
   SANDBOX_MODES,
   DEFAULT_WRAPPER_IMAGES,
   type SandboxMode,
   type SandboxModeValidation,
   type WrapForSandboxOptions,
   type WrappedExec,
+  type SandboxPreflightResult,
+  type PreflightSandboxOptions,
 } from './ai-io-boundary.js';

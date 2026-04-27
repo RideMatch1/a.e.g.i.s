@@ -116,3 +116,60 @@ export function detectIrreversibleActions(
   if (!level || !autonomyLevels?.[level]?.irreversible_action_classes) return [];
   return [...(autonomyLevels[level]?.irreversible_action_classes ?? [])];
 }
+
+export interface IrreversibleGateDecision {
+  allowed: boolean;
+  classes: string[];
+  reason: string;
+  level: AutonomyLevel | null;
+  apts_refs: string[];
+}
+
+/**
+ * APTS-HO-010 mandatory human-decision-point gate.
+ *
+ * Even when `evaluateApprovalGate` passes (e.g. via engagement-wide
+ * --confirm on L1/L2), a phase that declares irreversible-action
+ * classes still requires explicit per-level `pre_approved: true` in
+ * the RoE. Engagement-wide consent cannot authorize irreversible
+ * actions implicitly; the operator must look at the action list and
+ * acknowledge it by writing `pre_approved: true` next to the
+ * `irreversible_action_classes` array.
+ *
+ * Returns `allowed: false` when classes are declared and not
+ * pre-approved; the orchestrator halts with HO-010 reason at phase
+ * entry.
+ */
+export function evaluateIrreversibleGate(
+  phase: string,
+  autonomyLevels: AutonomyLevelsConfig | undefined,
+): IrreversibleGateDecision {
+  const classes = detectIrreversibleActions(phase, autonomyLevels);
+  if (classes.length === 0) {
+    return {
+      allowed: true,
+      classes: [],
+      reason: `${phase}: no irreversible action classes declared`,
+      level: PHASE_TO_AUTONOMY_LEVEL[phase] ?? null,
+      apts_refs: ['APTS-HO-010'],
+    };
+  }
+  const level = PHASE_TO_AUTONOMY_LEVEL[phase] ?? null;
+  const policy = level ? autonomyLevels?.[level] : undefined;
+  if (policy?.pre_approved === true) {
+    return {
+      allowed: true,
+      classes,
+      reason: `${phase}: irreversible classes [${classes.join(', ')}] pre-approved per RoE.autonomy_levels.${level}.pre_approved`,
+      level,
+      apts_refs: ['APTS-HO-010'],
+    };
+  }
+  return {
+    allowed: false,
+    classes,
+    reason: `${phase}: irreversible action classes [${classes.join(', ')}] declared but not pre-approved — HO-010 requires explicit RoE.autonomy_levels.${level}.pre_approved=true to authorize irreversible actions; engagement-wide --confirm is INSUFFICIENT for irreversible classes`,
+    level,
+    apts_refs: ['APTS-HO-010'],
+  };
+}

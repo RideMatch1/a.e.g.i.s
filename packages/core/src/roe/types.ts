@@ -427,6 +427,28 @@ export function validateAction(
  * graduate to a real RoE file for any non-trivial engagement; this helper
  * exists so existing scripts continue to function. Marks the synthesized
  * RoE as such so audit logs can flag the difference.
+ *
+ * Defaults are CONSERVATIVE-strict, not permissive-back-compat:
+ *   - `safety_controls.health_thresholds` non-trivial so SC-010 health
+ *     check actually trips on a runaway engagement.
+ *   - `autonomy_levels.L3.approval_required: true` — exploitation halts
+ *     unless the operator provides a real RoE that explicitly
+ *     pre-approves L3. This is a back-compat BREAK from earlier
+ *     versions where --confirm authorized everything; the rationale is
+ *     that synthesized minimal RoE should never silently authorize
+ *     exploitation phase. Operators who need exploitation must author
+ *     a full RoE.
+ *   - `escalation.severity_threshold: 'critical'` — matches the
+ *     `stop_conditions.on_critical_finding: 'halt'` policy on the
+ *     finding-text path (HO-011).
+ *   - `escalation.cia_threshold: { c:'high', i:'high', a:'high' }` —
+ *     CIA-axis halt on any high-impact finding (HO-012).
+ *   - `pause_on_low_confidence: false` — operator opt-in for HO-013
+ *     to avoid noisy halts during normal scans.
+ *
+ * The previous permissive defaults were flagged by an internal audit
+ * as "mechanism-MET but inert in default mode". Closing that gap
+ * required this BC break.
  */
 export function synthesizeMinimalRoE(
   target: string,
@@ -467,6 +489,25 @@ export function synthesizeMinimalRoE(
     },
     stop_conditions: { on_critical_finding: 'halt' },
     sandboxing: { mode: 'none' },
+    safety_controls: {
+      health_thresholds: {
+        max_heap_mb: 4096,
+        max_error_rate: 0.5,
+        max_target_response_ms: 30_000,
+      },
+      heartbeat_interval_seconds: 30,
+    },
+    autonomy_levels: {
+      L1: { approval_required: false },
+      L2: { approval_required: false },
+      L3: { approval_required: true },
+      L4: { approval_required: false },
+    },
+    escalation: {
+      severity_threshold: 'critical',
+      cia_threshold: { c: 'high', i: 'high', a: 'high' },
+      pause_on_low_confidence: false,
+    },
   };
 }
 

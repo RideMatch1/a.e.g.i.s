@@ -32,6 +32,14 @@ export interface SafeFetchOptions extends Omit<RequestInit, 'redirect'> {
    * Defaults to 5.
    */
   maxRedirects?: number;
+  /**
+   * Operator opt-in for testing against loopback targets (127.x.x.x, ::1).
+   * Default false. When true, loopback resolution is reclassified as
+   * 'public' so the fetch succeeds. Used by `aegis siege --allow-loopback`
+   * for legitimate local-pentest workflows. Always emits a warning.
+   * Does NOT bypass the other rejections (private-ip, link-local, cloud-metadata).
+   */
+  allowLoopback?: boolean;
   /** Override the DNS lookup for tests. Resolves a hostname to an IPv4. */
   dnsLookup?: (hostname: string) => Promise<string>;
   /** Override the underlying fetch — for tests. */
@@ -66,10 +74,11 @@ export async function safeFetch(
   const maxRedirects = init.maxRedirects ?? 5;
   const dnsLookup = init.dnsLookup ?? defaultDnsLookup;
   const fetchImpl = init.fetchImpl ?? fetch;
+  const allowLoopback = init.allowLoopback === true;
 
   let currentUrl = url;
   for (let hop = 0; hop <= maxRedirects; hop++) {
-    const policyCheck = await urlPolicyCheck(currentUrl, dnsLookup);
+    const policyCheck = await urlPolicyCheck(currentUrl, dnsLookup, allowLoopback);
     if (!policyCheck.ok) {
       throw makeRejection(policyCheck.reason, currentUrl);
     }
@@ -107,6 +116,7 @@ interface PolicyFail {
 async function urlPolicyCheck(
   rawUrl: string,
   dnsLookup: (hostname: string) => Promise<string>,
+  allowLoopback: boolean,
 ): Promise<PolicyOk | PolicyFail> {
   let parsed: URL;
   try {
@@ -127,6 +137,9 @@ async function urlPolicyCheck(
   // Direct IP literal → classify without DNS lookup
   if (isIpLiteral(hostKey)) {
     const ipClass = classifyIp(hostKey);
+    if (ipClass === 'loopback' && allowLoopback) {
+      return { ok: true, resolvedIp: hostKey };
+    }
     if (ipClass !== 'public') return { ok: false, reason: ipReasonOf(ipClass) };
     return { ok: true, resolvedIp: hostKey };
   }
@@ -138,6 +151,9 @@ async function urlPolicyCheck(
     return { ok: false, reason: 'dns-resolution-failed' };
   }
   const ipClass = classifyIp(resolvedIp);
+  if (ipClass === 'loopback' && allowLoopback) {
+    return { ok: true, resolvedIp };
+  }
   if (ipClass !== 'public') return { ok: false, reason: ipReasonOf(ipClass) };
   return { ok: true, resolvedIp };
 }

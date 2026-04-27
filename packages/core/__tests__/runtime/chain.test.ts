@@ -198,6 +198,44 @@ describe('runtime/verifyAuditChain', () => {
     }
   });
 
+  it('skips snapshot lines (state_version, no event) and verifies events around them', () => {
+    const dir = tmp();
+    const file = join(dir, 'chain-with-snapshots.jsonl');
+    initStateFile(file);
+    // Append a snapshot manually (mimics writeEngagementState).
+    const snapshot = {
+      state_version: '0.1.0',
+      engagement_id: 'eng',
+      target: 'example.com',
+      roe_id: 'r',
+      completed_phases: [],
+      findings_so_far: [],
+      paused_at: '2026-04-27T00:00:00Z',
+      reason: 'engagement-start',
+    };
+    require('node:fs').appendFileSync(file, JSON.stringify(snapshot) + '\n');
+    // Now emit a chained event.
+    const emitter = new ChainedEmitter({ sink: file });
+    emitter.emit(makeEvent('eng', 'halt', { reason: 'after-snapshot' }));
+    // Append another snapshot.
+    require('node:fs').appendFileSync(file, JSON.stringify({ ...snapshot, reason: 'phase-recon-complete' }) + '\n');
+    // Emit another event.
+    emitter.emit(makeEvent('eng', 'completion', {
+      duration_ms: 100,
+      total_findings: 0,
+      score: 1000,
+      grade: 'S',
+      blocked: false,
+    }));
+
+    const result = verifyAuditChain(file);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      // Two events processed (snapshots skipped).
+      expect(result.total_events).toBe(2);
+    }
+  });
+
   it('returns failure on file-missing', () => {
     const dir = tmp();
     const result = verifyAuditChain(join(dir, 'nope.jsonl'));

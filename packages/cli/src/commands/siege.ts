@@ -38,7 +38,9 @@ import {
   assignCiaVector,
   evaluateCiaThreshold,
   evaluateApprovalGate,
+  evaluateIrreversibleGate,
   validateDelegationMatrix,
+  preflightSandboxImages,
   escalateOnSeverity,
   escalateOnConfidence,
   escalateOnComplianceTrigger,
@@ -69,6 +71,14 @@ export interface SiegeOptions {
   heartbeatUrl?: string;
   /** APTS-HO-003 — per-phase timeout in minutes (CLI override of RoE.stop_conditions.phase_timeout_minutes). */
   phaseTimeoutMinutes?: number;
+  /**
+   * Operator opt-in to permit safeFetch against loopback IPs for legitimate
+   * local-pentest workflows. Default false. When true: emits a yellow warning
+   * + an "operator-acknowledged-loopback" audit event, and passes
+   * allowLoopback:true to every safeFetch call. Does NOT bypass private-IP,
+   * link-local, or cloud-metadata rejection.
+   */
+  allowLoopback?: boolean;
   format?: string;
   confirm?: boolean;
   color?: boolean;
@@ -92,6 +102,7 @@ async function runReconnaissance(
   projectPath: string,
   target: string,
   spinner: ReturnType<typeof ora>,
+  allowLoopback: boolean,
 ): Promise<ReconResult> {
   spinner.text = 'Phase 1/4: Reconnaissance...';
 
@@ -107,6 +118,7 @@ async function runReconnaissance(
     const response = await safeFetch(target, {
       method: 'HEAD',
       signal: controller.signal,
+      allowLoopback,
     });
     clearTimeout(timeout);
 
@@ -324,6 +336,23 @@ export async function runSiege(
   // a stricter mode in the RoE, the CLI flag cannot weaken it.
   const effectiveSandboxMode =
     roe.sandboxing.mode !== 'none' && sandboxMode === 'none' ? roe.sandboxing.mode : sandboxMode;
+
+  // APTS-MR-018 docker preflight: when docker mode is selected, every
+  // referenced wrapper image AND the egress network must already exist.
+  // This closes the audit-flagged gap where docker-mode could be selected
+  // against non-existent images (operator would discover only at exec time).
+  if (effectiveSandboxMode === 'docker') {
+    const preflight = preflightSandboxImages({
+      wrappers: ['strix', 'ptai', 'pentestswarm'],
+      imageOverrides: roe.sandboxing.image_overrides,
+      dockerNetwork: roe.sandboxing.docker_network,
+    });
+    if (!preflight.ok) {
+      console.error(chalk.red(`\nAPTS-MR-018 sandbox preflight FAILED:\n`));
+      console.error(chalk.yellow(preflight.remediation ?? '<no remediation>'));
+      return 1;
+    }
+  }
 
   // --- APTS-MR-011: compose egress allowlist from RoE in_scope + LLM-essentials,
   //     propagate to wrapper child processes. Wrappers consume AEGIS_EGRESS_ALLOWLIST;
@@ -581,13 +610,24 @@ export async function runSiege(
 
   /**
    * APTS-HO-001 + HO-010 — pre-phase approval gate. Returns `halt: true`
-   * with a reason when the autonomy-level requires approval and none
-   * has been granted; the orchestrator emits a halt event and stops.
+   * with a reason when:
+   *   (a) the autonomy-level requires approval and none has been granted, OR
+   *   (b) the phase declares irreversible-action classes and they are not
+   *       per-level pre-approved (engagement-wide --confirm cannot bypass).
+   * The orchestrator emits a halt event and stops.
    */
-  const evaluatePhaseApproval = (phase: string): { halt: boolean; reason?: string } => {
+  const evaluatePhaseApproval = (
+    phase: string,
+  ): { halt: boolean; reason?: string; apts_refs?: string[] } => {
     const decision = evaluateApprovalGate(phase, roe.autonomy_levels, options.confirm === true);
     if (!decision.allowed) {
-      return { halt: true, reason: `APTS-HO-001/010 ${decision.reason}` };
+      return { halt: true, reason: `APTS-HO-001/010 ${decision.reason}`, apts_refs: decision.apts_refs };
+    }
+    // HO-010 — separate irreversible-action gate. Even when the AL gate
+    // passes, irreversible classes require explicit `pre_approved: true`.
+    const irrev = evaluateIrreversibleGate(phase, roe.autonomy_levels);
+    if (!irrev.allowed) {
+      return { halt: true, reason: `APTS-HO-010 ${irrev.reason}`, apts_refs: irrev.apts_refs };
     }
     return { halt: false };
   };
@@ -643,6 +683,9 @@ export async function runSiege(
   persistState('engagement-start');
 
   // Install signal handlers for graceful pause + kill (APTS-HO-008, AL-012).
+  // Pass the ChainedEmitter so signal-emitted kill/intervention events
+  // chain into the same hash chain as the regular flow (audit-verify
+  // continues to validate after a signal kill).
   const handlers = installSignalHandlers({
     stateFilePath: options.stateFile ?? null,
     getState: () => ({
@@ -657,12 +700,30 @@ export async function runSiege(
     }),
     eventSink,
     engagementId,
+    chainEmitter: chain,
   });
 
   const spinner = ora('Verifying target reachability...').start();
 
   // APTS-SC-015 — record pre-engagement baseline for the post-test integrity probe.
   let integrityBaseline: IntegrityProbeBaseline | undefined;
+
+  // Operator opt-in for testing against loopback (local dev servers).
+  // Emits a yellow warning + an audit event so post-hoc review sees the override.
+  if (options.allowLoopback) {
+    console.log(
+      chalk.yellow(
+        '\n⚠ --allow-loopback set: safeFetch will permit 127.x.x.x and ::1. Local-pentest only — never enable in production engagements.\n',
+      ),
+    );
+    emit(
+      makeEvent(engagementId, 'operator-acknowledged-loopback', {
+        target: options.target,
+        apts_refs: ['APTS-MR-007', 'APTS-MR-008', 'APTS-MR-009'],
+        warning: 'safeFetch loopback policy bypassed by operator opt-in',
+      }),
+    );
+  }
 
   try {
     // Verify target is reachable — APTS-MR-007/008/009 hardened path.
@@ -674,6 +735,7 @@ export async function runSiege(
       const res = await safeFetch(options.target, {
         method: 'HEAD',
         signal: controller.signal,
+        allowLoopback: options.allowLoopback === true,
       });
       clearTimeout(timeout);
       integrityBaseline = {
@@ -721,7 +783,7 @@ export async function runSiege(
       const phaseStart = Date.now();
       // APTS-HO-003 — per-phase decision-timeout with default-safe halt.
       const reconResult = await withPhaseTimeout(
-        runReconnaissance(resolvedPath, options.target, spinner),
+        runReconnaissance(resolvedPath, options.target, spinner, options.allowLoopback === true),
         { phase: 'recon', timeout_ms: phaseTimeoutMs },
       );
       if (reconResult.timed_out) {
@@ -1021,7 +1083,10 @@ export async function runSiege(
     persistState('phase-reporting-complete');
 
     // APTS-SC-015 — post-test target integrity probe.
-    const integrity = await probeTargetIntegrity(options.target, { baseline: integrityBaseline });
+    const integrity = await probeTargetIntegrity(options.target, {
+      baseline: integrityBaseline,
+      allowLoopback: options.allowLoopback === true,
+    });
     emit(
       makeEvent(engagementId, 'scope-validation', {
         target: options.target,
