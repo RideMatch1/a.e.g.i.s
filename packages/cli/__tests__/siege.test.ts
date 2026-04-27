@@ -75,6 +75,25 @@ vi.mock('@aegis-scan/core', () => ({
   }),
   validateTemporalEnvelope: vi.fn().mockReturnValue({ allowed: true, reason: 'mocked-temporal-ok' }),
   validateTargetInScope: vi.fn().mockReturnValue({ allowed: true, reason: 'mocked-scope-ok' }),
+  // Cluster-2 runtime module — events + state + signals + notifications
+  initStateFile: vi.fn(),
+  emitEvent: vi.fn(),
+  makeEvent: vi.fn().mockImplementation((engagementId: string, event: string, payload: Record<string, unknown>) => ({
+    ts: '2026-04-27T00:00:00Z',
+    engagement_id: engagementId,
+    event,
+    ...payload,
+  })),
+  findingEvent: vi.fn().mockImplementation((engagementId: string) => ({
+    ts: '2026-04-27T00:00:00Z',
+    engagement_id: engagementId,
+    event: 'finding-emitted',
+  })),
+  isCriticalSeverity: vi.fn().mockReturnValue(false),
+  writeEngagementState: vi.fn(),
+  loadEngagementState: vi.fn().mockReturnValue({ ok: false, phase: 'file-missing', error: 'mock-default-no-resume' }),
+  installSignalHandlers: vi.fn().mockReturnValue({ uninstall: vi.fn() }),
+  dispatchNotification: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@aegis-scan/reporters', () => ({

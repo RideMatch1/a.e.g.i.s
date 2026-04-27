@@ -19,6 +19,13 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgVersion = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8')).version as string;
 
+/**
+ * Commander accumulator for repeatable string options.
+ * Usage: .option('--foo <val>', 'desc', collectMulti, [])
+ * Each occurrence of the flag pushes its value onto the previous array.
+ */
+const collectMulti = (value: string, previous: string[]): string[] => [...previous, value];
+
 const program = new Command();
 
 program
@@ -87,13 +94,16 @@ program
   .description('Multi-phase adversary simulation against a live target (requires --target or --roe)')
   .requiredOption('-t, --target <url>', 'Target URL for siege (required)')
   .option('--roe <path>', 'Rules of Engagement JSON file (APTS-SE-001 conformant). Validates target scope + temporal envelope before engagement start.')
+  .option('--state-file <path>', 'JSONL event-stream + state snapshot file (APTS-HO-002/006/008 — enables resume + signal-based pause/kill).')
+  .option('--resume <path>', 'Resume from a prior --state-file. Skips already-completed phases and continues from the next.')
+  .option('--notify-webhook <url>', 'Webhook URL to POST high-signal events (engagement-start, critical-finding, halt, kill, completion). Repeatable.', collectMulti, [])
   .option('-f, --format <format>', 'Output format: terminal (default), json, sarif, html, markdown', 'terminal')
   .option('--confirm', 'Acknowledge authorization to send live attack traffic')
   .option('--no-color', 'Disable colored output')
   .action(
     async (
       path: string | undefined,
-      options: { target: string; roe?: string; format: string; confirm: boolean; color: boolean },
+      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; format: string; confirm: boolean; color: boolean },
     ) => {
       if (!options.color) {
         chalk.level = 0;

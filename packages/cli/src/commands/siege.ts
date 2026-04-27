@@ -9,7 +9,19 @@ import {
   synthesizeMinimalRoE,
   validateTemporalEnvelope,
   validateTargetInScope,
+  initStateFile,
+  emitEvent,
+  makeEvent,
+  findingEvent,
+  isCriticalSeverity,
+  writeEngagementState,
+  loadEngagementState,
+  installSignalHandlers,
+  dispatchNotification,
   type RoE,
+  type EngagementState,
+  type EventSink,
+  type NotificationConfig,
 } from '@aegis-scan/core';
 import type { AuditResult, Finding, ScanCategory } from '@aegis-scan/core';
 import { getAllScanners, getAttackScanners } from '@aegis-scan/scanners';
@@ -19,6 +31,12 @@ import { relative } from 'path';
 export interface SiegeOptions {
   target: string;
   roe?: string;
+  /** Path to write JSONL engagement events + final-state JSON for resume. */
+  stateFile?: string;
+  /** Path of a prior engagement-state JSON to resume from (skips already-completed phases). */
+  resume?: string;
+  /** Webhook URL(s) to POST critical events (engagement-start, critical-finding, halt, kill, completion). Repeatable. */
+  notifyWebhook?: string[];
   format?: string;
   confirm?: boolean;
   color?: boolean;
@@ -257,6 +275,84 @@ export async function runSiege(
     console.log(chalk.yellow(`  No --roe file provided — synthesized minimal RoE (${roe.roe_id}). For institutional engagements, author a Rules-of-Engagement JSON file per APTS-SE-001.`));
   }
 
+  // --- Cluster-2: engagement-id + state + JSONL event channel (APTS-HO-002/006/008/015) ---
+  let engagementId = `siege-${new Date().toISOString().replace(/[:.]/g, '-')}-${Math.random().toString(36).slice(2, 8)}`;
+  let completedPhases: ('recon' | 'discovery' | 'exploitation' | 'reporting')[] = [];
+  let findingsCarried: Finding[] = [];
+
+  if (options.resume) {
+    const r = loadEngagementState(options.resume);
+    if (!r.ok) {
+      console.error(chalk.red(`\nResume failed (${r.phase}):`));
+      console.error(chalk.red(r.error));
+      return 1;
+    }
+    engagementId = r.state.engagement_id;
+    completedPhases = [...r.state.completed_phases];
+    findingsCarried = [...r.state.findings_so_far];
+    console.log(chalk.dim(`  Resuming engagement ${engagementId} from ${options.resume} — completed: ${completedPhases.join(', ') || '<none>'}, findings carried: ${findingsCarried.length}`));
+  }
+
+  const eventSink: EventSink = options.stateFile;
+  if (options.stateFile && !options.resume) {
+    initStateFile(options.stateFile);
+  }
+
+  const notifyConfig: NotificationConfig | null = options.notifyWebhook && options.notifyWebhook.length > 0
+    ? { webhooks: options.notifyWebhook }
+    : null;
+
+  // Helper: emit event + dispatch to webhooks (notifications are fire-and-forget).
+  const emit = (ev: ReturnType<typeof makeEvent>): void => {
+    emitEvent(ev, eventSink);
+    if (notifyConfig) {
+      void dispatchNotification(ev, notifyConfig, eventSink);
+    }
+  };
+
+  emit(
+    makeEvent(engagementId, 'engagement-start', {
+      target: options.target,
+      roe_id: roe.roe_id,
+      roe_synthesized: roe.roe_id.startsWith('synthesized-'),
+      mode: 'siege',
+    }),
+  );
+
+  // Persist initial state-snapshot at engagement start (resume-safe baseline).
+  const persistState = (reason: string): void => {
+    if (!options.stateFile) return;
+    const snap: EngagementState = {
+      state_version: '0.1.0',
+      engagement_id: engagementId,
+      target: options.target,
+      roe_id: roe.roe_id,
+      completed_phases: [...completedPhases],
+      findings_so_far: [...findingsCarried],
+      paused_at: new Date().toISOString(),
+      reason,
+    };
+    writeEngagementState(options.stateFile, snap);
+  };
+  persistState('engagement-start');
+
+  // Install signal handlers for graceful pause + kill (APTS-HO-008, AL-012).
+  const handlers = installSignalHandlers({
+    stateFilePath: options.stateFile ?? null,
+    getState: () => ({
+      state_version: '0.1.0',
+      engagement_id: engagementId,
+      target: options.target,
+      roe_id: roe.roe_id,
+      completed_phases: [...completedPhases],
+      findings_so_far: [...findingsCarried],
+      paused_at: new Date().toISOString(),
+      reason: 'signal-handler',
+    }),
+    eventSink,
+    engagementId,
+  });
+
   const spinner = ora('Verifying target reachability...').start();
 
   try {
@@ -282,25 +378,79 @@ export async function runSiege(
     }
 
     // --- Phase 1: Reconnaissance ---
-    const recon = await runReconnaissance(resolvedPath, options.target, spinner);
-    // APTS-SE-008 — per-phase temporal-envelope recheck after each phase
-    const tAfter1 = validateTemporalEnvelope(roe);
-    if (!tAfter1.allowed) {
-      spinner.fail(`Temporal envelope check failed after Phase 1 (recon): ${tAfter1.reason}`);
-      return 1;
-    }
+    let recon: ReconResult | undefined;
+    if (completedPhases.includes('recon')) {
+      console.log(chalk.dim(`  Skipping Phase 1 (recon) — already completed in resumed engagement.`));
+    } else {
+      emit(makeEvent(engagementId, 'phase-transition', { phase: 'recon', transition: 'enter' }));
+      const phaseStart = Date.now();
+      recon = await runReconnaissance(resolvedPath, options.target, spinner);
+      // APTS-SE-008 — per-phase temporal-envelope recheck after each phase
+      const tAfter1 = validateTemporalEnvelope(roe);
+      if (!tAfter1.allowed) {
+        spinner.fail(`Temporal envelope check failed after Phase 1 (recon): ${tAfter1.reason}`);
+        emit(makeEvent(engagementId, 'halt', { reason: tAfter1.reason, apts_refs: tAfter1.apts_refs }));
+        handlers.uninstall();
+        return 1;
+      }
+      emit(makeEvent(engagementId, 'phase-transition', { phase: 'recon', transition: 'exit', duration_ms: Date.now() - phaseStart }));
+      completedPhases.push('recon');
+      persistState('phase-recon-complete');
 
-    console.log(chalk.cyan(`  Discovered ${recon.routeCount} routes, ${recon.endpointCount} endpoints, framework: ${recon.framework}`));
-    if (recon.tlsInfo) {
-      console.log(chalk.dim(`  TLS: ${recon.tlsInfo}`));
+      console.log(chalk.cyan(`  Discovered ${recon.routeCount} routes, ${recon.endpointCount} endpoints, framework: ${recon.framework}`));
+      if (recon.tlsInfo) {
+        console.log(chalk.dim(`  TLS: ${recon.tlsInfo}`));
+      }
     }
 
     // --- Phase 2: Vulnerability Discovery ---
-    const auditResult = await runVulnerabilityDiscovery(resolvedPath, options.target, spinner);
-    const tAfter2 = validateTemporalEnvelope(roe);
-    if (!tAfter2.allowed) {
-      spinner.fail(`Temporal envelope check failed after Phase 2 (discovery): ${tAfter2.reason}`);
-      return 1;
+    let auditResult: AuditResult;
+    if (completedPhases.includes('discovery')) {
+      console.log(chalk.dim(`  Skipping Phase 2 (discovery) — already completed in resumed engagement.`));
+      // Re-derive a minimal auditResult shape from carried findings (no re-scan).
+      // The stack/breakdown fields are stale-on-resume but harmless for the
+      // Phase-4 reporter, which reads `findings` and re-scores from scratch.
+      auditResult = {
+        score: 0,
+        grade: 'F',
+        badge: 'CRITICAL',
+        blocked: false,
+        breakdown: {},
+        findings: findingsCarried,
+        scanResults: [],
+        stack: {},
+        duration: 0,
+        timestamp: new Date().toISOString(),
+        confidence: 'medium',
+      } as unknown as AuditResult;
+    } else {
+      emit(makeEvent(engagementId, 'phase-transition', { phase: 'discovery', transition: 'enter' }));
+      const phaseStart = Date.now();
+      auditResult = await runVulnerabilityDiscovery(resolvedPath, options.target, spinner);
+      const tAfter2 = validateTemporalEnvelope(roe);
+      if (!tAfter2.allowed) {
+        spinner.fail(`Temporal envelope check failed after Phase 2 (discovery): ${tAfter2.reason}`);
+        emit(makeEvent(engagementId, 'halt', { reason: tAfter2.reason, apts_refs: tAfter2.apts_refs }));
+        handlers.uninstall();
+        return 1;
+      }
+      // Stream individual findings as JSONL events; flag criticals for stop_conditions.
+      for (const f of auditResult.findings) {
+        emit(findingEvent(engagementId, f));
+        if (isCriticalSeverity(f.severity)) {
+          emit(makeEvent(engagementId, 'critical-finding', {
+            finding_id: f.id,
+            severity: f.severity,
+            title: f.title,
+            ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+            stop_action: roe.stop_conditions.on_critical_finding,
+          }));
+        }
+      }
+      findingsCarried.push(...auditResult.findings);
+      emit(makeEvent(engagementId, 'phase-transition', { phase: 'discovery', transition: 'exit', duration_ms: Date.now() - phaseStart }));
+      completedPhases.push('discovery');
+      persistState('phase-discovery-complete');
     }
     const highCritical = auditResult.findings.filter(
       (f) => f.severity === 'high' || f.severity === 'critical' || f.severity === 'blocker',
@@ -308,16 +458,42 @@ export async function runSiege(
     console.log(chalk.cyan(`  Found ${auditResult.findings.length} findings (${highCritical.length} HIGH/CRITICAL)`));
 
     // --- Phase 3: Exploitation Attempts ---
-    const attackFindings = await runExploitationAttempts(
-      resolvedPath,
-      options.target,
-      highCritical.length,
-      spinner,
-    );
-    const tAfter3 = validateTemporalEnvelope(roe);
-    if (!tAfter3.allowed) {
-      spinner.fail(`Temporal envelope check failed after Phase 3 (exploitation): ${tAfter3.reason}`);
-      return 1;
+    let attackFindings: Finding[];
+    if (completedPhases.includes('exploitation')) {
+      console.log(chalk.dim(`  Skipping Phase 3 (exploitation) — already completed in resumed engagement.`));
+      attackFindings = []; // findings already merged in findingsCarried
+    } else {
+      emit(makeEvent(engagementId, 'phase-transition', { phase: 'exploitation', transition: 'enter' }));
+      const phaseStart = Date.now();
+      attackFindings = await runExploitationAttempts(
+        resolvedPath,
+        options.target,
+        highCritical.length,
+        spinner,
+      );
+      const tAfter3 = validateTemporalEnvelope(roe);
+      if (!tAfter3.allowed) {
+        spinner.fail(`Temporal envelope check failed after Phase 3 (exploitation): ${tAfter3.reason}`);
+        emit(makeEvent(engagementId, 'halt', { reason: tAfter3.reason, apts_refs: tAfter3.apts_refs }));
+        handlers.uninstall();
+        return 1;
+      }
+      for (const f of attackFindings) {
+        emit(findingEvent(engagementId, f));
+        if (isCriticalSeverity(f.severity)) {
+          emit(makeEvent(engagementId, 'critical-finding', {
+            finding_id: f.id,
+            severity: f.severity,
+            title: f.title,
+            ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+            stop_action: roe.stop_conditions.on_critical_finding,
+          }));
+        }
+      }
+      findingsCarried.push(...attackFindings);
+      emit(makeEvent(engagementId, 'phase-transition', { phase: 'exploitation', transition: 'exit', duration_ms: Date.now() - phaseStart }));
+      completedPhases.push('exploitation');
+      persistState('phase-exploitation-complete');
     }
     console.log(chalk.cyan(`  Verified ${attackFindings.length} vulnerabilities via live probes`));
 
@@ -371,10 +547,29 @@ export async function runSiege(
     const output = reporter.format(mergedResult);
     await writeStdout(output + '\n');
 
+    completedPhases.push('reporting');
+    persistState('phase-reporting-complete');
+    emit(
+      makeEvent(engagementId, 'completion', {
+        duration_ms: Date.now() - Date.parse(roe.temporal.start),
+        total_findings: allFindings.length,
+        score: mergedResult.score,
+        grade: mergedResult.grade,
+        blocked: mergedResult.blocked,
+      }),
+    );
+    handlers.uninstall();
+
     return mergedResult.blocked ? 1 : 0;
   } catch (err) {
     spinner.fail('Siege failed');
     console.error(err instanceof Error ? err.message : String(err));
+    emit(
+      makeEvent(engagementId, 'halt', {
+        reason: `unexpected error: ${err instanceof Error ? err.message : String(err)}`,
+      }),
+    );
+    handlers.uninstall();
     return 1;
   }
 }
