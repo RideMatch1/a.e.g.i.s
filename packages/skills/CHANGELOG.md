@@ -8,6 +8,33 @@ and quality-audit completion, not by a fixed schedule.
 
 ---
 
+## [Unreleased]
+
+### Added — three category populations (defensive / mitre-mapped / ops)
+
+Nine new AEGIS-native `SKILL.md` files (MIT) populate three previously-placeholder category directories:
+
+- **`skills/defensive/aegis-native/`** (3 skills) — `rls-defense`, `tenant-isolation-defense`, `ssrf-defense`. Mirror `@aegis-wizard/cli` patterns and provide remediation guidance for `@aegis-scan/cli` scanner findings (`rls-bypass-checker`, `tenant-isolation-checker`, `ssrf-checker`, `taint-analyzer`, `mass-assignment-checker`, `template-sql-checker`).
+- **`skills/mitre-mapped/aegis-native/`** (3 skills) — `mapping-overview`, `t1190-exploit-public-app`, `t1078-valid-accounts`. Cross-walk AEGIS findings to MITRE ATT&CK Enterprise + ATLAS + D3FEND + NIST CSF 2.0 + NIST AI RMF.
+- **`skills/ops/aegis-native/`** (3 skills) — `triage-finding`, `suppress-correctly`, `escalation-runbook`. Operational runbooks for the AEGIS workflow itself.
+
+Total skills jumps from 37 to 46. All new content is MIT-AEGIS-original; no upstream-fork dependency. The `aegis-native/` source-namespace convention parallels the existing `snailsploit-fork/` for offensive skills, leaving room for future non-AEGIS sources (e.g., `defensive/anthropic-cybersec-pick/`) to slot in without layout churn.
+
+### Updated
+
+- `skills/defensive/README.md`, `skills/mitre-mapped/README.md`, `skills/ops/README.md` — replace v0.2+ placeholder text with directory-of-shipped-content tables.
+- `ATTRIBUTION.md` — credit the AEGIS-native sources, document the MIT license terms, future-external-source candidate list expanded.
+- `README.md` (this package) — multi-source architecture diagram updated; per-category content tables replace the v0.1.0-only enumeration.
+
+### Validation
+
+- All 9 new SKILL.md files pass the markdown-only structural invariant.
+- All 9 new SKILL.md files pass the scrub-test (no internal-codename leaks).
+- All 3 updated category-README placeholders pass the future-category placeholder scrub-test.
+- `loadAllSkills()` auto-discovers the new content via the existing `<category>/<source>/<name>/SKILL.md` layout — no loader changes needed.
+
+---
+
 ## [0.1.1] — 2026-04-23 — "ship-gate-caught-recovery"
 
 First published release. v0.1.0 was tagged but NEVER published to npm —

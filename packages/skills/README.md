@@ -41,10 +41,11 @@ After `install` lands the skill files under `~/.claude/skills/user/aegis-skills/
 Claude Code auto-loads each `SKILL.md` based on its trigger-phrases
 whenever you invoke the agent with a relevant prompt.
 
-## What ships in v0.1.0
+## What ships
 
-Thirty-seven offensive-security SKILL.md files under
-`skills/offensive/snailsploit-fork/`, covering:
+### Offensive skills — `skills/offensive/snailsploit-fork/`
+
+Thirty-seven offensive-security `SKILL.md` files covering:
 
 - **Web application:** sqli · xss · ssrf · ssti · xxe · idor · file-upload
   · rce · deserialization · race-condition · request-smuggling ·
@@ -63,30 +64,68 @@ Thirty-seven offensive-security SKILL.md files under
 
 All forked from
 [SnailSploit/Claude-Red](https://github.com/SnailSploit/Claude-Red)
-under MIT License with attribution preserved per-file. See
-[`ATTRIBUTION.md`](./ATTRIBUTION.md) for the full credit chain.
+under MIT License with attribution preserved per-file.
+
+### Defensive skills — `skills/defensive/aegis-native/`
+
+Three AEGIS-native `SKILL.md` files (MIT) mirroring `@aegis-wizard/cli`
+patterns and providing remediation guidance for `@aegis-scan/cli`
+findings:
+
+- **`rls-defense`** — Supabase Row-Level Security hardening (covers `rls-bypass-checker` + `template-sql-checker` findings)
+- **`tenant-isolation-defense`** — multi-tenant SaaS isolation (covers `tenant-isolation-checker` + `mass-assignment-checker` findings)
+- **`ssrf-defense`** — SSRF defense including DNS-rebinding, IPv6, cloud metadata-endpoint protection (covers `ssrf-checker` + cross-file taint findings)
+
+### MITRE-mapped skills — `skills/mitre-mapped/aegis-native/`
+
+Three AEGIS-native `SKILL.md` files (MIT) cross-walking AEGIS findings
+to MITRE frameworks:
+
+- **`mapping-overview`** — top-level per-CWE → ATT&CK technique mapping plus tactic-level coverage summary; ATLAS overlay for AI/LLM threats; D3FEND defensive-countermeasure mapping; NIST CSF 2.0 + NIST AI RMF function-level alignment.
+- **`t1190-exploit-public-app`** — deep-dive on T1190 (the #1 Initial Access vector in Verizon DBIR 2024).
+- **`t1078-valid-accounts`** — deep-dive on T1078 (Valid Accounts) coverage via the AEGIS credential-protection scanner family.
+
+### Operations skills — `skills/ops/aegis-native/`
+
+Three AEGIS-native `SKILL.md` files (MIT) wrapping the AEGIS workflow
+in process-discipline:
+
+- **`triage-finding`** — operational runbook for triaging an AEGIS finding (severity → confidence → verify → fix-vs-suppress-vs-defer).
+- **`suppress-correctly`** — when suppression is appropriate, the structured-rationale syntax, anti-patterns, and audit-trail expectations.
+- **`escalation-runbook`** — what to do when a BLOCKER reaches main, when a finding suggests active exploitation, or when a credential leak is detected.
+
+### Attribution + license
+
+See [`ATTRIBUTION.md`](./ATTRIBUTION.md) for the full credit chain.
+Offensive skills are MIT-via-upstream-fork; defensive / mitre-mapped /
+ops skills are MIT-AEGIS-original.
 
 ## Multi-source architecture
 
 `@aegis-scan/skills` is designed to grow across sources without
 re-architecting the package. The `skills/` tree carries four
-category-directories from day one, three of which are placeholders
-for future content:
+category-directories:
 
 ```
 skills/
-├── offensive/                    — populated in v0.1.0
-│   └── snailsploit-fork/
-│       └── 37 SKILL.md files
-├── defensive/                    — placeholder for skills-v0.2+
-├── mitre-mapped/                 — placeholder for skills-v0.2+
-└── ops/                          — placeholder for skills-v0.3+
+├── offensive/
+│   └── snailsploit-fork/         — 37 SKILL.md files (MIT, forked from SnailSploit/Claude-Red)
+├── defensive/
+│   └── aegis-native/             — 3 SKILL.md files (MIT, AEGIS-original)
+├── mitre-mapped/
+│   └── aegis-native/             — 3 SKILL.md files (MIT, AEGIS-original — ATT&CK / ATLAS / D3FEND / NIST cross-walk)
+└── ops/
+    └── aegis-native/             — 3 SKILL.md files (MIT, AEGIS-original — triage / suppress / escalation runbooks)
 ```
 
-`aegis-skills list --category defensive` today returns an informative
-"coming in v0.2+" message rather than a missing-directory error. When
-future sources land, they slot into the existing tree and the manifest
-metadata expands without layout churn.
+Total: **46 skills** across **4 categories** and **2 source-namespaces**
+(`snailsploit-fork` for the offensive fork; `aegis-native` for the
+defensive / mitre-mapped / ops AEGIS-original content).
+
+When future external sources land, they slot into the existing tree
+under their own per-source subdirectory (e.g.,
+`defensive/anthropic-cybersec-pick/`) and the manifest metadata
+expands without layout churn.
 
 ## Structural invariant
 
