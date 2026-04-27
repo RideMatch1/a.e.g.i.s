@@ -29,7 +29,7 @@ bash scripts/dogfood-scan.sh
 # 3. Generate annotation templates from the scans
 bash scripts/dogfood-annotate.sh
 
-# 4. Edit aegis-precision/<corpus>.json — for each finding:
+# 4. Edit <corpus-precision-cache>/<corpus>.json — for each finding:
 #    - "TP" if the scanner correctly identified a real issue
 #    - "FP" if the finding is a false positive
 #    - "skip" (default) to exclude from the precision metric
@@ -103,12 +103,12 @@ a real issue. Per-corpus files keep these judgments separate.
 ## Maintenance
 
 - **Quarterly:** re-clone with latest commits, re-scan, expect drift in finding-counts
-- **Per-Sprint:** when adding new scanners, expect new findings in all corpora — annotate them, update `aegis-precision/*.json`
+- **Per-Sprint:** when adding new scanners, expect new findings in all corpora — annotate them, update `<corpus-precision-cache>/*.json`
 - **Pin updates:** when projects ship breaking changes (Next.js 15 → 16 etc.), bump pins, re-run full pipeline, expect FP-rate spike requiring fresh annotation
 
 ## Storage
 
-`aegis-precision/<corpus>.json` is git-ignored in this repo because the
+`<corpus-precision-cache>/<corpus>.json` is git-ignored in this repo because the
 dogfood annotations there are specific to the maintainer's local corpus
 clones and contain absolute filesystem paths. Downstream consumers who
 want versioned precision tracking can commit these files in their own

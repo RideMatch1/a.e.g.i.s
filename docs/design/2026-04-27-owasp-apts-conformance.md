@@ -44,7 +44,7 @@ Erweiterung des AEGIS-Stacks um eine **publizierte OWASP-APTS-Konformitäts-Post
 
 - `README.md` (top-level): neuer Abschnitt **"OWASP-APTS Conformance Posture"** mit 3-Zeilen-Summary + Link auf `docs/compliance/owasp-apts/`
 - `CHANGELOG.md`: Eintrag unter **Unreleased** dokumentiert Phase-1-Ship
-- `aegis-precision/v018-apts-phase1-handover.md`: in-flight + post-ship-handover für die nächste Session
+- `<corpus-precision-cache>/v018-apts-phase1-handover.md`: in-flight + post-ship-handover für die nächste Session (local, gitignored)
 
 ### 1.3 Kein Code-Change in dieser Phase
 
@@ -167,10 +167,10 @@ APTS-TP-021 verlangt für JEDE Tier-Claim die Disclosure des Foundation-Models. 
 | **WP-B (deep-eye recon-wrapper)** | nach Phase 1 ship | parallel zu Phase 2, da unabhängig |
 | **WP-C (Decepticon integration)** | gated by Phase 1 (APTS-Lens) | nach Phase 1 — APTS-TP gibt das Vetting-Framework |
 | **WP-D (openai/evals)** | parked, intent unklar | nach explizitem User-Klärungsfrage |
-| **WP-E (Live-Tests gegen seitengold/spa-app/hundementor)** | parked | nach WP-B + RoE-Klärung pro Target |
+| **WP-E (Live-Tests gegen 3 live-targets, RoE-pending)** | parked | nach WP-B + RoE-Klärung pro Target |
 | Skills-Tree Population (`defensive/`, `mitre-mapped/`, `ops/`) | parallel zu Phase 1 möglich (markdown-only) | sofort startbar — separates WP-A2 |
 
-Hundementor ist in der bisherigen Konversation noch nicht definiert. Vor jedem Live-Test gegen Hundementor ist erforderlich: (1) was ist es, (2) wer betreibt es, (3) Auth-Bestätigung, (4) RoE-Setup nach APTS-SE-001-Vorlage.
+Vor jedem Live-Test gegen einen noch nicht definierten Target ist erforderlich: (1) was ist es, (2) wer betreibt es, (3) Auth-Bestätigung, (4) RoE-Setup nach APTS-SE-001-Vorlage.
 
 ## Risiken & Halt-Conditions
 
