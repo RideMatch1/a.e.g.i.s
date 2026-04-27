@@ -312,6 +312,35 @@ Running a security tool is a trust exercise. Here is what AEGIS does **not** do 
 
 ---
 
+## OWASP-APTS Conformance Posture
+
+AEGIS publishes a public **OWASP Autonomous Penetration Testing Standard
+(APTS) Tier-1 Readiness Assessment** — the first OSS pentest platform with
+a published APTS conformance posture.
+
+This is a **transparent gap statement**, not a conformance claim. APTS
+forbids partial credit; a Tier-1 conformance claim requires 100% MET on
+all 72 Tier-1 requirements. AEGIS today meets 15 of 72 Tier-1 requirements
+(21%) and the readiness assessment is honest about where the remaining
+57 gaps are, with concrete Phase-2 closure plans for each.
+
+- [Tier-1 Readiness Assessment](./docs/compliance/owasp-apts/CONFORMANCE-CLAIM.md)
+- [Gap summary (TL;DR)](./docs/compliance/owasp-apts/gap-summary.md)
+- [Machine-readable claim (`conformance.json`)](./docs/compliance/owasp-apts/conformance.json)
+- [Evidence manifest](./docs/compliance/owasp-apts/EVIDENCE-MANIFEST.md)
+- [Foundation model disclosure (BYOM)](./docs/compliance/owasp-apts/FOUNDATION-MODEL-DISCLOSURE.md)
+
+Phase 2 (Tier-1 Full Conformance Claim — close all Tier-1 gaps): 8-12
+weeks. Phase 3 (Tier-2 Climb): post Phase 2.
+
+The conformance posture covers the **AEGIS Autonomous Pentest Layer**
+(`aegis siege` + LLM-pentest wrappers Strix/PTAI/Pentest-Swarm-AI + CLI
+orchestration). The deterministic SAST scanners, the `@aegis-scan/skills`
+methodology package, and the `@aegis-wizard/cli` scaffold are supporting
+components and explicitly out-of-scope for this conformance posture.
+
+---
+
 ## Taint Analysis Engine
 
 The AST-based taint tracker uses the TypeScript Compiler API to follow user input through your code — within a single file and across module boundaries.
