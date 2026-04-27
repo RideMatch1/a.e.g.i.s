@@ -27,11 +27,20 @@ import {
   detectScopeExpansion,
   composeEgressAllowlist,
   validateSandboxMode,
+  startKillRequestWatcher,
+  startDeadManHeartbeat,
+  newHealthCounters,
+  runHealthCheck,
+  probeTargetIntegrity,
+  detectScopeBreach,
+  withPhaseTimeout,
+  derivePhaseTimeoutMs,
   type RoE,
   type EngagementState,
   type EventSink,
   type NotificationConfig,
   type ConfigPin,
+  type IntegrityProbeBaseline,
 } from '@aegis-scan/core';
 import type { AuditResult, Finding, ScanCategory } from '@aegis-scan/core';
 import { getAllScanners, getAttackScanners } from '@aegis-scan/scanners';
@@ -49,6 +58,10 @@ export interface SiegeOptions {
   notifyWebhook?: string[];
   /** Sandbox mode for LLM-pentest wrappers (APTS-MR-018). One of: docker | firejail | none. Default none. */
   sandboxMode?: string;
+  /** APTS-SC-009 — operator dead-man-switch heartbeat URL. CLI override of RoE.safety_controls.heartbeat_url. */
+  heartbeatUrl?: string;
+  /** APTS-HO-003 — per-phase timeout in minutes (CLI override of RoE.stop_conditions.phase_timeout_minutes). */
+  phaseTimeoutMinutes?: number;
   format?: string;
   confirm?: boolean;
   color?: boolean;
@@ -362,6 +375,45 @@ export async function runSiege(
     }),
   );
 
+  // APTS-SC-010 — health counters mutated as events flow; runHealthCheck snapshots them at every phase boundary.
+  const healthCounters = newHealthCounters();
+  const healthThresholds = roe.safety_controls?.health_thresholds ?? {};
+
+  // APTS-SC-009 — multi-path kill: file-based marker + dead-man heartbeat, complementing the existing signal-based path.
+  let killRequested = false;
+  const killWatcher = options.stateFile
+    ? startKillRequestWatcher({
+        markerPath: `${options.stateFile}.killreq`,
+        onKillRequest: (path) => {
+          killRequested = true;
+          spinner.warn(`kill request received via ${path}`);
+        },
+      })
+    : { stop: () => undefined };
+  const heartbeatUrl = options.heartbeatUrl ?? roe.safety_controls?.heartbeat_url;
+  const heartbeatIntervalMs = (roe.safety_controls?.heartbeat_interval_seconds ?? 30) * 1_000;
+  let heartbeatFailed = false;
+  const heartbeatHandle = heartbeatUrl
+    ? startDeadManHeartbeat({
+        url: heartbeatUrl,
+        intervalMs: heartbeatIntervalMs,
+        onMissedThreshold: (n) => {
+          heartbeatFailed = true;
+          spinner.warn(`dead-man-switch: ${n} consecutive heartbeats missed — halting`);
+        },
+      })
+    : { stop: () => undefined };
+
+  // APTS-HO-003 — per-phase timeout (default 30 min, override via RoE.stop_conditions.phase_timeout_minutes or CLI flag).
+  const phaseTimeoutMs = derivePhaseTimeoutMs(
+    {
+      max_duration_minutes: roe.stop_conditions.max_duration_minutes,
+      phase_timeout_minutes:
+        options.phaseTimeoutMinutes ?? roe.stop_conditions.phase_timeout_minutes,
+    },
+    30 * 60_000,
+  );
+
   // APTS-MR-004 + MR-012: pin the SHA-256 of the canonical RoE at engagement-start.
   // verifyConfig is re-called at every phase boundary; mismatch → halt.
   const roePin: ConfigPin = pinConfig('roe', roe);
@@ -414,6 +466,49 @@ export async function runSiege(
         halt: true,
         reason: `APTS-MR-010 scope-expansion phrase ("${scopeCheck.kind}") in finding text — engagement halted (matched "${scopeCheck.matched_phrase ?? ''}")`,
       };
+    }
+    // APTS-AL-016 — per-finding boundary breach detection.
+    const breach = detectScopeBreach(
+      {
+        target: (f as { target?: string }).target,
+        file: f.file ?? undefined,
+        location: (f as { location?: string }).location,
+      },
+      roe,
+    );
+    emit(
+      makeEvent(engagementId, 'scope-validation', {
+        target: breach.inspected || f.id,
+        action: 'finding-emitted',
+        allowed: breach.in_scope,
+        reason: breach.decision.reason,
+        apts_refs: breach.apts_refs,
+      }),
+    );
+    if (!breach.in_scope) {
+      return {
+        halt: true,
+        reason: `APTS-AL-016 boundary breach in finding ${f.id}: ${breach.decision.reason}`,
+      };
+    }
+    return { halt: false };
+  };
+
+  /**
+   * Run all per-phase safety checks (kill request, heartbeat, health
+   * thresholds). Returns { halt: true, reason } on any breach so the
+   * caller can halt + emit + uninstall handlers.
+   */
+  const runSafetyChecks = (phaseLabel: string): { halt: boolean; reason?: string; apts_refs?: string[] } => {
+    if (killRequested) {
+      return { halt: true, reason: `APTS-SC-009 kill request marker detected after ${phaseLabel}`, apts_refs: ['APTS-SC-009'] };
+    }
+    if (heartbeatFailed) {
+      return { halt: true, reason: `APTS-SC-009 dead-man-switch consecutive heartbeats missed after ${phaseLabel}`, apts_refs: ['APTS-SC-009'] };
+    }
+    const health = runHealthCheck(healthCounters, healthThresholds);
+    if (!health.ok) {
+      return { halt: true, reason: `APTS-SC-010 ${health.reason ?? 'health check failed'}`, apts_refs: health.apts_refs };
     }
     return { halt: false };
   };
@@ -468,16 +563,26 @@ export async function runSiege(
 
   const spinner = ora('Verifying target reachability...').start();
 
+  // APTS-SC-015 — record pre-engagement baseline for the post-test integrity probe.
+  let integrityBaseline: IntegrityProbeBaseline | undefined;
+
   try {
-    // Verify target is reachable — APTS-MR-007/008/009 hardened path
+    // Verify target is reachable — APTS-MR-007/008/009 hardened path.
+    // Baseline response-time captured here for the SC-015 post-test integrity probe.
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
+      const baselineStart = Date.now();
       const res = await safeFetch(options.target, {
         method: 'HEAD',
         signal: controller.signal,
       });
       clearTimeout(timeout);
+      integrityBaseline = {
+        baseline_response_ms: Date.now() - baselineStart,
+        baseline_status: res.status,
+      };
+      healthCounters.last_target_response_ms = integrityBaseline.baseline_response_ms;
       if (!res.ok && res.status >= 500) {
         spinner.warn(`Target returned ${res.status} — proceeding anyway`);
       }
@@ -507,7 +612,21 @@ export async function runSiege(
     } else {
       emit(makeEvent(engagementId, 'phase-transition', { phase: 'recon', transition: 'enter' }));
       const phaseStart = Date.now();
-      recon = await runReconnaissance(resolvedPath, options.target, spinner);
+      // APTS-HO-003 — per-phase decision-timeout with default-safe halt.
+      const reconResult = await withPhaseTimeout(
+        runReconnaissance(resolvedPath, options.target, spinner),
+        { phase: 'recon', timeout_ms: phaseTimeoutMs },
+      );
+      if (reconResult.timed_out) {
+        spinner.fail(reconResult.reason);
+        emit(makeEvent(engagementId, 'halt', { reason: reconResult.reason, apts_refs: reconResult.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
+      recon = reconResult.value;
+      healthCounters.total_events += 1;
       // APTS-SE-008 — per-phase temporal-envelope recheck after each phase
       const tAfter1 = validateTemporalEnvelope(roe);
       if (!tAfter1.allowed) {
@@ -521,6 +640,18 @@ export async function runSiege(
       if (!cAfter1.ok) {
         spinner.fail(`Config integrity check failed after Phase 1 (recon): ${cAfter1.reason}`);
         emit(makeEvent(engagementId, 'halt', { reason: cAfter1.reason ?? 'config integrity violation', apts_refs: cAfter1.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
+      // APTS-SC-009 + SC-010 — kill request, heartbeat, health thresholds.
+      const safety1 = runSafetyChecks('Phase 1 (recon)');
+      if (safety1.halt) {
+        spinner.fail(safety1.reason ?? 'safety check failed');
+        emit(makeEvent(engagementId, 'halt', { reason: safety1.reason ?? 'safety check failed', apts_refs: safety1.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
         handlers.uninstall();
         return 1;
       }
@@ -557,7 +688,20 @@ export async function runSiege(
     } else {
       emit(makeEvent(engagementId, 'phase-transition', { phase: 'discovery', transition: 'enter' }));
       const phaseStart = Date.now();
-      auditResult = await runVulnerabilityDiscovery(resolvedPath, options.target, spinner);
+      const discoveryResult = await withPhaseTimeout(
+        runVulnerabilityDiscovery(resolvedPath, options.target, spinner),
+        { phase: 'discovery', timeout_ms: phaseTimeoutMs },
+      );
+      if (discoveryResult.timed_out) {
+        spinner.fail(discoveryResult.reason);
+        emit(makeEvent(engagementId, 'halt', { reason: discoveryResult.reason, apts_refs: discoveryResult.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
+      auditResult = discoveryResult.value;
+      healthCounters.total_events += 1;
       const tAfter2 = validateTemporalEnvelope(roe);
       if (!tAfter2.allowed) {
         spinner.fail(`Temporal envelope check failed after Phase 2 (discovery): ${tAfter2.reason}`);
@@ -569,12 +713,24 @@ export async function runSiege(
       if (!cAfter2.ok) {
         spinner.fail(`Config integrity check failed after Phase 2 (discovery): ${cAfter2.reason}`);
         emit(makeEvent(engagementId, 'halt', { reason: cAfter2.reason ?? 'config integrity violation', apts_refs: cAfter2.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
+      const safety2 = runSafetyChecks('Phase 2 (discovery)');
+      if (safety2.halt) {
+        spinner.fail(safety2.reason ?? 'safety check failed');
+        emit(makeEvent(engagementId, 'halt', { reason: safety2.reason ?? 'safety check failed', apts_refs: safety2.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
         handlers.uninstall();
         return 1;
       }
       // Stream individual findings as JSONL events; flag criticals for stop_conditions.
       for (const f of auditResult.findings) {
         emit(findingEvent(engagementId, f));
+        healthCounters.total_events += 1;
         if (isCriticalSeverity(f.severity)) {
           emit(makeEvent(engagementId, 'critical-finding', {
             finding_id: f.id,
@@ -584,11 +740,13 @@ export async function runSiege(
             stop_action: roe.stop_conditions.on_critical_finding,
           }));
         }
-        // APTS-MR-005 + MR-010 — finding-text manipulation-resistance scan.
+        // APTS-MR-005 + MR-010 + AL-016 — finding-text manipulation-resistance scan + boundary breach.
         const risk = haltOnFindingTextRisk(f);
         if (risk.halt) {
           spinner.fail(`Manipulation-resistance halt: ${risk.reason}`);
-          emit(makeEvent(engagementId, 'halt', { reason: risk.reason ?? 'manipulation-resistance halt', apts_refs: ['APTS-MR-005', 'APTS-MR-010'] }));
+          emit(makeEvent(engagementId, 'halt', { reason: risk.reason ?? 'manipulation-resistance halt', apts_refs: ['APTS-MR-005', 'APTS-MR-010', 'APTS-AL-016'] }));
+          killWatcher.stop();
+          heartbeatHandle.stop();
           handlers.uninstall();
           return 1;
         }
@@ -611,12 +769,25 @@ export async function runSiege(
     } else {
       emit(makeEvent(engagementId, 'phase-transition', { phase: 'exploitation', transition: 'enter' }));
       const phaseStart = Date.now();
-      attackFindings = await runExploitationAttempts(
-        resolvedPath,
-        options.target,
-        highCritical.length,
-        spinner,
+      const exploitResult = await withPhaseTimeout(
+        runExploitationAttempts(
+          resolvedPath,
+          options.target,
+          highCritical.length,
+          spinner,
+        ),
+        { phase: 'exploitation', timeout_ms: phaseTimeoutMs },
       );
+      if (exploitResult.timed_out) {
+        spinner.fail(exploitResult.reason);
+        emit(makeEvent(engagementId, 'halt', { reason: exploitResult.reason, apts_refs: exploitResult.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
+      attackFindings = exploitResult.value;
+      healthCounters.total_events += 1;
       const tAfter3 = validateTemporalEnvelope(roe);
       if (!tAfter3.allowed) {
         spinner.fail(`Temporal envelope check failed after Phase 3 (exploitation): ${tAfter3.reason}`);
@@ -628,11 +799,23 @@ export async function runSiege(
       if (!cAfter3.ok) {
         spinner.fail(`Config integrity check failed after Phase 3 (exploitation): ${cAfter3.reason}`);
         emit(makeEvent(engagementId, 'halt', { reason: cAfter3.reason ?? 'config integrity violation', apts_refs: cAfter3.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
+        handlers.uninstall();
+        return 1;
+      }
+      const safety3 = runSafetyChecks('Phase 3 (exploitation)');
+      if (safety3.halt) {
+        spinner.fail(safety3.reason ?? 'safety check failed');
+        emit(makeEvent(engagementId, 'halt', { reason: safety3.reason ?? 'safety check failed', apts_refs: safety3.apts_refs }));
+        killWatcher.stop();
+        heartbeatHandle.stop();
         handlers.uninstall();
         return 1;
       }
       for (const f of attackFindings) {
         emit(findingEvent(engagementId, f));
+        healthCounters.total_events += 1;
         if (isCriticalSeverity(f.severity)) {
           emit(makeEvent(engagementId, 'critical-finding', {
             finding_id: f.id,
@@ -645,7 +828,9 @@ export async function runSiege(
         const risk = haltOnFindingTextRisk(f);
         if (risk.halt) {
           spinner.fail(`Manipulation-resistance halt: ${risk.reason}`);
-          emit(makeEvent(engagementId, 'halt', { reason: risk.reason ?? 'manipulation-resistance halt', apts_refs: ['APTS-MR-005', 'APTS-MR-010'] }));
+          emit(makeEvent(engagementId, 'halt', { reason: risk.reason ?? 'manipulation-resistance halt', apts_refs: ['APTS-MR-005', 'APTS-MR-010', 'APTS-AL-016'] }));
+          killWatcher.stop();
+          heartbeatHandle.stop();
           handlers.uninstall();
           return 1;
         }
@@ -709,6 +894,19 @@ export async function runSiege(
 
     completedPhases.push('reporting');
     persistState('phase-reporting-complete');
+
+    // APTS-SC-015 — post-test target integrity probe.
+    const integrity = await probeTargetIntegrity(options.target, { baseline: integrityBaseline });
+    emit(
+      makeEvent(engagementId, 'scope-validation', {
+        target: options.target,
+        action: 'post-test-integrity-probe',
+        allowed: integrity.ok,
+        reason: integrity.reason ?? `target responsive after engagement (status ${integrity.observed?.status}, ${integrity.observed?.response_ms} ms)`,
+        apts_refs: integrity.apts_refs,
+      }),
+    );
+
     emit(
       makeEvent(engagementId, 'completion', {
         duration_ms: Date.now() - Date.parse(roe.temporal.start),
@@ -718,17 +916,22 @@ export async function runSiege(
         blocked: mergedResult.blocked,
       }),
     );
+    killWatcher.stop();
+    heartbeatHandle.stop();
     handlers.uninstall();
 
     return mergedResult.blocked ? 1 : 0;
   } catch (err) {
     spinner.fail('Siege failed');
     console.error(err instanceof Error ? err.message : String(err));
+    healthCounters.error_events += 1;
     emit(
       makeEvent(engagementId, 'halt', {
         reason: `unexpected error: ${err instanceof Error ? err.message : String(err)}`,
       }),
     );
+    killWatcher.stop();
+    heartbeatHandle.stop();
     handlers.uninstall();
     return 1;
   }

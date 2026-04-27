@@ -130,6 +130,24 @@ vi.mock('@aegis-scan/core', () => ({
     includes_llm_essentials: true,
   }),
   validateSandboxMode: vi.fn().mockReturnValue({ ok: true, mode: 'none' }),
+  // Cluster-5 safety-controls — siege wires kill watcher, heartbeat,
+  // health snapshots, post-test integrity probe, boundary monitor,
+  // and per-phase timeout. Defaults are pass-through; per-test
+  // overrides exercise the halt paths.
+  startKillRequestWatcher: vi.fn().mockReturnValue({ stop: vi.fn() }),
+  startDeadManHeartbeat: vi.fn().mockReturnValue({ stop: vi.fn() }),
+  newHealthCounters: vi.fn().mockReturnValue({ total_events: 0, error_events: 0, last_target_response_ms: null }),
+  runHealthCheck: vi.fn().mockReturnValue({ ok: true, observed: { heap_mb: 0, error_rate: 0, target_response_ms: null }, apts_refs: ['APTS-SC-010'] }),
+  probeTargetIntegrity: vi.fn().mockResolvedValue({ ok: true, observed: { status: 200, response_ms: 10 }, apts_refs: ['APTS-SC-015'] }),
+  detectScopeBreach: vi.fn().mockReturnValue({
+    in_scope: true,
+    decision: { allowed: true, reason: 'mock-default-in-scope', apts_refs: ['APTS-AL-016'] },
+    inspected: '',
+    apts_refs: ['APTS-AL-016'],
+  }),
+  withPhaseTimeout: vi.fn().mockImplementation(async (p: Promise<unknown>) => ({ timed_out: false, value: await p })),
+  derivePhaseTimeoutMs: vi.fn().mockReturnValue(30 * 60_000),
+  requestKill: vi.fn(),
 }));
 
 vi.mock('@aegis-scan/reporters', () => ({
@@ -367,5 +385,79 @@ describe('runSiege', () => {
 
     const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true, sandboxMode: 'bogus' });
     expect(exitCode).toBe(1);
+  });
+
+  // ---------------------------------------------------------------------
+  // Cluster-5 safety-controls integration tests
+  // ---------------------------------------------------------------------
+
+  it('halts when withPhaseTimeout reports a recon-phase timeout (APTS-HO-003)', async () => {
+    const { withPhaseTimeout } = await import('@aegis-scan/core');
+    vi.mocked(withPhaseTimeout).mockResolvedValueOnce({
+      timed_out: true,
+      phase: 'recon',
+      timeout_ms: 1000,
+      default_action: 'halt',
+      reason: 'mock recon timeout',
+      apts_refs: ['APTS-HO-003'],
+    });
+
+    const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(exitCode).toBe(1);
+  });
+
+  it('halts when runHealthCheck reports a threshold breach (APTS-SC-010)', async () => {
+    const { runHealthCheck } = await import('@aegis-scan/core');
+    // First phase passes; second phase trips the heap threshold.
+    vi.mocked(runHealthCheck)
+      .mockReturnValueOnce({ ok: true, observed: { heap_mb: 0, error_rate: 0, target_response_ms: null }, apts_refs: ['APTS-SC-010'] })
+      .mockReturnValueOnce({ ok: false, reason: 'heap memory 2048 MB exceeds threshold 1024 MB', observed: { heap_mb: 2048, error_rate: 0, target_response_ms: null }, apts_refs: ['APTS-SC-010'] });
+
+    const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(exitCode).toBe(1);
+  });
+
+  it('halts when detectScopeBreach reports a per-finding boundary breach (APTS-AL-016)', async () => {
+    mockRun.mockResolvedValueOnce({
+      score: 100,
+      grade: 'B',
+      badge: 'OK',
+      blocked: false,
+      breakdown: {},
+      findings: [
+        { id: 'F-3', severity: 'medium', title: 'finding outside scope', description: 'somewhere off-target', target: 'https://evil.test/path' },
+      ],
+      scanResults: [],
+      stack: { framework: 'nextjs' },
+      duration: 100,
+      timestamp: new Date().toISOString(),
+      confidence: 'high',
+    });
+    const { detectScopeBreach } = await import('@aegis-scan/core');
+    vi.mocked(detectScopeBreach).mockReturnValueOnce({
+      in_scope: false,
+      decision: {
+        allowed: false,
+        reason: 'mock target outside in_scope',
+        apts_refs: ['APTS-SE-003', 'APTS-AL-016'],
+      },
+      inspected: 'https://evil.test/path',
+      apts_refs: ['APTS-AL-016'],
+    });
+
+    const exitCode = await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(exitCode).toBe(1);
+  });
+
+  it('runs probeTargetIntegrity post-engagement and emits SC-015 audit event', async () => {
+    const { probeTargetIntegrity } = await import('@aegis-scan/core');
+    vi.mocked(probeTargetIntegrity).mockClear();
+
+    await runSiege('.', { target: 'https://example.com', confirm: true });
+    expect(probeTargetIntegrity).toHaveBeenCalled();
+    expect(probeTargetIntegrity).toHaveBeenCalledWith(
+      'https://example.com',
+      expect.objectContaining({ baseline: expect.any(Object) }),
+    );
   });
 });

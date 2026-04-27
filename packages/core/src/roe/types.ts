@@ -96,7 +96,27 @@ const StopConditionsSchema = z
     on_critical_finding: z.enum(['halt', 'notify-and-continue', 'continue']).default('halt'),
     max_findings: z.number().int().positive().optional(),
     max_duration_minutes: z.number().int().positive().optional(),
+    /** APTS-HO-003 — per-phase decision timeout. Falls back to max_duration_minutes/4 when omitted. */
+    phase_timeout_minutes: z.number().int().positive().optional(),
     on_target_unreachable_seconds: z.number().int().positive().optional(),
+  })
+  .strict();
+
+const SafetyControlsSchema = z
+  .object({
+    /** APTS-SC-010 — auto-halt thresholds. */
+    health_thresholds: z
+      .object({
+        max_heap_mb: z.number().int().positive().optional(),
+        max_error_rate: z.number().min(0).max(1).optional(),
+        max_target_response_ms: z.number().int().positive().optional(),
+      })
+      .strict()
+      .optional(),
+    /** APTS-SC-009 — operator dead-man-switch heartbeat URL (HTTPS only). */
+    heartbeat_url: z.string().url().optional(),
+    /** APTS-SC-009 — heartbeat interval in seconds. */
+    heartbeat_interval_seconds: z.number().int().positive().optional(),
   })
   .strict();
 
@@ -170,6 +190,8 @@ export const RoESchema = z
     references: ReferencesSchema.optional(),
     /** APTS-MR-018 — declarative sandboxing constraints for LLM-pentest wrappers. */
     sandboxing: SandboxingSchema.default({ mode: 'none' }),
+    /** APTS-SC-009/010, HO-003 — declarative safety-control overrides. */
+    safety_controls: SafetyControlsSchema.optional(),
   })
   .strict();
 
