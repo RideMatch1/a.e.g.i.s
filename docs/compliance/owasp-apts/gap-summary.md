@@ -2,10 +2,11 @@
 
 ## Headline
 
-AEGIS Autonomous Pentest Layer is currently **29/72 MET (40%)** on
-OWASP-APTS Tier-1 (Phase 1 baseline + Phase 2 Clusters 1 + 2 shipped on
-the same day). Phase 2's remaining three clusters (3 + 4 + 5 + 6) close
-the remaining 41 gaps and convert this into a full Tier-1 Conformance
+AEGIS Autonomous Pentest Layer is currently **33/72 MET (46%)** on
+OWASP-APTS Tier-1 (Phase 1 baseline + Phase 2 Clusters 1 + 2 + 3 shipped
+on the same day). **Scope Enforcement (SE) is the first fully-met
+domain (9/9).** Phase 2's remaining three clusters (4 + 5 + 6) close
+the remaining 37 gaps and convert this into a full Tier-1 Conformance
 Claim.
 
 This is **not** a conformance claim. APTS forbids partial credit; a
@@ -23,15 +24,15 @@ partially_met/not_met to met.
 
 | Domain | Total Tier-1 | Met | Partially | Not Met | N/A | Planned |
 |---|---|---|---|---|---|---|
-| Scope Enforcement (SE) | 9 | 8 | 1 | 0 | 0 | 0 |
+| Scope Enforcement (SE) | 9 | 9 | 0 | 0 | 0 | 0 |
 | Safety Controls (SC) | 6 | 0 | 4 | 2 | 0 | 0 |
 | Human Oversight (HO) | 13 | 3 | 4 | 6 | 0 | 0 |
-| Graduated Autonomy (AL) | 11 | 6 | 4 | 1 | 0 | 0 |
-| Auditability (AR) | 7 | 3 | 1 | 3 | 0 | 0 |
+| Graduated Autonomy (AL) | 11 | 7 | 3 | 1 | 0 | 0 |
+| Auditability (AR) | 7 | 5 | 1 | 1 | 0 | 0 |
 | Manipulation Resistance (MR) | 13 | 2 | 6 | 5 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **29** | **23** | **18** | **2** | **0** |
+| **Total** | **72** | **33** | **21** | **16** | **2** | **0** |
 
 ## Strongest domains today
 
@@ -100,7 +101,7 @@ in clusters 2/4/5/6.
 |---|---|---|---|---|
 | 1 | RoE schema + scope object | SE-001/003/004/005/006/008 + AL-006/014 | 8 entries | **shipped 2026-04-27** |
 | 2 | Intervention API + JSONL state-stream + signals + webhooks | HO-002/006/008 + AL-011/012 + AR-002 (6 met) + HO-015/AL-008 (2 partial-bumps) | 8 entries | **shipped 2026-04-27** |
-| 3 | Hash-chain + signed evidence | AR-010/012 + AL-005 + SE-015 | 4 entries | queued |
+| 3 | Hash-chain + per-finding evidence_hash + audit-verify CLI + scope-validation events | AR-010/012 + AL-005 + SE-015 | 4 entries | **shipped 2026-04-27** |
 | 4 | Orchestrator-side MR | MR-001/002/004/005/007/008/009/010/011/012/018 | 11 entries | queued |
 | 5 | Multi-path kill + health monitor | SC-009/010/015 + AL-016 | 4 entries | queued |
 | 6 | CIA scoring | SC-001 + HO-012 | 2 entries | queued |

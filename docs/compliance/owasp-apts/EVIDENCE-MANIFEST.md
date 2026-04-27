@@ -255,6 +255,51 @@ to exist at the pinned HEAD SHA.
 - **Captured at:** 2026-04-27
 - **Sensitivity:** public
 
+### `ev-hash-chain`
+
+- **Type:** code-cryptography + tests
+- **Paths:**
+  - `packages/core/src/runtime/hash.ts` — SHA-256 (Node `crypto`, FIPS 180-4 / RFC 6234) + canonical-JSON normalization (sorted-key recursive serialization, undefined-fields dropped). hashCanonical convenience wrapper.
+  - `packages/core/src/runtime/chain.ts` — ChainedEmitter wraps each emitted event with prev_hash (null on first) + this_hash (SHA-256 over the event minus this_hash). emit() returns the chained event so callers can dispatch downstream. getTail() exposes the running tail-hash so resume can thread the chain across sessions.
+  - `packages/core/__tests__/runtime/chain.test.ts` — sha256 RFC-6234 known-value, canonical-stability across key-permutations, ChainedEmitter prev-hash threading, caller-tampered this_hash overwritten, initialPrevHash for resume continuity, getTail post-emit.
+- **What it proves:** APTS-AR-010 (Cryptographic Hashing of All Evidence) at the event level, APTS-AR-012 (Tamper-Evident Logging with Hash Chains), APTS-AL-005 (Mandatory Logging + Reviewable Audit Trail).
+- **How to verify:** Run a siege engagement with `--state-file /tmp/x.jsonl`. Inspect: every line has prev_hash + this_hash; line 0's prev_hash is null. Edit any line and re-run `aegis audit-verify /tmp/x.jsonl` — the chain breaks at the affected line.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-finding-evidence-hash`
+
+- **Type:** code-cryptography + tests
+- **Paths:**
+  - `packages/core/src/runtime/events.ts` — findingEvent now computes evidence_hash via hashCanonical(finding) and embeds it on the finding-emitted JSONL event. Deterministic across property-declaration-order permutations. Different finding content yields different hashes.
+  - `packages/core/__tests__/runtime/chain.test.ts` (§ "evidence_hash for AR-010") — verifies presence, determinism, content-sensitivity.
+- **What it proves:** APTS-AR-010 (Cryptographic Hashing of All Evidence) at the per-finding level.
+- **How to verify:** During siege, every emitted finding-emitted event in the state-file carries an evidence_hash field. Reviewers can re-hash the underlying Finding from a separate report (JSON / SARIF) to confirm the trail-emission matches the stored finding.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-audit-verify-cli`
+
+- **Type:** cli-tool
+- **Paths:**
+  - `packages/cli/src/commands/audit-verify.ts` — `aegis audit-verify <state-file>` reads the JSONL audit log, walks the chain, recomputes each event's hash from its canonical form, verifies the prev_hash → this_hash linkage. Reports broken_at line + error reason on failure. JSON output mode (`--format json`) for machine consumption.
+  - `packages/cli/src/index.ts` — command registration.
+- **What it proves:** APTS-AR-012 (Tamper-Evident Logging with Hash Chains) — the verification path is what makes the chain tamper-EVIDENT (not just tamper-resistant).
+- **How to verify:** `aegis audit-verify /tmp/siege-engagement.jsonl` — green confirms chain intact; red surfaces the broken-at-line-N + reason.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-scope-validation-events`
+
+- **Type:** code-integration
+- **Paths:**
+  - `packages/cli/src/commands/siege.ts` — engagement-start emits a structured scope-validation event with target + action + allowed + reason + apts_refs. Pulled from validateTargetInScope's decision object so the audit trail captures the same APTS-ID references the validator reports back.
+  - `packages/core/src/runtime/events.ts` — scope-validation event-shape declared in the discriminated union.
+- **What it proves:** APTS-SE-015 (Scope Enforcement Audit and Compliance Verification) — the audit log carries the explicit scope-decision rather than only its consequence (proceed / halt).
+- **How to verify:** Inspect `/tmp/siege.jsonl` after a run — at least one line is `{"event":"scope-validation",...}` with allowed + reason matching the validateTargetInScope decision. The chain protects this event the same way it protects every other audit entry.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
 ---
 
 ## Gap Notes (`partially_met`, `not_met`, `not_applicable`)
@@ -262,11 +307,15 @@ to exist at the pinned HEAD SHA.
 The Phase-2 plan column captures the closure approach for each gap.
 The handover doc tracks the same set with sequencing + ETA.
 
-### Scope Enforcement (SE) — gaps
+### Scope Enforcement (SE) — fully met
 
 > **Closed by Phase 2 Cluster-1** (RoE schema + scope-object DSL): SE-001, SE-003, SE-004, SE-005, SE-006, SE-008. See `ev-roe-schema`, `ev-roe-validators`, `ev-roe-cli-integration` above.
-
-- **APTS-SE-015 (Scope Enforcement Audit and Compliance Verification) — partially_met:** JSON output captures targets and `roe_id` is logged at engagement start; no separate scope-enforcement audit trail with hash-chain integrity. **Phase-2 plan:** dedicated scope-audit log channel — combines with AR-010 + AR-012 closure (Cluster-3 hash-chain work).
+>
+> **Closed by Phase 2 Cluster-3** (hash-chain + scope-validation events): SE-015. See `ev-scope-validation-events`, `ev-hash-chain`, `ev-audit-verify-cli` above.
+>
+> **Already met before Phase 2** (deterministic SAST coverage + RoE deny-list): SE-002, SE-009.
+>
+> **All 9 SE Tier-1 entries now MET.**
 
 ### Safety Controls (SC) — gaps
 
@@ -298,21 +347,22 @@ The handover doc tracks the same set with sequencing + ETA.
 
 - **APTS-AL-001 — partially_met:** No formal AL-level tags. **Phase-2 plan:** AL-level metadata field per scanner registration; orchestrator labels each engagement-phase with the AL-level it operates under.
 - **APTS-AL-004 — partially_met:** siege-phase chain is operator-confirmed once. **Phase-2 plan:** per-phase confirmation prompt (or RoE-acknowledged auto-chain disclosure).
-- **APTS-AL-005 — partially_met:** Logs not signed. **Phase-2 plan:** combine with AR-010 hash-chain.
 - **APTS-AL-008 — partially_met:** Signal-based pause/kill is an out-of-band intervention surface; per-action approval gate (RoE-driven, per-scanner-emit) is Cluster-4 work.
 
 > **Closed by Phase 2 Cluster-1** (RoE schema + scope-object DSL): AL-006, AL-014. See `ev-roe-schema`, `ev-roe-validators` above.
 >
 > **Closed by Phase 2 Cluster-2** (Intervention API + JSONL state-stream + signals + webhooks): AL-011, AL-012. See `ev-jsonl-events`, `ev-signal-handlers`, `ev-siege-c2-wiring` above.
+>
+> **Closed by Phase 2 Cluster-3** (hash-chain → signed audit trail): AL-005. See `ev-hash-chain`, `ev-audit-verify-cli` above.
 - **APTS-AL-016 — not_met:** **Phase-2 plan:** continuous boundary-monitor that re-validates the scope-object on every scanner-emit.
 
 ### Auditability (AR) — gaps
 
 > **Closed by Phase 2 Cluster-2** (JSONL state-stream): AR-002. See `ev-jsonl-events`, `ev-siege-c2-wiring` above.
+>
+> **Closed by Phase 2 Cluster-3** (hash-chain + per-finding evidence_hash): AR-010, AR-012. See `ev-hash-chain`, `ev-finding-evidence-hash`, `ev-audit-verify-cli` above.
 
 - **APTS-AR-006 — partially_met:** Taint chain only. **Phase-2 plan:** alternative-evaluation reasoning emit for siege-mode autonomous decisions.
-- **APTS-AR-010 — not_met:** **Phase-2 plan:** SHA-256 hash per finding emitted alongside the finding; hash captured in audit log.
-- **APTS-AR-012 — not_met:** **Phase-2 plan:** hash-chained audit-log file (each entry's hash includes the previous entry's hash).
 - **APTS-AR-015 — not_met:** **Phase-2 plan:** evidence-classification field on Finding (public / internal / confidential) + sensitivity-aware redaction in reporters.
 
 ### Manipulation Resistance (MR) — gaps

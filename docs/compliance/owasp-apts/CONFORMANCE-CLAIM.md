@@ -75,25 +75,25 @@ Summary: AEGIS does not pin a foundation model. The operator chooses the provide
 
 | Domain | Total Tier-1 | Met | Partially | Not Met | N/A | Planned |
 |---|---|---|---|---|---|---|
-| Scope Enforcement (SE) | 9 | 8 | 1 | 0 | 0 | 0 |
+| Scope Enforcement (SE) | 9 | 9 | 0 | 0 | 0 | 0 |
 | Safety Controls (SC) | 6 | 0 | 4 | 2 | 0 | 0 |
 | Human Oversight (HO) | 13 | 3 | 4 | 6 | 0 | 0 |
-| Graduated Autonomy (AL) | 11 | 6 | 4 | 1 | 0 | 0 |
-| Auditability (AR) | 7 | 3 | 1 | 3 | 0 | 0 |
+| Graduated Autonomy (AL) | 11 | 7 | 3 | 1 | 0 | 0 |
+| Auditability (AR) | 7 | 5 | 1 | 1 | 0 | 0 |
 | Manipulation Resistance (MR) | 13 | 2 | 6 | 5 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **29** | **23** | **18** | **2** | **0** |
+| **Total** | **72** | **33** | **21** | **16** | **2** | **0** |
 
-**MET total: 29/72 (40%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped 8 entries (SE-001/003/004/005/006/008 + AL-006/014). Phase 2 Cluster-2 (intervention API + JSONL state-stream + signal handlers + webhook dispatcher) shipped 6 more (HO-002/006/008 + AL-011/012 + AR-002) plus bumped 2 from not_met to partially_met (HO-015, AL-008). APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
+**MET total: 33/72 (46%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped 8 entries. Phase 2 Cluster-2 (intervention API + JSONL state-stream + signal handlers + webhook dispatcher) shipped 6 + 2 partial-bumps. Phase 2 Cluster-3 (SHA-256 hash-chain + per-finding evidence_hash + `aegis audit-verify` CLI) shipped 4 more (AR-010 + AR-012 + AL-005 + SE-015) — the **SE domain is now fully met (9/9)**. APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
 
 ---
 
 ## Per-domain narrative
 
-### Scope Enforcement (SE) — 8/9 MET
+### Scope Enforcement (SE) — 9/9 MET (FULL)
 
-After Phase 2 Cluster-1, the autonomous-engagement-side RoE is structured. SE-001 (RoE specification + validation), SE-003 (domain scope + wildcard), SE-004 (temporal envelope), SE-005 (asset criticality), SE-006 (pre-action scope validation), SE-008 (per-phase temporal monitoring) all flipped to MET via the new RoE schema + validators + CLI integration. SE-009 (hard deny lists) was already MET via `aegis.config.json` excludePaths. Only SE-015 (separate scope-enforcement audit log with hash-chain integrity) remains partial — closure depends on Cluster-3 hash-chain work.
+After Phase 2 Cluster-1, six SE entries (SE-001/003/004/005/006/008) flipped MET via the RoE schema + validators + CLI integration. SE-002 (RFC 1918) and SE-009 (hard deny lists) were already MET. After Phase 2 Cluster-3, SE-015 (scope-enforcement audit log) flipped MET via the scope-validation event emission into the hash-chained JSONL audit log. **SE is the first domain to reach 100% Tier-1 MET coverage.**
 
 ### Safety Controls (SC) — 0/6 MET
 
@@ -107,9 +107,9 @@ Largest gap cluster. AEGIS today provides one decision point at engagement start
 
 After Phase 2 Cluster-1, AL-006 (basic scope validation policy DSL) and AL-014 (multi-axis boundary definition framework) flipped to MET via the RoE schema. AL-002 (human-directed target/technique selection) and AL-003 (operator-configured parameters) were already MET. Remaining gaps: AL-001 (formal AL-level tagging per scanner), AL-004 (per-phase confirmation), AL-005 (logging not yet hash-signed), AL-008 (real-time approval gates), AL-011 (escalation triggers), AL-012 (kill switch), AL-016 (continuous boundary monitoring) — closures distributed across Phase 2 Clusters 2/3/5.
 
-### Auditability (AR) — 2/7 MET
+### Auditability (AR) — 5/7 MET (Cluster-3 shipped)
 
-JSON output + SARIF 2.1.0 emission already covers structured logging (AR-001) and per-finding confidence scoring (AR-004). Cryptographic hashing of evidence (AR-010), tamper-evident logging (AR-012), and evidence sensitivity classification (AR-015) are net-new for Phase 2 — a hash-chained audit-log channel paired with a SHA-256 field on every emitted finding.
+JSON output + SARIF 2.1.0 emission cover structured logging (AR-001) and per-finding confidence scoring (AR-004). Cluster-2 JSONL state-stream closed AR-002. Cluster-3 ships the SHA-256 hash-chain (AR-012) + per-finding evidence_hash (AR-010). Only AR-006 (alternative-evaluation reasoning during autonomous decisions) and AR-015 (evidence sensitivity classification) remain — both deferred to later clusters.
 
 ### Manipulation Resistance (MR) — 2/13 MET
 
@@ -180,6 +180,7 @@ The Phase-2 punch list is tracked in the project's handover doc and re-flected i
 | 2026-04-27 | 1.0 | Initial Tier-1 Readiness Assessment publication. 15/72 MET, 28 PARTIAL, 27 NOT-MET, 2 N/A. Pinned at HEAD `551c63f989ed6f088ad642b79241fd531a1b82d5`. |
 | 2026-04-27 | 1.1 | Phase 2 Cluster-1 ship — machine-readable RoE schema + scope-object DSL. 8 entries flip MET (SE-001/003/004/005/006/008 + AL-006/014). New: 23/72 MET, 23 PARTIAL, 24 NOT-MET, 2 N/A. |
 | 2026-04-27 | 1.2 | Phase 2 Cluster-2 ship — intervention API + JSONL state-stream + signal handlers + webhook dispatcher. 6 entries flip MET (HO-002/006/008 + AL-011/012 + AR-002), 2 entries bump from NOT-MET to PARTIALLY-MET (HO-015, AL-008). New: 29/72 MET, 23 PARTIAL, 18 NOT-MET, 2 N/A. |
+| 2026-04-27 | 1.3 | Phase 2 Cluster-3 ship — SHA-256 hash-chain + per-finding evidence_hash + `aegis audit-verify` CLI + scope-validation audit-event. 4 entries flip MET (AR-010 + AR-012 + AL-005 + SE-015). **SE domain fully met (9/9).** New: 33/72 MET, 21 PARTIAL, 16 NOT-MET, 2 N/A. |
 
 ---
 
