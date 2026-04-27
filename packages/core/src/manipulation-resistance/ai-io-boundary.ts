@@ -25,7 +25,7 @@
  *     produce a clear instruction-rich error so operators see exactly
  *     what to build before re-running.
  */
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import type { EgressAllowlist } from './oob-blocker.js';
 
 export type SandboxMode = 'docker' | 'firejail' | 'none';
@@ -215,8 +215,12 @@ export interface PreflightSandboxOptions {
 }
 
 function defaultDockerProbe(kind: 'image' | 'network', ref: string): boolean {
+  // execFileSync (no shell) — argv is passed as an array so neither `kind`
+  // nor `ref` can be interpreted as shell metacharacters even when the RoE
+  // config supplies an unusual image name. Closes CodeQL
+  // js/shell-command-constructed-from-input.
   try {
-    execSync(`docker ${kind} inspect ${ref}`, {
+    execFileSync('docker', [kind, 'inspect', ref], {
       stdio: ['ignore', 'ignore', 'ignore'],
       timeout: 10_000,
     });
