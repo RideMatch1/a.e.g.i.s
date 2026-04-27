@@ -25,7 +25,7 @@
 #   - No shell on the entrypoint path
 #   - Minimal base (python:slim) — no shell utilities surface
 
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:46cb7cc2877e60fbd5e21a9ae6115c30ace7a077b9f8772da879e4590c18c2e3
 
 LABEL org.opencontainers.image.title="aegis/strix-sandbox"
 LABEL org.opencontainers.image.description="APTS-MR-018 AI/IO boundary container for Strix LLM-pentest tool"
@@ -41,6 +41,13 @@ RUN apt-get update \
 # pip-installable in your install, replace this with the appropriate
 # install commands. The build will fail loudly if strix is unreachable —
 # operators must update this Dockerfile for their environment.
+#
+# Hash-pinning intentionally omitted: strix may not even be on PyPI under
+# that name (the WARN-fallback below catches the package-resolution miss).
+# Pinning here would either fail-build at every upstream rotate or pin to
+# a phantom version. Run-time isolation (read-only FS, dropped caps, egress
+# allowlist applied by wrapForSandbox) bounds the risk from an unpinned
+# upstream package fetched at image-build time.
 RUN pip install --no-cache-dir strix \
     || (echo "WARN: strix package not on PyPI under that name. Update Dockerfile with the correct upstream install." >&2 && exit 1)
 
