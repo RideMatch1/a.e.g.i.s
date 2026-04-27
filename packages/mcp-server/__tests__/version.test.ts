@@ -32,11 +32,24 @@ describe('mcp-server — lockstep-honesty version reporting (M3, AUDIT-AEGIS-SCA
     expect(indexSrc).not.toMatch(/version:\s*['"]0\.2\.0['"]/);
   });
 
-  it('McpServer is constructed with the package.json version', async () => {
-    // Import the module (triggers the package.json read at module-load).
-    // We can't easily intercept the McpServer constructor without mocking
-    // the SDK, so we assert the source-shape via the previous test and
-    // here we assert the module loads without throwing.
-    await expect(import('../src/index.js')).resolves.toBeDefined();
-  });
+  it(
+    'McpServer is constructed with the package.json version',
+    { timeout: 30_000 },
+    async () => {
+      // Import the module (triggers the package.json read at module-load).
+      // We can't easily intercept the McpServer constructor without mocking
+      // the SDK, so we assert the source-shape via the previous test and
+      // here we assert the module loads without throwing.
+      //
+      // Timeout 30s (was vitest default 5s): GitHub Actions cold-start of
+      // the @modelcontextprotocol/sdk import can exceed 5s on a fresh
+      // runner. The src/index.ts has an isEntryPoint guard that prevents
+      // main()→server.connect(stdio) from running on import (added in
+      // commit 21cce02), so the import itself only constructs the server +
+      // registers tools — usually <1s locally, but CI cold-start has been
+      // observed at 5-7s. Larger timeout removes the flake without
+      // weakening the test's intent (verify the module loads).
+      await expect(import('../src/index.js')).resolves.toBeDefined();
+    },
+  );
 });
