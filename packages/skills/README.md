@@ -94,16 +94,23 @@ in process-discipline:
 - **`suppress-correctly`** — when suppression is appropriate, the structured-rationale syntax, anti-patterns, and audit-trail expectations.
 - **`escalation-runbook`** — what to do when a BLOCKER reaches main, when a finding suggests active exploitation, or when a credential leak is detected.
 
+### Compliance skills — `skills/compliance/aegis-native/`
+
+One AEGIS-native multi-file `SKILL.md` (MIT) for adversarial DE/EU
+compliance audits:
+
+- **`brutaler-anwalt`** — adversarial DE/EU compliance auditor (DSGVO / DDG / TTDSG / UWG / NIS2 / EU AI Act / branchenrecht / strafrecht-steuer) with three-persona self-verification (Hunter / Challenger / Synthesizer). Slash-command activation via `/anwalt`. Ships an 11-file `references/` sibling tree (~120 KB) with per-bereich rules, BGH/EuGH-judgment database, abmahn-templates, and an explicit AEGIS-scanner-output → rechtliche-Bewertung mapping. The installer auto-copies the references tree alongside the SKILL.md.
+
 ### Attribution + license
 
 See [`ATTRIBUTION.md`](./ATTRIBUTION.md) for the full credit chain.
 Offensive skills are MIT-via-upstream-fork; defensive / mitre-mapped /
-ops skills are MIT-AEGIS-original.
+ops / compliance skills are MIT-AEGIS-original.
 
 ## Multi-source architecture
 
 `@aegis-scan/skills` is designed to grow across sources without
-re-architecting the package. The `skills/` tree carries four
+re-architecting the package. The `skills/` tree carries five
 category-directories:
 
 ```
@@ -114,13 +121,15 @@ skills/
 │   └── aegis-native/             — 3 SKILL.md files (MIT, AEGIS-original)
 ├── mitre-mapped/
 │   └── aegis-native/             — 3 SKILL.md files (MIT, AEGIS-original — ATT&CK / ATLAS / D3FEND / NIST cross-walk)
-└── ops/
-    └── aegis-native/             — 3 SKILL.md files (MIT, AEGIS-original — triage / suppress / escalation runbooks)
+├── ops/
+│   └── aegis-native/             — 3 SKILL.md files (MIT, AEGIS-original — triage / suppress / escalation runbooks)
+└── compliance/
+    └── aegis-native/             — 1 multi-file SKILL.md + 11-file references/ tree (MIT, AEGIS-original — adversarial DE/EU compliance auditor with three-persona self-verification)
 ```
 
-Total: **46 skills** across **4 categories** and **2 source-namespaces**
+Total: **47 skills** across **5 categories** and **2 source-namespaces**
 (`snailsploit-fork` for the offensive fork; `aegis-native` for the
-defensive / mitre-mapped / ops AEGIS-original content).
+defensive / mitre-mapped / ops / compliance AEGIS-original content).
 
 When future external sources land, they slot into the existing tree
 under their own per-source subdirectory (e.g.,

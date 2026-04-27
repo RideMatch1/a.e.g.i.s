@@ -10,7 +10,8 @@
  * future sync or hand-edit inadvertently introduces one.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { loadAllSkills } from '../src/skills-loader.js';
 
 const skills = loadAllSkills();
@@ -63,6 +64,35 @@ describe('scrub-clean — package-root documents', () => {
       const raw = readFileSync(file, 'utf-8');
       expect(raw.match(FORBIDDEN_RE)).toBeNull();
     });
+  }
+});
+
+describe('scrub-clean — sibling references/ directories', () => {
+  // Multi-file skills (compliance/aegis-native/brutaler-anwalt is the
+  // first) ship a SKILL.md plus a references/ sibling tree of supporting
+  // .md files. Those reference files are bundled in the tarball and
+  // copied by the installer, so they MUST be scrub-clean too — the
+  // skills-loader doesn't iterate them on its own, so this block is the
+  // only source-side coverage between the markdown-only invariant gate
+  // and the publish-tarball-scrub gate.
+  for (const skill of skills) {
+    const refDir = join(dirname(skill.absolutePath), 'references');
+    if (!existsSync(refDir) || !statSync(refDir).isDirectory()) continue;
+    const refs = readdirSync(refDir).filter((f) => f.endsWith('.md'));
+    for (const ref of refs) {
+      it(`${skill.name}/references/${ref} contains zero internal-codename hits`, () => {
+        const raw = readFileSync(join(refDir, ref), 'utf-8');
+        const match = raw.match(FORBIDDEN_RE);
+        if (match) {
+          const idx = raw.toLowerCase().indexOf(match[0].toLowerCase());
+          const window = raw.slice(Math.max(0, idx - 40), idx + match[0].length + 40);
+          throw new Error(
+            `Scrub-term "${match[0]}" found in ${skill.relativePath} sibling references/${ref} — context: …${window}…`,
+          );
+        }
+        expect(match).toBeNull();
+      });
+    }
   }
 });
 

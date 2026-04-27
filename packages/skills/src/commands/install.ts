@@ -19,6 +19,8 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -75,6 +77,21 @@ export function runInstall(options: InstallOptions = {}): number {
       const content = readFileSync(skill.absolutePath, 'utf-8');
       writeFileSync(targetPath, content, 'utf-8');
       written += 1;
+      // Copy any sibling references/ directory so multi-file skills
+      // (e.g. compliance/aegis-native/brutaler-anwalt) keep their
+      // SKILL.md → references/*.md links intact under the target tree.
+      const sourceRefDir = join(dirname(skill.absolutePath), 'references');
+      if (existsSync(sourceRefDir) && statSync(sourceRefDir).isDirectory()) {
+        const targetRefDir = join(dirname(targetPath), 'references');
+        mkdirSync(targetRefDir, { recursive: true });
+        for (const entry of readdirSync(sourceRefDir)) {
+          if (!entry.endsWith('.md')) continue;
+          const refSrc = join(sourceRefDir, entry);
+          const refDst = join(targetRefDir, entry);
+          writeFileSync(refDst, readFileSync(refSrc, 'utf-8'), 'utf-8');
+          written += 1;
+        }
+      }
     } catch (err) {
       console.error(`Error writing ${targetPath}: ${(err as Error).message}`);
       return 2;

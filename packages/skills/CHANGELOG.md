@@ -10,28 +10,44 @@ and quality-audit completion, not by a fixed schedule.
 
 ## [Unreleased]
 
-### Added — three category populations (defensive / mitre-mapped / ops)
+---
 
-Nine new AEGIS-native `SKILL.md` files (MIT) populate three previously-placeholder category directories:
+## [0.2.0] — 2026-04-27 — "four-category-population + compliance with brutaler-anwalt"
+
+### Added — four category populations (defensive / mitre-mapped / ops / compliance)
+
+Ten new AEGIS-native `SKILL.md` files (MIT) populate four previously-placeholder category directories:
 
 - **`skills/defensive/aegis-native/`** (3 skills) — `rls-defense`, `tenant-isolation-defense`, `ssrf-defense`. Mirror `@aegis-wizard/cli` patterns and provide remediation guidance for `@aegis-scan/cli` scanner findings (`rls-bypass-checker`, `tenant-isolation-checker`, `ssrf-checker`, `taint-analyzer`, `mass-assignment-checker`, `template-sql-checker`).
 - **`skills/mitre-mapped/aegis-native/`** (3 skills) — `mapping-overview`, `t1190-exploit-public-app`, `t1078-valid-accounts`. Cross-walk AEGIS findings to MITRE ATT&CK Enterprise + ATLAS + D3FEND + NIST CSF 2.0 + NIST AI RMF.
 - **`skills/ops/aegis-native/`** (3 skills) — `triage-finding`, `suppress-correctly`, `escalation-runbook`. Operational runbooks for the AEGIS workflow itself.
+- **`skills/compliance/aegis-native/`** (1 skill) — `brutaler-anwalt`. Adversarial DE/EU compliance auditor (DSGVO / DDG / TTDSG / UWG / NIS2 / EU AI Act / branchenrecht / strafrecht-steuer) with three-persona self-verification (Hunter / Challenger / Synthesizer). Slash-command activation via `/anwalt`. Multi-file: ships an 11-file `references/` sibling tree (~120 KB) covering `audit-patterns.md`, `dsgvo.md`, `it-recht.md`, `vertragsrecht.md`, `checklisten.md`, `branchenrecht.md`, `bgh-urteile.md`, `abmahn-templates.md`, `aegis-integration.md`, `international.md`, `strafrecht-steuer.md`. The `aegis-integration.md` reference defines the consume-AEGIS-scanner-output severity-mapping (critical → 🔴 KRITISCH ≥70%, high → 🟡 HOCH 40–70%, etc.) so the skill bridges AEGIS technical findings to the rechtliche Bewertungs-Layer.
 
-Total skills jumps from 37 to 46. All new content is MIT-AEGIS-original; no upstream-fork dependency. The `aegis-native/` source-namespace convention parallels the existing `snailsploit-fork/` for offensive skills, leaving room for future non-AEGIS sources (e.g., `defensive/anthropic-cybersec-pick/`) to slot in without layout churn.
+Total skills jumps from 37 to 47. All new content is MIT-AEGIS-original; no upstream-fork dependency. The `aegis-native/` source-namespace convention parallels the existing `snailsploit-fork/` for offensive skills, leaving room for future non-AEGIS sources (e.g., `defensive/anthropic-cybersec-pick/`) to slot in without layout churn.
+
+### Added — installer support for multi-file skills (`references/` siblings)
+
+`packages/skills/src/commands/install.ts` extended to copy any sibling `references/` directory next to a `SKILL.md` so multi-file skills stay self-consistent under the install target. The `brutaler-anwalt` skill is the first consumer; any future skill that ships supporting `.md` references inherits the same packaging treatment automatically. `--force` semantics extend naturally — references are overwritten alongside the SKILL.md they belong to. Markdown-only invariant intact (the new code only touches `.md` extensions).
+
+### Added — scrub-test coverage for `references/` siblings
+
+`__tests__/scrub.test.ts` gains a new describe-block (`scrub-clean — sibling references/ directories`) that iterates every SKILL.md, looks for a sibling `references/` dir, and runs the same FORBIDDEN-codename scan over each `.md` reference. Without this block, leaks in references would slip past source-side gates and only fail at the CI tarball-scrub step. Defense-in-depth: this catches them at unit-test time, source-side, before any push.
 
 ### Updated
 
 - `skills/defensive/README.md`, `skills/mitre-mapped/README.md`, `skills/ops/README.md` — replace v0.2+ placeholder text with directory-of-shipped-content tables.
 - `ATTRIBUTION.md` — credit the AEGIS-native sources, document the MIT license terms, future-external-source candidate list expanded.
-- `README.md` (this package) — multi-source architecture diagram updated; per-category content tables replace the v0.1.0-only enumeration.
+- `README.md` (this package) — multi-source architecture diagram updated; per-category content tables replace the v0.1.0-only enumeration; new compliance row + brutaler-anwalt mention.
+- `__tests__/manifest.test.ts` — `EXPECTED_TOTAL` 46 → 47, `EXPECTED_CATEGORIES` add `compliance`, `EXPECTED_SOURCES_BY_CATEGORY[compliance]` add `aegis-native`, `EXPECTED_NAMES_BY_CATEGORY[compliance]` add `brutaler-anwalt`.
 
 ### Validation
 
-- All 9 new SKILL.md files pass the markdown-only structural invariant.
-- All 9 new SKILL.md files pass the scrub-test (no internal-codename leaks).
+- All 10 new SKILL.md files pass the markdown-only structural invariant.
+- All 10 new SKILL.md files pass the scrub-test (no internal-codename leaks).
+- All 11 brutaler-anwalt `references/*.md` pass the new sibling-references scrub-block.
 - All 3 updated category-README placeholders pass the future-category placeholder scrub-test.
 - `loadAllSkills()` auto-discovers the new content via the existing `<category>/<source>/<name>/SKILL.md` layout — no loader changes needed.
+- 405 / 405 tests pass post-addition (was 386).
 
 ---
 

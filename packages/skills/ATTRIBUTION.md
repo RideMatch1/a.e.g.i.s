@@ -82,6 +82,17 @@ operational runbooks under MIT License.
 - **Skill count at first ship:** 3 (`triage-finding`, `suppress-correctly`, `escalation-runbook`)
 - **First shipped:** post-v0.16.6 work-package WP-A2
 
+## Compliance skills — AEGIS-native
+
+All skills under `skills/compliance/aegis-native/` are AEGIS-original
+adversarial DE/EU compliance content under MIT License.
+
+- **Source:** AEGIS-original
+- **License:** MIT (covered by the AEGIS top-level `LICENSE`)
+- **Skill count at first ship:** 1 (`brutaler-anwalt`, multi-file with 11 supporting `references/*.md`)
+- **First shipped:** v0.2.0
+- **Content domain:** DE/EU compliance audit (DSGVO, DDG, TTDSG, UWG, NIS2, EU AI Act, branchenrecht, strafrecht-steuer). Three-persona self-verification (Hunter / Challenger / Synthesizer) is an AEGIS-original methodology pattern, not derived from upstream content. References cite German/EU statutes (`§`-paragraphs) and BGH/EuGH judgment-IDs (`Az.`) — these are factual legal identifiers, not copyrightable expression.
+
 ## Future external sources
 
 The `skills/` tree is designed to grow across sources. Future
@@ -100,16 +111,16 @@ header convention as the offensive `snailsploit-fork/` source.
 ## License compatibility
 
 AEGIS itself ships under MIT. Offensive skills ship under MIT (via
-upstream). AEGIS-native defensive / mitre-mapped / ops skills ship
-under MIT (AEGIS-original). Future cybersecurity-framework-mapped
-cherry-picks would ship under Apache-2.0 (via upstream) when those
-land. All these licenses are permissive, commercially-redistributable,
-and require attribution preservation — which this file codifies. No
-license incompatibility.
+upstream). AEGIS-native defensive / mitre-mapped / ops / compliance
+skills ship under MIT (AEGIS-original). Future cybersecurity-framework-
+mapped cherry-picks would ship under Apache-2.0 (via upstream) when
+those land. All these licenses are permissive, commercially-
+redistributable, and require attribution preservation — which this
+file codifies. No license incompatibility.
 
 ## Changes to upstream
 
 See `CHANGELOG.md` for AEGIS-side version history.
 
 - For `snailsploit-fork/` (offensive): the only change to any forked `SKILL.md` is the prepended AEGIS-local HTML attribution header documented above. Quarterly upstream-sync pulls additions and corrections.
-- For `aegis-native/` (defensive / mitre-mapped / ops): there is no upstream — content is AEGIS-authored. Each `SKILL.md` carries an `<!-- aegis-local: AEGIS-native skill, MIT-licensed; ... -->` header documenting the AEGIS-internal source pattern.
+- For `aegis-native/` (defensive / mitre-mapped / ops / compliance): there is no upstream — content is AEGIS-authored. Each `SKILL.md` carries an `<!-- aegis-local: AEGIS-native skill, MIT-licensed; ... -->` header documenting the AEGIS-internal source pattern.

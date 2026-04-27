@@ -11,15 +11,16 @@ import { loadAllSkills, resolveSkillsRoot } from '../src/skills-loader.js';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const EXPECTED_TOTAL = 46;
+const EXPECTED_TOTAL = 47;
 
-const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops'];
+const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance'];
 
 const EXPECTED_SOURCES_BY_CATEGORY: Record<string, string[]> = {
   offensive: ['snailsploit-fork'],
   defensive: ['aegis-native'],
   'mitre-mapped': ['aegis-native'],
   ops: ['aegis-native'],
+  compliance: ['aegis-native'],
 };
 
 const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
@@ -65,6 +66,7 @@ const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
   defensive: ['rls-defense', 'ssrf-defense', 'tenant-isolation-defense'],
   'mitre-mapped': ['mapping-overview', 't1078-valid-accounts', 't1190-exploit-public-app'],
   ops: ['escalation-runbook', 'suppress-correctly', 'triage-finding'],
+  compliance: ['brutaler-anwalt'],
 };
 
 describe('manifest — current shape', () => {
