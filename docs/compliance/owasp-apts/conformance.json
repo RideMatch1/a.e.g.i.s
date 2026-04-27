@@ -143,18 +143,27 @@
     },
     {
       "requirement_id": "APTS-SC-009",
-      "status": "partially_met",
-      "rationale": "Ctrl+C terminates the process tree; no formal multi-path kill switch (signal-based, API-based, dead-man-switch)."
+      "status": "met",
+      "rationale": "Multi-path kill switch in `packages/core/src/safety-controls/kill-switch.ts`. Path 1 (signals) \u2014 existing SIGINT/SIGTERM/SIGUSR1 handlers from Cluster-2. Path 2 (file-based) \u2014 `aegis siege-kill <state-file>` writes a `.killreq` marker; the running siege polls every 2 s via `startKillRequestWatcher` and halts on detection. Path 3 (dead-man-switch) \u2014 `--heartbeat-url <url>` (or `RoE.safety_controls.heartbeat_url`) POSTs at a configured interval; `startDeadManHeartbeat` halts on consecutive missed responses (default 3).",
+      "evidence_refs": [
+        "ev-multi-path-kill-switch"
+      ]
     },
     {
       "requirement_id": "APTS-SC-010",
-      "status": "not_met",
-      "rationale": "No health-monitoring or threshold-based automatic halt today."
+      "status": "met",
+      "rationale": "Per-engagement health probe via `runHealthCheck` in `packages/core/src/safety-controls/health-monitor.ts`. Three independent thresholds (heap memory MB, error rate 0..1, target HEAD response time ms) with operator-friendly defaults (1 GB / 50% / 10 s). `RoE.safety_controls.health_thresholds` overrides per engagement. siege calls runHealthCheck at every phase boundary; threshold breach triggers halt with explicit reason and observed values for the audit trail.",
+      "evidence_refs": [
+        "ev-health-monitor"
+      ]
     },
     {
       "requirement_id": "APTS-SC-015",
-      "status": "not_met",
-      "rationale": "No post-test system-integrity validation step."
+      "status": "met",
+      "rationale": "`probeTargetIntegrity` in `packages/core/src/safety-controls/post-test-integrity.ts`. Post-Phase-4 HEAD probe via safeFetch (same SSRF defenses). Captures status + response time; compares against the pre-engagement baseline recorded at siege startup. Flags 5xx responses as integrity failure; flags response-time spike-vs-baseline beyond a configurable delta. Result emitted as a scope-validation event so the post-engagement integrity verdict lands in the hash-chained audit log.",
+      "evidence_refs": [
+        "ev-post-test-integrity"
+      ]
     },
     {
       "requirement_id": "APTS-SC-020",
@@ -178,8 +187,11 @@
     },
     {
       "requirement_id": "APTS-HO-003",
-      "status": "not_met",
-      "rationale": "No decision-timeout / default-safe-behavior framework; wrappers run to completion."
+      "status": "met",
+      "rationale": "`withPhaseTimeout` in `packages/core/src/safety-controls/decision-timeout.ts`. Wraps each of the three running phases in `Promise.race` against a deadline; on timeout returns a structured TimeoutFailure with default action `halt` (the safe choice for an offensive engagement). Caller emits a halt event and stops. AbortController is signaled so the wrapped phase can clean up. `derivePhaseTimeoutMs` reads `RoE.stop_conditions.phase_timeout_minutes`, falls back to `max_duration_minutes/4`, then to a 30-min default.",
+      "evidence_refs": [
+        "ev-decision-timeout"
+      ]
     },
     {
       "requirement_id": "APTS-HO-004",
@@ -329,8 +341,11 @@
     },
     {
       "requirement_id": "APTS-AL-016",
-      "status": "not_met",
-      "rationale": "No continuous boundary-monitoring or breach-detection during runs."
+      "status": "met",
+      "rationale": "`detectScopeBreach` in `packages/core/src/safety-controls/boundary-monitor.ts`. Validates every emitted finding's location URL against the loaded RoE in_scope/out_of_scope; siege emits a per-finding `scope-validation` event with the breach verdict. Out-of-scope findings halt the engagement immediately. Extends Cluster-3's engagement-start scope-validation to *every* scanner emission \u2014 the continuous-monitoring requirement.",
+      "evidence_refs": [
+        "ev-continuous-boundary-monitor"
+      ]
     },
     {
       "requirement_id": "APTS-AR-001",

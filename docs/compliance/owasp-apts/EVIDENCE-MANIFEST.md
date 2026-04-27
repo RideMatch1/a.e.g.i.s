@@ -382,6 +382,67 @@ to exist at the pinned HEAD SHA.
 - **Captured at:** 2026-04-27
 - **Sensitivity:** public
 
+### `ev-multi-path-kill-switch`
+
+- **Type:** code-module + tests + integration + cli
+- **Paths:**
+  - `packages/core/src/safety-controls/kill-switch.ts` — `startKillRequestWatcher` polls a marker file via `setInterval(unref)` and fires an operator-supplied callback on detection; `requestKill` writes the marker. `startDeadManHeartbeat` POSTs at a configured interval and counts consecutive failures (network error, non-2xx, thrown).
+  - `packages/cli/src/commands/siege.ts` — wires both watchers; halt event carries the SC-009 ref on detection.
+  - `packages/cli/src/index.ts` — `aegis siege-kill <state-file>` subcommand.
+  - `packages/core/__tests__/safety-controls/kill-switch.test.ts` — 7 tests (marker shape, watcher fire-on-detect, stop()-prevents-callback, heartbeat threshold-fire, success-resets-counter, thrown-error-counts).
+- **What it proves:** APTS-SC-009 (Kill Switch) — multi-path: signal (existing), file-marker, dead-man.
+- **How to verify:** `pnpm -F @aegis-scan/core test kill-switch` — 7/7 green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-health-monitor`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/safety-controls/health-monitor.ts` — `runHealthCheck` evaluates heap memory + rolling error rate + last target response time against thresholds; observed values returned for the audit trail.
+  - `packages/cli/src/commands/siege.ts` — `runSafetyChecks` invokes runHealthCheck at every phase boundary; halt on breach.
+  - `packages/core/__tests__/safety-controls/health-monitor.test.ts` — 6 tests (errorRate edge cases + each threshold class).
+- **What it proves:** APTS-SC-010 (Health Check Monitoring + Threshold-Based Auto-Halt).
+- **How to verify:** `pnpm -F @aegis-scan/core test health-monitor` — 6/6 green.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-post-test-integrity`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/safety-controls/post-test-integrity.ts` — `probeTargetIntegrity` HEADs the target via safeFetch; flags 5xx + response-time spike-vs-baseline.
+  - `packages/cli/src/commands/siege.ts` — captures pre-engagement baseline at the reachability check; runs probeTargetIntegrity post-Phase-4; emits a scope-validation event with the verdict.
+  - `packages/core/__tests__/safety-controls/post-test-integrity.test.ts` — 5 tests (ok-on-200, fail-on-5xx, fail-on-spike, ok-within-threshold, fail-on-fetch-throw).
+- **What it proves:** APTS-SC-015 (Post-Test System Integrity Validation).
+- **How to verify:** `pnpm -F @aegis-scan/core test post-test-integrity` — 5/5 green. Integration test "runs probeTargetIntegrity post-engagement and emits SC-015 audit event".
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-continuous-boundary-monitor`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/safety-controls/boundary-monitor.ts` — `detectScopeBreach` validates a finding-like\'s location/target/file against the loaded RoE; URL-shaped values pass through `validateTargetInScope`.
+  - `packages/cli/src/commands/siege.ts` — wired into `haltOnFindingTextRisk` for every emitted finding; emits a per-finding scope-validation event; halt on breach.
+  - `packages/core/__tests__/safety-controls/boundary-monitor.test.ts` — 5 tests (no-inspectable-passes, in-scope-passes, out-of-scope-fails, file-paths-skip, location-precedence).
+- **What it proves:** APTS-AL-016 (Continuous Boundary Monitoring + Breach Detection).
+- **How to verify:** `pnpm -F @aegis-scan/core test boundary-monitor` — 5/5 green. Integration test "halts when detectScopeBreach reports a per-finding boundary breach (APTS-AL-016)".
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-decision-timeout`
+
+- **Type:** code-module + tests + integration
+- **Paths:**
+  - `packages/core/src/safety-controls/decision-timeout.ts` — `withPhaseTimeout` wraps a phase promise in Promise.race against a deadline; signals an optional AbortController on timeout. `derivePhaseTimeoutMs` reads `RoE.stop_conditions.phase_timeout_minutes` with a `max_duration_minutes/4` fallback and a default-supplied final fallback.
+  - `packages/cli/src/commands/siege.ts` — wraps each of the three running phases (recon, discovery, exploitation) in withPhaseTimeout. CLI flag `--phase-timeout-minutes` overrides the RoE value.
+  - `packages/core/__tests__/safety-controls/decision-timeout.test.ts` — 7 tests (resolves-on-time, fails-on-overrun, abort-controller-fires, error-rethrow, derivePhaseTimeoutMs precedence ladder).
+- **What it proves:** APTS-HO-003 (Decision Timeout + Default-Safe Behavior).
+- **How to verify:** `pnpm -F @aegis-scan/core test decision-timeout` — 7/7 green. Integration test "halts when withPhaseTimeout reports a recon-phase timeout (APTS-HO-003)".
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
 ### `ev-wrapper-sandboxing`
 
 - **Type:** code-module + tests + integration
@@ -415,22 +476,22 @@ The handover doc tracks the same set with sequencing + ETA.
 
 ### Safety Controls (SC) — gaps
 
-- **APTS-SC-001 (Impact Classification and CIA Scoring) — partially_met:** CWE-based severity is CIA-adjacent. **Phase-2 plan:** add CIA impact-vector field to Finding type; populate per-CWE in the scanner emit-path.
+> **Closed by Phase 2 Cluster-5** (safety-controls module + per-phase wiring): SC-009, SC-010, SC-015. See `ev-multi-path-kill-switch`, `ev-health-monitor`, `ev-post-test-integrity` above.
+
+- **APTS-SC-001 (Impact Classification and CIA Scoring) — partially_met:** CWE-based severity is CIA-adjacent. **Phase-2 plan:** add CIA impact-vector field to Finding type; populate per-CWE in the scanner emit-path. **Cluster-6.**
 - **APTS-SC-004 (Rate Limiting, Bandwidth, and Payload Constraints) — partially_met:** Per-wrapper. **Phase-2 plan:** orchestrator-level token-bucket / global rate-limit + payload-size envelope.
-- **APTS-SC-009 (Kill Switch) — partially_met:** Ctrl+C only. **Phase-2 plan:** multi-path kill switch — signal-based (SIGTERM with 5s grace + SIGKILL), API-based (`aegis siege --kill`), dead-man-switch (heartbeat to operator-managed endpoint).
-- **APTS-SC-010 (Health Check Monitoring, Threshold Adjustment, Automatic Halt) — not_met:** **Phase-2 plan:** per-engagement health probe with auto-halt thresholds (memory, error-rate, target-response-time).
-- **APTS-SC-015 (Post-Test System Integrity Validation) — not_met:** **Phase-2 plan:** post-engagement verification step that confirms target service responsiveness + records final state-snapshot.
 - **APTS-SC-020 (Action Allowlist Enforcement External to the Model) — partially_met:** Mode-gate is coarse. **Phase-2 plan:** per-scanner action allowlist consumed by the orchestrator before scanner dispatch.
 
 ### Human Oversight (HO) — gaps
 
 > **Closed by Phase 2 Cluster-2** (Intervention API + JSONL state-stream + signal handlers + webhook dispatcher): HO-002, HO-006, HO-008. See `ev-jsonl-events`, `ev-engagement-state`, `ev-signal-handlers`, `ev-siege-c2-wiring` above.
 >
+> **Closed by Phase 2 Cluster-5** (decision timeout + default-safe halt): HO-003. See `ev-decision-timeout` above.
+>
 > **Bumped from not_met to partially_met by Cluster-2:** HO-015 (webhook channel shipped; full multi-channel Slack/email/PagerDuty integration is Cluster-2.5).
 
-- **APTS-HO-001 — partially_met:** `--mode pentest` opt-in is a pre-approval gesture. **Phase-2 plan:** structured per-AL-level pre-approval gate.
-- **APTS-HO-003 — not_met:** **Phase-2 plan:** decision-timeout per phase with default-safe-behavior (halt > continue).
-- **APTS-HO-004 — not_met:** **Phase-2 plan:** authority-delegation matrix in the RoE schema.
+- **APTS-HO-001 — partially_met:** `--mode pentest` opt-in is a pre-approval gesture. **Phase-2 plan:** structured per-AL-level pre-approval gate. **Cluster-6.**
+- **APTS-HO-004 — not_met:** **Phase-2 plan:** authority-delegation matrix in the RoE schema. **Cluster-6.**
 - **APTS-HO-007 — not_met:** **Phase-2 plan:** mid-engagement redirect via expanded RoE-edit-then-resume cycle (Cluster-2.5).
 - **APTS-HO-010 — partially_met:** One decision point at start. **Phase-2 plan:** identify per-phase irreversible-action set + add gate per item.
 - **APTS-HO-011 — not_met:** **Phase-2 plan:** unexpected-finding escalation framework (severity > THRESHOLD → operator notification + halt-pending-approval).
@@ -450,7 +511,8 @@ The handover doc tracks the same set with sequencing + ETA.
 > **Closed by Phase 2 Cluster-2** (Intervention API + JSONL state-stream + signals + webhooks): AL-011, AL-012. See `ev-jsonl-events`, `ev-signal-handlers`, `ev-siege-c2-wiring` above.
 >
 > **Closed by Phase 2 Cluster-3** (hash-chain → signed audit trail): AL-005. See `ev-hash-chain`, `ev-audit-verify-cli` above.
-- **APTS-AL-016 — not_met:** **Phase-2 plan:** continuous boundary-monitor that re-validates the scope-object on every scanner-emit.
+>
+> **Closed by Phase 2 Cluster-5** (continuous boundary monitor): AL-016. See `ev-continuous-boundary-monitor` above.
 
 ### Auditability (AR) — gaps
 

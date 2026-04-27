@@ -76,16 +76,16 @@ Summary: AEGIS does not pin a foundation model. The operator chooses the provide
 | Domain | Total Tier-1 | Met | Partially | Not Met | N/A | Planned |
 |---|---|---|---|---|---|---|
 | Scope Enforcement (SE) | 9 | 9 | 0 | 0 | 0 | 0 |
-| Safety Controls (SC) | 6 | 0 | 4 | 2 | 0 | 0 |
-| Human Oversight (HO) | 13 | 3 | 4 | 6 | 0 | 0 |
-| Graduated Autonomy (AL) | 11 | 7 | 3 | 1 | 0 | 0 |
+| Safety Controls (SC) | 6 | 3 | 3 | 0 | 0 | 0 |
+| Human Oversight (HO) | 13 | 4 | 4 | 5 | 0 | 0 |
+| Graduated Autonomy (AL) | 11 | 8 | 3 | 0 | 0 | 0 |
 | Auditability (AR) | 7 | 5 | 1 | 1 | 0 | 0 |
 | Manipulation Resistance (MR) | 13 | 13 | 0 | 0 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **44** | **15** | **11** | **2** | **0** |
+| **Total** | **72** | **49** | **14** | **7** | **2** | **0** |
 
-**MET total: 44/72 (61%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped 8 entries. Phase 2 Cluster-2 (intervention API + JSONL state-stream + signal handlers + webhook dispatcher) shipped 6 + 2 partial-bumps. Phase 2 Cluster-3 (SHA-256 hash-chain + per-finding evidence_hash + `aegis audit-verify` CLI) shipped 4 more (AR-010 + AR-012 + AL-005 + SE-015) — the **SE domain is fully met (9/9)**. Phase 2 Cluster-4 (manipulation-resistance enforcement module + siege wiring) shipped 11 more (MR-001/002/004/005/007/008/009/010/011/012/018) — the **MR domain is now also fully met (13/13)**, joining SE and RP as the third domain at 100%. APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
+**MET total: 49/72 (68%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped 8 entries. Phase 2 Cluster-2 (intervention API + JSONL state-stream + signal handlers + webhook dispatcher) shipped 6 + 2 partial-bumps. Phase 2 Cluster-3 (SHA-256 hash-chain + per-finding evidence_hash + `aegis audit-verify` CLI) shipped 4 more (AR-010 + AR-012 + AL-005 + SE-015) — the **SE domain is fully met (9/9)**. Phase 2 Cluster-4 (manipulation-resistance enforcement module + siege wiring) shipped 11 more (MR-001/002/004/005/007/008/009/010/011/012/018) — the **MR domain is now also fully met (13/13)**, joining SE and RP at 100%. Phase 2 Cluster-5 (safety-controls module + per-phase wiring) shipped 5 more (SC-009 + SC-010 + SC-015 + AL-016 + HO-003) — three domains remain partial-or-better: HO (4/13), AR (5/7 + 1 partial), TP (4/10 + 3 partial + 2 N/A). APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
 
 ---
 
@@ -95,17 +95,17 @@ Summary: AEGIS does not pin a foundation model. The operator chooses the provide
 
 After Phase 2 Cluster-1, six SE entries (SE-001/003/004/005/006/008) flipped MET via the RoE schema + validators + CLI integration. SE-002 (RFC 1918) and SE-009 (hard deny lists) were already MET. After Phase 2 Cluster-3, SE-015 (scope-enforcement audit log) flipped MET via the scope-validation event emission into the hash-chained JSONL audit log. **SE is the first domain to reach 100% Tier-1 MET coverage.**
 
-### Safety Controls (SC) — 0/6 MET
+### Safety Controls (SC) — 3/6 MET
 
-The weakest currently-shipping baseline at the orchestrator layer. AEGIS today relies on per-wrapper safety controls (Strix/PTAI/Pentest-Swarm-AI each have their own rate-limit and kill-switch behavior). Phase 2 introduces orchestrator-level rate-limiting, multi-path kill switch, health-check monitoring with auto-halt thresholds, and post-test integrity validation.
+After Phase 2 Cluster-5, three SC entries flipped to MET via the new `packages/core/src/safety-controls/` module: multi-path kill switch (SC-009 — signals + file-marker + dead-man heartbeat), per-engagement health probe with auto-halt thresholds (SC-010 — heap memory + error rate + target response time), and post-test target integrity probe (SC-015 — HEAD via safeFetch, baseline-aware spike detection). Remaining gaps: SC-001 (CIA scoring — Cluster-6), SC-004 (orchestrator-level rate limiting), SC-020 (per-scanner action allowlist).
 
-### Human Oversight (HO) — 0/13 MET
+### Human Oversight (HO) — 4/13 MET
 
-Largest gap cluster. AEGIS today provides one decision point at engagement start (`siege --confirm`) and one termination path (Ctrl+C). The Phase-2 plan introduces a structured intervention API: pause/redirect/kill via SIGUSR1 + a JSONL-streamed engagement state, plus multi-channel notification hooks (Slack/email/PagerDuty/webhooks) for the escalation triggers.
+After Phase 2 Cluster-5, HO-003 (decision timeout + default-safe halt) flipped to MET via `withPhaseTimeout`. AEGIS today provides decision points at engagement start, multi-channel notification hooks (Slack/email/PagerDuty are still Cluster-2.5 work), per-phase decision-timeout, and structured intervention via SIGUSR1. Remaining HO gaps fall mostly into Cluster-6 (HO-001/004/010/011/012/013/014 — pre-approval gates per AL-level, authority delegation, mandatory human decision points, escalation frameworks).
 
-### Graduated Autonomy (AL) — 4/11 MET
+### Graduated Autonomy (AL) — 8/11 MET
 
-After Phase 2 Cluster-1, AL-006 (basic scope validation policy DSL) and AL-014 (multi-axis boundary definition framework) flipped to MET via the RoE schema. AL-002 (human-directed target/technique selection) and AL-003 (operator-configured parameters) were already MET. Remaining gaps: AL-001 (formal AL-level tagging per scanner), AL-004 (per-phase confirmation), AL-005 (logging not yet hash-signed), AL-008 (real-time approval gates), AL-011 (escalation triggers), AL-012 (kill switch), AL-016 (continuous boundary monitoring) — closures distributed across Phase 2 Clusters 2/3/5.
+After Phase 2 Cluster-1 + Cluster-2 + Cluster-3 + Cluster-5, eight AL entries are MET: AL-002, AL-003 (pre-existing), AL-005 (hash-chained audit trail), AL-006 + AL-014 (RoE schema), AL-011 + AL-012 (intervention API + signal handlers), AL-016 (continuous boundary monitor — Cluster-5). Remaining: AL-001 (formal AL-level tagging per scanner), AL-004 (per-phase confirmation), AL-008 (per-action approval gate — partial via signals).
 
 ### Auditability (AR) — 5/7 MET (Cluster-3 shipped)
 
@@ -182,6 +182,7 @@ The Phase-2 punch list is tracked in the project's handover doc and re-flected i
 | 2026-04-27 | 1.2 | Phase 2 Cluster-2 ship — intervention API + JSONL state-stream + signal handlers + webhook dispatcher. 6 entries flip MET (HO-002/006/008 + AL-011/012 + AR-002), 2 entries bump from NOT-MET to PARTIALLY-MET (HO-015, AL-008). New: 29/72 MET, 23 PARTIAL, 18 NOT-MET, 2 N/A. |
 | 2026-04-27 | 1.3 | Phase 2 Cluster-3 ship — SHA-256 hash-chain + per-finding evidence_hash + `aegis audit-verify` CLI + scope-validation audit-event. 4 entries flip MET (AR-010 + AR-012 + AL-005 + SE-015). **SE domain fully met (9/9).** New: 33/72 MET, 21 PARTIAL, 16 NOT-MET, 2 N/A. |
 | 2026-04-27 | 1.4 | Phase 2 Cluster-4 ship — `packages/core/src/manipulation-resistance/` enforcement module + siege wiring. 11 entries flip MET (MR-001/002/004/005/007/008/009/010/011/012/018). **MR domain fully met (13/13).** Three domains now at 100%: SE, MR, RP. New: 44/72 MET, 15 PARTIAL, 11 NOT-MET, 2 N/A. |
+| 2026-04-27 | 1.5 | Phase 2 Cluster-5 ship — `packages/core/src/safety-controls/` module + per-phase wiring. 5 entries flip MET (SC-009 multi-path kill switch, SC-010 health monitor + auto-halt, SC-015 post-test integrity probe, AL-016 continuous boundary monitor, HO-003 decision timeout + default-safe halt). New: 49/72 MET, 14 PARTIAL, 7 NOT-MET, 2 N/A. |
 
 ---
 
