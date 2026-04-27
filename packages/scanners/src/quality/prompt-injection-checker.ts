@@ -12,6 +12,16 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
  *
  * OWASP A03:2021 — Injection
  * CWE-77 — Improper Neutralization of Special Elements used in a Command
+ *
+ * Two rule arrays:
+ *   - DANGEROUS_PATTERNS — risky interpolation shapes (template literals,
+ *     bare-variable content). The scanner skips a file when SANITIZATION_PATTERNS
+ *     are present (file-level + per-match nearby-line) because the operator's
+ *     own sanitizer is presumed to handle the risk.
+ *   - WEAK_DEFENSE_PATTERNS — sanitizer-quality rules. The presence of a
+ *     "sanitizer" IS the bug — it is too narrow / mis-ordered / incomplete.
+ *     These rules opt-OUT of the SANITIZATION_PATTERNS short-circuit so a
+ *     broken sanitizer is still flagged. See Field-Report 2026-04-27 §1–4.
  */
 
 function shouldSkipFile(filePath: string): boolean {
@@ -76,6 +86,17 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; title: string; description: s
     description:
       'A prompt property is assigned a bare variable (not a string literal). If the variable is user-controlled, this enables prompt injection. Sanitize via escapeForPrompt / sanitizePrompt or wrap the variable inside a system-prompt-isolation template before dispatch.',
   },
+];
+
+/**
+ * Weak-defense rules — patterns that ARE the broken sanitizer.
+ *
+ * Unlike DANGEROUS_PATTERNS these rules opt-out of the SANITIZATION_PATTERNS
+ * short-circuit because the presence of a sanitizer in the file is the very
+ * thing being flagged (the sanitizer itself is the bug). Origin: M-01
+ * brutal-load audit + Field-Report 2026-04-27 (Beobachtungen 1–4).
+ */
+const WEAK_DEFENSE_PATTERNS: Array<{ pattern: RegExp; title: string; description: string }> = [
   {
     // Brutal-load audit (2026-04-26), finding M-01:
     //   .replace(/^\s*(?:system|SYSTEM)\s*:/gm, '[blocked]:')
@@ -132,16 +153,45 @@ export const promptInjectionCheckerScanner: Scanner = {
 
     const files = walkFiles(projectPath, ignore, ['ts', 'js']);
 
+    const emitFinding = (rule: { title: string; description: string }, file: string, line: number): void => {
+      const id = `PROMPTINJ-${String(idCounter++).padStart(3, '0')}`;
+      findings.push({
+        id,
+        scanner: 'prompt-injection-checker',
+        severity: 'high',
+        title: rule.title,
+        description: rule.description,
+        file,
+        line,
+        category: 'security',
+        owasp: 'A03:2021',
+        cwe: 77,
+      });
+    };
+
     for (const file of files) {
       if (shouldSkipFile(file)) continue;
 
       const content = readFileSafe(file);
       if (content === null) continue;
 
-      // Skip files with sanitization present
-      if (SANITIZATION_PATTERNS.some((p) => p.test(content))) continue;
-
       const lines = content.split('\n');
+
+      // Pass 1: WEAK_DEFENSE_PATTERNS — run unconditionally. The presence of
+      // a "sanitizer" in the file is the very thing being flagged (broken
+      // sanitizer is the bug). No SANITIZATION_PATTERNS short-circuit.
+      for (const rule of WEAK_DEFENSE_PATTERNS) {
+        const re = new RegExp(rule.pattern.source, `${rule.pattern.flags}g`);
+        let match: RegExpExecArray | null;
+        while ((match = re.exec(content)) !== null) {
+          emitFinding(rule, file, findLineNumber(content, match.index));
+        }
+      }
+
+      // Pass 2: DANGEROUS_PATTERNS — short-circuit when sanitization is
+      // present (file-level + per-match nearby-line). Operator's own sanitizer
+      // is presumed to handle the risk.
+      if (SANITIZATION_PATTERNS.some((p) => p.test(content))) continue;
 
       for (const rule of DANGEROUS_PATTERNS) {
         const re = new RegExp(rule.pattern.source, `${rule.pattern.flags}g`);
@@ -149,23 +199,12 @@ export const promptInjectionCheckerScanner: Scanner = {
         while ((match = re.exec(content)) !== null) {
           const matchLine = findLineNumber(content, match.index);
 
-          // Check nearby lines for sanitization
+          // Per-match nearby-line check — if a sanitizer call is within
+          // ±9 lines, treat the match as already-defended.
           const nearbyLines = lines.slice(Math.max(0, matchLine - 6), matchLine + 3).join('\n');
           if (SANITIZATION_PATTERNS.some((p) => p.test(nearbyLines))) continue;
 
-          const id = `PROMPTINJ-${String(idCounter++).padStart(3, '0')}`;
-          findings.push({
-            id,
-            scanner: 'prompt-injection-checker',
-            severity: 'high',
-            title: rule.title,
-            description: rule.description,
-            file,
-            line: matchLine,
-            category: 'security',
-            owasp: 'A03:2021',
-            cwe: 77,
-          });
+          emitFinding(rule, file, matchLine);
         }
       }
     }
