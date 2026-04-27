@@ -30,3 +30,18 @@ export {
   dispatchNotification,
   type NotificationConfig,
 } from './notifications.js';
+
+export {
+  sha256,
+  canonicalize,
+  hashCanonical,
+} from './hash.js';
+
+export {
+  ChainedEmitter,
+  verifyAuditChain,
+  type ChainedEmitterOpts,
+  type ChainVerifyResult,
+  type ChainVerifyOk,
+  type ChainVerifyFailure,
+} from './chain.js';

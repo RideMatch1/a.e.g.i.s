@@ -5,6 +5,7 @@ import { runScan } from './commands/scan.js';
 import { runAudit } from './commands/audit.js';
 import { runPentest } from './commands/pentest.js';
 import { runSiege } from './commands/siege.js';
+import { runAuditVerify } from './commands/audit-verify.js';
 import { runFix } from './commands/fix.js';
 import { runHistory } from './commands/history.js';
 import { runInit } from './commands/init.js';
@@ -109,6 +110,23 @@ program
         chalk.level = 0;
       }
       process.exit(await runSiege(path ?? '.', options));
+    },
+  );
+
+program
+  .command('audit-verify <state-file>')
+  .description('Verify the SHA-256 hash-chain on a siege --state-file JSONL audit log (APTS-AR-012). Detects post-hoc tampering at the line where the chain breaks.')
+  .option('-f, --format <format>', 'Output format: terminal (default), json', 'terminal')
+  .option('--no-color', 'Disable colored output')
+  .action(
+    async (
+      stateFile: string,
+      options: { format: 'terminal' | 'json'; color: boolean },
+    ) => {
+      if (!options.color) {
+        chalk.level = 0;
+      }
+      process.exit(await runAuditVerify(stateFile, options));
     },
   );
 

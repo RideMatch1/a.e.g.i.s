@@ -18,6 +18,7 @@ import {
   loadEngagementState,
   installSignalHandlers,
   dispatchNotification,
+  ChainedEmitter,
   type RoE,
   type EngagementState,
   type EventSink,
@@ -302,11 +303,17 @@ export async function runSiege(
     ? { webhooks: options.notifyWebhook }
     : null;
 
-  // Helper: emit event + dispatch to webhooks (notifications are fire-and-forget).
+  // APTS-AR-012: Chained emitter maintains the SHA-256 hash chain across
+  // emissions. Each event carries prev_hash + this_hash; an audit-verify run
+  // detects any post-hoc tampering at the line where the chain breaks.
+  const chain = new ChainedEmitter({ sink: eventSink });
+
+  // Helper: emit event via the chain + dispatch to webhooks (notifications
+  // are fire-and-forget). The chain emitter writes to eventSink directly.
   const emit = (ev: ReturnType<typeof makeEvent>): void => {
-    emitEvent(ev, eventSink);
+    const chained = chain.emit(ev);
     if (notifyConfig) {
-      void dispatchNotification(ev, notifyConfig, eventSink);
+      void dispatchNotification(chained, notifyConfig, eventSink);
     }
   };
 
@@ -316,6 +323,20 @@ export async function runSiege(
       roe_id: roe.roe_id,
       roe_synthesized: roe.roe_id.startsWith('synthesized-'),
       mode: 'siege',
+    }),
+  );
+
+  // APTS-SE-015: scope-enforcement audit event captures the in-scope decision
+  // that authorized this engagement. The chained emission means any future
+  // tamper with the audit log breaks the chain.
+  const scopeDecision = validateTargetInScope(options.target, roe);
+  emit(
+    makeEvent(engagementId, 'scope-validation', {
+      target: options.target,
+      action: 'engagement-start',
+      allowed: scopeDecision.allowed,
+      reason: scopeDecision.reason,
+      ...(scopeDecision.apts_refs ? { apts_refs: scopeDecision.apts_refs } : {}),
     }),
   );
 

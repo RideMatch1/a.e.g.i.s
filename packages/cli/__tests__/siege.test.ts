@@ -94,6 +94,12 @@ vi.mock('@aegis-scan/core', () => ({
   loadEngagementState: vi.fn().mockReturnValue({ ok: false, phase: 'file-missing', error: 'mock-default-no-resume' }),
   installSignalHandlers: vi.fn().mockReturnValue({ uninstall: vi.fn() }),
   dispatchNotification: vi.fn().mockResolvedValue(undefined),
+  // Cluster-3 hash-chain — minimal stub that just passes events through untouched.
+  ChainedEmitter: vi.fn().mockImplementation(() => ({
+    emit: (ev: unknown) => ev,
+    getTail: () => null,
+  })),
+  verifyAuditChain: vi.fn().mockReturnValue({ ok: true, total_events: 0, tail_hash: null }),
 }));
 
 vi.mock('@aegis-scan/reporters', () => ({

@@ -19,11 +19,16 @@
  */
 import { writeFileSync, appendFileSync } from 'node:fs';
 import type { Finding, Severity } from '../types.js';
+import { hashCanonical } from './hash.js';
 
 export interface EngagementEventBase {
   ts: string; // ISO-8601 with offset
   engagement_id: string;
   event: string;
+  /** Hash of the previous event in the chain. null on the first event. */
+  prev_hash?: string | null;
+  /** SHA-256 of this event's canonical form (excluding this_hash itself). */
+  this_hash?: string;
 }
 
 export type EngagementEvent =
@@ -46,6 +51,8 @@ export type EngagementEvent =
       severity: Severity;
       title: string;
       cwe?: number;
+      /** SHA-256 of the finding's canonical form (APTS-AR-010). */
+      evidence_hash?: string;
     })
   | (EngagementEventBase & {
       event: 'critical-finding';
@@ -84,6 +91,14 @@ export type EngagementEvent =
       score: number;
       grade: string;
       blocked: boolean;
+    })
+  | (EngagementEventBase & {
+      event: 'scope-validation';
+      target: string;
+      action: string;
+      allowed: boolean;
+      reason: string;
+      apts_refs?: string[];
     });
 
 /**
@@ -123,14 +138,17 @@ export function makeEvent<T extends EngagementEvent['event']>(
 /**
  * Helper: turn a Finding into a finding-emitted event. Caller decides
  * whether to also emit a critical-finding event for high/critical/blocker
- * severities.
+ * severities. Includes evidence_hash (SHA-256 of finding's canonical form)
+ * per APTS-AR-010.
  */
 export function findingEvent(engagementId: string, f: Finding): EngagementEvent {
+  const evidence_hash = hashCanonical(f);
   return makeEvent(engagementId, 'finding-emitted', {
     finding_id: f.id,
     severity: f.severity,
     title: f.title,
     ...(f.cwe !== undefined ? { cwe: f.cwe } : {}),
+    evidence_hash,
   });
 }
 
