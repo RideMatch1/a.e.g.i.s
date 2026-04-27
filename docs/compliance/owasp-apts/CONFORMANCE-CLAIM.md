@@ -77,15 +77,15 @@ Summary: AEGIS does not pin a foundation model. The operator chooses the provide
 |---|---|---|---|---|---|---|
 | Scope Enforcement (SE) | 9 | 8 | 1 | 0 | 0 | 0 |
 | Safety Controls (SC) | 6 | 0 | 4 | 2 | 0 | 0 |
-| Human Oversight (HO) | 13 | 0 | 3 | 10 | 0 | 0 |
-| Graduated Autonomy (AL) | 11 | 4 | 4 | 3 | 0 | 0 |
-| Auditability (AR) | 7 | 2 | 2 | 3 | 0 | 0 |
+| Human Oversight (HO) | 13 | 3 | 4 | 6 | 0 | 0 |
+| Graduated Autonomy (AL) | 11 | 6 | 4 | 1 | 0 | 0 |
+| Auditability (AR) | 7 | 3 | 1 | 3 | 0 | 0 |
 | Manipulation Resistance (MR) | 13 | 2 | 6 | 5 | 0 | 0 |
 | Supply Chain Trust (TP) | 10 | 4 | 3 | 1 | 2 | 0 |
 | Reporting (RP) | 3 | 3 | 0 | 0 | 0 | 0 |
-| **Total** | **72** | **23** | **23** | **24** | **2** | **0** |
+| **Total** | **72** | **29** | **23** | **18** | **2** | **0** |
 
-**MET total: 23/72 (32%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped after the Phase-1 baseline and closed 8 entries (SE-001/003/004/005/006/008 + AL-006/014). APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
+**MET total: 29/72 (40%).** Phase 2 Cluster-1 (machine-readable RoE schema + scope-object DSL) shipped 8 entries (SE-001/003/004/005/006/008 + AL-006/014). Phase 2 Cluster-2 (intervention API + JSONL state-stream + signal handlers + webhook dispatcher) shipped 6 more (HO-002/006/008 + AL-011/012 + AR-002) plus bumped 2 from not_met to partially_met (HO-015, AL-008). APTS still forbids partial credit for a conformance claim; this remains a Readiness Assessment, not a claim, until 100% MET.
 
 ---
 
@@ -179,6 +179,7 @@ The Phase-2 punch list is tracked in the project's handover doc and re-flected i
 |------|---------|--------|
 | 2026-04-27 | 1.0 | Initial Tier-1 Readiness Assessment publication. 15/72 MET, 28 PARTIAL, 27 NOT-MET, 2 N/A. Pinned at HEAD `551c63f989ed6f088ad642b79241fd531a1b82d5`. |
 | 2026-04-27 | 1.1 | Phase 2 Cluster-1 ship — machine-readable RoE schema + scope-object DSL. 8 entries flip MET (SE-001/003/004/005/006/008 + AL-006/014). New: 23/72 MET, 23 PARTIAL, 24 NOT-MET, 2 N/A. |
+| 2026-04-27 | 1.2 | Phase 2 Cluster-2 ship — intervention API + JSONL state-stream + signal handlers + webhook dispatcher. 6 entries flip MET (HO-002/006/008 + AL-011/012 + AR-002), 2 entries bump from NOT-MET to PARTIALLY-MET (HO-015, AL-008). New: 29/72 MET, 23 PARTIAL, 18 NOT-MET, 2 N/A. |
 
 ---
 

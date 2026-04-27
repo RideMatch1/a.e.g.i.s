@@ -200,6 +200,61 @@ to exist at the pinned HEAD SHA.
 - **Captured at:** 2026-04-27
 - **Sensitivity:** public
 
+### `ev-jsonl-events`
+
+- **Type:** code-schema + tests
+- **Paths:**
+  - `packages/core/src/runtime/events.ts` — engagement-event schema (engagement-start, phase-transition, finding-emitted, critical-finding, intervention, resume, halt, kill, completion). Each event carries ts (ISO-8601), engagement_id, event-name + per-event-shape payload. EventSink: callback-or-file-path; emitEvent appends one JSON line per event.
+  - `packages/core/__tests__/runtime/runtime.test.ts` — emit-to-callback + emit-to-file tests; findingEvent extraction; isCriticalSeverity classification.
+- **What it proves:** APTS-HO-002 (Real-Time Monitoring channel), APTS-AR-002 (State Transition Logging), APTS-AL-011 (Escalation Triggers — critical-finding events carry RoE stop_action).
+- **How to verify:** Run `aegis siege . --target https://example.com --confirm --state-file /tmp/siege-events.jsonl` against a localhost target; tail `/tmp/siege-events.jsonl` during the run.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-engagement-state`
+
+- **Type:** code-schema + tests
+- **Paths:**
+  - `packages/core/src/runtime/state.ts` — Zod-strict EngagementState schema (state_version, engagement_id, target, roe_id, completed_phases, findings_so_far, paused_at, reason). writeEngagementState + loadEngagementState (with file-missing / json-parse / schema-validation phase tagging). newEngagementState builder for engagement-start.
+  - `packages/core/__tests__/runtime/runtime.test.ts` — round-trip tests; every loadEngagementState rejection phase covered.
+- **What it proves:** APTS-HO-006 (Graceful Pause + State Preservation), APTS-HO-008 (Immediate Kill Switch + State Dump). Phase-grained resume — fine-grained mid-phase resume is Cluster-2.5 work.
+- **How to verify:** Send SIGUSR1 to a running siege process configured with `--state-file`; the file content is a valid EngagementState. Resume with `--resume <state-file>`; siege skips the phases listed in completed_phases.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-signal-handlers`
+
+- **Type:** code-handler + tests
+- **Paths:**
+  - `packages/core/src/runtime/signals.ts` — installSignalHandlers wires SIGINT (exit 130, kill-with-state-dump), SIGTERM (exit 143, kill-with-state-dump), SIGUSR1 (exit 0, pause-with-state-dump). uninstall() removes listeners on engagement completion. Test-injectable exit + on for deterministic signal-flow assertions.
+  - `packages/core/__tests__/runtime/runtime.test.ts` — handler installation + per-signal exit-code mapping + state-dump-to-disk verification.
+- **What it proves:** APTS-HO-008 (Kill Switch with State Dump), APTS-AL-012 (Kill Switch + Pause Capability), APTS-HO-006 (Graceful Pause via SIGUSR1).
+- **How to verify:** `kill -USR1 <siege-pid>` writes EngagementState, exits 0. `kill -TERM <siege-pid>` writes EngagementState, exits 143. State-write is best-effort — never masks the exit if disk-write fails.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-notification-webhook`
+
+- **Type:** code-dispatcher + tests
+- **Paths:**
+  - `packages/core/src/runtime/notifications.ts` — dispatchNotification fires fire-and-forget POST to each configured webhook URL with the JSON-serialized event payload. Default-event-allow-list (engagement-start, critical-finding, intervention, halt, kill, completion). Per-request timeout + AbortController. Failures recorded as halt-events with non-fatal flag — never abort the engagement.
+  - `packages/core/__tests__/runtime/runtime.test.ts` — POST shape, allow-list filter, error-swallow with halt-event recording, custom event-allow-list.
+- **What it proves:** APTS-HO-015 (Real-Time Activity Monitoring + Multi-Channel Notification — webhook subset; full multi-channel = Cluster-2.5).
+- **How to verify:** `aegis siege . --target X --confirm --notify-webhook https://hook.example.com/critical` emits engagement-start + critical-finding events to the URL.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
+### `ev-siege-c2-wiring`
+
+- **Type:** code-integration
+- **Paths:**
+  - `packages/cli/src/index.ts` — `siege --state-file <path>`, `--resume <path>`, `--notify-webhook <url>` (repeatable via collectMulti).
+  - `packages/cli/src/commands/siege.ts` — engagement_id generation, JSONL event emission at engagement-start + per-phase enter/exit + per-finding (with critical-finding fan-out), state persistence at every phase boundary, signal-handler installation, --resume pathway that skips completed phases. handlers.uninstall() on completion + on halt-paths.
+- **What it proves:** Composite — combines ev-jsonl-events, ev-engagement-state, ev-signal-handlers, ev-notification-webhook into the operator-facing `aegis siege` flow. Closes APTS-HO-002, HO-006, HO-008, AL-011, AL-012, AR-002.
+- **How to verify:** Full run: `aegis siege . --target https://localhost:3000 --confirm --state-file /tmp/eng.jsonl --notify-webhook https://hook.example.com/`. Mid-run: `kill -USR1 <pid>` → state-file populated → `aegis siege . --target https://localhost:3000 --confirm --resume /tmp/eng.jsonl`. Operator should see "Skipping Phase X" notes for each previously-completed phase.
+- **Captured at:** 2026-04-27
+- **Sensitivity:** public
+
 ---
 
 ## Gap Notes (`partially_met`, `not_met`, `not_applicable`)
@@ -222,37 +277,39 @@ The handover doc tracks the same set with sequencing + ETA.
 - **APTS-SC-015 (Post-Test System Integrity Validation) — not_met:** **Phase-2 plan:** post-engagement verification step that confirms target service responsiveness + records final state-snapshot.
 - **APTS-SC-020 (Action Allowlist Enforcement External to the Model) — partially_met:** Mode-gate is coarse. **Phase-2 plan:** per-scanner action allowlist consumed by the orchestrator before scanner dispatch.
 
-### Human Oversight (HO) — gaps (largest cluster)
+### Human Oversight (HO) — gaps
+
+> **Closed by Phase 2 Cluster-2** (Intervention API + JSONL state-stream + signal handlers + webhook dispatcher): HO-002, HO-006, HO-008. See `ev-jsonl-events`, `ev-engagement-state`, `ev-signal-handlers`, `ev-siege-c2-wiring` above.
+>
+> **Bumped from not_met to partially_met by Cluster-2:** HO-015 (webhook channel shipped; full multi-channel Slack/email/PagerDuty integration is Cluster-2.5).
 
 - **APTS-HO-001 — partially_met:** `--mode pentest` opt-in is a pre-approval gesture. **Phase-2 plan:** structured per-AL-level pre-approval gate.
-- **APTS-HO-002 — not_met:** No structured intervention surface. **Phase-2 plan:** structured-progress JSONL channel + intervention API (pause/redirect/kill).
 - **APTS-HO-003 — not_met:** **Phase-2 plan:** decision-timeout per phase with default-safe-behavior (halt > continue).
 - **APTS-HO-004 — not_met:** **Phase-2 plan:** authority-delegation matrix in the RoE schema.
-- **APTS-HO-006 — not_met:** **Phase-2 plan:** SIGUSR1-driven graceful pause + state-serialization to `aegis-state-<runId>.json`.
-- **APTS-HO-007 — not_met:** **Phase-2 plan:** mid-engagement redirect via the intervention API (HO-002 closure).
-- **APTS-HO-008 — not_met:** **Phase-2 plan:** state-dump-on-kill — combine with HO-006 serialization.
+- **APTS-HO-007 — not_met:** **Phase-2 plan:** mid-engagement redirect via expanded RoE-edit-then-resume cycle (Cluster-2.5).
 - **APTS-HO-010 — partially_met:** One decision point at start. **Phase-2 plan:** identify per-phase irreversible-action set + add gate per item.
 - **APTS-HO-011 — not_met:** **Phase-2 plan:** unexpected-finding escalation framework (severity > THRESHOLD → operator notification + halt-pending-approval).
-- **APTS-HO-012 — not_met:** **Phase-2 plan:** impact-threshold-breach trigger (combines with SC-001 CIA scoring).
+- **APTS-HO-012 — not_met:** **Phase-2 plan:** impact-threshold-breach trigger (combines with SC-001 CIA scoring, Cluster-6).
 - **APTS-HO-013 — partially_met:** `[LOW-CONFIDENCE]` badge is post-hoc. **Phase-2 plan:** in-engagement confidence-based pause.
 - **APTS-HO-014 — not_met:** **Phase-2 plan:** legal/compliance escalation triggers in the RoE schema (regulated-asset class detection).
-- **APTS-HO-015 — not_met:** **Phase-2 plan:** multi-channel notification hooks (Slack/email/PagerDuty/webhooks) wired to the intervention API.
+- **APTS-HO-015 — partially_met:** Webhook channel shipped (one or more URLs supported simultaneously). **Phase-2 plan:** native multi-channel transport (Slack, email, PagerDuty) — Cluster-2.5.
 
 ### Graduated Autonomy (AL) — gaps
 
 - **APTS-AL-001 — partially_met:** No formal AL-level tags. **Phase-2 plan:** AL-level metadata field per scanner registration; orchestrator labels each engagement-phase with the AL-level it operates under.
 - **APTS-AL-004 — partially_met:** siege-phase chain is operator-confirmed once. **Phase-2 plan:** per-phase confirmation prompt (or RoE-acknowledged auto-chain disclosure).
 - **APTS-AL-005 — partially_met:** Logs not signed. **Phase-2 plan:** combine with AR-010 hash-chain.
-- **APTS-AL-008 — not_met:** **Phase-2 plan:** real-time approval-gate API (combines with HO-002 intervention API, Cluster-2 work).
-- **APTS-AL-011 — not_met:** **Phase-2 plan:** structured exception-handling framework with escalation triggers (Cluster-2 — partial closure via the RoE `stop_conditions` field already shipped).
-- **APTS-AL-012 — partially_met:** Only Ctrl+C. **Phase-2 plan:** combine with SC-009 multi-path kill + HO-006 graceful pause (Cluster-2 + Cluster-5).
+- **APTS-AL-008 — partially_met:** Signal-based pause/kill is an out-of-band intervention surface; per-action approval gate (RoE-driven, per-scanner-emit) is Cluster-4 work.
 
 > **Closed by Phase 2 Cluster-1** (RoE schema + scope-object DSL): AL-006, AL-014. See `ev-roe-schema`, `ev-roe-validators` above.
+>
+> **Closed by Phase 2 Cluster-2** (Intervention API + JSONL state-stream + signals + webhooks): AL-011, AL-012. See `ev-jsonl-events`, `ev-signal-handlers`, `ev-siege-c2-wiring` above.
 - **APTS-AL-016 — not_met:** **Phase-2 plan:** continuous boundary-monitor that re-validates the scope-object on every scanner-emit.
 
 ### Auditability (AR) — gaps
 
-- **APTS-AR-002 — partially_met:** Scan-progress to stdout. **Phase-2 plan:** structured state-transition log (engagement-state-machine JSONL with phase + state + ts).
+> **Closed by Phase 2 Cluster-2** (JSONL state-stream): AR-002. See `ev-jsonl-events`, `ev-siege-c2-wiring` above.
+
 - **APTS-AR-006 — partially_met:** Taint chain only. **Phase-2 plan:** alternative-evaluation reasoning emit for siege-mode autonomous decisions.
 - **APTS-AR-010 — not_met:** **Phase-2 plan:** SHA-256 hash per finding emitted alongside the finding; hash captured in audit log.
 - **APTS-AR-012 — not_met:** **Phase-2 plan:** hash-chained audit-log file (each entry's hash includes the previous entry's hash).
