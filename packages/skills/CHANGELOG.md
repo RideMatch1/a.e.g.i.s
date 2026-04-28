@@ -23,6 +23,24 @@ This establishes a second integration-pattern alongside the existing fork-mode (
 
 ---
 
+## [0.3.0] — 2026-04-28 — "HARD-CONSTRAINT-frontmatter + AGENTS.md router (Phase 1 of AEGIS Agent Foundation)"
+
+### Added
+
+- **HARD-CONSTRAINT frontmatter format** — adds the v0.3.0 metadata-nested fields used by the AEGIS Agent Foundation (`metadata.required_tools`, `metadata.required_audit_passes`, `metadata.enforced_quality_gates`, `metadata.pre_done_audit`) plus top-level `model` (opus|sonnet|haiku) and `license` (typically MIT). The fields are visible to agents reading the SKILL.md content as the un-skippable Reference-Loading + Pre-Done-Audit gate. Loader-compatible: comma-separated strings stay parser-stable; YAML-array-form deferred until at least three skills need true arrays. Per spec §2 Component 3 + §13.3 + §8 dec 7 of the Foundation design.
+- **`parseHardConstraintFrontmatter()`** exported from `skills-loader.ts`. Reads top-level `name` / `description` / `model` / `license` plus the four metadata-nested HARD-CONSTRAINT fields. Backward-compat: top-level form still accepted as transitional fallback. Includes `extractMetadataField()` helper for two-level YAML extraction. 5 new unit-tests in `__tests__/frontmatter.test.ts` (canonical metadata-nested + flat-fallback + leading-aegis-local-comment-tolerance + missing-frontmatter graceful-empty + complete-skill-roundtrip). Total: 410 tests passing.
+- **`brutaler-anwalt` upgraded** with HARD-CONSTRAINT-frontmatter (under `metadata:`) + 5 missing structural sections — `## Triggers` (renamed from `## Trigger-Pattern`), `## Process` (new — wraps the 4 Modi + 8-Phasen-HUNTER-Workflow), `## Verification / Success Criteria` (new — 8-checkbox pre-done gate), `## Anti-Patterns` (renamed from singular `## Anti-Pattern`), `## Extension Points` (new — extension-paths for references / branchen / modi / hooks). Plus a HARD-CONSTRAINT — Reference-Loading block that forbids improvisation: every finding must cite § / Art. + Az. + reference-file-path. SkillForge `validate-skill.py` against the consumer-side install-path: 9/16 → **17/17 ALL CHECKS PASSED**.
+- **`packages/skills/AGENTS.md`** (new at the package root) — universal router skeleton covering Bootstrap-checklist, Tool-Category Mapping table (Claude Code / Codex / Copilot CLI columns), Use-Case Routing, and Skill Categories overview. Forward-compat note flags v0.4.0 expansion to the full `aegis-native/` cluster.
+- **`packages/skills/skills/compliance/_INDEX.md`** (new) — trigger-table for the compliance category, routing brutaler-anwalt today + a forward-compat slot for `dsgvo-compliance` post-v0.4.0. Slash-command surface documented (`/anwalt` with `hunt`/`simulate`/`consult` sub-modes plus `/audit` and `/compliance-check` aliases). Bootstrap-checklist for category-loaders.
+
+### Notes
+
+- Hierarchical skill-loading per the Foundation spec §2 Component 2 + §13.4. Token-budget reduction estimate ≥70% versus a flat skill-pool once the full v0.4.0 cluster lands. The tool-mapping table in AGENTS.md establishes the universal alias set (`shell-ops` / `file-ops` / `task-tracking` / `subagent-dispatch`) so skills stay harness-agnostic in their HARD-CONSTRAINT-blocks.
+- No CLI-surface changes in this minor — `aegis-skills list --category compliance` continues to surface brutaler-anwalt; the new metadata fields are extracted from the SKILL.md when consumers call `parseHardConstraintFrontmatter()` directly. Loader's existing `loadAllSkills()` is unchanged.
+- `tsc --noEmit` clean. All 410 tests passing across scrub / attribution / frontmatter / manifest suites.
+
+---
+
 ## [0.2.1] — 2026-04-28 — "list --category compliance hotfix"
 
 ### Fixed
