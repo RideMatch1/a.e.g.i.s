@@ -59,16 +59,17 @@ describe('frontmatter — loader stability', () => {
 describe('frontmatter — HARD-CONSTRAINT fields (v0.3.0)', () => {
   const parse = parseHardConstraintFrontmatter;
 
-  it('parses required_tools as comma-separated string', () => {
+  it('parses HARD-CONSTRAINT fields nested under metadata (canonical v0.3.0)', () => {
     const md = `---
 name: test-skill
 description: Test skill for HARD-CONSTRAINT format
-required_tools: "ucos-engine,aegis-scan,brutaler-anwalt"
-required_audit_passes: 2
-enforced_quality_gates: 9
-pre_done_audit: true
 model: opus
 license: MIT
+metadata:
+  required_tools: "ucos-engine,aegis-scan,brutaler-anwalt"
+  required_audit_passes: "2"
+  enforced_quality_gates: "9"
+  pre_done_audit: "true"
 ---
 
 # Test Skill`;
@@ -82,6 +83,28 @@ license: MIT
     expect(fm.pre_done_audit).toBe('true');
     expect(fm.model).toBe('opus');
     expect(fm.license).toBe('MIT');
+  });
+
+  it('still accepts HARD-CONSTRAINT fields at top-level (backward-compat)', () => {
+    const md = `---
+name: legacy-flat-skill
+description: Pre-canonical v0.3.0-rc layout with flat HARD-CONSTRAINT fields
+required_tools: "shell-ops,file-ops"
+required_audit_passes: 1
+enforced_quality_gates: 9
+pre_done_audit: true
+model: opus
+license: MIT
+---
+
+# Legacy flat`;
+
+    const fm = parse(md);
+    expect(fm.required_tools).toBe('shell-ops,file-ops');
+    expect(fm.required_audit_passes).toBe('1');
+    expect(fm.enforced_quality_gates).toBe('9');
+    expect(fm.pre_done_audit).toBe('true');
+    expect(fm.model).toBe('opus');
   });
 
   it('returns undefined for missing HARD-CONSTRAINT fields (backward compat)', () => {
