@@ -239,9 +239,63 @@ export interface HardConstraintFrontmatter {
 }
 
 /**
+ * Extract a scalar field from a nested `metadata:` block in YAML frontmatter.
+ *
+ * Looks for an indented `<field>: <value>` line that follows a top-level
+ * `metadata:` line. Indentation is two-or-more spaces (typical block style).
+ * Returns the value as a string, with optional surrounding quotes stripped.
+ * Returns '' if the metadata block or the requested field is absent.
+ *
+ * This is a minimal extractor matched to the conservative shape SkillForge's
+ * Anthropic-skill-spec accepts: `metadata:` is the canonical container for
+ * fields outside the small allowlist (agent, allowed-tools, context,
+ * description, hooks, license, model, name, user-invocable). True YAML
+ * nested-mapping support is deferred until at least one skill needs deeper
+ * nesting than two levels.
+ */
+function extractMetadataField(yaml: string, field: string): string {
+  const lines = yaml.split(/\r?\n/);
+  let inMetadata = false;
+  let metadataIndent = -1;
+  for (const line of lines) {
+    if (/^metadata\s*:\s*$/.test(line)) {
+      inMetadata = true;
+      metadataIndent = -1;
+      continue;
+    }
+    if (!inMetadata) continue;
+    if (line.trim() === '') continue;
+    const indentMatch = /^(\s+)\S/.exec(line);
+    if (!indentMatch) {
+      // De-dented back to a top-level key — the metadata block has ended.
+      inMetadata = false;
+      continue;
+    }
+    const indent = indentMatch[1].length;
+    if (metadataIndent === -1) metadataIndent = indent;
+    if (indent < metadataIndent) {
+      inMetadata = false;
+      continue;
+    }
+    const fieldMatch = new RegExp(`^\\s+${field}\\s*:\\s*(.*)$`).exec(line);
+    if (fieldMatch) {
+      let value = fieldMatch[1].trim();
+      if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+      if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+      return value;
+    }
+  }
+  return '';
+}
+
+/**
  * Parse HARD-CONSTRAINT frontmatter fields from a SKILL.md raw content.
- * Returns name + description (always present in valid skills) plus optional
- * v0.3.0+ HARD-CONSTRAINT fields when the skill declares them.
+ * Returns name + description + model + license (top-level allowed by the
+ * SkillForge / Anthropic skill spec) plus optional v0.3.0+ HARD-CONSTRAINT
+ * fields nested under `metadata:` when the skill declares them.
+ *
+ * Backward-compat: also accepts the same fields at top-level (pre-canonical
+ * v0.3.0-rc layout). Top-level wins if both are present.
  *
  * Tolerates a leading `<!-- aegis-local … -->` HTML header per the upstream
  * convention and ignores trailing body content. Designed to be used by the
@@ -258,18 +312,26 @@ export function parseHardConstraintFrontmatter(raw: string): HardConstraintFront
     name: extractScalarField(yaml, 'name'),
     description: extractScalarField(yaml, 'description'),
   };
-  const required_tools = extractScalarField(yaml, 'required_tools');
-  if (required_tools) out.required_tools = required_tools;
-  const required_audit_passes = extractScalarField(yaml, 'required_audit_passes');
-  if (required_audit_passes) out.required_audit_passes = required_audit_passes;
-  const enforced_quality_gates = extractScalarField(yaml, 'enforced_quality_gates');
-  if (enforced_quality_gates) out.enforced_quality_gates = enforced_quality_gates;
-  const pre_done_audit = extractScalarField(yaml, 'pre_done_audit');
-  if (pre_done_audit) out.pre_done_audit = pre_done_audit;
+  // Top-level allowed-list fields per Anthropic skill spec.
   const model = extractScalarField(yaml, 'model');
   if (model) out.model = model;
   const license = extractScalarField(yaml, 'license');
   if (license) out.license = license;
+
+  // HARD-CONSTRAINT fields: prefer metadata-nested (canonical v0.3.0), fall
+  // back to top-level (transitional support).
+  const pickField = (field: string): string =>
+    extractScalarField(yaml, field) || extractMetadataField(yaml, field);
+
+  const required_tools = pickField('required_tools');
+  if (required_tools) out.required_tools = required_tools;
+  const required_audit_passes = pickField('required_audit_passes');
+  if (required_audit_passes) out.required_audit_passes = required_audit_passes;
+  const enforced_quality_gates = pickField('enforced_quality_gates');
+  if (enforced_quality_gates) out.enforced_quality_gates = enforced_quality_gates;
+  const pre_done_audit = pickField('pre_done_audit');
+  if (pre_done_audit) out.pre_done_audit = pre_done_audit;
+
   return out;
 }
 
