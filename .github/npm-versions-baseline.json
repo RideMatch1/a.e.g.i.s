@@ -1,15 +1,15 @@
 {
   "$schema": "./npm-versions-baseline.schema.json",
   "_note": "Baseline of intentionally-published npm versions. The npm-version-watch weekly cron compares live registry state against this file and opens a tamper-alert issue on any drift. When a new version is intentionally published via one of the publish*.yml workflows, update the matching entry via PR as part of the ship-sequence before the tag-push.",
-  "_last_reviewed": "2026-04-24",
+  "_last_reviewed": "2026-04-28",
   "packages": {
-    "@aegis-scan/core": "0.16.5",
-    "@aegis-scan/scanners": "0.16.5",
-    "@aegis-scan/reporters": "0.16.5",
-    "@aegis-scan/cli": "0.16.5",
-    "@aegis-scan/mcp-server": "0.16.5",
+    "@aegis-scan/core": "0.17.0",
+    "@aegis-scan/scanners": "0.17.0",
+    "@aegis-scan/reporters": "0.17.0",
+    "@aegis-scan/cli": "0.17.0",
+    "@aegis-scan/mcp-server": "0.17.0",
     "@aegis-wizard/cli": "0.17.4",
-    "@aegis-scan/skills": "0.1.1"
+    "@aegis-scan/skills": "0.2.1"
   },
   "_null_note": "A null baseline entry declares a package tracked by npm-version-watch that has not yet been published. After the first intentional publish (e.g. @aegis-scan/skills first published as 0.1.1, after skills-v0.1.0 was withheld at the publish-skills.yml tarball-scrub gate) the maintainer updates this entry to the new version via the same baseline-PR workflow used for every other tracked package."
 }
