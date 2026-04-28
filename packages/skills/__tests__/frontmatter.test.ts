@@ -7,7 +7,7 @@
  * Metadata > - Source:` bullet).
  */
 import { describe, it, expect } from 'vitest';
-import { loadAllSkills } from '../src/skills-loader.js';
+import { loadAllSkills, parseHardConstraintFrontmatter } from '../src/skills-loader.js';
 
 const skills = loadAllSkills();
 
@@ -53,5 +53,79 @@ describe('frontmatter — loader stability', () => {
     const first = loadAllSkills().map((s) => `${s.id}::${s.title}`);
     const second = loadAllSkills().map((s) => `${s.id}::${s.title}`);
     expect(first).toEqual(second);
+  });
+});
+
+describe('frontmatter — HARD-CONSTRAINT fields (v0.3.0)', () => {
+  const parse = parseHardConstraintFrontmatter;
+
+  it('parses required_tools as comma-separated string', () => {
+    const md = `---
+name: test-skill
+description: Test skill for HARD-CONSTRAINT format
+required_tools: "ucos-engine,aegis-scan,brutaler-anwalt"
+required_audit_passes: 2
+enforced_quality_gates: 9
+pre_done_audit: true
+model: opus
+license: MIT
+---
+
+# Test Skill`;
+
+    const fm = parse(md);
+    expect(fm.name).toBe('test-skill');
+    expect(fm.description).toBe('Test skill for HARD-CONSTRAINT format');
+    expect(fm.required_tools).toBe('ucos-engine,aegis-scan,brutaler-anwalt');
+    expect(fm.required_audit_passes).toBe('2');
+    expect(fm.enforced_quality_gates).toBe('9');
+    expect(fm.pre_done_audit).toBe('true');
+    expect(fm.model).toBe('opus');
+    expect(fm.license).toBe('MIT');
+  });
+
+  it('returns undefined for missing HARD-CONSTRAINT fields (backward compat)', () => {
+    const md = `---
+name: legacy-skill
+description: Pre-v0.3.0 skill without HARD-CONSTRAINT fields
+---
+
+# Legacy Skill`;
+
+    const fm = parse(md);
+    expect(fm.name).toBe('legacy-skill');
+    expect(fm.description).toBe('Pre-v0.3.0 skill without HARD-CONSTRAINT fields');
+    expect(fm.required_tools).toBeUndefined();
+    expect(fm.required_audit_passes).toBeUndefined();
+    expect(fm.enforced_quality_gates).toBeUndefined();
+    expect(fm.pre_done_audit).toBeUndefined();
+    expect(fm.model).toBeUndefined();
+    expect(fm.license).toBeUndefined();
+  });
+
+  it('tolerates a leading <!-- aegis-local --> HTML header', () => {
+    const md = `<!-- aegis-local: AEGIS-native skill, MIT-licensed; consumer-facing override allowed. -->
+---
+name: aegis-local-skill
+description: Skill that ships under upstream-fork
+required_tools: "shell-ops,file-ops"
+model: sonnet
+license: MIT
+---
+
+# AEGIS-local skill`;
+
+    const fm = parse(md);
+    expect(fm.name).toBe('aegis-local-skill');
+    expect(fm.required_tools).toBe('shell-ops,file-ops');
+    expect(fm.model).toBe('sonnet');
+    expect(fm.license).toBe('MIT');
+  });
+
+  it('returns empty name+description when no frontmatter present', () => {
+    const md = `# Just a heading\n\nbody text`;
+    const fm = parse(md);
+    expect(fm.name).toBe('');
+    expect(fm.description).toBe('');
   });
 });
