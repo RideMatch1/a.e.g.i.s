@@ -11,7 +11,7 @@ import { loadAllSkills, resolveSkillsRoot } from '../src/skills-loader.js';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const EXPECTED_TOTAL = 50;
+const EXPECTED_TOTAL = 55;
 
 const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance', 'aegis-native'];
 
@@ -68,7 +68,16 @@ const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
   'mitre-mapped': ['mapping-overview', 't1078-valid-accounts', 't1190-exploit-public-app'],
   ops: ['escalation-runbook', 'suppress-correctly', 'triage-finding'],
   compliance: ['brutaler-anwalt'],
-  'aegis-native': ['aegis-handover-writer', 'aegis-orchestrator', 'aegis-quality-gates'],
+  'aegis-native': [
+    'aegis-audit',
+    'aegis-customer-build',
+    'aegis-handover-writer',
+    'aegis-module-builder',
+    'aegis-orchestrator',
+    'aegis-quality-gates',
+    'aegis-skill-creator',
+    'dsgvo-compliance',
+  ],
 };
 
 describe('manifest — current shape', () => {

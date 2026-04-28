@@ -11,11 +11,11 @@ Routes the Foundation's own skills (orchestrator, customer-build, audit, etc.) b
 | start, session, bootstrap, phase, handover, weiter, weitermachen, übergabe, recap | `aegis-orchestrator` | opus | `aegis-native/aegis-native/aegis-orchestrator/SKILL.md` |
 | handover, übergabe, session-ende, fertig, recap, abschluss | `aegis-handover-writer` | sonnet | `aegis-native/aegis-native/aegis-handover-writer/SKILL.md` |
 | verify, check all gates, quality-gates, audit-gate, pre-commit-check | `aegis-quality-gates` | sonnet | `aegis-native/aegis-native/aegis-quality-gates/SKILL.md` |
-| _(post-0.4.0)_ build customer, kundenseite, konfigurator-briefing, voidframe build | `aegis-customer-build` | opus | _placeholder_ |
-| _(post-0.4.0)_ modul, feature, db-migration, api-route | `aegis-module-builder` | sonnet | _placeholder_ |
-| _(post-0.4.0)_ audit, paranoid-audit, 8-layer, AAA+++ check | `aegis-audit` | opus | _placeholder_ |
-| _(post-0.4.0)_ neuer skill, skill erstellen, skill verbessern, skill audit | `aegis-skill-creator` | opus | _placeholder_ |
-| _(post-0.4.0)_ consent, retention, art-13, art-15, datenpanne | `dsgvo-compliance` | opus | _placeholder_ |
+| build customer, kundenseite, neue site, konfigurator-briefing, autonomous-build, 3h-build | `aegis-customer-build` | opus | `aegis-native/aegis-native/aegis-customer-build/SKILL.md` |
+| module, feature, db-migration, api-route, refactor, neue funktion, neue api, neues modul | `aegis-module-builder` | sonnet | `aegis-native/aegis-native/aegis-module-builder/SKILL.md` |
+| audit, paranoid-audit, AAA+++ check, 8-layer, security-audit, full-audit | `aegis-audit` | opus | `aegis-native/aegis-native/aegis-audit/SKILL.md` |
+| neuer skill, skill erstellen, skill verbessern, skill audit, meta-skill, skillforge | `aegis-skill-creator` | opus | `aegis-native/aegis-native/aegis-skill-creator/SKILL.md` |
+| consent, retention, art-13, art-15, art-33, datenpanne, drittland, dsgvo-baseline, schrems | `dsgvo-compliance` | opus | `aegis-native/aegis-native/dsgvo-compliance/SKILL.md` |
 
 ---
 
@@ -24,17 +24,18 @@ Routes the Foundation's own skills (orchestrator, customer-build, audit, etc.) b
 - `/start` / `/session` / `/bootstrap` — invoke aegis-orchestrator
 - `/verify` / `/check all gates` — invoke aegis-quality-gates
 - `/handover` / `/übergabe` / `/session-ende` — invoke aegis-handover-writer
-- _(post-0.4.0)_ `/build` / `/customer-build` — invoke aegis-customer-build
-- _(post-0.4.0)_ `/audit` / `/paranoid-audit` — invoke aegis-audit
-- _(post-0.4.0)_ `/skill-creator` — invoke aegis-skill-creator
-- _(post-0.4.0)_ `/dsgvo` — invoke dsgvo-compliance
+- `/build` / `/customer-build` / `/agentur-build` — invoke aegis-customer-build
+- `/module` / `/feature` / `/refactor` — invoke aegis-module-builder
+- `/audit` / `/paranoid-audit` / `/8-layer` — invoke aegis-audit
+- `/skill-creator` / `/new-skill` / `/skill-audit` — invoke aegis-skill-creator
+- `/dsgvo` / `/art-13` / `/art-15` / `/datenpanne` / `/schrems` — invoke dsgvo-compliance
 
 ---
 
 ## Rules for foundation skills
 
-- Each skill MUST have `metadata.required_tools`, `metadata.pre_done_audit`, `model`, `license` populated per the v0.3.0 HARD-CONSTRAINT-frontmatter format.
-- Each skill MUST validate `python3 /tmp/SkillForge/scripts/validate-skill.py <skill>` at 16/17 or higher (the 1-warning ceiling allows for "5 phases recommend 1-3" advisories).
+- Each skill MUST have `metadata.required_tools`, `metadata.pre_done_audit`, `model`, `license` populated per the v0.3.0+ HARD-CONSTRAINT-frontmatter format.
+- Each skill MUST validate `python3 /tmp/SkillForge/scripts/validate-skill.py <skill>` at 16/17 or higher (the 1-warning ceiling allows for "5 phases recommend 1-3" advisories on intentionally-multi-phase skills).
 - Multi-file skills (SKILL.md + sibling `references/`) are auto-installed; references kept under `<skill>/references/`.
 - The master `AGENTS.md` tool-mapping table is canonical — skills reference tool-categories (`shell-ops`, `file-ops`, etc.), the AGENTS.md tells the agent which actual harness-tool to use.
 
@@ -51,6 +52,22 @@ When this category is loaded:
 
 ---
 
+## Cluster Composition Patterns
+
+The 8 foundation skills compose into use-case clusters per master `AGENTS.md` Use-Case Routing:
+
+| Use-case | Cluster |
+|---|---|
+| customer-build | aegis-orchestrator → aegis-customer-build (multi-agent) → aegis-quality-gates → aegis-handover-writer |
+| compliance-audit | aegis-orchestrator → aegis-audit + brutaler-anwalt (cross-validate) → dsgvo-compliance (fix-templates) → aegis-handover-writer |
+| dev-feature | aegis-orchestrator → aegis-module-builder (TDD) → aegis-quality-gates → aegis-handover-writer |
+| aegis-self-test | aegis-orchestrator → aegis-quality-gates → aegis-audit → aegis-handover-writer |
+| skill-authoring | aegis-orchestrator → aegis-skill-creator → aegis-quality-gates → aegis-handover-writer |
+
+Each cluster ends with `aegis-handover-writer` to ensure the next session starts with full context.
+
+---
+
 ## Forward-compat note
 
-`aegis-native/_INDEX.md` v0.3.0 routes 3 foundation skills (orchestrator, handover-writer, quality-gates). v0.4.0 (Phase 2 of AEGIS Agent Foundation continuation) populates the remaining 5: aegis-customer-build (multi-file with 7 phase-references), aegis-module-builder, aegis-audit (multi-file with 8 layer-references), aegis-skill-creator (multi-file with SkillForge-methodology reference), dsgvo-compliance (multi-file with Art-13/15-templates + Datenpanne-runbook).
+`aegis-native/_INDEX.md` at v0.4.0+ routes the full 8-skill foundation cluster. Future foundation-additions (e.g., `aegis-deploy` for Hetzner-Dokploy automation, `aegis-monitoring` for post-deploy observability) get rows added here + corresponding SKILL.md folders under `aegis-native/aegis-native/`.
