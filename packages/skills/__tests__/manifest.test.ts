@@ -11,9 +11,9 @@ import { loadAllSkills, resolveSkillsRoot } from '../src/skills-loader.js';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const EXPECTED_TOTAL = 47;
+const EXPECTED_TOTAL = 50;
 
-const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance'];
+const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance', 'aegis-native'];
 
 const EXPECTED_SOURCES_BY_CATEGORY: Record<string, string[]> = {
   offensive: ['snailsploit-fork'],
@@ -21,6 +21,7 @@ const EXPECTED_SOURCES_BY_CATEGORY: Record<string, string[]> = {
   'mitre-mapped': ['aegis-native'],
   ops: ['aegis-native'],
   compliance: ['aegis-native'],
+  'aegis-native': ['aegis-native'],
 };
 
 const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
@@ -67,6 +68,7 @@ const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
   'mitre-mapped': ['mapping-overview', 't1078-valid-accounts', 't1190-exploit-public-app'],
   ops: ['escalation-runbook', 'suppress-correctly', 'triage-finding'],
   compliance: ['brutaler-anwalt'],
+  'aegis-native': ['aegis-handover-writer', 'aegis-orchestrator', 'aegis-quality-gates'],
 };
 
 describe('manifest — current shape', () => {
