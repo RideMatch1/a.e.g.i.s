@@ -2,7 +2,7 @@
 
 > Universal router for Claude Code AND Codex (and any AGENTS.md-aware harness).
 > Hierarchical loading reduces token-load by ≥70% vs flat skill-pool.
-> Skill-pack version: 0.3.0 (Phase 1 — POC with brutaler-anwalt; full router lands in 0.4.0 with all aegis-native skills).
+> Skill-pack version: 0.4.0 (Phase 2 — full aegis-native cluster, all 8 foundation skills active).
 
 ---
 
@@ -39,8 +39,13 @@ Skills reference **tool-categories**, not harness-specific tool-names. This tabl
 | Subagent wait | (auto on Task return) | `wait` | (per docs) |
 | Subagent free slot | (auto) | `close_agent` | (per docs) |
 | Skill invocation | `Skill` tool | (skills load via plugin-manifest at session-start; content in context) | (per docs) |
+| Library engine | (project-specific, e.g., assemble-templates.sh) | (same) | (same) |
+| Aegis scan | `npx -y @aegis-scan/cli scan <url>` | (same) | (same) |
+| Lighthouse | `npx -y @lhci/cli@latest collect` | (same) | (same) |
+| Playwright | `npx -y playwright-core` | (same) | (same) |
+| Curl | `curl` | (same) | (same) |
 
-**Tool-name aliases** (skill body conventions): `shell-ops` ≡ `Bash` / native shell. `file-ops` ≡ `Read`/`Write`/`Edit` / native file tools. `task-tracking` ≡ `TodoWrite` / `update_plan`. `subagent-dispatch` ≡ `Task` / `spawn_agent`.
+**Tool-name aliases** (skill body conventions): `shell-ops` ≡ `Bash` / native shell. `file-ops` ≡ `Read`/`Write`/`Edit` / native file tools. `task-tracking` ≡ `TodoWrite` / `update_plan`. `subagent-dispatch` ≡ `Task` / `spawn_agent`. `library-engine` / `aegis-scan` / `brutaler-anwalt` / `lighthouse` / `curl` / `playwright` are domain-specific tool-categories invoked per the table above.
 
 ---
 
@@ -48,18 +53,20 @@ Skills reference **tool-categories**, not harness-specific tool-names. This tabl
 
 | User intent / file pattern | → Skill cluster |
 |---|---|
-| "audit", "compliance", "DSGVO", "Impressum", "Cookie", "Abmahnung", "TTDSG", "DDG", "AVV", "AGB" | `compliance/_INDEX.md` |
-| "build customer", "neue kundenseite", "konfigurator-briefing", "voidframe build" | `aegis-native/_INDEX.md` (post-0.4.0; aegis-customer-build) |
-| "test aegis", "verify foundation", "smoke", "self-test" | `aegis-native/_INDEX.md` (post-0.4.0; aegis-quality-gates → aegis-self-test) |
-| "scan", "security audit", "pen-test", "OWASP", "SAST", "DAST" | `defensive/_INDEX.md` + `offensive/_INDEX.md` |
-| "module", "feature", "DB migration", "API route" | `aegis-native/_INDEX.md` (post-0.4.0; aegis-module-builder) |
-| "session", "start", "phase", "handover", "bootstrap" | `aegis-native/_INDEX.md` (post-0.4.0; aegis-orchestrator) |
+| "audit", "compliance", "DSGVO", "Impressum", "Cookie", "Abmahnung", "TTDSG", "DDG", "AVV", "AGB" | `compliance/_INDEX.md` (brutaler-anwalt) + `aegis-native/_INDEX.md` (aegis-audit + dsgvo-compliance) |
+| "build customer", "neue kundenseite", "konfigurator-briefing", "agentur-build" | `aegis-native/_INDEX.md` (aegis-customer-build → aegis-quality-gates) |
+| "test aegis", "verify foundation", "smoke", "self-test" | `aegis-native/_INDEX.md` (aegis-quality-gates → aegis-audit) |
+| "scan", "security audit", "pen-test", "OWASP", "SAST", "DAST" | `defensive/_INDEX.md` + `offensive/_INDEX.md` + `aegis-native/_INDEX.md` (aegis-audit) |
+| "module", "feature", "DB migration", "API route", "refactor" | `aegis-native/_INDEX.md` (aegis-module-builder) |
+| "session", "start", "phase", "handover", "bootstrap", "weiter" | `aegis-native/_INDEX.md` (aegis-orchestrator) |
+| "neuer skill", "skill erstellen", "skill verbessern", "meta-skill" | `aegis-native/_INDEX.md` (aegis-skill-creator) |
+| "consent", "retention", "art-13", "art-15", "datenpanne", "schrems" | `aegis-native/_INDEX.md` (dsgvo-compliance) |
 
 ---
 
 ## Skill Categories
 
-- `aegis-native/` — Foundation skills (orchestrator, customer-build, audit, etc.). _Lands in 0.4.0._
+- `aegis-native/` — Foundation skills (orchestrator, customer-build, audit, module-builder, skill-creator, dsgvo-compliance, handover-writer, quality-gates). _0.4.0 ✓._
 - `compliance/` — Regulatory + legal: brutaler-anwalt (DSGVO/UWG/AGB/Impressum/Cookies/AVV/NIS2/AI-Act). _0.3.0 ✓._
 - `defensive/` — Security analysis (scan, hardening). _Existing._
 - `offensive/` — Adversarial testing (snailsploit-fork). _Existing._
@@ -71,11 +78,28 @@ Skills reference **tool-categories**, not harness-specific tool-names. This tabl
 ## Rules for skills routed via this AGENTS.md
 
 - Each skill that ships under `<category>/aegis-native/<name>/` MUST have a HARD-CONSTRAINT-frontmatter block (per `parseHardConstraintFrontmatter` in `skills-loader.ts`). Required fields nested under `metadata:`: `required_tools`, `required_audit_passes`, `enforced_quality_gates`, `pre_done_audit`. Top-level: `model` (opus|sonnet|haiku), `license` (typically `MIT`).
-- Each skill MUST pass SkillForge `validate-skill.py` 17/17 (or higher) — `## Triggers`, `## Process`, `## Verification / Success Criteria`, `## Anti-Patterns`, `## Extension Points` sections required.
+- Each skill MUST pass SkillForge `validate-skill.py` 16/17 or higher — `## Triggers`, `## Process`, `## Verification / Success Criteria`, `## Anti-Patterns`, `## Extension Points` sections required. The 1-warning ceiling allows for "5+ phases — recommend 1-3" advisories on intentionally-multi-phase skills.
 - Multi-file skills (SKILL.md + sibling `references/`) are auto-installed by `@aegis-scan/skills install` (since v0.2.0).
+- Validation against the local consumer-side install path: leading `<!-- aegis-local -->` HTML comments break the SkillForge regex anchor; use the wrapper script in `CONTRIBUTING.md` to strip the comment for validation.
+
+---
+
+## Cluster Composition Reference
+
+Foundation use-cases compose into multi-skill clusters (per `aegis-native/_INDEX.md`):
+
+| Use-case | Cluster |
+|---|---|
+| customer-build | aegis-orchestrator → aegis-customer-build → aegis-quality-gates → aegis-handover-writer |
+| compliance-audit | aegis-orchestrator → aegis-audit + brutaler-anwalt → dsgvo-compliance → aegis-handover-writer |
+| dev-feature | aegis-orchestrator → aegis-module-builder → aegis-quality-gates → aegis-handover-writer |
+| aegis-self-test | aegis-orchestrator → aegis-quality-gates → aegis-audit → aegis-handover-writer |
+| skill-authoring | aegis-orchestrator → aegis-skill-creator → aegis-quality-gates → aegis-handover-writer |
+
+Every cluster ends with `aegis-handover-writer` to ensure the next session bootstraps with full context.
 
 ---
 
 ## Forward-compat note
 
-This AGENTS.md is the v0.3.0 skeleton. v0.4.0 (Phase 2 of AEGIS Agent Foundation) populates the full `aegis-native/` cluster (orchestrator, customer-build, audit, dsgvo-compliance, module-builder, skill-creator, handover-writer, quality-gates) and adds full `_INDEX.md` files for the remaining 4 categories.
+`AGENTS.md` v0.4.0 routes the full 8-skill aegis-native foundation cluster + the v0.3.0 brutaler-anwalt compliance skill. Future additions (Phase 3 CLI commands, `aegis-deploy` automation, additional category `_INDEX.md` files for `defensive/` / `offensive/` / `ops/` / `mitre-mapped/`) extend per the rules above.
