@@ -1,7 +1,7 @@
 <!-- aegis-local: AEGIS-native skill, MIT-licensed; writes the structured session-end handover, captures progress + open items + skill-changes + recommendations, then updates the HANDOVER-LATEST.md symlink so the next agent starts with full context. Pattern ported from a private reference-implementation; this is the public OSS variant. -->
 ---
 name: aegis-handover-writer
-description: Writes the session-end handover. Captures what was completed, key metrics from the quality-gates, files changed, skill changes, open items prioritized 1/2/3, known fallstricke, next steps, and recommendations to the operator. Updates HANDOVER-LATEST.md symlink to point at the new file. Trigger keywords - handover, session-ende, fertig, übergabe, recap, abschluss. Slash-commands - /handover, /übergabe, /session-ende.
+description: Writes the session-end handover. Captures completed-work, quality-gate metrics, files changed, skill changes, open items 1/2/3, fallstricke, next steps, recommendations. Updates HANDOVER-LATEST.md symlink. Trigger keywords - handover, session-ende, fertig, übergabe, recap, abschluss.
 model: sonnet
 license: MIT
 metadata:

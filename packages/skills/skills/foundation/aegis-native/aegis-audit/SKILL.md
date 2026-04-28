@@ -1,7 +1,7 @@
 <!-- aegis-local: AEGIS-native skill, MIT-licensed; 8-Layer paranoid-audit skill. Headers / HTML / Impressum / DSE / Cookie / Branche / Code-Cross-Check / Schadens-Diagnose. Runs against built customer-site, gegen Live-URL, oder gegen lokales Repo. Output 4-section format (Schadens-Diagnose / Findings-Tabelle / Anwalts-Anhang / Abmahn-Simulation). Pattern ported from a private operational reference; this is the public OSS variant. -->
 ---
 name: aegis-audit
-description: 8-Layer paranoid-audit skill. Headers / HTML / Impressum / DSE / Cookie / Branche / Code-Cross-Check / Schadens-Diagnose. Runs against built customer-site, against a live URL, or against a local repo. Output 4-section format - Schadens-Diagnose / Findings-Tabelle / Anwalts-Anhang / Abmahn-Simulation. Used in customer-build Phase 6 (mid-audit topic-scoped) and Phase 7 (final full-pass), plus standalone via slash-command. Trigger keywords - audit, paranoid-audit, AAA+++ check, 8-layer, security-audit, full-audit.
+description: 8-Layer paranoid-audit skill. Headers / HTML / Impressum / DSE / Cookie / Branche / Code-Cross-Check / Schadens-Diagnose. Runs against built site, live URL, or local repo. Output 4-section - Schadens-Diagnose / Findings-Tabelle / Anwalts-Anhang / Abmahn-Simulation. Trigger keywords - audit, paranoid-audit, AAA+++ check, 8-layer, security-audit, full-audit.
 model: opus
 license: MIT
 metadata:

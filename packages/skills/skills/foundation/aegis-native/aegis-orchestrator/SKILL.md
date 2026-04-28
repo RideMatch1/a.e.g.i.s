@@ -1,7 +1,7 @@
 <!-- aegis-local: AEGIS-native skill, MIT-licensed; master-entry orchestrator that fires on every session-start, loads CLAUDE.md + AGENTS.md + latest handover + project-skill, prints tool inventory + project-state, then dispatches to the matching specialist skill (customer-build / compliance-audit / dev-feature / aegis-self-test). Pattern ported from a private reference-implementation; this is the public OSS variant. -->
 ---
 name: aegis-orchestrator
-description: AEGIS Master-Entry. Loads the project's CLAUDE.md + AGENTS.md + latest handover + state.json, detects the use-case (customer-build / compliance-audit / dev-feature / aegis-self-test), routes to the matching specialist skill, runs quality-gates pre-commit, writes the session-end handover. Trigger keywords - start, session, bootstrap, orchestrator, phase, handover, weiter, weitermachen. Slash-commands - /start, /session, /bootstrap, /orchestrator. KEINE Direktiven-Improvisation - jede Use-Case-Dispatch folgt dem Preset im AGENTS.md Routing-Table.
+description: AEGIS Master-Entry. Loads CLAUDE.md + AGENTS.md + latest handover + state.json, detects use-case (customer-build / compliance-audit / dev-feature / aegis-self-test / skill-authoring), routes to specialist skill per AGENTS.md, runs quality-gates pre-commit, writes session-end handover. Trigger keywords - start, session, bootstrap, orchestrator, phase, handover, weiter, weitermachen.
 model: opus
 license: MIT
 metadata:

@@ -9,7 +9,8 @@ Routes `compliance/` category skills based on user intent + keyword triggers. Lo
 | Trigger keywords | → Skill | Loaded path |
 |---|---|---|
 | dsgvo, datenschutz, impressum, cookie, abmahnung, compliance, agb, avv, drittland, einwilligung, ttdsg, ddg, tmg, uwg, nis2, ai-act, gobd, dsa, urheber, marke, ePrivacy, drittlandtransfer, schrems, eugh, bgh, abmahnanwalt, datenpanne, betroffenenrechte, art-13, art-15, art-83, scc, tia, dsfa, vvt, dpo, dsb, lg-muenchen-google-fonts, fashion-id | `brutaler-anwalt` | `compliance/aegis-native/brutaler-anwalt/SKILL.md` |
-| _(post-0.4.0)_ consent-management, retention-policy, art-13-info-pflicht, datenpanne-runbook | `dsgvo-compliance` | `compliance/aegis-native/dsgvo-compliance/SKILL.md` |
+
+> **Note:** `dsgvo-compliance` (consent-management + Art. 13/15 templates + Datenpanne-Runbook) ships in the `foundation/` category as of v0.4.0, not under `compliance/`. The `foundation/_INDEX.md` router routes `consent / retention / art-13 / art-15 / datenpanne / schrems` triggers there. The `brutaler-anwalt` audit-skill (this row) and `dsgvo-compliance` fix-templates skill complement each other; users typically invoke both in a compliance-audit cluster.
 
 ---
 
@@ -45,4 +46,4 @@ When this category is loaded:
 
 ## Forward-compat note
 
-`compliance/_INDEX.md` v0.3.0 routes a single skill (`brutaler-anwalt`). v0.4.0 (Phase 2) adds `dsgvo-compliance` (consent-management + Art. 13/15 templates + Datenpanne-Runbook). Future additions land here without breaking the router-shape.
+`compliance/_INDEX.md` routes regulatory + legal-audit skills under the `compliance/` category. v0.3.0 ships `brutaler-anwalt`. The dsgvo-compliance fix-templates skill ships under `foundation/` (v0.4.0+) and is routed from `foundation/_INDEX.md` — see the note in the trigger-table above. Future compliance-audit additions land here without breaking the router-shape.

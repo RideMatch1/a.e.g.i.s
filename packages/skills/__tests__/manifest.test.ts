@@ -13,7 +13,7 @@ import { join } from 'node:path';
 
 const EXPECTED_TOTAL = 55;
 
-const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance', 'aegis-native'];
+const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance', 'foundation'];
 
 const EXPECTED_SOURCES_BY_CATEGORY: Record<string, string[]> = {
   offensive: ['snailsploit-fork'],
@@ -21,7 +21,7 @@ const EXPECTED_SOURCES_BY_CATEGORY: Record<string, string[]> = {
   'mitre-mapped': ['aegis-native'],
   ops: ['aegis-native'],
   compliance: ['aegis-native'],
-  'aegis-native': ['aegis-native'],
+  foundation: ['aegis-native'],
 };
 
 const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
@@ -68,7 +68,7 @@ const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
   'mitre-mapped': ['mapping-overview', 't1078-valid-accounts', 't1190-exploit-public-app'],
   ops: ['escalation-runbook', 'suppress-correctly', 'triage-finding'],
   compliance: ['brutaler-anwalt'],
-  'aegis-native': [
+  foundation: [
     'aegis-audit',
     'aegis-customer-build',
     'aegis-handover-writer',
