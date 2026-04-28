@@ -61,10 +61,14 @@ What does this feature do?
 - User-story (1-2 sentences)
 - Inputs (request shape, params, files)
 - Outputs (response shape, side-effects)
-- Acceptance-criteria (3-5 bullet points)
+- Acceptance-criteria (3-5 bullet points, observable + independently verifiable)
 ```
 
 Don't infer from chat-context. Demand the spec.
+
+### Plans.md task discipline
+
+Every module-build creates a row in `.aegis/Plans.md` per the format defined in `aegis-orchestrator` ("Plans.md — Live Working-Plan SSOT" section). The acceptance-criteria from the feature-spec become the AC checkboxes on the task row. As phases 2-6 run, the AC are checked off; task moves DONE only when all are checked. If a phase is blocked, the AC stays unchanged + the blocker is documented in `## Blockers`.
 
 ---
 

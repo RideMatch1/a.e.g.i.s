@@ -109,6 +109,18 @@ This avoids:
 - Duplicate maintenance burden when the upstream package is the
   single source of truth
 
+### `Chachamaru127/claude-code-harness` — concept-only adoption (no fork, no install)
+
+- **Upstream:** https://github.com/Chachamaru127/claude-code-harness
+- **License:** MIT
+- **Adoption mode:** **concept-only** — AEGIS adopts two patterns from this project's design but ships zero copied code or assets:
+  1. **Plans.md as a Live Working-Plan SSOT** — adapted into `aegis-orchestrator/SKILL.md` as the format for `.aegis/Plans.md`. AEGIS-specific: integrated into the existing 8-skill foundation cluster lifecycle (orchestrator initializes, specialist skills update, handover-writer summarizes), uses pure markdown, no Go binary or `/harness-*` verb-commands.
+  2. **`harness doctor --residue` stale-reference detection** — adapted into `aegis-quality-gates/SKILL.md` as Gate 10 (residue-check). AEGIS-specific: pure shell + grep methodology integrated as a gate of the existing 10-gate verifier sequence (was 9-gate pre-adoption), with the AEGIS classes of residue documented (stale commit-SHAs in handovers, broken markdown cross-links in shipped SKILL.md, orphan path references, phantom `_INDEX.md` skill rows, dead `<!-- aegis-local: -->` provenance refs). The motivating bug-class: handover docs that cite commit-SHAs invalidated by a `git rebase`.
+
+- **What was NOT adopted:** the Go-native runtime engine, the 5 `/harness-plan|work|review|release|setup` verb-commands, the 13 R01-R13 declarative guardrails, the 3-agent worker/reviewer/scaffolder split, the marketplace plugin distribution. AEGIS already has equivalents for or alternatives to each (repo rulesets, scrub-gates, supply-chain CI gates, 8 specialist foundation skills, npm direct distribution).
+
+- **Why concept-only and not fork or mandate:** the two adopted patterns are **methodology**, not code — they fit AEGIS's existing skill-cluster architecture verbatim once described in markdown. Forking would buy nothing (no shared code paths) and adding a mandate would burden users with installing a tool they don't need. Documenting the inspiration in this file + the relevant SKILL.md sections preserves attribution while staying lean.
+
 ### `supabase/agent-skills` — Postgres + Supabase development best-practices
 
 - **Upstream:** https://github.com/supabase/agent-skills

@@ -26,8 +26,9 @@ Before responding to ANY user request, this skill MUST:
 3. **Read** `AGENTS.md` (router + tool-mapping table — already in context if AGENTS.md was loaded).
 4. **Read** project-skill if present: `.claude/skills/<project-slug>/SKILL.md`.
 5. **Read** `.aegis/state.json` to pick up the use-case + last completed phase.
-6. **Print** to the user: `Tool-inventory: [...], Skills available: [...], Project-state: phase X, Use-case: Y`.
-7. **THEN** process the user's request — never before.
+6. **Read** `.aegis/Plans.md` if present — the live working-plan SSOT (see "Plans.md" section below). Skip if missing; orchestrator initializes it during Phase 3 dispatch.
+7. **Print** to the user: `Tool-inventory: [...], Skills available: [...], Project-state: phase X, Use-case: Y, Open tasks: N`.
+8. **THEN** process the user's request — never before.
 
 If any of (1)-(5) is missing, STOP and report the gap explicitly. Don't improvise — `aegis foundation init` should have populated them; if it hasn't, the fix is to run init, not to skip the bootstrap.
 
@@ -105,7 +106,87 @@ When the user says "commit" / "push" / "release" — orchestrator invokes `aegis
 
 ### Phase 5: Session-end handover
 
-When the user says "fertig" / "handover" / "session-ende" / "übergabe" — orchestrator invokes `aegis-handover-writer` to draft the structured handover-file + update the `HANDOVER-LATEST.md` symlink.
+When the user says "fertig" / "handover" / "session-ende" / "übergabe" — orchestrator invokes `aegis-handover-writer` to draft the structured handover-file + update the `HANDOVER-LATEST.md` symlink. The handover-writer reads `.aegis/Plans.md` to summarize task-status into the handover doc.
+
+---
+
+## Plans.md — Live Working-Plan SSOT
+
+`.aegis/Plans.md` is the single source of truth for the **current** working plan (in-flight tasks, blockers, acceptance criteria). It complements (not replaces) `state.json` (machine-readable phase-state) and handover docs (point-in-time snapshots at session boundaries).
+
+> Concept adapted from [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) (MIT) — their `Plans.md` SSOT pattern. AEGIS adapts the idea, not the tool: no Go binary, no marketplace plugin, no `/harness-*` verb-commands. Pure markdown discipline integrated into the existing AEGIS skill cluster.
+
+### Lifecycle
+
+1. **Initialize** — orchestrator creates `.aegis/Plans.md` on first dispatch if absent. Template is the format below.
+2. **Update** — every specialist skill that performs work updates the relevant task row (status, blockers, AC checkbox progress). Module-builder, customer-build, audit, skill-creator, dsgvo-compliance all touch this file as they work.
+3. **Summarize** — handover-writer reads Plans.md at session-end and folds the open-task-list into the handover doc's `§5 Open` section.
+4. **Reset** — when a use-case completes (e.g., customer-build hits DONE-with-proof), orchestrator archives Plans.md to `.aegis/Plans-archive/<timestamp>.md` and starts a fresh one for the next use-case.
+
+### Format
+
+```markdown
+# Plans.md — Working Plan
+
+**Use-case:** customer-build (or compliance-audit / dev-feature / aegis-self-test / skill-authoring)
+**Started:** 2026-04-28T14:00Z
+**Last updated:** 2026-04-28T15:42Z
+**Phase:** 3 of 7 (component-build)
+
+---
+
+## Tasks
+
+### T01 — [DONE] Briefing-validation against schema
+
+**AC:**
+- [x] Briefing parsed without errors
+- [x] All required schema-fields present
+- [x] Pages-list extracted with N=5 entries
+
+**Notes:** parsed-briefing.json written to .aegis/
+
+### T02 — [IN PROGRESS] Component-tree binding to project library
+
+**AC:**
+- [x] Library inventory loaded
+- [x] Pages 1-3 bound to library components
+- [ ] Pages 4-5 bound (BLOCKER: missing testimonial-component variant)
+- [ ] Component-tree exported as machine-readable JSON
+
+**Notes:** Pages 4-5 use a variant of testimonial-card that the project library does not ship. Operator decision needed: drop the variant, request library extension, or use the closest existing variant.
+
+### T03 — [PENDING] Phase-6 mid-audit
+
+**AC:**
+- [ ] aegis-scan run on the in-progress build
+- [ ] brutaler-anwalt HUNT on impressum + cookie + DSE
+- [ ] Repair-loop ≤ 3 iterations OR document blockers
+
+---
+
+## Blockers
+
+- B01 (T02) — Library variant missing for testimonial-card. Awaiting operator decision.
+```
+
+### Acceptance-Criteria template
+
+Every task carries an explicit AC list (1-N checkboxes). The discipline:
+
+- AC must be **observable** (passes a check, file exists, command exits 0, etc.) — not subjective ("looks good").
+- AC must be **complete** — task is DONE only when all AC are checked. No "looks done at 80%".
+- AC must be **independently verifiable** — another agent reading the AC list can confirm pass/fail without context from the task-author.
+
+When task is blocked, the AC stays unchanged (don't lower the bar to fit the blocker). Document the blocker explicitly in `## Blockers` section + flag in the task row.
+
+### Cross-references
+
+- `aegis-module-builder` reads Plans.md for task-AC discipline + writes back module-task progress.
+- `aegis-customer-build` writes per-phase tasks into Plans.md as it executes the 7-phase pipeline.
+- `aegis-audit` writes audit-finding tasks into Plans.md (1 task per layer-finding).
+- `aegis-handover-writer` reads Plans.md → summarizes into handover §5 Open.
+- `aegis-quality-gates` does NOT touch Plans.md — it is a stateless verifier; results go to `.aegis/verify-report.json`.
 
 ---
 
@@ -113,12 +194,14 @@ When the user says "fertig" / "handover" / "session-ende" / "übergabe" — orch
 
 Before declaring the orchestrator-handoff complete for a session:
 
-- [ ] Bootstrap-checklist completed (all 6 steps, no skipping)
+- [ ] Bootstrap-checklist completed (all 8 steps, no skipping)
+- [ ] `.aegis/Plans.md` initialized for the current use-case (or carried-over from prior session if mid-use-case)
 - [ ] Specialist skill identified + dispatched (or use-case ambiguity reported back to user)
 - [ ] Quality-gates run before any commit (no `--no-verify` bypass)
 - [ ] Session-end handover written (or explicitly deferred-to-next-session if user opts out)
 - [ ] No specialist invoked without verifying its `metadata.required_tools` against the AGENTS.md tool-mapping table for the current harness
 - [ ] `.aegis/state.json` updated with the new phase / last-action timestamp
+- [ ] `.aegis/Plans.md` reflects the current task-state (closed tasks marked DONE, blockers documented)
 
 If any checkbox is unmet: NOT done. Report which step is open + why + what needs to happen.
 

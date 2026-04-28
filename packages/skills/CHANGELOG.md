@@ -12,6 +12,16 @@ and quality-audit completion, not by a fixed schedule.
 
 ### Added
 
+- **Plans.md — Live Working-Plan SSOT pattern** in `aegis-orchestrator/SKILL.md`. Defines `.aegis/Plans.md` as the single source of truth for in-flight tasks + acceptance criteria + blockers, complementing `state.json` (machine-readable phase) and handover docs (point-in-time snapshots). Lifecycle: orchestrator initializes, specialist skills update, handover-writer summarizes at session-end. AC-discipline: every task carries observable + independently verifiable acceptance criteria; task is DONE only when all AC are checked; blocked tasks keep AC unchanged and document the blocker. Concept adapted from [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) (MIT) — pure markdown integration, no fork, no Go binary, no install.
+- **Gate 10 — Residue-Check** added to `aegis-quality-gates/SKILL.md`. Detects stale commit-SHAs in handover docs (caught the v0.4.0 publish-procedure bug where rebase invalidated cited SHAs), broken markdown cross-links in shipped SKILL.md content, orphan path references, phantom `_INDEX.md` skill rows pointing at non-existent paths, dead `<!-- aegis-local: -->` provenance refs. Pure shell + grep methodology — runs in both `--quick` and `--final` modes, plus a new `--residue` operator-on-demand mode for post-rebase / post-merge checks. Concept adapted from claude-code-harness's `harness doctor --residue` (MIT).
+- **Plans.md task-discipline** referenced from `aegis-module-builder/SKILL.md`. Module-builder feature-specs map their acceptance-criteria 1:1 onto the Plans.md AC-checkbox format defined in aegis-orchestrator. Module-build phases 2-6 check off AC as they progress; task moves DONE only when all AC are checked.
+
+### Updated
+
+- `aegis-quality-gates`: description + frontmatter `enforced_quality_gates` bumped from 9 → 10 to reflect the new residue-check gate.
+- `aegis-orchestrator`: bootstrap-checklist extended from 6 to 8 steps (added Plans.md read at step 6, expanded print at step 7).
+- `packages/skills/ATTRIBUTION.md` — new "concept-only" attribution section for claude-code-harness documenting both pattern adoptions, what was NOT adopted, and why concept-only beats fork-or-mandate for methodology adoption.
+
 - **External-skills mandate-without-fork integration** with [supabase/agent-skills](https://github.com/supabase/agent-skills) (MIT). Two upstream skills (`supabase` + `supabase-postgres-best-practices`) are now declared **mandatory complements** to the AEGIS-native security layer for any project using Supabase or Postgres. Installation via the upstream's own distribution channel (`npx skills add supabase/agent-skills -g -y`) — not re-shipped here. Rationale: upstream is actively maintained by the Supabase team with frequent updates the AEGIS team has no special insight into, so fork-mode would freeze content at a fork-SHA + create unnecessary quarterly upstream-sync work for content that benefits from staying current.
   - `ATTRIBUTION.md` — new "Required external skills (mandatory complement, not forked)" section documenting the rationale, install command, and license-compatibility chain.
   - `README.md` — new "Required external skills (mandatory complement, not forked)" section under "What ships" with explicit install instructions and the cross-reference map.
@@ -19,7 +29,12 @@ and quality-audit completion, not by a fixed schedule.
   - `skills/defensive/aegis-native/tenant-isolation-defense/SKILL.md` — new "Complementary external skill (mandatory)" section pointing to upstream `supabase` and `supabase-postgres-best-practices` skills.
   - AEGIS repository root — new `AGENTS.md` documents the repo-wide mandate for AI coding-agents working in this repo and the layer-split between AEGIS-native security and upstream Supabase dev/perf coverage.
 
-This establishes a second integration-pattern alongside the existing fork-mode (used by `skills/offensive/snailsploit-fork/`): mandate-without-fork. Future external sources will pick per-source based on stability and maintenance-economics.
+### Notes
+
+- This [Unreleased] entry establishes **three external-source integration-patterns** that AEGIS now uses, picked per-source based on stability + maintenance-economics:
+  1. **Fork-mode** (`snailsploit-fork`) — content forked into `skills/<category>/<source>/` with attribution headers; quarterly upstream-sync.
+  2. **Mandate-without-fork** (`supabase/agent-skills`) — install via upstream's own distribution channel; cross-reference from AEGIS skills.
+  3. **Concept-only adoption** (`Chachamaru127/claude-code-harness`) — methodology adapted into existing AEGIS skills via prose; zero code, zero install, attribution preserved in this CHANGELOG + ATTRIBUTION.md.
 
 ---
 
