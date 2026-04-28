@@ -8,6 +8,11 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 ![Node 20+](https://img.shields.io/badge/Node-20%2B-brightgreen)
 [![npm](https://img.shields.io/npm/v/@aegis-scan/cli?label=%40aegis-scan%2Fcli)](https://www.npmjs.com/package/@aegis-scan/cli)
+[![CI](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/codeql.yml)
+[![OSSF Scorecard](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/scorecard.yml/badge.svg?branch=main)](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/scorecard.yml)
+[![Gitleaks](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/gitleaks.yml/badge.svg?branch=main)](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/gitleaks.yml)
+[![Roadmap](https://img.shields.io/badge/roadmap-public-blue)](./ROADMAP.md)
 
 Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers plus 20 external-tool wrappers (16 traditional SAST/DAST + 1 passive subdomain-recon + 3 LLM-agent pentest frameworks: Strix, PTAI, Pentest-Swarm-AI), AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, and a GitHub-Actions recipe for CI integration.
 
