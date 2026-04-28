@@ -1,7 +1,7 @@
 <!-- aegis-local: AEGIS-native skill, MIT-licensed; library-engine-driven autonomous customer-website builder. Ingests a configurator-output briefing.md, runs 7 phases (Recon/Architecture/Component-Build/Content/Integration/Mid-Audit/Final-Verify) plus Pre-Build-Validation and Post-Build status-report, dispatches subagents (Master/Research/Executor/Strategist), hits AAA+++ quality-gates (994/S/FORTRESS, Lighthouse 98+, briefing-coverage 100%) or returns INCOMPLETE-Status. Pattern ported from a private operational reference; this is the public OSS variant. References to private engines, libraries, and reference-implementations are placeholder/concept-level only. -->
 ---
 name: aegis-customer-build
-description: Library-engine-driven autonomous customer-website builder. One ~1000-line briefing.md becomes a deployment-ready AAA+++ site in 3-5h via multi-agent orchestration (Master opus + Research opus + Executor sonnet + Strategist opus). Mandatory tools - library-engine + aegis-scan + brutaler-anwalt + lighthouse. Mandatory phases - Pre-Build-Validation + 7 phases + Post-Build status-report. Hits production-bar 994 of 1000 grade S FORTRESS, Lighthouse 98+, briefing-coverage 100% or INCOMPLETE-Status. Trigger keywords - build customer, kundenseite, neue site, konfigurator-briefing, autonomous-build, 3h-build, agentur-build.
+description: Autonomous customer-website builder. Ingests configurator-briefing, runs 7 phases (Recon/Architecture/Build/Content/Integration/Mid-Audit/Final-Verify) + multi-agent dispatch, hits production-bar quality gates or returns INCOMPLETE-list. Trigger keywords - build customer, kundenseite, konfigurator-briefing, autonomous-build, 3h-build, agentur-build.
 model: opus
 license: MIT
 metadata:

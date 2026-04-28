@@ -1,7 +1,7 @@
 <!-- aegis-local: AEGIS-native skill, MIT-licensed; generic feature-dev workflow for AEGIS-bootstrapped repos. DB-migration -> API-route -> Service-Layer -> UI-Component -> Tests -> Optimistic-Updates with TDD-first discipline per spec hard-NICHTs. Single-file skill (no references), since the workflow generalises across stacks. -->
 ---
 name: aegis-module-builder
-description: Generic feature-dev workflow for AEGIS-bootstrapped repos. Six-phase pipeline - Plan / Test (red) / Implement (green) / Verify (gates 1-4) / Optimistic-update / Commit. TDD-first per spec hard-NICHTs (test before impl, no mocks, follow superpowers test-driven-development). Wraps DB-migrations, API-routes (secureApiRoute + Zod-strict + requireRole), service-layer extraction, UI-components, tests, optimistic-updates. Trigger keywords - module, feature, db-migration, api-route, refactor, neue funktion, neue api, neues modul.
+description: Generic feature-dev workflow for AEGIS-bootstrapped repos. TDD-first pipeline - Plan / Test-red / Implement-green / Verify (gates 1-4) / Polish / Commit. Wraps DB-migrations, API-routes (secureApiRoute + Zod-strict + requireRole), service-layer, UI-components, optimistic-updates. Trigger keywords - module, feature, db-migration, api-route, refactor, neue funktion, neue api, neues modul.
 model: sonnet
 license: MIT
 metadata:

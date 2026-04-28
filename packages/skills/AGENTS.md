@@ -2,7 +2,7 @@
 
 > Universal router for Claude Code AND Codex (and any AGENTS.md-aware harness).
 > Hierarchical loading reduces token-load by ≥70% vs flat skill-pool.
-> Skill-pack version: 0.4.0 (Phase 2 — full aegis-native cluster, all 8 foundation skills active).
+> Skill-pack version: 0.4.0 (Phase 2 — full foundation cluster, all 8 foundation skills active).
 
 ---
 
@@ -53,20 +53,20 @@ Skills reference **tool-categories**, not harness-specific tool-names. This tabl
 
 | User intent / file pattern | → Skill cluster |
 |---|---|
-| "audit", "compliance", "DSGVO", "Impressum", "Cookie", "Abmahnung", "TTDSG", "DDG", "AVV", "AGB" | `compliance/_INDEX.md` (brutaler-anwalt) + `aegis-native/_INDEX.md` (aegis-audit + dsgvo-compliance) |
-| "build customer", "neue kundenseite", "konfigurator-briefing", "agentur-build" | `aegis-native/_INDEX.md` (aegis-customer-build → aegis-quality-gates) |
-| "test aegis", "verify foundation", "smoke", "self-test" | `aegis-native/_INDEX.md` (aegis-quality-gates → aegis-audit) |
-| "scan", "security audit", "pen-test", "OWASP", "SAST", "DAST" | `defensive/_INDEX.md` + `offensive/_INDEX.md` + `aegis-native/_INDEX.md` (aegis-audit) |
-| "module", "feature", "DB migration", "API route", "refactor" | `aegis-native/_INDEX.md` (aegis-module-builder) |
-| "session", "start", "phase", "handover", "bootstrap", "weiter" | `aegis-native/_INDEX.md` (aegis-orchestrator) |
-| "neuer skill", "skill erstellen", "skill verbessern", "meta-skill" | `aegis-native/_INDEX.md` (aegis-skill-creator) |
-| "consent", "retention", "art-13", "art-15", "datenpanne", "schrems" | `aegis-native/_INDEX.md` (dsgvo-compliance) |
+| "audit", "compliance", "DSGVO", "Impressum", "Cookie", "Abmahnung", "TTDSG", "DDG", "AVV", "AGB" | `compliance/_INDEX.md` (brutaler-anwalt) + `foundation/_INDEX.md` (aegis-audit + dsgvo-compliance) |
+| "build customer", "neue kundenseite", "konfigurator-briefing", "agentur-build" | `foundation/_INDEX.md` (aegis-customer-build → aegis-quality-gates) |
+| "test aegis", "verify foundation", "smoke", "self-test" | `foundation/_INDEX.md` (aegis-quality-gates → aegis-audit) |
+| "scan", "security audit", "pen-test", "OWASP", "SAST", "DAST" | `defensive/_INDEX.md` + `offensive/_INDEX.md` + `foundation/_INDEX.md` (aegis-audit) |
+| "module", "feature", "DB migration", "API route", "refactor" | `foundation/_INDEX.md` (aegis-module-builder) |
+| "session", "start", "phase", "handover", "bootstrap", "weiter" | `foundation/_INDEX.md` (aegis-orchestrator) |
+| "neuer skill", "skill erstellen", "skill verbessern", "meta-skill" | `foundation/_INDEX.md` (aegis-skill-creator) |
+| "consent", "retention", "art-13", "art-15", "datenpanne", "schrems" | `foundation/_INDEX.md` (dsgvo-compliance) |
 
 ---
 
 ## Skill Categories
 
-- `aegis-native/` — Foundation skills (orchestrator, customer-build, audit, module-builder, skill-creator, dsgvo-compliance, handover-writer, quality-gates). _0.4.0 ✓._
+- `foundation/` — Foundation skills (orchestrator, customer-build, audit, module-builder, skill-creator, dsgvo-compliance, handover-writer, quality-gates). _0.4.0 ✓._
 - `compliance/` — Regulatory + legal: brutaler-anwalt (DSGVO/UWG/AGB/Impressum/Cookies/AVV/NIS2/AI-Act). _0.3.0 ✓._
 - `defensive/` — Security analysis (scan, hardening). _Existing._
 - `offensive/` — Adversarial testing (snailsploit-fork). _Existing._
@@ -86,7 +86,7 @@ Skills reference **tool-categories**, not harness-specific tool-names. This tabl
 
 ## Cluster Composition Reference
 
-Foundation use-cases compose into multi-skill clusters (per `aegis-native/_INDEX.md`):
+Foundation use-cases compose into multi-skill clusters (per `foundation/_INDEX.md`):
 
 | Use-case | Cluster |
 |---|---|
@@ -102,4 +102,4 @@ Every cluster ends with `aegis-handover-writer` to ensure the next session boots
 
 ## Forward-compat note
 
-`AGENTS.md` v0.4.0 routes the full 8-skill aegis-native foundation cluster + the v0.3.0 brutaler-anwalt compliance skill. Future additions (Phase 3 CLI commands, `aegis-deploy` automation, additional category `_INDEX.md` files for `defensive/` / `offensive/` / `ops/` / `mitre-mapped/`) extend per the rules above.
+`AGENTS.md` v0.4.0 routes the full 8-skill foundation cluster + the v0.3.0 brutaler-anwalt compliance skill. Future additions (Phase 3 CLI commands, `aegis-deploy` automation, additional category `_INDEX.md` files for `defensive/` / `offensive/` / `ops/` / `mitre-mapped/`) extend per the rules above.

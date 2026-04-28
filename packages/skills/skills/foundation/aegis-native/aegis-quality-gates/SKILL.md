@@ -1,7 +1,7 @@
 <!-- aegis-local: AEGIS-native skill, MIT-licensed; runs the canonical 9-gate quality-check sequence pre-commit and post-build, fails-closed if any gate is red, produces a JSON+markdown report. The external safety-net per spec §2 Component 5. -->
 ---
 name: aegis-quality-gates
-description: One-shot 9-quality-gate runner. Sequentially runs build / tsc / lint / tests / aegis-scan / brutaler-anwalt / lighthouse / skillforge-validate / briefing-coverage with thresholds per spec §6. Returns exit 0 if all green, exit 1 with a failing-gate list otherwise. Produces .aegis/verify-report.json + a markdown summary. Invoked pre-commit (via husky) and at end of build (via `aegis foundation verify`). Trigger keywords - verify, check all gates, quality-gates, audit-gate, pre-commit-check.
+description: One-shot 9-quality-gate runner. Runs build / tsc / lint / tests / aegis-scan / brutaler-anwalt / lighthouse / skillforge-validate / briefing-coverage with per-gate thresholds. Returns exit 0 all-green or exit 1 with failing-gate list. Produces .aegis/verify-report.json + markdown summary. Trigger keywords - verify, check all gates, quality-gates, audit-gate, pre-commit-check.
 model: sonnet
 license: MIT
 metadata:

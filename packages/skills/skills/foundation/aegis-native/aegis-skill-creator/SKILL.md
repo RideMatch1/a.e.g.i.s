@@ -1,7 +1,7 @@
 <!-- aegis-local: AEGIS-native skill, MIT-licensed; Meta-skill that builds new skills via SkillForge methodology + AEGIS HARD-CONSTRAINT-format. Triage (USE_EXISTING / IMPROVE / CREATE_NEW / COMPOSE) -> Scaffold via init_skill.py -> 11-Lens-Analysis -> Validate (auto-iterate to 16/17+) -> Commit. NO skill-creation without validate-pass + 3+ references + Anti-Patterns + Extension-Points sections. References to SkillForge methodology with attribution. -->
 ---
 name: aegis-skill-creator
-description: Meta-skill that builds new skills via SkillForge methodology (tripleyak/SkillForge MIT) + AEGIS HARD-CONSTRAINT-format. Five-phase pipeline - Triage (USE_EXISTING vs IMPROVE vs CREATE_NEW vs COMPOSE) / Scaffold (init_skill.py) / Iterate (11-Lens-Analysis from references) / Validate (validate-skill.py auto-iterate to 16/17+) / Commit. NO skill-creation without validate-pass plus 3+ references plus Anti-Patterns plus Extension-Points sections. Trigger keywords - neuer skill, skill erstellen, skill verbessern, skill audit, meta-skill, skill creator, skillforge.
+description: Meta-skill that builds new skills via SkillForge methodology (tripleyak/SkillForge MIT) + AEGIS HARD-CONSTRAINT-format. Pipeline - Triage / Scaffold / 11-Lens-Iterate / Validate (16/17+) / Commit. Trigger keywords - neuer skill, skill erstellen, skill verbessern, skill audit, meta-skill, skillforge.
 model: opus
 license: MIT
 metadata:

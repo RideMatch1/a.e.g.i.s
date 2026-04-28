@@ -1,7 +1,7 @@
 <!-- aegis-local: AEGIS-native skill, MIT-licensed; DSGVO baseline-checks for AEGIS-bootstrapped projects. Consent-management, retention-policy, Art. 13/15 info-pflicht templates, Datenpanne 72h-Meldepflicht runbook (Art. 33), Schrems-II Drittlandtransfer-Compliance. Pattern ported from a private operational reference; this is the public OSS variant. -->
 ---
 name: dsgvo-compliance
-description: DSGVO baseline-checks for AEGIS-bootstrapped projects. Consent-management, retention-policy, Art. 13/15 info-pflicht templates, Datenpanne 72h-Meldepflicht runbook (Art. 33), Schrems-II Drittlandtransfer-Compliance. Five-phase pipeline - consent-mapping / retention-policy-write / art-13-info-templates / datenpanne-runbook / schrems-ii-tia. Trigger keywords - consent, retention, art-13, art-15, datenpanne, drittland, dsgvo-baseline, schrems, datenschutz-beauftragter, dsb.
+description: DSGVO baseline-templates for AEGIS-bootstrapped projects. Consent-management, retention-policy, Art. 13/15 info-pflicht templates, Datenpanne 72h-Runbook (Art. 33), Schrems-II Drittlandtransfer-TIA. Sister-skill to brutaler-anwalt (audit findings vs fix-templates). RDG-Linie respected. Trigger keywords - consent, retention, art-13, art-15, datenpanne, drittland, schrems, dsgvo-baseline, dsb.
 model: opus
 license: MIT
 metadata:

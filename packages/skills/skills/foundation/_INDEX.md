@@ -1,4 +1,4 @@
-# aegis-native/_INDEX.md — Foundation Skill Trigger-Table
+# foundation/_INDEX.md — Foundation Skill Trigger-Table
 
 Routes the Foundation's own skills (orchestrator, customer-build, audit, etc.) based on user intent + keyword triggers. Loaded on-demand by the master `AGENTS.md` router when a Foundation-related request arrives.
 
@@ -8,14 +8,14 @@ Routes the Foundation's own skills (orchestrator, customer-build, audit, etc.) b
 
 | Trigger keywords | → Skill | Frontmatter `model` | Loaded path |
 |---|---|---|---|
-| start, session, bootstrap, phase, handover, weiter, weitermachen, übergabe, recap | `aegis-orchestrator` | opus | `aegis-native/aegis-native/aegis-orchestrator/SKILL.md` |
-| handover, übergabe, session-ende, fertig, recap, abschluss | `aegis-handover-writer` | sonnet | `aegis-native/aegis-native/aegis-handover-writer/SKILL.md` |
-| verify, check all gates, quality-gates, audit-gate, pre-commit-check | `aegis-quality-gates` | sonnet | `aegis-native/aegis-native/aegis-quality-gates/SKILL.md` |
-| build customer, kundenseite, neue site, konfigurator-briefing, autonomous-build, 3h-build | `aegis-customer-build` | opus | `aegis-native/aegis-native/aegis-customer-build/SKILL.md` |
-| module, feature, db-migration, api-route, refactor, neue funktion, neue api, neues modul | `aegis-module-builder` | sonnet | `aegis-native/aegis-native/aegis-module-builder/SKILL.md` |
-| audit, paranoid-audit, AAA+++ check, 8-layer, security-audit, full-audit | `aegis-audit` | opus | `aegis-native/aegis-native/aegis-audit/SKILL.md` |
-| neuer skill, skill erstellen, skill verbessern, skill audit, meta-skill, skillforge | `aegis-skill-creator` | opus | `aegis-native/aegis-native/aegis-skill-creator/SKILL.md` |
-| consent, retention, art-13, art-15, art-33, datenpanne, drittland, dsgvo-baseline, schrems | `dsgvo-compliance` | opus | `aegis-native/aegis-native/dsgvo-compliance/SKILL.md` |
+| start, session, bootstrap, phase, handover, weiter, weitermachen, übergabe, recap | `aegis-orchestrator` | opus | `foundation/aegis-native/aegis-orchestrator/SKILL.md` |
+| handover, übergabe, session-ende, fertig, recap, abschluss | `aegis-handover-writer` | sonnet | `foundation/aegis-native/aegis-handover-writer/SKILL.md` |
+| verify, check all gates, quality-gates, audit-gate, pre-commit-check | `aegis-quality-gates` | sonnet | `foundation/aegis-native/aegis-quality-gates/SKILL.md` |
+| build customer, kundenseite, neue site, konfigurator-briefing, autonomous-build, 3h-build | `aegis-customer-build` | opus | `foundation/aegis-native/aegis-customer-build/SKILL.md` |
+| module, feature, db-migration, api-route, refactor, neue funktion, neue api, neues modul | `aegis-module-builder` | sonnet | `foundation/aegis-native/aegis-module-builder/SKILL.md` |
+| audit, paranoid-audit, AAA+++ check, 8-layer, security-audit, full-audit | `aegis-audit` | opus | `foundation/aegis-native/aegis-audit/SKILL.md` |
+| neuer skill, skill erstellen, skill verbessern, skill audit, meta-skill, skillforge | `aegis-skill-creator` | opus | `foundation/aegis-native/aegis-skill-creator/SKILL.md` |
+| consent, retention, art-13, art-15, art-33, datenpanne, drittland, dsgvo-baseline, schrems | `dsgvo-compliance` | opus | `foundation/aegis-native/dsgvo-compliance/SKILL.md` |
 
 ---
 
@@ -70,4 +70,4 @@ Each cluster ends with `aegis-handover-writer` to ensure the next session starts
 
 ## Forward-compat note
 
-`aegis-native/_INDEX.md` at v0.4.0+ routes the full 8-skill foundation cluster. Future foundation-additions (e.g., `aegis-deploy` for Hetzner-Dokploy automation, `aegis-monitoring` for post-deploy observability) get rows added here + corresponding SKILL.md folders under `aegis-native/aegis-native/`.
+`foundation/_INDEX.md` at v0.4.0+ routes the full 8-skill foundation cluster. Future foundation-additions (e.g., `aegis-deploy` for Hetzner-Dokploy automation, `aegis-monitoring` for post-deploy observability) get rows added here + corresponding SKILL.md folders under `foundation/aegis-native/`.
