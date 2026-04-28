@@ -218,6 +218,32 @@ Run this on every CI run. Tenant-isolation regressions silently leak data; you n
 - `mass-assignment-checker` (CWE-915) — flags unvalidated body → `.insert()`.
 - `aegis-wizard/cli` scaffold — ships `secureApiRouteWithTenant`, the `tenants` + `profiles` schema with the auto-profile-on-signup trigger, and an exemplary API route demonstrating the composition pattern.
 
+## Complementary external skill (mandatory)
+
+This skill covers **API-route-level tenant isolation**: the
+`secureApiRouteWithTenant` primitive, JWT-sourced tenant
+injection, request-input rejection, and AEGIS scanner-finding
+remediation. It does not cover the broader Supabase development
+surface (Auth setup, Edge Functions, Realtime, Storage,
+migration workflow, MCP server integration) or Postgres
+performance.
+
+When designing a multi-tenant Supabase project, install the
+upstream Supabase skill package once, globally:
+
+```bash
+npx skills add supabase/agent-skills -g -y
+```
+
+The two skills it ships are complementary to this one:
+
+- [`supabase`](https://github.com/supabase/agent-skills/tree/main/skills/supabase) — the comprehensive Supabase development skill: the JWT vs `app_metadata` vs `user_metadata` security trap (critical for tenant-isolation policies), `WITH (security_invoker = true)` for views (RLS bypass otherwise), Storage upsert needing INSERT+SELECT+UPDATE (silent failures otherwise), CLI / migration / MCP workflow.
+- [`supabase-postgres-best-practices`](https://github.com/supabase/agent-skills/tree/main/skills/supabase-postgres-best-practices) — Postgres performance reference: the `security-rls-performance.md` and `security-privileges.md` files complement this skill's tenant-filtering invariant with performance and least-privilege discipline.
+
+The mandate is documented at the top of the AEGIS repository in
+[`AGENTS.md`](../../../../../../AGENTS.md) and in the skills package
+[`ATTRIBUTION.md`](../../../../ATTRIBUTION.md#required-external-skills-mandatory-complement-not-forked).
+
 ## See also
 
 - `defensive-rls-defense` skill — the RLS counterpart that complements API-route-level isolation.

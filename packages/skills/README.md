@@ -101,6 +101,33 @@ compliance audits:
 
 - **`brutaler-anwalt`** — adversarial DE/EU compliance auditor (DSGVO / DDG / TTDSG / UWG / NIS2 / EU AI Act / branchenrecht / strafrecht-steuer) with three-persona self-verification (Hunter / Challenger / Synthesizer). Slash-command activation via `/anwalt`. Ships an 11-file `references/` sibling tree (~120 KB) with per-bereich rules, BGH/EuGH-judgment database, abmahn-templates, and an explicit AEGIS-scanner-output → rechtliche-Bewertung mapping. The installer auto-copies the references tree alongside the SKILL.md.
 
+### Required external skills (mandatory complement, not forked)
+
+For full Supabase / Postgres coverage, AEGIS users **must** also
+install the upstream Supabase skill package — installed once,
+globally, via the upstream maintainer's distribution channel:
+
+```bash
+npx skills add supabase/agent-skills -g -y
+```
+
+This installs two MIT-licensed skills from
+[supabase/agent-skills](https://github.com/supabase/agent-skills):
+
+- **`supabase`** — comprehensive Supabase development skill: Auth / Edge Functions / Realtime / Storage / Vectors, client libraries (`supabase-js`, `@supabase/ssr`) integration into Next.js / SvelteKit / Astro / Remix, JWT and session security, Supabase CLI workflow (`migration new`, `db query`, advisors), MCP server troubleshooting, schema-change workflow (`execute_sql` vs `apply_migration`), Postgres-extension setup (`pg_graphql` / `pg_cron` / `pg_vector`).
+- **`supabase-postgres-best-practices`** — 8-category Postgres performance guide (30+ reference files): query optimization (covering / partial / composite indexes), connection management (pooling / limits / prepared statements / idle timeout), schema design (primary keys / FK indexes / partitioning / constraints), concurrency & locking (advisory / deadlock prevention / skip-locked), data access (batch inserts / N+1 / pagination / upsert), monitoring (`EXPLAIN ANALYZE` / `pg_stat_statements` / vacuum), and advanced features (full-text search / JSONB indexing).
+
+The AEGIS-native defensive skills (`rls-defense`,
+`tenant-isolation-defense`) cross-reference the upstream
+`security-rls-basics.md`, `security-rls-performance.md`, and
+`security-privileges.md` reference files for performance-tuned RLS
+patterns and least-privilege role design — install the upstream
+package so those cross-references resolve at use-time.
+
+See [`ATTRIBUTION.md`](./ATTRIBUTION.md#required-external-skills-mandatory-complement-not-forked)
+for the full rationale on why these skills are mandate-via-upstream
+rather than forked into this tree.
+
 ### Attribution + license
 
 See [`ATTRIBUTION.md`](./ATTRIBUTION.md) for the full credit chain.

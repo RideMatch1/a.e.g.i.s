@@ -10,6 +10,17 @@ and quality-audit completion, not by a fixed schedule.
 
 ## [Unreleased]
 
+### Added
+
+- **External-skills mandate-without-fork integration** with [supabase/agent-skills](https://github.com/supabase/agent-skills) (MIT). Two upstream skills (`supabase` + `supabase-postgres-best-practices`) are now declared **mandatory complements** to the AEGIS-native security layer for any project using Supabase or Postgres. Installation via the upstream's own distribution channel (`npx skills add supabase/agent-skills -g -y`) — not re-shipped here. Rationale: upstream is actively maintained by the Supabase team with frequent updates the AEGIS team has no special insight into, so fork-mode would freeze content at a fork-SHA + create unnecessary quarterly upstream-sync work for content that benefits from staying current.
+  - `ATTRIBUTION.md` — new "Required external skills (mandatory complement, not forked)" section documenting the rationale, install command, and license-compatibility chain.
+  - `README.md` — new "Required external skills (mandatory complement, not forked)" section under "What ships" with explicit install instructions and the cross-reference map.
+  - `skills/defensive/aegis-native/rls-defense/SKILL.md` — new "Complementary external skill (mandatory)" section pointing to upstream `security-rls-basics.md`, `security-rls-performance.md`, and `security-privileges.md` reference files.
+  - `skills/defensive/aegis-native/tenant-isolation-defense/SKILL.md` — new "Complementary external skill (mandatory)" section pointing to upstream `supabase` and `supabase-postgres-best-practices` skills.
+  - AEGIS repository root — new `AGENTS.md` documents the repo-wide mandate for AI coding-agents working in this repo and the layer-split between AEGIS-native security and upstream Supabase dev/perf coverage.
+
+This establishes a second integration-pattern alongside the existing fork-mode (used by `skills/offensive/snailsploit-fork/`): mandate-without-fork. Future external sources will pick per-source based on stability and maintenance-economics.
+
 ---
 
 ## [0.2.1] — 2026-04-28 — "list --category compliance hotfix"

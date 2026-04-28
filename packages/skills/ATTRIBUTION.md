@@ -93,10 +93,66 @@ adversarial DE/EU compliance content under MIT License.
 - **First shipped:** v0.2.0
 - **Content domain:** DE/EU compliance audit (DSGVO, DDG, TTDSG, UWG, NIS2, EU AI Act, branchenrecht, strafrecht-steuer). Three-persona self-verification (Hunter / Challenger / Synthesizer) is an AEGIS-original methodology pattern, not derived from upstream content. References cite German/EU statutes (`§`-paragraphs) and BGH/EuGH judgment-IDs (`Az.`) — these are factual legal identifiers, not copyrightable expression.
 
-## Future external sources
+## Required external skills (mandatory complement, not forked)
 
-The `skills/` tree is designed to grow across sources. Future
-candidates being evaluated for cherry-pick (per the maintainer's
+Some upstream skill packages are higher-value when consumed
+**directly from the upstream maintainer** rather than forked into
+this tree. AEGIS treats them as **mandatory complements** —
+required for full Supabase / Postgres coverage when working on a
+project that uses those technologies — but installed via the
+upstream's own distribution channel rather than re-shipped here.
+
+This avoids:
+
+- License-attribution drift across forks
+- Stale upstream versions when the maintainer ships fixes
+- Duplicate maintenance burden when the upstream package is the
+  single source of truth
+
+### `supabase/agent-skills` — Postgres + Supabase development best-practices
+
+- **Upstream:** https://github.com/supabase/agent-skills
+- **License:** MIT
+- **Skills shipped:** `supabase` (comprehensive Supabase dev skill — Auth, Edge Functions, Realtime, Storage, MCP, CLI, schema-change workflow) + `supabase-postgres-best-practices` (8-category Postgres performance guide with 30+ reference files: query, conn, security, schema, lock, data, monitor, advanced).
+- **Installation (mandatory when working on this repo):**
+
+  ```bash
+  npx skills add supabase/agent-skills -g -y
+  ```
+
+  Installs both skills globally to `~/.agents/skills/` and
+  symlinks them into `~/.claude/skills/` for Claude Code
+  auto-discovery. Compatible with 18+ AI agents (Claude Code,
+  Cursor, GitHub Copilot, Cline, etc.) — universal Agent Skills
+  Open Standard format.
+
+- **Why mandatory and not forked:** the AEGIS skills package
+  covers the **security layer** (RLS-bypass remediation,
+  tenant-isolation, IDOR-defense, scanner-finding mapping). The
+  upstream Supabase skills cover the **dev-productivity layer**
+  (CLI commands, migration workflow, MCP server config, query
+  performance optimization, indexing patterns, connection
+  pooling, JSONB indexing, full-text search, etc.). The two are
+  complementary and non-overlapping — see the cross-reference
+  blocks at the bottom of `skills/defensive/aegis-native/rls-defense/SKILL.md`
+  and `skills/defensive/aegis-native/tenant-isolation-defense/SKILL.md`.
+
+- **Why not cherry-pick into AEGIS:** Supabase ships frequent
+  updates to its own skills (core principles, CLI gotchas, MCP
+  troubleshooting steps change between Supabase CLI versions).
+  Forking would freeze the AEGIS copy at a fork-SHA and require
+  quarterly upstream-sync work for content the AEGIS team has
+  no special insight into. Routing users to the upstream package
+  ensures they always pull the freshest Supabase-team-maintained
+  guidance.
+
+## Future external cherry-pick candidates
+
+The `skills/` tree is also designed to grow across sources via
+**fork-mode** (the same pattern as `skills/offensive/snailsploit-fork/`)
+when the content is security-domain and benefits from AEGIS-side
+sanitization, scanner-mapping headers, or quarterly review.
+Candidates being evaluated for cherry-pick (per the maintainer's
 source-evaluation cycle):
 
 - [mukul975/Anthropic-Cybersecurity-Skills](https://github.com/mukul975/Anthropic-Cybersecurity-Skills) — Apache-2.0, 754 mixed offensive+defensive skills with MITRE/D3FEND/NIST framework-mappings.

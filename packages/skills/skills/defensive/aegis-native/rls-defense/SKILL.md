@@ -167,6 +167,31 @@ Order of operations:
 
 Run `aegis scan .` on your repo; fix everything `rls-bypass-checker` and `tenant-isolation-checker` flag before going to production.
 
+## Complementary external skill (mandatory)
+
+This AEGIS skill covers the **security-remediation layer** —
+scanner-finding mapping, incident-response, multi-tenant
+isolation invariants. It does **not** cover RLS performance
+optimization in depth, because that is the upstream Supabase
+team's domain and is maintained as a separate skill.
+
+When working on RLS at any depth, install the upstream Supabase
+skill package once, globally:
+
+```bash
+npx skills add supabase/agent-skills -g -y
+```
+
+That ships
+[`supabase-postgres-best-practices`](https://github.com/supabase/agent-skills/tree/main/skills/supabase-postgres-best-practices),
+whose three `security-*` reference files complement this skill:
+
+- `references/security-rls-basics.md` — the canonical RLS-enable + policy pattern as Supabase recommends it.
+- `references/security-rls-performance.md` — the `(select auth.uid())` wrap that turns a per-row function call into a single-evaluation cached call (5–10x faster on large tables), security-definer helper functions for complex membership checks, and the discipline of indexing every column referenced inside an RLS policy.
+- `references/security-privileges.md` — least-privilege role design and GRANT minimization, the layer beneath RLS.
+
+When the AEGIS `rls-bypass-checker` flags a finding and you have a working policy fix, consult the upstream `security-rls-performance.md` next to ensure the fixed policy is also performant on production-sized tables. RLS that is correct but slow gets disabled by stressed engineers, which re-opens the security hole.
+
 ## See also
 
 - AEGIS scaffold's RLS bootstrap migration — `aegis new <project>` ships a `tenants` + `profiles` table + auto-profile-on-signup trigger pre-wired.
