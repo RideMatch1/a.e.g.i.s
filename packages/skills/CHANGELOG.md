@@ -23,6 +23,43 @@ This establishes a second integration-pattern alongside the existing fork-mode (
 
 ---
 
+## [0.4.0] — 2026-04-28 — "Full aegis-native foundation cluster (Phase 2 of AEGIS Agent Foundation)"
+
+### Added — 5 new aegis-native foundation skills
+
+The remaining 5 of 8 foundation skills land in this minor, completing the v0.4.0 aegis-native cluster started in v0.3.0 (which shipped orchestrator + handover-writer + quality-gates).
+
+- **`aegis-customer-build`** (multi-file, `model: opus`) — library-engine-driven autonomous customer-website builder. Ingests a configurator-output briefing.md, runs Pre-Build-Validation + 7 phases (Recon / Architecture / Component-Build / Content / Integration / Mid-Audit / Final-Verify) + Post-Build status-report. Multi-agent orchestration via subagent-dispatch (Master + Research + Executor + Strategist). Hits production-bar 994/S/FORTRESS + Lighthouse 98+ + briefing-coverage 100% or returns INCOMPLETE-Status. SKILL.md + 7 phase-references (`phase-1-recon` through `phase-7-final-verify` covering briefing-parser-checklist, architecture-decisions, component-build pattern, copy/SEO/Schema, API-route + DSGVO-form pattern, mid-audit repair-loop, 9-gate final-verify + briefing-coverage). validate 17/18 (1 advisory warning on 7 intentional phases).
+- **`aegis-module-builder`** (single-file, `model: sonnet`) — Generic feature-dev workflow with TDD-first discipline. Six-phase pipeline: Plan / Test (red) / Implement (green) / Verify (gates 1-4) / Polish / Commit. Wraps DB-migration + API-route (secureApiRoute + Zod-strict + requireRole) + Service-Layer + UI-Component + Tests + Optimistic-Updates. References `superpowers:test-driven-development` for TDD-mechanics. validate 16/18 (intentional 6-phase + intentional single-file design).
+- **`aegis-audit`** (multi-file, `model: opus`) — 8-Layer paranoid-audit skill. Layers: HTTP-Headers / HTML-Live-Probe / Impressum / DSE / Cookie+Consent / Branche-Specific / Code-Cross-Check / Schadens-Diagnose. Runs against built customer-site, live URL, or local repo. Output 4-section format (Schadens-Diagnose / Findings-Tabelle / Anwalts-Anhang / Abmahn-Simulation) with €-range estimates per industry × visibility × competitor formula. SKILL.md + 8 layer-references (`layer-1-headers` through `layer-8-schadens-diagnose`). Cross-checks with brutaler-anwalt at shared layers (Impressum / DSE / Cookie). validate 16/17 (1 advisory).
+- **`aegis-skill-creator`** (multi-file, `model: opus`) — Meta-skill that builds new skills via SkillForge methodology (tripleyak/SkillForge MIT) + AEGIS HARD-CONSTRAINT-format. Five-phase pipeline: Triage (USE_EXISTING / IMPROVE / CREATE_NEW / COMPOSE) / Scaffold (init_skill.py-style) / Iterate (11-Lens-Analysis) / Validate (auto-iterate to 16/17+) / Commit. SKILL.md + 2 references (`skillforge-methodology.md` with attribution + `hard-constraint-template.md` per-skill-type templates: orchestrator / builder / auditor / writer / verifier / meta). validate 17/18 (1 advisory on 5 phases).
+- **`dsgvo-compliance`** (multi-file, `model: opus`) — DSGVO baseline-checks for AEGIS-bootstrapped projects. Five-phase pipeline: Consent-mapping / Retention-policy / Art. 13 info-templates / Datenpanne 72h-runbook / Schrems-II TIA. Sister-skill to brutaler-anwalt (audit findings vs fix-templates). SKILL.md + 2 references (`art-13-15-templates.md` covering full DSE template + Art. 15 Auskunftsanfrage-Antwort + per-form short-form Art. 13; `datenpanne-runbook.md` covering Sofortmaßnahmen + 72h-Timeline + Risiko-Bewertung + Art. 33/34 templates + Aufsichtsbehörden-Kontakte per Bundesland). RDG-Linie respected: templates + runbooks, not individual legal advice. validate 16/17 (1 advisory).
+
+### Updated — Master AGENTS.md + aegis-native/_INDEX.md (full activation)
+
+- **`packages/skills/AGENTS.md`** — removes all `_(post-0.4.0)_` placeholder-markers from Use-Case Routing table. Adds rows for module-builder / skill-creator / dsgvo-compliance use-cases. Adds Tool-Category Mapping rows for `library-engine` / `aegis-scan` / `lighthouse` / `playwright` / `curl` (the domain-specific tool-categories required by the new aegis-native skills). Adds Cluster Composition Reference table mapping each use-case to its multi-skill cluster (every cluster ends with aegis-handover-writer for next-session bootstrap).
+- **`packages/skills/skills/aegis-native/_INDEX.md`** — removes all `_(post-0.4.0)_` markers, adds full path + slash-command surface for all 8 skills. Adds Cluster Composition Patterns table.
+
+### Updated — manifest test
+
+- **`__tests__/manifest.test.ts`** — `EXPECTED_TOTAL` 50 → 55 (5 new aegis-native skills auto-detected by `loadAllSkills()`). `EXPECTED_NAMES_BY_CATEGORY['aegis-native']` adds the 5 new names alphabetically: `aegis-audit`, `aegis-customer-build`, `aegis-module-builder`, `aegis-skill-creator`, `dsgvo-compliance` (joining the 3 v0.3.0 skills).
+
+### Validation
+
+- All 5 new SKILL.md files pass SkillForge `validate-skill.py` ≥ 16/17 (the 1-warning ceiling per the `aegis-native/_INDEX.md` rule allows for advisory warnings on intentionally-multi-phase skills).
+- All 16 new `references/*.md` files pass scrub-clean (no internal-codename leaks). Total references-files added: 7 (customer-build phases) + 8 (audit layers) + 2 (skill-creator) + 2 (dsgvo-compliance) − 1 single-file = 18 reference-files plus 5 SKILL.md = 23 new markdown files.
+- `tsc --noEmit` clean. **486 / 486 tests pass post-addition** (was 432, +54 auto-generated for 5 new skills + 18 new references). Test breakdown: scrub 92 (was 68, +24), attribution 150 (was 140, +10), frontmatter 227 (was 207, +20), manifest 17 (unchanged count, EXPECTED_TOTAL bumped).
+- All scrub-test FORBIDDEN-codename patterns clean across new content (the canonical scrub-list lives in `__tests__/scrub.test.ts` plus the CI tarball-scrub gate). The customer-build skill uses the `library-engine` tool-category placeholder consistently per the foundation-spec privacy-residue convention, not any private-engine codename.
+
+### Notes
+
+- Hierarchical loading via the v0.4.0 master AGENTS.md plus aegis-native/_INDEX.md: token-budget reduction estimate ≥70% versus a flat skill-pool now applies for the full foundation cluster (was just brutaler-anwalt at v0.3.0).
+- 5 cluster-composition patterns documented in AGENTS.md + _INDEX.md (customer-build / compliance-audit / dev-feature / aegis-self-test / skill-authoring) — each cluster terminates with aegis-handover-writer per the discipline that no session ends without writing a handover.
+- HARD-CONSTRAINT-frontmatter format from v0.3.0 applied uniformly to all 5 new skills under `metadata:` nesting per the SkillForge validator's allowlist constraint. `parseHardConstraintFrontmatter()` from `skills-loader.ts` reads them without code change.
+- Phase 3 of the AEGIS Agent Foundation (CLI + agent-framework package) follows in `@aegis-scan/cli@0.18.0` + `@aegis-scan/agent-framework@0.18.0` (separate publishes).
+
+---
+
 ## [0.3.0] — 2026-04-28 — "HARD-CONSTRAINT-frontmatter + AGENTS.md router (Phase 1 of AEGIS Agent Foundation)"
 
 ### Added
