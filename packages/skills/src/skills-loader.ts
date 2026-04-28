@@ -209,6 +209,70 @@ function extractScalarField(yaml: string, field: string): string {
   return value;
 }
 
+/**
+ * HARD-CONSTRAINT frontmatter fields introduced in @aegis-scan/skills@0.3.0
+ * for the AEGIS Agent Foundation. All fields are strings (comma-separated for
+ * lists) so that the minimal YAML-scalar parser can extract them without a
+ * full YAML-array implementation. YAML-array support is deferred to a later
+ * minor when 3+ skills need true arrays.
+ *
+ * Backward-compatible: pre-0.3.0 skills without these fields return undefined
+ * for each, and the loader continues to function unchanged.
+ */
+export interface HardConstraintFrontmatter {
+  /** Skill identifier from frontmatter `name:`. Required. */
+  name: string;
+  /** One-line description from frontmatter `description:`. Required. */
+  description: string;
+  /** Comma-separated tool-categories the skill needs at runtime. */
+  required_tools?: string;
+  /** Numeric-as-string — how many audit-passes before pre-done. */
+  required_audit_passes?: string;
+  /** Numeric-as-string — how many quality-gates the skill enforces. */
+  enforced_quality_gates?: string;
+  /** "true" | "false" — must run pre-done audit before declaring done. */
+  pre_done_audit?: string;
+  /** "opus" | "sonnet" | "haiku" — model selection hint. */
+  model?: string;
+  /** SPDX license id, typically "MIT". */
+  license?: string;
+}
+
+/**
+ * Parse HARD-CONSTRAINT frontmatter fields from a SKILL.md raw content.
+ * Returns name + description (always present in valid skills) plus optional
+ * v0.3.0+ HARD-CONSTRAINT fields when the skill declares them.
+ *
+ * Tolerates a leading `<!-- aegis-local … -->` HTML header per the upstream
+ * convention and ignores trailing body content. Designed to be used by the
+ * agent-framework `skill-frontmatter-validator` independently of the broader
+ * `loadAllSkills()` directory walker.
+ */
+export function parseHardConstraintFrontmatter(raw: string): HardConstraintFrontmatter {
+  const withoutHeader = stripLeadingHeader(raw);
+  const yaml = extractYamlFrontmatter(withoutHeader);
+  if (!yaml) {
+    return { name: '', description: '' };
+  }
+  const out: HardConstraintFrontmatter = {
+    name: extractScalarField(yaml, 'name'),
+    description: extractScalarField(yaml, 'description'),
+  };
+  const required_tools = extractScalarField(yaml, 'required_tools');
+  if (required_tools) out.required_tools = required_tools;
+  const required_audit_passes = extractScalarField(yaml, 'required_audit_passes');
+  if (required_audit_passes) out.required_audit_passes = required_audit_passes;
+  const enforced_quality_gates = extractScalarField(yaml, 'enforced_quality_gates');
+  if (enforced_quality_gates) out.enforced_quality_gates = enforced_quality_gates;
+  const pre_done_audit = extractScalarField(yaml, 'pre_done_audit');
+  if (pre_done_audit) out.pre_done_audit = pre_done_audit;
+  const model = extractScalarField(yaml, 'model');
+  if (model) out.model = model;
+  const license = extractScalarField(yaml, 'license');
+  if (license) out.license = license;
+  return out;
+}
+
 function extractFirstH1(body: string): string {
   // Walk lines and track code-fence state so `# comment` inside a bash
   // or similar code-block is not mistaken for a markdown H1 heading.
