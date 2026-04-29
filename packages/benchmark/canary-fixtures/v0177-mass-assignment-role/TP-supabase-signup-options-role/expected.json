@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-supabase-signup-options-role",
+  "cwe": 915,
+  "type": "TP",
+  "description": "serviconnect-class regression-guard. Supabase auth.signUp() called with options.data containing user-controlled `role` from request body — stored as user_metadata, may be used by RLS policies. Attacker POSTs {role: 'admin'} → user_metadata.role = admin → potential RLS bypass. After F-MASS-1 scanner detects the supabase.auth.signUp options.data sensitive-field flow.",
+  "expected": [
+    { "scanner": "mass-assignment-checker", "cwe": 915 }
+  ]
+}

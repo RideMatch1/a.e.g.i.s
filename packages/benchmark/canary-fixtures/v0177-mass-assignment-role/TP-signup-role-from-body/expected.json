@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-signup-role-from-body",
+  "cwe": 915,
+  "type": "TP",
+  "description": "hirenfire-v2-class regression-guard. Signup endpoint destructures role from request.json() and inserts it directly into User table. Pre-v0.17.7 mass-assignment-checker treated destructuring as mitigation — but if the destructured set includes sensitive fields (role/permissions/is_admin), that IS mass-assignment-class privilege escalation. Attacker POSTs {role: 'admin'} → admin account. After F-MASS-1 the scanner must fire HIGH/CWE-915.",
+  "expected": [
+    { "scanner": "mass-assignment-checker", "cwe": 915 }
+  ]
+}

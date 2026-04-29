@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-server-derived-role",
+  "cwe": 915,
+  "type": "FP",
+  "description": "Smoke test: F-MASS-1 must NOT over-fire. When `role` is hardcoded server-side ('customer' literal), the destructure of body for non-sensitive fields (email, name) is fine. mass-assignment-checker MUST NOT fire CWE-915.",
+  "expected": [
+    { "scanner": "mass-assignment-checker", "cwe": 915 }
+  ]
+}

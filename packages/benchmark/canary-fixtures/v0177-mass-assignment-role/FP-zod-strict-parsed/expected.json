@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-zod-strict-parsed",
+  "cwe": 915,
+  "type": "FP",
+  "description": "Smoke test: when body is strictly parsed via Zod schema before any DB write, mass-assignment-checker must not fire even if sensitive field names appear in the schema's pick list. The Zod schema is the safety boundary.",
+  "expected": [
+    { "scanner": "mass-assignment-checker", "cwe": 915 }
+  ]
+}

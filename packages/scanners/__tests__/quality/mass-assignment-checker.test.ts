@@ -259,6 +259,108 @@ describe('massAssignmentCheckerScanner', () => {
     expect(result.findings.filter((f) => f.title.includes('Mass assignment'))).toHaveLength(0);
   });
 
+  // ============================================================
+  // v0.17.7 F-MASS-1: sensitive-field destructure + Supabase signUp
+  // Source: 2026-04-29 Round-3 dogfood (hirenfire-v2 / serviconnect)
+  // ============================================================
+
+  it('F-MASS-1: flags destructure that includes sensitive `role` from request.json()', async () => {
+    createApiRoute(projectPath, 'auth/signup', `
+      import { db } from '@/lib/db';
+      export async function POST(request) {
+        const { email, password, name, role, hourlyRate } = await request.json();
+        const { data: user } = await db.from('User').insert({
+          email, password, name, role: role || 'customer',
+        }).select().single();
+        return Response.json({ user });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 915);
+    expect(finding).toBeDefined();
+    expect(finding!.title).toMatch(/sensitive field destructured/i);
+  });
+
+  it('F-MASS-1: flags destructure with `is_admin` flag from body', async () => {
+    createApiRoute(projectPath, 'profile', `
+      import { db } from '@/lib/db';
+      export async function PATCH(req) {
+        const body = await req.json();
+        const { name, email, is_admin } = body;
+        await db.from('User').update({ name, email, is_admin }).eq('id', '1');
+        return Response.json({ ok: true });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 915);
+    expect(finding).toBeDefined();
+  });
+
+  it('F-MASS-1: flags destructure with `tenant_id` from body', async () => {
+    createApiRoute(projectPath, 'orgs/create', `
+      import { db } from '@/lib/db';
+      export async function POST(request) {
+        const { name, tenant_id, owner_id } = await request.json();
+        await db.from('Org').insert({ name, tenant_id, owner_id });
+        return Response.json({ ok: true });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 915);
+    expect(finding).toBeDefined();
+  });
+
+  it('F-MASS-1: flags supabase.auth.signUp options.data containing user-controlled `role`', async () => {
+    createApiRoute(projectPath, 'auth/signup', `
+      import { createClient } from '@/lib/supabase/server';
+      export async function POST(request) {
+        const { email, password, role, fullName } = await request.json();
+        const supabase = createClient();
+        const { data, error } = await supabase.auth.signUp({
+          email, password,
+          options: { data: { role, full_name: fullName } },
+        });
+        return Response.json({ user: data?.user });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 915);
+    expect(finding).toBeDefined();
+  });
+
+  it('F-MASS-1: does NOT flag destructure of only non-sensitive fields', async () => {
+    createApiRoute(projectPath, 'profile', `
+      import { db } from '@/lib/db';
+      export async function POST(request) {
+        const { email, name, phone } = await request.json();
+        await db.from('User').insert({ email, name, phone, role: 'customer' });
+        return Response.json({ ok: true });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 915);
+    expect(finding).toBeUndefined();
+  });
+
+  it('F-MASS-1: does NOT flag when Zod-strict-parse is the validation boundary', async () => {
+    createApiRoute(projectPath, 'auth/signup', `
+      import { z } from 'zod';
+      import { db } from '@/lib/db';
+      const Schema = z.object({
+        email: z.string().email(),
+        role: z.enum(['customer', 'guest']),
+      }).strict();
+      export async function POST(request) {
+        const input = Schema.strict().parse(await request.json());
+        await db.from('User').insert({ email: input.email, role: input.role });
+        return Response.json({ ok: true });
+      }
+    `);
+    const result = await massAssignmentCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 915);
+    expect(finding).toBeUndefined();
+  });
+
   // v0.10 Z5 — nested-args Prisma regex regression pin.
   it('v0.10 Z5: flags Prisma update with nested where + data:body (dub-shape)', async () => {
     createApiRoute(projectPath, 'users', `
