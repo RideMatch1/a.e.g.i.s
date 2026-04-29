@@ -17,6 +17,140 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.17.7] — 2026-04-29 — "Battle-tested detector cluster + DEFAULT=MAX + active-mode disclaimers"
+
+`@aegis-scan/*` family patch bump (`0.17.0` → `0.17.7`) covering three
+themed dogfood-scan rounds against vibecoded Next.js / Supabase
+codebases, the resulting detector-cluster build-out (1 NEW scanner +
+4 coverage extensions), the DEFAULT=MAX architecture statement, and
+legal-liability disclaimers on the active-traffic modes (`siege` /
+`pentest`). The `@aegis-wizard/cli` sibling stream keeps its
+independent CHANGELOG; `@aegis-scan/skills` remains at 0.4.0.
+
+### Added (NEW SCANNERS)
+
+- **`payment-flow-checker`** — F-PRICE-TAMPER-1. Detects payment-SDK
+  calls (Stripe / Razorpay / similar) where the `amount` /
+  `unit_amount` / `unit_amount_decimal` / `price` field is sourced
+  from client-controlled input (request body / URL search-params /
+  query string) instead of a server-side DB lookup. Severity
+  CRITICAL / CWE-602 / OWASP A04:2021 — direct revenue-impact class.
+  Includes a metadata-block guard so Stripe `metadata: { ... }` tags
+  do not produce false positives. Sourced from a dogfood-scan
+  marketplace finding accepting price from `req.json()` and forwarding
+  it verbatim to Stripe Checkout. (commit `22475e1`)
+- **`edge-function-auth-checker`** — F-EDGE-FUNCTION-AUTH-1. Walks
+  `supabase/functions/**/*.ts` and emits two paths: (A) CRITICAL when
+  a `Deno.serve(...)` handler uses `SUPABASE_SERVICE_ROLE_KEY` without
+  any `auth.getUser` / `verifyJWT` / `jwtVerify` call (full RLS
+  bypass), and (B) HIGH when the handler invokes a known paid
+  third-party API host (OpenAI / major-LLM-providers / Cohere /
+  Replicate / Helius / QuickNode / Alchemy / Infura / Crawl4AI /
+  Firecrawl / ScrapingBee / SerpAPI / Brave / Exa / Tavily) without
+  an auth check (quota-burn class). CWE-306. Captures Edge Functions
+  exposing service-role-keyed DB queries to anonymous callers — a
+  vuln class AEGIS missed entirely pre-v0.17.7. (commit `81b5d69`)
+
+### Added (coverage extensions to existing scanners)
+
+- **`auth-enforcer` HOC + auth-module recognition** — F-AUTH-2.
+  Adds 12 HOC wrapper patterns (`withApiGuards`, `createAgentRoute`,
+  `secureRoute`, `secureApiRoute`, `protectedRoute`, `authProtected`,
+  `withSession`, `withRouteAuth`, `requireAuthHandler`, `wrapWithAuth`,
+  `createProtectedRoute`, `createApiRoute`) and 9 auth-module
+  import-source patterns (`@/lib/auth`, `@/auth`, `@/server/auth`,
+  `next-auth`, `@auth/*`, `@clerk/*`, `lucia-auth`, `@workos/*`,
+  `@auth0/*`, `@supabase/auth-helpers-*`) to the auth-guard
+  recognition set. Eliminates ≥80% of auth-enforcer false-positives
+  on Next.js codebases that use HOC factories — one corpus project
+  had 71 FPs across 73 routes pre-v0.17.7. (commit `037ba81`)
+- **`mass-assignment-checker` sensitive-field destructure** —
+  F-MASS-1. Pre-v0.17.7 the scanner treated `const {a,b,c} = await
+  req.json()` as a mitigation. The destructure-mitigation is now
+  overridden when the destructured set includes any of ~30 sensitive
+  field names (`role`, `permissions`, `is_admin`, `tenant_id`,
+  `userId`, etc.). Adds a new check for `supabase.auth.signUp({...,
+  options: { data: { role, ... } }})` where the role flows into
+  `auth.users.raw_user_meta_data` (privilege-escalation class).
+  (commit `8c29a08`)
+- **`prompt-injection-checker` indirect-input + RAG + messages-spread**
+  — F-PROMPT-1. Adds three new dangerous patterns: input-property
+  interpolation (`${input.X}`, `${context.X}`, `${userInput.X}`,
+  `${request.X}`) inside prompt template literals; RAG retrieved-
+  content interpolation (`${X.content}`, `${X.text}`, `${X.pageContent}`,
+  `${X.snippet}`, `${X.providerSummary}`); and user-supplied messages-
+  array spread (`messages: [systemMessage, ...body.messages]`).
+  Extends the sanitization-recogniser with `sanitizeForPrompt`,
+  `sanitizeWithInjectionDetection`, `sanitizeArray`,
+  `sanitizeRecord{,KeysAndValues}`, and `promptSanitizer.X`.
+  (commit `c490778`)
+- **`xss-checker` whitespace-bypass closure**, **`config-auditor`
+  Docker ARG-rebind recognition**, **`secrets` path-allowlist for
+  docs / lockfiles / tests / openapi**, **`template-sql-checker`
+  handler-shape filter + tagged-template detection** — v0.17.5
+  FP-reduction batch. Corpus re-scan shows 97% blocker reduction and
+  48% critical reduction across 6 production Next.js projects.
+  (commit `82fa9f9`)
+
+### Added (architecture: DEFAULT=MAX scope statement)
+
+- **DEFAULT=MAX scanner-registry parity guard** — `aegis scan` and
+  `aegis audit` always run every scanner registered in
+  `getAllScanners()` — including any newly-added scanner. New CI test
+  (`packages/scanners/__tests__/registry.test.ts`, 10 regression-
+  guards) asserts every static (non-`attacks/`) scanner imported in
+  `src/index.ts` is returned by `getAllScanners()` (count parity);
+  every `attacks/` scanner is returned by `getAttackScanners()`; the
+  two sets are disjoint; every scanner has the required fields and a
+  unique name; and that `payment-flow-checker` /
+  `edge-function-auth-checker` are registered in the default set.
+  Prevents silent default-mode scope drift. (commit `4e3d118`)
+
+### Added (legal-liability disclaimers on active-traffic modes)
+
+- **`aegis siege` + `aegis pentest` `--confirm` gate hardened** —
+  Both modes send live HTTP traffic to operator-supplied targets
+  (siege: fake-JWT auth probes / concurrent POST race probes /
+  header-tampering probes / external LLM-pentest frameworks; pentest:
+  DAST scanners ZAP / Nuclei / Strix / PTAI / Pentest-Swarm). Without
+  authorization this may violate computer-fraud statutes (CFAA US 18
+  USC §1030, §202a-c StGB DE, Computer Misuse Act 1990 UK, equivalent
+  jurisdictions). New shared helper
+  `evaluateActiveModeAuthorization` prints the legal-warning block
+  to stderr when `--confirm` is missing and a brief authorization
+  banner with timestamp when it is present. `pentest` previously had
+  no `--confirm` flag — added in this release. CLI `--help`
+  descriptions for both commands prefixed with `'ACTIVE MODE — ...'`
+  and the statute references. README modes table marks both with the
+  warning glyph and links the statutes by name. Static modes
+  (`scan` / `audit` / `fix` / `history` / `diff` / `diff-deps`) are
+  unchanged and never send traffic to any `--target`. (commit
+  `f624035`)
+
+### Added (battle-testing tooling)
+
+- **`scripts/hunt-vibecoded.sh`** — broad battle-testing hunt
+  (orchestrates clones + scans for tens of public repos at a time);
+  **`scripts/hunt-redteam-r3.sh`** — themed deep-dive variant for
+  Round-3 dogfood; **`scripts/triage-vibecoded.mjs`** — scan-output
+  triage helper; **`scripts/cleanup-findings.sh`** — confirmation-
+  gated wipe of `~/findings/` clones. (commits `82fa9f9`, `807a357`)
+
+### Validation
+
+- 1568 unit tests pass in `@aegis-scan/scanners` (1521 pre-0.17.5 → 1546
+  post-F-AUTH-2..F-EDGE-FUNCTION-AUTH-1 → 1558 post-F-PRICE-TAMPER-1 →
+  1568 post-registry-parity-guard); 409 / 409 CLI unit tests pass (+7
+  active-mode-disclaimer tests); 17 / 17 mcp-server tests pass.
+- 39 / 39 canary fixtures across 10 phases pass — `v0152-template-
+  sqli` (5), `v0175-xss-string-literal` (3), `v0175-docker-arg-
+  default` (4), `v0175-trpc-handler-fp` (3), `v0175-tagged-template-
+  fp` (3), `v0177-hoc-auth-guard-fp` (5), `v0177-mass-assignment-
+  role` (4), `v0177-prompt-injection-direct` (4), `v0177-edge-
+  function-auth` (4), `v0177-price-tampering` (4).
+
+---
+
 ## [0.17.0] — 2026-04-27 — "Phase-2 conformance build-out + APTS Tier-1 readiness + public-launch polish"
 
 `@aegis-scan/*` family minor bump (`0.16.6` → `0.17.0`) covering the
