@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-nextauth-catchall",
+  "cwe": 306,
+  "type": "FP",
+  "description": "NewTurn-class regression-guard. NextAuth (v5+) catchall route at app/api/auth/[...nextauth]/route.ts is a pure re-export of GET/POST handlers from the auth module — the route IS the auth handler, nothing to 'guard'. After F-AUTH-2, scanner recognizes pure auth-module re-exports + path-pattern. auth-enforcer MUST NOT fire CWE-306.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

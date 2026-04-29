@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-create-agent-route",
+  "cwe": 306,
+  "type": "FP",
+  "description": "tripsage-ai-class regression-guard. Route uses `createAgentRoute({...})` AI-agent factory wrapper that internally enforces auth via withApiGuards before invoking the agent. Pre-v0.17.7 auth-enforcer didn't recognize the factory call shape. After F-AUTH-2 the scanner recognizes createAgentRoute family. auth-enforcer MUST NOT fire CWE-306.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

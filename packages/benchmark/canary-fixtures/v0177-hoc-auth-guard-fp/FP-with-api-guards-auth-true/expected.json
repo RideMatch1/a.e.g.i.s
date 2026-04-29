@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-with-api-guards-auth-true",
+  "cwe": 306,
+  "type": "FP",
+  "description": "tripsage-ai-class regression-guard. Route uses `withApiGuards({auth:true,...})(handler)` HOC wrapper that enforces auth INSIDE the wrapper before invoking the handler. Pre-v0.17.7 auth-enforcer regex set didn't recognize this HOC family, producing 71+ HIGH-severity FPs on every modern Next.js codebase using a curried auth-guard factory. After F-AUTH-2 the scanner recognizes the HOC family. auth-enforcer MUST NOT fire CWE-306.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

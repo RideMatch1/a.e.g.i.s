@@ -1018,4 +1018,126 @@ describe('authEnforcerScanner — v0.14 customRoleGuards', () => {
     expect(fix.description!.length).toBeGreaterThan(20);
     expect(fix.description).toMatch(/requireRole|role.check|authorisation|authorization|middleware/i);
   });
+
+  // ============================================================
+  // v0.17.7 F-AUTH-2: HOC auth-guard wrapper recognition
+  // Source: 2026-04-29 Round-3 dogfood scan (tripsage-ai 71 FPs from
+  // 73 routes using withApiGuards / createAgentRoute factory wrappers)
+  // ============================================================
+
+  it('F-AUTH-2: does NOT flag withApiGuards({ auth: true })(handler) HOC route', async () => {
+    createApiRoute(
+      projectPath,
+      'users',
+      `
+      import { NextResponse } from 'next/server';
+      import { withApiGuards } from '@/lib/api/factory';
+      import { someInputSchema } from '@/schemas/example';
+
+      export const POST = withApiGuards({
+        auth: true,
+        schema: someInputSchema,
+        rateLimit: 'api:users:create',
+      })(async (req, { user, supabase }, data) => {
+        if (!user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ ok: true });
+      });
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const missingAuth = result.findings.find((f) => f.cwe === 306);
+    expect(missingAuth).toBeUndefined();
+  });
+
+  it('F-AUTH-2: does NOT flag createAgentRoute({...}) AI-agent factory route', async () => {
+    createApiRoute(
+      projectPath,
+      'agents/destinations',
+      `
+      import { createDestinationAgent } from '@ai/agents';
+      import { agentSchemas } from '@schemas/agents';
+      import { createAgentRoute } from '@/lib/api/factory';
+
+      export const POST = createAgentRoute({
+        agentFactory: createDestinationAgent,
+        agentType: 'destinationResearchAgent',
+        rateLimit: 'agents:destinations',
+        schema: agentSchemas.destinationResearchRequestSchema,
+      });
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const missingAuth = result.findings.find((f) => f.cwe === 306);
+    expect(missingAuth).toBeUndefined();
+  });
+
+  it('F-AUTH-2: does NOT flag secureRoute(handler) single-arg curry HOC', async () => {
+    createApiRoute(
+      projectPath,
+      'data',
+      `
+      import { NextResponse } from 'next/server';
+      import { secureRoute } from '@/lib/api/secure';
+
+      export const GET = secureRoute(async (req, { user }) => {
+        return NextResponse.json({ user_id: user.id, items: [] });
+      });
+
+      export const POST = secureRoute(async (req, { user }) => {
+        const body = await req.json();
+        return NextResponse.json({ user_id: user.id, received: body });
+      });
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const missingAuth = result.findings.find((f) => f.cwe === 306);
+    expect(missingAuth).toBeUndefined();
+  });
+
+  it('F-AUTH-2: does NOT flag pure auth-module re-export shape (NextAuth v5 catchall)', async () => {
+    createApiRoute(
+      projectPath,
+      'auth/[...nextauth]',
+      `
+      import { GET, POST } from "@/lib/auth"
+      export { GET, POST }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const missingAuth = result.findings.find((f) => f.cwe === 306);
+    expect(missingAuth).toBeUndefined();
+  });
+
+  it('F-AUTH-2: does NOT flag re-export from next-auth package directly', async () => {
+    createApiRoute(
+      projectPath,
+      'auth/handler',
+      `
+      import { handlers } from "next-auth";
+      export const { GET, POST } = handlers;
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const missingAuth = result.findings.find((f) => f.cwe === 306);
+    expect(missingAuth).toBeUndefined();
+  });
+
+  it('F-AUTH-2: STILL flags bare async function POST(req) with NO HOC and NO auth (over-suppression smoke test)', async () => {
+    createApiRoute(
+      projectPath,
+      'admin',
+      `
+      import { NextResponse } from 'next/server';
+
+      export async function POST(req) {
+        const body = await req.json();
+        return NextResponse.json({ message: 'ok', payload: body });
+      }
+    `,
+    );
+    const result = await authEnforcerScanner.scan(projectPath, MOCK_CONFIG);
+    const missingAuth = result.findings.find((f) => f.cwe === 306);
+    expect(missingAuth).toBeDefined();
+    expect(missingAuth!.severity).toBe('high');
+  });
 });

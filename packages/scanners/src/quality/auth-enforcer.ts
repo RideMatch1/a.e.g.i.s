@@ -34,6 +34,45 @@ const AUTH_GUARD_PATTERNS = [
   // `.getSession()` incidentally, but does not cover the dominant
   // `.getUser()` call — hence the explicit alternation here.
   /\.auth\.(?:getUser|getSession)\s*\(/,
+  // v0.17.7 F-AUTH-2: HOC auth-guard wrapper recognition.
+  // Source: 2026-04-29 Round-3 dogfood scan (tripsage-ai 71 FPs from
+  // 73 routes using `withApiGuards({auth:true,...})(handler)` and
+  // `createAgentRoute({...})` factory wrappers). The wrapper enforces
+  // auth INSIDE itself before invoking the handler — its presence is
+  // a guard. Word-bound + call-shape (`\(`) to avoid string-literal
+  // / comment substring matches. Specific identifier names — generic
+  // `withX` / `createXRoute` are too broad and would re-introduce the
+  // FP class in the inverse direction. Add new wrapper names here as
+  // the corpus surfaces them; CI canary phase v0177-hoc-auth-guard-fp
+  // is the regression-guard.
+  /\bwithApiGuards?\s*\(/,                       // tripsage-ai pattern
+  /\bcreateAgentRoute\s*\(/,                     // tripsage-ai AI-agent factory
+  /\bcreateProtectedRoute\s*\(/,                 // common factory naming
+  /\bcreateApiRoute\s*\(/,                       // generic factory
+  /\bsecureRoute\s*\(/,                          // single-arg curry
+  /\bsecureApiRoute\s*\(/,                       // single-arg curry (no Tenant suffix)
+  /\bprotectedRoute\s*\(/,                       // common HOC name
+  /\bauthProtected\s*\(/,                        // alt HOC name
+  /\bwithSession\s*\(/,                          // session-based HOC
+  /\bwithRouteAuth\s*\(/,                        // explicit-naming HOC
+  /\brequireAuthHandler\s*\(/,                   // verbose HOC name
+  /\bwrapWithAuth\s*\(/,                         // wrapper-style HOC
+  // F-AUTH-2 (continued): pure auth-module re-export shape.
+  // `import { GET, POST } from "@/lib/auth"; export { GET, POST }` is
+  // the canonical NextAuth v5 / Auth.js / Clerk handler — the route
+  // file IS the auth machinery, nothing to "guard". Match the import
+  // source patterns from common auth modules. Combined with the
+  // re-export check below; presence of the import + short file shape
+  // is sufficient to mark as auth-handler.
+  /\bfrom\s+["']@\/(?:lib\/)?auth(?:["']|\/)/,    // @/lib/auth or @/auth (relative)
+  /\bfrom\s+["']@\/server\/auth["']/,             // @/server/auth (T3 stack)
+  /\bfrom\s+["']next-auth/,                       // next-auth (any v4/v5/Auth.js)
+  /\bfrom\s+["']@auth\//,                         // @auth/* (Auth.js packages)
+  /\bfrom\s+["']@clerk\//,                        // @clerk/* packages
+  /\bfrom\s+["']lucia-auth/,                      // lucia-auth
+  /\bfrom\s+["']@workos\//,                       // @workos/*
+  /\bfrom\s+["']@auth0\//,                        // @auth0/*
+  /\bfrom\s+["']@supabase\/auth-helpers-/,        // @supabase/auth-helpers-*
 ];
 
 /**

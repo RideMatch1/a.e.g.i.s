@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-bare-handler-no-auth",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Smoke test: F-AUTH-2 HOC recognition must NOT over-suppress. Bare async function POST(req) handler with NO auth guard, NO HOC wrapper, NO auth-module re-export — MUST still fire HIGH/CWE-306.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}

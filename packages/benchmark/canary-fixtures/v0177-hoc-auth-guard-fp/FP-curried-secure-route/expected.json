@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-curried-secure-route",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Curried secureRoute(handler) wrapper variant — single-arg HOC where the wrapper itself is the auth-enforcement primitive. After F-AUTH-2 the scanner recognizes secureRoute family. auth-enforcer MUST NOT fire CWE-306.",
+  "expected": [
+    { "scanner": "auth-enforcer", "cwe": 306 }
+  ]
+}
