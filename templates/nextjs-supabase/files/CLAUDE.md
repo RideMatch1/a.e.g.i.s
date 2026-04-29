@@ -82,6 +82,40 @@ export async function GET(request: NextRequest) {
 | Logging | `logger` | PII-safe deep sanitization |
 | Encrypt | `encrypt` / `decrypt` (AES-256-GCM) | Secret-at-rest |
 | Errors | `ForbiddenError`, `UnauthorizedError`, `ValidationError`, `NotFoundError` | AppError hierarchy |
+| RPC guard | `public._aegis_authorize_user(p_user_id uuid)` (SQL) | Canonical authorization for SECURITY DEFINER RPCs that take a user-id parameter. Call as `PERFORM public._aegis_authorize_user(p_user_id);` at the top of every such function. Defined in `supabase/migrations/0001_aegis_security_helpers.sql`. |
+
+### SECURITY DEFINER RPC anti-pattern (read this before writing SQL functions)
+
+**Never write a SECURITY DEFINER function in `public` that takes `p_user_id`
+without calling `_aegis_authorize_user`.** The function is reachable via
+`/rest/v1/rpc/<name>` by every authenticated user, and the parameter is
+caller-controlled — without an internal check, this is CWE-863 IDOR. AEGIS's
+`supabase-migration-checker` flags this at PR-review time (rule SBM-001).
+
+```sql
+-- WRONG — any user can call this with another user's id
+CREATE FUNCTION public.purchase_item(p_user_id uuid, p_item text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE public.profiles SET points = points - 100 WHERE id = p_user_id;
+  RETURN jsonb_build_object('ok', true);
+END;
+$$;
+
+-- CORRECT — guarded + linter-clean
+CREATE FUNCTION public.purchase_item(p_user_id uuid, p_item text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  PERFORM public._aegis_authorize_user(p_user_id);  -- ← MANDATORY
+  UPDATE public.profiles SET points = points - 100 WHERE id = p_user_id;
+  RETURN jsonb_build_object('ok', true);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.purchase_item(uuid, text) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.purchase_item(uuid, text) TO authenticated, service_role;
+```
 
 ---
 
