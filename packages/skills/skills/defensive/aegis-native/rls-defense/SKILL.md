@@ -129,6 +129,91 @@ $$;
 
 **SECURITY DEFINER without `SET search_path` is a search-path-poisoning vulnerability** — the function inherits the caller's search_path and an attacker who can prepend their own schema can hijack the function.
 
+### 4a. SECURITY DEFINER RPC + `p_user_id` parameter — canonical authz guard
+
+Pattern surfaced in production audits (CWE-863, IDOR via RPC): SECURITY DEFINER RPCs in the `public` schema accept a `p_user_id` parameter without verifying it equals `auth.uid()`. Every signed-in user can then call the RPC with any other user's id and act on their data:
+
+- spend OTHER users' loyalty points (`purchase_item(other_uid, ...)`)
+- award themselves arbitrary points (`award_points(my_uid, 999999)`)
+- redeem rewards or finish duels on behalf of other users
+
+These are **silent vulnerabilities** until Supabase ships a linter rule that surfaces them. Splinter rules `0028_anon_security_definer_function_executable` + `0029_authenticated_security_definer_function_executable` (added in early 2026) flag the privilege side, but they are argument-blind — a function can be linter-clean but still missing the internal `auth.uid()` check. Static migration audit catches the body-side gap at PR review.
+
+**Canonical fix — install a single guard helper, then PERFORM it at the top of every RPC that takes a user-identity parameter:**
+
+```sql
+-- One helper, owned by you, called everywhere
+CREATE OR REPLACE FUNCTION public._aegis_authorize_user(p_user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY INVOKER
+STABLE
+SET search_path = ''
+AS $$
+BEGIN
+  IF (SELECT auth.role()) = 'service_role' THEN
+    RETURN;  -- server-side admin / cron bypass
+  END IF;
+  IF (SELECT auth.uid()) IS NULL OR (SELECT auth.uid()) <> p_user_id THEN
+    RAISE EXCEPTION 'AEGIS-AUTHZ: caller % may not act on user %',
+      coalesce((SELECT auth.uid())::text, 'anon'), p_user_id
+      USING ERRCODE = '42501';
+  END IF;
+END;
+$$;
+
+-- Every RPC that touches another user's data calls this on entry
+CREATE FUNCTION public.purchase_arena_item(p_user_id uuid, p_item_key text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_temp AS $$
+BEGIN
+  PERFORM public._aegis_authorize_user(p_user_id);  -- ← MANDATORY first line
+  -- ... actual logic
+END $$;
+```
+
+**Linter-clean grants — REVOKE from PUBLIC, not from anon:**
+The default `EXECUTE` privilege on a SQL function is granted to `PUBLIC`, which transitively includes `anon`, `authenticated`, AND `service_role`. `REVOKE EXECUTE FROM anon` does **not** remove anon's access while the PUBLIC grant exists. To restrict to `authenticated` + `service_role`, you must:
+
+```sql
+REVOKE ALL  ON FUNCTION public.<name>(<args>) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.<name>(<args>) TO authenticated, service_role;
+```
+
+**Bulk programmatic application** (idempotent — auto-discovers all guarded RPCs):
+
+```sql
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT p.proname, pg_get_function_identity_arguments(p.oid) AS args
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname = 'public' AND p.prosecdef = true
+       AND p.prorettype <> 'trigger'::regtype
+       AND p.prosrc ~ '_aegis_authorize_user'  -- only the guarded ones
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION public.%I(%s) FROM PUBLIC, anon',
+                   r.proname, r.args);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I(%s) TO authenticated, service_role',
+                   r.proname, r.args);
+  END LOOP;
+END $$;
+```
+
+**Decision tree for a SECURITY DEFINER function in `public`:**
+
+| Function shape | Treatment |
+|---|---|
+| Returns `trigger` (called only by trigger system) | `REVOKE EXECUTE FROM PUBLIC, anon, authenticated`. Triggers run as table-owner regardless. |
+| Cron / batch / admin-only (`cleanup_*`, `auto_unban_*`, `expire_*`) | `REVOKE FROM PUBLIC, anon, authenticated`. Only `service_role` may call. No internal guard needed. |
+| User-callable RPC with `p_user_id` parameter | Inject `PERFORM _aegis_authorize_user(p_user_id);` at top. `REVOKE FROM PUBLIC, anon`; `GRANT TO authenticated, service_role`. |
+| User-callable RPC with resource ID (`p_dog_id`, `p_post_id`) | Verify caller-ownership (or prefer `SECURITY INVOKER` and let RLS filter). |
+| Read-only data accessor over RLS-protected tables | Switch to `SECURITY INVOKER`. RLS handles authz. |
+| PostGIS / extension-owned C functions | Cannot revoke (extension owns them). Move PostGIS to `extensions` schema instead. |
+
+**Why this surfaces in established projects without warning:** the Supabase database linter is rule-versioned. New rules ship without a code-change in your repo, and they retroactively flag patterns that were always exposures but were never explicitly checked. **Run `get_advisors` (or the SQL surrogates above) on every deploy**, not just at release.
+
 ### 5. Defensive testing — every policy needs a regression test
 
 ```sql

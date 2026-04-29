@@ -32,6 +32,7 @@ import { promptInjectionCheckerScanner } from './quality/prompt-injection-checke
 import { redosCheckerScanner } from './quality/redos-checker.js';
 import { rscDataCheckerScanner } from './quality/rsc-data-checker.js';
 import { rlsBypassCheckerScanner } from './quality/rls-bypass-checker.js';
+import { supabaseMigrationCheckerScanner } from './quality/supabase-migration-checker.js';
 import { gdprEngineScanner } from './compliance/gdpr-engine.js';
 import { soc2CheckerScanner } from './compliance/soc2.js';
 import { iso27001CheckerScanner } from './compliance/iso27001.js';
@@ -102,6 +103,7 @@ export function getAllScanners(): Scanner[] {
     redosCheckerScanner,
     rscDataCheckerScanner,
     rlsBypassCheckerScanner,
+    supabaseMigrationCheckerScanner,
     gdprEngineScanner,
     soc2CheckerScanner,
     iso27001CheckerScanner,
@@ -188,6 +190,7 @@ export {
   redosCheckerScanner,
   rscDataCheckerScanner,
   rlsBypassCheckerScanner,
+  supabaseMigrationCheckerScanner,
   gdprEngineScanner,
   soc2CheckerScanner,
   iso27001CheckerScanner,
