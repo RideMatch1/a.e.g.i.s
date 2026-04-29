@@ -1,0 +1,7 @@
+{
+  "name": "v0177-canary-fp-edge-with-jwt-verify",
+  "version": "0.0.1",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7"
+  }
+}

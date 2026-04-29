@@ -65,6 +65,7 @@ import { raceProbeScanner } from './attacks/race-probe.js';
 import { taintAnalyzerScanner } from './ast/taint-analyzer.js';
 import { nextPublicLeakScanner } from './quality/next-public-leak.js';
 import { middlewareAuthCheckerScanner } from './quality/middleware-auth-checker.js';
+import { edgeFunctionAuthCheckerScanner } from './quality/edge-function-auth-checker.js';
 import { subfinderScanner } from './recon/subfinder.js';
 import type { Scanner } from '@aegis-scan/core';
 
@@ -136,6 +137,7 @@ export function getAllScanners(): Scanner[] {
     taintAnalyzerScanner,
     nextPublicLeakScanner,
     middlewareAuthCheckerScanner,
+    edgeFunctionAuthCheckerScanner,
     subfinderScanner,
   ];
 }

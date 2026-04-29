@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-edge-anon-key-only",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Smoke test: Edge Function uses ANON key only (RLS-protected). No service-role-key, no privilege escalation possible. edge-function-auth-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "edge-function-auth-checker", "cwe": 306 }
+  ]
+}

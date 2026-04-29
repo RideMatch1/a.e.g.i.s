@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-edge-no-auth-service-role",
+  "cwe": 306,
+  "type": "TP",
+  "description": "supabase-vector-gmailkb-rag-class regression-guard. Supabase Edge Function uses SUPABASE_SERVICE_ROLE_KEY (full DB access bypassing RLS) and Deno.serve(...) with NO auth check on the incoming request. Anyone with the function URL gets full RLS bypass. After F-EDGE-FUNCTION-AUTH-1 the new edge-function-auth-checker scanner detects this pattern as CRITICAL.",
+  "expected": [
+    { "scanner": "edge-function-auth-checker", "cwe": 306 }
+  ]
+}

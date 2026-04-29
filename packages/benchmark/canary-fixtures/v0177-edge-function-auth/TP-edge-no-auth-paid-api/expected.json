@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-edge-no-auth-paid-api",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Edge Function calls a paid third-party API (OpenAI / Anthropic / Crawl4AI) WITHOUT auth check. Quota-burn / billing-attack class — anyone with the function URL drains the developer's third-party quota. After F-EDGE-FUNCTION-AUTH-1 the scanner detects this pattern.",
+  "expected": [
+    { "scanner": "edge-function-auth-checker", "cwe": 306 }
+  ]
+}

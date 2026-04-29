@@ -1,0 +1,7 @@
+{
+  "name": "v0177-canary-tp-edge-no-auth-paid-api",
+  "version": "0.0.1",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7"
+  }
+}

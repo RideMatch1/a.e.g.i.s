@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-edge-with-jwt-verify",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Smoke test: Edge Function with proper auth verification (auth.getUser(req.headers.Authorization)) before service-role DB calls. edge-function-auth-checker MUST NOT fire — auth boundary is correctly enforced.",
+  "expected": [
+    { "scanner": "edge-function-auth-checker", "cwe": 306 }
+  ]
+}
