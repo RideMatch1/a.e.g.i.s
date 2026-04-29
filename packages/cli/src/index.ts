@@ -82,12 +82,13 @@ program
   )
   .requiredOption('-t, --target <url>', 'Target URL to pentest (required)')
   .option('--confirm', 'Acknowledge authorization to send live DAST/probe traffic to the target')
+  .option('--allow-loopback', 'Operator opt-in to allow safeFetch against loopback IPs (127.x.x.x, ::1) for local-pentest workflows. Emits a prominent warning. NEVER enable in production engagements.')
   .option('-f, --format <format>', 'Output format: terminal (default), json, sarif, html, markdown', 'terminal')
   .option('--no-color', 'Disable colored output')
   .action(
     async (
       path: string | undefined,
-      options: { target: string; format: string; color: boolean; confirm: boolean },
+      options: { target: string; format: string; color: boolean; confirm: boolean; allowLoopback?: boolean },
     ) => {
       if (!options.color) {
         chalk.level = 0;
