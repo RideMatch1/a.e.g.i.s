@@ -15,6 +15,102 @@ function toGlobalRegex(pattern: RegExp): RegExp {
   return new RegExp(pattern.source, [...flags].join(''));
 }
 
+/**
+ * v0.17.5 F6.1 — placeholder-default detection for Docker ARG.
+ *
+ * A "placeholder" default is one that the user is clearly expected to
+ * override at build time (--build-arg). Common shapes:
+ *  - empty string ('')
+ *  - well-known dummy strings ("CAFEBABE", "DEADBEEF", "REPLACE_ME", …)
+ *  - very short strings (< 16 chars) — too short to be real secrets
+ */
+function isPlaceholderDefault(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return true;
+
+  const lower = trimmed.toLowerCase();
+  const KNOWN_PLACEHOLDERS = new Set([
+    'cafebabe', 'deadbeef', 'changeme', 'change_me', 'replaceme', 'replace_me',
+    'your_key', 'your_secret', 'your_token', 'your_password', 'yourkey',
+    'example', 'sample', 'test', 'placeholder', 'dummy', 'fake',
+    'foo', 'bar', 'baz', 'todo', 'tbd', 'null', 'undefined',
+    'secret', 'password', 'key', 'token', 'credential',
+    '<your-key-here>', '<your-secret>', '<change-me>', '<placeholder>',
+  ]);
+  if (KNOWN_PLACEHOLDERS.has(lower)) return true;
+
+  // Anything < 16 chars is too short to be a real cryptographic secret
+  if (trimmed.length < 16) return true;
+
+  return false;
+}
+
+/**
+ * v0.17.5 F6.1 — ARG-rebind pattern recognition for Docker.
+ *
+ * Detects the canonical Docker build-arg-secret pattern:
+ *   ARG MY_KEY[="default"]
+ *   ENV MY_KEY="$MY_KEY"
+ *
+ * which is the documented BuildKit-pre / ARG-pre way to inject a
+ * secret at build time. The ARG default ships ONLY when the user
+ * forgets `--build-arg`, so:
+ *  - placeholder default + ENV rebind = SAFE (the user is clearly
+ *    expected to override; if they don't, the placeholder is obviously
+ *    not a real secret) → SKIP the finding entirely
+ *  - realistic default + ENV rebind = fragile (real-looking secret may
+ *    bake into image if user forgets) → keep CRITICAL (current behavior)
+ *  - no ARG within window = ENV is genuinely a baked secret → CRITICAL
+ *
+ * Returns:
+ *  { skip: true }   — placeholder-rebind detected, suppress the finding
+ *  { skip: false }  — finding stays (default rule behavior)
+ */
+function analyzeDockerEnvSecret(
+  content: string,
+  matchIndex: number,
+): { skip: boolean } {
+  // Extract the ENV line and the variable name on it
+  const lineStart = content.lastIndexOf('\n', matchIndex - 1) + 1;
+  const lineEndIdx = content.indexOf('\n', matchIndex);
+  const lineEnd = lineEndIdx === -1 ? content.length : lineEndIdx;
+  const envLine = content.slice(lineStart, lineEnd);
+
+  // Match: ENV VARNAME = "$VARNAME" / "${VARNAME}" / $VARNAME (with or without quotes)
+  // Var-name char-class is `[A-Za-z0-9_]+` (NOT `\S+`) — `\S+` was greedy
+  // and would swallow the `="` into the captured name.
+  const rebindMatch = /^ENV\s+([A-Za-z0-9_]+)\s*=\s*["']?\$\{?([A-Za-z0-9_]+)\}?["']?\s*$/.exec(envLine);
+  if (!rebindMatch) return { skip: false };
+
+  const envVar = rebindMatch[1];
+  const refVar = rebindMatch[2];
+
+  // The rebind only counts if the ENV var refers to ITSELF (the canonical
+  // pattern). `ENV X="$Y"` where X !== Y is just env-var-aliasing, not the
+  // ARG-rebind pattern, and may still be a real secret leak.
+  if (envVar !== refVar) return { skip: false };
+
+  // Look back up to 10 lines for `ARG <envVar>[="default"]`
+  // (10-line window > 5-line per spec, to absorb common Dockerfile
+  //  comment-and-blank-line interleaving).
+  const lookbackStart = Math.max(0, lineStart - 600);
+  const before = content.slice(lookbackStart, lineStart);
+  const argRegex = new RegExp(
+    `^ARG\\s+${envVar}(?:\\s*=\\s*["']?([^"'\\r\\n]*?)["']?)?\\s*$`,
+    'm',
+  );
+  const argMatch = argRegex.exec(before);
+  if (!argMatch) return { skip: false };
+
+  const argDefault = argMatch[1] ?? '';
+  if (isPlaceholderDefault(argDefault)) {
+    return { skip: true };
+  }
+  return { skip: false };
+}
+
+const DOCKER_ENV_SECRET_TITLE = 'Secrets in Dockerfile ENV are baked into image layers';
+
 interface ConfigRule {
   pattern: RegExp;
   severity: Finding['severity'];
@@ -235,6 +331,15 @@ export const configAuditorScanner: Scanner = {
         let match: RegExpExecArray | null;
         const re = toGlobalRegex(rule.pattern);
         while ((match = re.exec(content)) !== null) {
+          // v0.17.5 F6.1 — Docker ARG-rebind pattern recognition.
+          // Suppresses the FP-storm where canonical ARG=default + ENV
+          // rebind patterns (with placeholder defaults like "CAFEBABE",
+          // "DEADBEEF", or empty) were spuriously flagged CRITICAL.
+          if (rule.title === DOCKER_ENV_SECRET_TITLE) {
+            const verdict = analyzeDockerEnvSecret(content, match.index);
+            if (verdict.skip) continue;
+          }
+
           findings.push({
             id: nextId(),
             scanner: 'config-auditor',

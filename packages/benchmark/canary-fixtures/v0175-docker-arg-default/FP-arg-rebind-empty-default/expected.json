@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-docker-arg-rebind-empty-default",
+  "cwe": 1188,
+  "type": "FP",
+  "description": "ARG with empty-string default + ENV rebind. The empty default forces the user to pass `--build-arg` at build time, otherwise the empty value ships and the application fails fast at startup. This is the SAFEST variant of the build-arg-secret pattern. config-auditor MUST NOT fire.",
+  "expected": [
+    { "scanner": "config-auditor", "cwe": 1188 }
+  ]
+}

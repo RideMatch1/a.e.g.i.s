@@ -1,0 +1,9 @@
+{
+  "id": "v0175-TP-xss-script-src-variable",
+  "cwe": 79,
+  "type": "TP",
+  "description": "document.createElement('script') with .src assigned a VARIABLE (user-controlled). Real XSS-class supply-chain risk. xss-checker MUST flag this as HIGH/CWE-79.",
+  "expected": [
+    { "scanner": "xss-checker", "cwe": 79 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-drizzle-sql-tag",
+  "cwe": 89,
+  "type": "FP",
+  "description": "Drizzle / postgres.js tagged-template pattern: `db.execute(sql`SELECT ... ${id}`)`. The `sql` tag function returns a parameterized SQLChunk where ${} bindings are bound as query parameters, NOT spliced into raw SQL text. F1.2 detects via look-back: char before backtick is identifier → tagged → safe. template-sql-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0175-TP-docker-hardcoded-env-secret",
+  "cwe": 1188,
+  "type": "TP",
+  "description": "Hardcoded ENV secret in Dockerfile with NO upstream ARG. The value is baked directly into image layers — visible to anyone with image access. config-auditor MUST flag CRITICAL/CWE-1188.",
+  "expected": [
+    { "scanner": "config-auditor", "cwe": 1188 }
+  ]
+}

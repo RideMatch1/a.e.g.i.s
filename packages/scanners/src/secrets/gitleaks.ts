@@ -2,6 +2,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { exec, commandExists } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
+import { isSecretsNoisePath } from './path-allowlist.js';
 
 interface GitleaksResult {
   Description: string;
@@ -54,7 +55,11 @@ export const gitleaksScanner: Scanner = {
       parsed = [];
     }
 
-    const findings: Finding[] = parsed.map((r, idx) => ({
+    // v0.17.5 F5.1 — filter out noise paths (docs, lockfiles, tests,
+    // OpenAPI examples, .env.example) to cut the ~95% corpus-FP rate.
+    const filtered = parsed.filter((r) => !isSecretsNoisePath(r.File));
+
+    const findings: Finding[] = filtered.map((r, idx) => ({
       id: `GITLEAKS-${String(idx + 1).padStart(3, '0')}`,
       scanner: 'gitleaks',
       severity: 'blocker' as const,

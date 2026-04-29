@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-prisma-sql-tag",
+  "cwe": 89,
+  "type": "FP",
+  "description": "Prisma `Prisma.sql` tagged-template — the safe sibling of `$queryRawUnsafe`. Used to compose parameterized fragments. template-sql-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

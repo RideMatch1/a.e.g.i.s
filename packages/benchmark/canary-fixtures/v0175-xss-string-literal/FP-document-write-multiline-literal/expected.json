@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-xss-document-write-multiline-literal",
+  "cwe": 79,
+  "type": "FP",
+  "description": "Multi-line `document.write(\\n  '<literal>'\\n)` — RHS is a string literal. Pre-v0.17.5 backtracking-bypass FP. Same fix-class as script.src. xss-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "xss-checker", "cwe": 79 }
+  ]
+}

@@ -74,7 +74,9 @@ describe('trufflehogScanner', () => {
       SourceMetadata: {
         Data: {
           Git: {
-            file: 'env.example',
+            // v0.17.5 F5.1: path must NOT match the secrets-allowlist
+            // (was 'env.example' — caught by the new path-filter).
+            file: 'src/lib/payment-processor.ts',
             line: 1,
             commit: 'deadbeef1234',
           },

@@ -1,0 +1,9 @@
+{
+  "id": "v0175-TP-direct-execute-template-still-fires",
+  "cwe": 89,
+  "type": "TP",
+  "description": "Smoke test: F1.1 handler-shape filter must NOT over-suppress. Direct `.execute(`SELECT ... ${id}`)` (first arg is backtick template-literal) MUST still fire CRITICAL/CWE-89.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

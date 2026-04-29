@@ -63,6 +63,99 @@ function findLineNumber(content: string, matchIndex: number): number {
 }
 
 /**
+ * v0.17.5 F1.1 — detect when the first argument to a `.rpc()` /
+ * `.query()` / `.execute()` call site is a function expression
+ * (handler shape). When true, the entire arg span is a function body
+ * and any template-literals nested inside it are NOT SQL — they are
+ * URLs, log strings, formatted messages, etc. inside an unrelated
+ * handler.
+ *
+ * The dominant FP class observed in the 2026-04-29 dogfood-scan was
+ * tRPC procedure builders:
+ *
+ *   protectedProcedure
+ *     .input(z.object({ ... }))
+ *     .query(async (opts) => {
+ *       const data = await fetch(`https://api.../${opts.input.x}`)  // template inside handler!
+ *     })
+ *
+ * The scanner saw `.query(` then walked the WHOLE arg span (the entire
+ * handler body) and found the fetch-URL template-literal — emitting a
+ * spurious CRITICAL CWE-89. With this filter the scanner short-circuits
+ * before scanning the handler body.
+ *
+ * Returns true if the first argument is one of:
+ *   - `async (...)` / `async function ...`
+ *   - `function ...` / `function* ...`
+ *   - arrow function: `(...)`-balanced followed by `=>` (with optional
+ *     `: TypeAnnotation` between close-paren and `=>`)
+ */
+function firstArgIsFunctionExpression(content: string, openIdx: number): boolean {
+  let i = openIdx + 1;
+  const n = content.length;
+  while (i < n && /\s/.test(content[i])) i++;
+  if (i >= n) return false;
+
+  // 1) `async` keyword (covers `async (...)`, `async function`, `async ()=>`)
+  if (content.slice(i, i + 5) === 'async' && /[\s(]/.test(content[i + 5] ?? '')) {
+    return true;
+  }
+
+  // 2) `function` keyword (covers `function ...` and generator `function*`)
+  if (content.slice(i, i + 8) === 'function' && /[\s(*]/.test(content[i + 8] ?? '')) {
+    return true;
+  }
+
+  // 3) Arrow function with parameter list: `(...)` followed by `=>`
+  //    (optionally with `: ReturnType` between close-paren and `=>`).
+  if (content[i] === '(') {
+    let j = i;
+    let depth = 0;
+    const limit = Math.min(n, i + 500);
+    while (j < limit) {
+      const ch = content[j];
+
+      // Skip strings inside the param list (default-value strings).
+      if (ch === '"' || ch === "'" || ch === '`') {
+        const quote = ch;
+        j++;
+        while (j < limit && content[j] !== quote) {
+          if (content[j] === '\\') { j += 2; continue; }
+          j++;
+        }
+        j++;
+        continue;
+      }
+
+      if (ch === '(') depth++;
+      else if (ch === ')') {
+        depth--;
+        if (depth === 0) {
+          // Found the matching close-paren. Check for `=>`, optionally
+          // preceded by a `: ReturnType` annotation.
+          let k = j + 1;
+          while (k < limit && /\s/.test(content[k])) k++;
+          if (content[k] === '=' && content[k + 1] === '>') return true;
+          if (content[k] === ':') {
+            // Skip type annotation up to the arrow or a body-start char.
+            let m = k + 1;
+            while (m < limit && m < k + 200) {
+              if (content[m] === '=' && content[m + 1] === '>') return true;
+              if (content[m] === '{' || content[m] === ';') return false;
+              m++;
+            }
+          }
+          return false;
+        }
+      }
+      j++;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Walk forward from the opening `(` (position `openIdx`) to the
  * balanced closing `)`, skipping over quoted strings and template
  * literals. While walking, note whether any template-literal carried
@@ -92,6 +185,18 @@ function scanArgSpanForTemplateInterp(
     }
 
     if (c === '`') {
+      // v0.17.5 F1.2 — tagged-template detection. A tag function preceding
+      // the backtick (`sql\`...\``, `Prisma.sql\`...\``, `String.raw\`...\``,
+      // `db.sql\`...\``, etc.) handles parameterization in its tag callback,
+      // so the template is NOT raw SQL. The grammar for a tagged template
+      // requires the tag identifier to be IMMEDIATELY adjacent to the
+      // backtick (no whitespace), so a single look-back at content[i-1]
+      // reliably distinguishes:
+      //   - `db.execute(\`...\${x}\`)`   → prevChar `(` → UNTAGGED → SQLi candidate
+      //   - `db.execute(sql\`...\${x}\`)` → prevChar `l` → tagged → safe, skip
+      //   - `someFunc()\`tagged\``        → prevChar `)` → tagged → safe, skip
+      const prevChar = i > 0 ? content[i - 1] : '';
+      const isTagged = /[A-Za-z0-9_$)\]]/.test(prevChar);
       i++;
       let hasInterp = false;
       while (i < n && content[i] !== '`') {
@@ -110,7 +215,7 @@ function scanArgSpanForTemplateInterp(
         i++;
       }
       i++;
-      if (hasInterp) found = true;
+      if (hasInterp && !isTagged) found = true;
       continue;
     }
 
@@ -152,6 +257,23 @@ export const templateSqlCheckerScanner: Scanner = {
       let match: RegExpExecArray | null;
       while ((match = re.exec(sanitized)) !== null) {
         const openIdx = match.index + match[0].length - 1;
+
+        // v0.17.5 F1.1 — handler-shape filter. When the first argument
+        // is a function expression (async / function / arrow), the
+        // entire arg-span is a handler body — any template-literal
+        // inside it is NOT SQL but rather URL strings, log messages,
+        // or other unrelated formatting. Closes the dominant FP class
+        // surfaced by the 2026-04-29 dogfood-scan (tRPC procedure
+        // builders triggered CRITICAL on every `.query(async (opts) =>
+        // {...})` call). The scanner still fires on `.rpc('name',
+        // { q: \`...\${x}\` })` and other non-handler shapes — only
+        // function-expression first-args are short-circuited.
+        if (firstArgIsFunctionExpression(sanitized, openIdx)) {
+          const { endIdx: skipEnd } = scanArgSpanForTemplateInterp(sanitized, openIdx);
+          re.lastIndex = skipEnd + 1;
+          continue;
+        }
+
         const { found, endIdx } = scanArgSpanForTemplateInterp(sanitized, openIdx);
         if (!found) {
           re.lastIndex = endIdx + 1;

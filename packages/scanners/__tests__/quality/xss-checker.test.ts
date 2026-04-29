@@ -502,3 +502,84 @@ describe('xssCheckerScanner — path-invariance (D-CA-001 contract, v0164)', () 
     expect(result.findings.filter((f) => f.scanner === 'xss-checker')).toHaveLength(0);
   });
 });
+
+describe('xssCheckerScanner — v0.17.5 F2.1 backtracking-bypass regression-guards', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('does NOT flag multi-line literal script.src (POLABDC-class regression)', async () => {
+    createFile(
+      projectPath,
+      'lib/loadPdfLib.ts',
+      [
+        "export async function ensurePdfLib() {",
+        "  if (!(window as any).PDFLib) {",
+        "    const script = document.createElement('script');",
+        "    script.src =",
+        "      'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';",
+        "    document.head.appendChild(script);",
+        "  }",
+        "}",
+      ].join('\n'),
+    );
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => /script element with variable src/.test(f.title));
+    expect(hits).toHaveLength(0);
+  });
+
+  it('DOES flag multi-line script.src = variable (real TP)', async () => {
+    createFile(
+      projectPath,
+      'lib/loadDynamicScript.ts',
+      [
+        "export function loadDynamicScript(userInput: string) {",
+        "  const script = document.createElement('script');",
+        "  script.src =",
+        "    userInput;",
+        "  document.head.appendChild(script);",
+        "}",
+      ].join('\n'),
+    );
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => /script element with variable src/.test(f.title));
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('does NOT flag multi-line literal document.write (legacy bootstrap)', async () => {
+    createFile(
+      projectPath,
+      'lib/legacy-bootstrap.ts',
+      [
+        "export function legacyBootstrap() {",
+        "  document.write(",
+        "    '<noscript>JS required</noscript>',",
+        "  );",
+        "}",
+      ].join('\n'),
+    );
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => /document\.write/.test(f.title));
+    expect(hits).toHaveLength(0);
+  });
+
+  it('does NOT flag multi-line literal insertAdjacentHTML', async () => {
+    createFile(
+      projectPath,
+      'lib/insertHelp.ts',
+      [
+        "export function insertHelp(el: HTMLElement) {",
+        "  el.insertAdjacentHTML(",
+        "    'beforeend',",
+        "    '<span>help</span>',",
+        "  );",
+        "}",
+      ].join('\n'),
+    );
+    const result = await xssCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => /insertAdjacentHTML/.test(f.title));
+    expect(hits).toHaveLength(0);
+  });
+});

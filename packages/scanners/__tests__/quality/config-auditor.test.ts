@@ -310,3 +310,95 @@ describe('configAuditorScanner — Environment file checks', () => {
     }
   });
 });
+
+describe('configAuditorScanner — v0.17.5 F6.1 Docker ARG-rebind regression-guards', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('does NOT flag ARG-default + ENV-rebind with placeholder default (CAFEBABE)', async () => {
+    createFile(
+      projectPath,
+      'Dockerfile',
+      [
+        'FROM node:20.11-alpine',
+        'WORKDIR /app',
+        'ARG NEXT_PRIVATE_ENCRYPTION_KEY="CAFEBABE"',
+        'ENV NEXT_PRIVATE_ENCRYPTION_KEY="$NEXT_PRIVATE_ENCRYPTION_KEY"',
+      ].join('\n'),
+    );
+    const result = await configAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const baked = result.findings.filter((f) => f.title.includes('baked into image layers'));
+    expect(baked).toHaveLength(0);
+  });
+
+  it('does NOT flag ARG-default + ENV-rebind with empty default', async () => {
+    createFile(
+      projectPath,
+      'Dockerfile',
+      [
+        'FROM node:20.11-alpine',
+        'ARG NEXT_PRIVATE_TELEMETRY_KEY=""',
+        'ENV NEXT_PRIVATE_TELEMETRY_KEY="$NEXT_PRIVATE_TELEMETRY_KEY"',
+      ].join('\n'),
+    );
+    const result = await configAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const baked = result.findings.filter((f) => f.title.includes('baked into image layers'));
+    expect(baked).toHaveLength(0);
+  });
+
+  it('does NOT flag multi-pair ARG-default + ENV-rebind (Documenso pattern)', async () => {
+    createFile(
+      projectPath,
+      'Dockerfile',
+      [
+        'FROM node:20.11-alpine',
+        'ARG NEXT_PRIVATE_ENCRYPTION_KEY="CAFEBABE"',
+        'ENV NEXT_PRIVATE_ENCRYPTION_KEY="$NEXT_PRIVATE_ENCRYPTION_KEY"',
+        'ARG NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY="DEADBEEF"',
+        'ENV NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY="$NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY"',
+        'ARG NEXT_PRIVATE_TELEMETRY_KEY=""',
+        'ENV NEXT_PRIVATE_TELEMETRY_KEY="$NEXT_PRIVATE_TELEMETRY_KEY"',
+      ].join('\n'),
+    );
+    const result = await configAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const baked = result.findings.filter((f) => f.title.includes('baked into image layers'));
+    expect(baked).toHaveLength(0);
+  });
+
+  it('DOES flag hardcoded ENV secret with NO upstream ARG (real baked secret)', async () => {
+    createFile(
+      projectPath,
+      'Dockerfile',
+      [
+        'FROM node:20.11-alpine',
+        'WORKDIR /app',
+        'ENV API_KEY="EXAMPLE_FIXTURE_NOT_A_REAL_KEY"',
+      ].join('\n'),
+    );
+    const result = await configAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const baked = result.findings.filter((f) => f.title.includes('baked into image layers'));
+    expect(baked.length).toBeGreaterThan(0);
+    expect(baked[0].severity).toBe('critical');
+  });
+
+  it('DOES flag ENV-rebind to a DIFFERENT var (not self-rebind, real concern)', async () => {
+    createFile(
+      projectPath,
+      'Dockerfile',
+      [
+        'FROM node:20.11-alpine',
+        'ARG SOURCE_VAR="real-secret-baked"',
+        // This is NOT the canonical pattern — DEST_KEY is rebinding to
+        // SOURCE_VAR, not to itself. The "real-secret-baked" value will
+        // ship in the image. Should still flag.
+        'ENV DEST_KEY="$SOURCE_VAR"',
+      ].join('\n'),
+    );
+    const result = await configAuditorScanner.scan(projectPath, MOCK_CONFIG);
+    const baked = result.findings.filter((f) => f.title.includes('baked into image layers'));
+    expect(baked.length).toBeGreaterThan(0);
+  });
+});

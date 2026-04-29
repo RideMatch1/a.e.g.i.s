@@ -1,0 +1,5 @@
+{
+  "name": "v0175-canary-fp-xss-document-write-multiline-literal",
+  "version": "0.0.1",
+  "dependencies": {}
+}

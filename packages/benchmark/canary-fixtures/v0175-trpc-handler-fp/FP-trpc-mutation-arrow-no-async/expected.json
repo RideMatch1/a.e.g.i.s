@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-trpc-mutation-arrow-no-async",
+  "cwe": 89,
+  "type": "FP",
+  "description": "tRPC builder `.query((opts) => { ... })` — non-async arrow handler with template-literal log message inside. Same handler-shape FP class as openstatus, just without `async` keyword. F1.1 detects via paren-arrow recognition (no `=>` follows balanced-close of `(opts)` → continue scanning, but the FIRST char after `.query(` is `(` so the arrow-detection branch fires).",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

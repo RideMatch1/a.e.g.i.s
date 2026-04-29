@@ -306,3 +306,111 @@ describe('templateSqlCheckerScanner — path-invariance (D-CA-001 contract, v016
     expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
   });
 });
+
+describe('templateSqlCheckerScanner — v0.17.5 F1.1 handler-shape filter', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('does NOT fire on tRPC `.query(async (opts) => { ... fetch(`url/${x}`) })` (openstatus-class regression)', async () => {
+    createFile(projectPath, 'src/router/domain.ts', [
+      'declare const protectedProcedure: any;',
+      'declare const z: any;',
+      'declare const env: { PROJECT_ID: string };',
+      'export const domainRouter = protectedProcedure',
+      '  .input(z.object({ domain: z.string() }))',
+      '  .query(async (opts: { input: { domain: string } }) => {',
+      '    const data = await fetch(',
+      '      `https://api.example.com/v1/projects/${env.PROJECT_ID}/domains/${opts.input.domain}`,',
+      '    );',
+      '    return data.json();',
+      '  });',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+
+  it('does NOT fire on `.query((opts) => { ... `template${x}` })` (non-async arrow handler)', async () => {
+    createFile(projectPath, 'src/handler.ts', [
+      'declare const trpc: { query: (h: unknown) => unknown };',
+      'export const userQuery = trpc.query((opts: { input: { id: string } }) => {',
+      '  console.log(`Resolving ${opts.input.id}`);',
+      '  return { id: opts.input.id };',
+      '});',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+
+  it('does NOT fire on `.query(function (opts) { ... `template${x}` })` (function-expression handler)', async () => {
+    createFile(projectPath, 'src/legacy-handler.ts', [
+      'declare const trpc: { query: (h: unknown) => unknown };',
+      'export const legacy = trpc.query(function (opts: { input: { id: string } }) {',
+      '  console.log(`Resolving ${opts.input.id}`);',
+      '  return { id: opts.input.id };',
+      '});',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+
+  it('DOES fire when first arg is a direct backtick template (handler-shape filter must not over-suppress)', async () => {
+    createFile(projectPath, 'src/dangerous.ts', [
+      'declare const db: { execute: (sql: string) => Promise<unknown> };',
+      'export async function unsafe(name: string) {',
+      '  return db.execute(`UPDATE users SET name = \'${name}\'`);',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'template-sql-checker');
+    expect(hits.length).toBeGreaterThan(0);
+  });
+});
+
+describe('templateSqlCheckerScanner — v0.17.5 F1.2 tagged-template detection', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('does NOT fire on Drizzle `db.execute(sql`...${x}`)` (tagged template — safe parameterization)', async () => {
+    createFile(projectPath, 'src/drizzle-queries.ts', [
+      'declare const db: { execute: (chunk: unknown) => Promise<unknown> };',
+      'declare const sql: (s: TemplateStringsArray, ...v: unknown[]) => unknown;',
+      'export async function findById(id: string) {',
+      '  return await db.execute(sql`SELECT * FROM users WHERE id = ${id}`);',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+
+  it('does NOT fire on Prisma `Prisma.sql`...${x}`` tagged template', async () => {
+    createFile(projectPath, 'src/prisma-fragment.ts', [
+      'declare const Prisma: { sql: (s: TemplateStringsArray, ...v: unknown[]) => unknown };',
+      'declare const prisma: { $executeRaw: (chunk: unknown) => Promise<unknown> };',
+      'export async function adjust(uid: string, delta: number) {',
+      '  return await prisma.$executeRaw(',
+      '    Prisma.sql`UPDATE wallets SET balance = balance + ${delta} WHERE user_id = ${uid}`,',
+      '  );',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'template-sql-checker')).toHaveLength(0);
+  });
+
+  it('DOES fire on UNTAGGED `db.execute(`...${x}`)` (no preceding tag identifier)', async () => {
+    createFile(projectPath, 'src/raw-execute.ts', [
+      'declare const db: { execute: (sql: string) => Promise<unknown> };',
+      'export async function raw(name: string) {',
+      '  return db.execute(`UPDATE users SET name = \'${name}\'`);',
+      '}',
+    ].join('\n'));
+    const result = await templateSqlCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const hits = result.findings.filter((f) => f.scanner === 'template-sql-checker');
+    expect(hits.length).toBeGreaterThan(0);
+  });
+});

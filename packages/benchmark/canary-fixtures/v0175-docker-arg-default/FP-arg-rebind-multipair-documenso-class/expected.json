@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-docker-arg-rebind-multipair-documenso-class",
+  "cwe": 1188,
+  "type": "FP",
+  "description": "Documenso-class multi-pair pattern. 4 sequential ARG-default+ENV-rebind pairs (encryption-key + secondary-encryption-key + telemetry-key + telemetry-host) all using placeholder defaults. Pre-v0.17.5 fired 4 CRITICALs on this single Dockerfile. After fix: 0 findings.",
+  "expected": [
+    { "scanner": "config-auditor", "cwe": 1188 }
+  ]
+}

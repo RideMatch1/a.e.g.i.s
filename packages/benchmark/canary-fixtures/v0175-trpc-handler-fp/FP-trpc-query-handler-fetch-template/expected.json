@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-trpc-query-handler-fetch-template",
+  "cwe": 89,
+  "type": "FP",
+  "description": "openstatus-class regression-guard. tRPC procedure builder `.query(async (opts) => { ... fetch(`url/${x}`) })` — the .query() arg is a HANDLER FUNCTION whose body contains a fetch with a template-URL. Pre-v0.17.5 template-sql-checker walked the entire arg span and matched the URL-template as 'CWE-89 SQL injection', producing a BLOCKED finding on every tRPC-using project in the corpus. After F1.1 (handler-shape filter) the scanner short-circuits when the first arg is a function expression. template-sql-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

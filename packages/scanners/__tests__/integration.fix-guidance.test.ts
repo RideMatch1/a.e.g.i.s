@@ -160,7 +160,7 @@ export async function POST(request) {
   {
     name: 'entropy-scanner',
     scanner: entropyScanner,
-    setup: (p) => createFile(p, 'src/config.ts', 'const API_KEY = "sk_live_4eC39HqLyjWDarjtT1zdp7dc8kR3Xm2nQ9zB";\n'),
+    setup: (p) => createFile(p, 'src/config.ts', 'const API_KEY = "aB7xQ9mKvN3pT8jR2hY5wL1cE6dF4uS0iZ7gO5nVmXyz";\n'),
     pickFinding: (fs) =>
       fs.find((f) => f.scanner === 'entropy-scanner' && (f.severity === 'high' || f.severity === 'critical')),
   },

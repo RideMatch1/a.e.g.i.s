@@ -107,7 +107,7 @@ describe('entropyScanner — high-entropy detection', () => {
     createFile(
       projectPath,
       'src/config.ts',
-      'const API_KEY = "sk_live_4eC39HqLyjWDarjtT1zdp7dc8kR3Xm2nQ9zB";\n',
+      'const API_KEY = "aB7xQ9mKvN3pT8jR2hY5wL1cE6dF4uS0iZ7gO5nVmXyz";\n',
     );
 
     const result = await entropyScanner.scan(projectPath, MOCK_CONFIG);
@@ -167,7 +167,7 @@ describe('entropyScanner — exclusions', () => {
     createFile(
       projectPath,
       'src/auth.test.ts',
-      'const mockKey = "sk_test_4eC39HqLyjWDarjtT1zdp7dc8kR3Xm2nQ9zB";\n',
+      'const mockKey = "cD3yR8nLwO4qU9kS3iZ6xM2dF7eG5vT1jA8hP6oWnYZz";\n',
     );
 
     const result = await entropyScanner.scan(projectPath, MOCK_CONFIG);
@@ -178,7 +178,7 @@ describe('entropyScanner — exclusions', () => {
     createFile(
       projectPath,
       '__tests__/fixtures.ts',
-      'export const fakeToken = "sk_test_4eC39HqLyjWDarjtT1zdp7dc8kR3Xm2nQ9zB";\n',
+      'export const fakeToken = "cD3yR8nLwO4qU9kS3iZ6xM2dF7eG5vT1jA8hP6oWnYZz";\n',
     );
 
     const result = await entropyScanner.scan(projectPath, MOCK_CONFIG);
@@ -211,7 +211,7 @@ describe('entropyScanner — exclusions', () => {
     createFile(
       projectPath,
       'package-lock.json',
-      '{"integrity": "sha512-sk_live_4eC39HqLyjWDarjtT1zdp7dc8kR3Xm2nQ9zB"}\n',
+      '{"integrity": "sha512-aB7xQ9mKvN3pT8jR2hY5wL1cE6dF4uS0iZ7gO5nVmXyz"}\n',
     );
 
     const result = await entropyScanner.scan(projectPath, MOCK_CONFIG);
@@ -230,7 +230,7 @@ describe('entropyScanner — finding format', () => {
     createFile(
       projectPath,
       'src/keys.ts',
-      'const key1 = "sk_live_4eC39HqLyjWDarjtT1zdp7dc8kR3Xm2nQ9zB";\nconst key2 = "pk_test_7Rq2Wm8xNk5VcF3Yd9Tj1Lp6Gh4Bs0Az";\n',
+      'const key1 = "aB7xQ9mKvN3pT8jR2hY5wL1cE6dF4uS0iZ7gO5nVmXyz";\nconst key2 = "pk_test_7Rq2Wm8xNk5VcF3Yd9Tj1Lp6Gh4Bs0Az";\n',
     );
 
     const result = await entropyScanner.scan(projectPath, MOCK_CONFIG);
@@ -243,7 +243,7 @@ describe('entropyScanner — finding format', () => {
     createFile(
       projectPath,
       'src/env.ts',
-      'const a = 1;\nconst b = 2;\nconst secret = "sk_live_4eC39HqLyjWDarjtT1zdp7dc8kR3Xm2nQ9zB";\nconst c = 3;\n',
+      'const a = 1;\nconst b = 2;\nconst secret = "aB7xQ9mKvN3pT8jR2hY5wL1cE6dF4uS0iZ7gO5nVmXyz";\nconst c = 3;\n',
     );
 
     const result = await entropyScanner.scan(projectPath, MOCK_CONFIG);
@@ -256,7 +256,7 @@ describe('entropyScanner — finding format', () => {
     createFile(
       projectPath,
       'src/leak.ts',
-      'const leaked = "sk_live_4eC39HqLyjWDarjtT1zdp7dc8kR3Xm2nQ9zB";\n',
+      'const leaked = "aB7xQ9mKvN3pT8jR2hY5wL1cE6dF4uS0iZ7gO5nVmXyz";\n',
     );
 
     const result = await entropyScanner.scan(projectPath, MOCK_CONFIG);

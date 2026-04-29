@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-xss-script-src-multiline-literal",
+  "cwe": 79,
+  "type": "FP",
+  "description": "POLABDC-class regression-guard. Multi-line `script.src =\\n    \"https://cdn...\"` shape. RHS is a string literal — NOT a variable. Pre-v0.17.5 xss-checker spuriously flagged this because greedy `\\s*` in `\\s*=\\s*(?!['\"(`])` would release one whitespace char to satisfy the negative lookahead against whitespace. Fix: add `\\s` to negation set so `\\s*` cannot release. xss-checker MUST NOT fire on this fixture.",
+  "expected": [
+    { "scanner": "xss-checker", "cwe": 79 }
+  ]
+}

@@ -56,11 +56,14 @@ const XSS_RULES: XssRule[] = [
     // .innerHTML = <variable> — only flag writes with a non-literal RHS.
     // Negative lookahead excludes:
     //   - string literals: "...", '...', `...`
+    //   - whitespace (closes the v0.17.5 backtracking-bypass: \s* would
+    //     leave one space behind so the lookahead would land on whitespace
+    //     and spuriously succeed — adding \s blocks that)
     //   - empty-string clears: innerHTML = ""  (safe, common React pattern)
     //   - comparisons/reads: if (el.innerHTML !== "")
     // Positive match requires the RHS to start like a variable/expression:
     //   identifier char, template expression ${, or function call word(
-    pattern: /\.innerHTML\s*=\s*(?!["'`])(?=\w|\$\{)/,
+    pattern: /\.innerHTML\s*=\s*(?![\s"'`])(?=\w|\$\{)/,
     title: 'XSS risk — innerHTML assignment with variable',
     description:
       'innerHTML is assigned a variable value without detectable sanitization. If the value contains user-controlled HTML, this is an XSS vulnerability. Use textContent for plain text, or sanitize with DOMPurify.sanitize() before assigning to innerHTML.',
@@ -85,7 +88,9 @@ const XSS_RULES: XssRule[] = [
   },
   {
     // document.write( with variable
-    pattern: /document\.write\s*\(\s*(?!['"(`])/,
+    // v0.17.5 — \s in negation closes \s* backtracking-bypass that let
+    // multi-line literals like document.write(\n  "literal") slip through.
+    pattern: /document\.write\s*\(\s*(?![\s'"(`])/,
     title: 'XSS risk — document.write() with variable',
     description:
       "document.write() is called with a variable argument. Passing user-controlled values to document.write() is a classic DOM XSS vector. Replace with safe DOM APIs (createElement, textContent) or sanitize the content first.",
@@ -93,7 +98,8 @@ const XSS_RULES: XssRule[] = [
   },
   {
     // insertAdjacentHTML( without sanitization
-    pattern: /\.insertAdjacentHTML\s*\(\s*['"][^'"]+['"]\s*,\s*(?!['"(`])/,
+    // v0.17.5 — \s in negation closes \s* backtracking-bypass.
+    pattern: /\.insertAdjacentHTML\s*\(\s*['"][^'"]+['"]\s*,\s*(?![\s'"(`])/,
     title: 'XSS risk — insertAdjacentHTML() without sanitization',
     description:
       'insertAdjacentHTML() inserts raw HTML into the DOM. If the content contains user-controlled data, this is an XSS vulnerability. Use textContent for plain text, or sanitize with DOMPurify.sanitize() before inserting.',
@@ -101,7 +107,8 @@ const XSS_RULES: XssRule[] = [
   },
   {
     // DOMParser().parseFromString( with user input
-    pattern: /DOMParser\s*\(\s*\)\s*\.parseFromString\s*\(\s*(?!['"(`])/,
+    // v0.17.5 — \s in negation closes \s* backtracking-bypass.
+    pattern: /DOMParser\s*\(\s*\)\s*\.parseFromString\s*\(\s*(?![\s'"(`])/,
     title: 'XSS risk — DOMParser.parseFromString() with potential user input',
     description:
       'DOMParser().parseFromString() parses a string as HTML. If the input contains user-controlled data, scripts in the parsed document can execute when nodes are imported into the main document. Sanitize the input with DOMPurify before parsing, or validate the content type.',
@@ -110,7 +117,13 @@ const XSS_RULES: XssRule[] = [
   },
   {
     // document.createElement('script') with dynamic src
-    pattern: /document\.createElement\s*\(\s*['"]script['"]\s*\)[\s\S]{0,100}?\.src\s*=\s*(?!['"(`])/,
+    // v0.17.5 — \s added to negation set; closes a backtracking-bypass
+    // where greedy `\s*` after the `=` would release one whitespace
+    // char so the negative lookahead would land on whitespace and
+    // spuriously succeed against literal-RHS patterns like the multi-
+    // line `script.src =\n    "https://cdn..."` shape (regression-
+    // guard added under canary-fixtures/v0175-xss-string-literal/).
+    pattern: /document\.createElement\s*\(\s*['"]script['"]\s*\)[\s\S]{0,100}?\.src\s*=\s*(?![\s'"(`])/,
     title: 'XSS risk — dynamic script element with variable src',
     description:
       'A script element is created with document.createElement(\'script\') and its src is set to a variable. If the variable is user-controlled, an attacker can load and execute arbitrary JavaScript. Only use hardcoded, trusted URLs for script sources, or validate the URL against an allowlist.',
@@ -118,7 +131,9 @@ const XSS_RULES: XssRule[] = [
   },
   {
     // srcdoc= attribute with user input
-    pattern: /srcdoc\s*=\s*\{(?!['"(`])/,
+    // v0.17.5 — \s in negation closes \s* backtracking-bypass on JSX
+    // brace-formatted props like srcdoc={\n  "literal"\n}.
+    pattern: /srcdoc\s*=\s*\{\s*(?![\s'"(`])/,
     title: 'XSS risk — srcdoc attribute with potential user input',
     description:
       'The srcdoc attribute on an iframe accepts raw HTML. If the value contains user-controlled data, this is an XSS vulnerability — the HTML executes in the iframe context and can access the parent via postMessage or same-origin policies. Sanitize the content with DOMPurify before setting srcdoc.',

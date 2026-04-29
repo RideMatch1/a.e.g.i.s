@@ -1,5 +1,6 @@
 import { exec, commandExists } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
+import { isSecretsNoisePath } from './path-allowlist.js';
 
 interface TruffleHogResult {
   SourceMetadata?: {
@@ -60,6 +61,9 @@ export const trufflehogScanner: Scanner = {
         const file = git?.file;
         const fileLine = git?.line;
         const commit = git?.commit;
+
+        // v0.17.5 F5.1 — skip noise paths (docs, lockfiles, tests, etc.)
+        if (isSecretsNoisePath(file)) continue;
 
         const locationParts: string[] = [];
         if (file) locationParts.push(`file: ${file}`);

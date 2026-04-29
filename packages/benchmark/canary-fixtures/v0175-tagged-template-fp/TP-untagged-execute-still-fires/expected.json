@@ -1,0 +1,9 @@
+{
+  "id": "v0175-TP-untagged-execute-still-fires",
+  "cwe": 89,
+  "type": "TP",
+  "description": "Smoke test: F1.2 tagged-template skip MUST NOT over-suppress untagged `db.execute(`...${x}`)`. This is the canonical SQLi shape and MUST still fire CRITICAL/CWE-89.",
+  "expected": [
+    { "scanner": "template-sql-checker", "cwe": 89 }
+  ]
+}

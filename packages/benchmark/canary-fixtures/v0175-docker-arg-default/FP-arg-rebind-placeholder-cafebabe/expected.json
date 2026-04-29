@@ -1,0 +1,9 @@
+{
+  "id": "v0175-FP-docker-arg-rebind-placeholder-cafebabe",
+  "cwe": 1188,
+  "type": "FP",
+  "description": "Documenso-class regression-guard. Canonical Docker build-arg-secret pattern: `ARG NEXT_PRIVATE_ENCRYPTION_KEY=\"CAFEBABE\"` followed by `ENV NEXT_PRIVATE_ENCRYPTION_KEY=\"$NEXT_PRIVATE_ENCRYPTION_KEY\"`. The ARG default is an obvious placeholder (CAFEBABE = well-known dummy hex). Pre-v0.17.5 config-auditor flagged the ENV line as CRITICAL because it matched the SECRET/KEY/TOKEN regex, ignoring the ARG-rebind context. Fix: skip the finding when (a) ENV value is a self-rebind `$VARNAME` AND (b) preceding ARG default is a known placeholder. config-auditor MUST NOT fire.",
+  "expected": [
+    { "scanner": "config-auditor", "cwe": 1188 }
+  ]
+}
