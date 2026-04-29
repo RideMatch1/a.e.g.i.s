@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-amount-literal",
+  "cwe": 602,
+  "type": "FP",
+  "description": "Hardcoded numeric amount (admin-set test fixture / fixed-price subscription / one-off SKU). Amount is a literal constant — no client influence possible. payment-flow-checker must NOT fire on this pattern.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

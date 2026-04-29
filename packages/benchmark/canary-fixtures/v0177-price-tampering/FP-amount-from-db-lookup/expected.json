@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-amount-from-db-lookup",
+  "cwe": 602,
+  "type": "FP",
+  "description": "Canonical safe pattern: amount is loaded from a server-side DB lookup keyed by a validated product ID. The client supplies only the product ID; the price comes from the server. payment-flow-checker must NOT fire on this pattern.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

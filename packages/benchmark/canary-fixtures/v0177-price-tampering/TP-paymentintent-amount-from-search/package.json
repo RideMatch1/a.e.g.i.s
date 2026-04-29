@@ -1,0 +1,7 @@
+{
+  "name": "v0177-canary-tp-paymentintent-amount-from-search",
+  "version": "0.0.1",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  }
+}

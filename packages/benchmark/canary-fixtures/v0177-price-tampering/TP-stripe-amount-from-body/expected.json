@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-stripe-amount-from-body",
+  "cwe": 602,
+  "type": "TP",
+  "description": "scootmart-marketplace-class regression-guard. Stripe Checkout session is created with unit_amount sourced from the request body (priceAed taken from req.json()). Attacker POSTs {priceAed: 1} to pay a single cent for an arbitrarily expensive listing. Server must source amount from a DB lookup keyed by a validated product/listing ID — never from client input. After F-PRICE-TAMPER-1 the new payment-flow-checker scanner must fire CRITICAL.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

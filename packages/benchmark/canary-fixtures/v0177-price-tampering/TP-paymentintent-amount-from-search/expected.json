@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-paymentintent-amount-from-search",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Price-tampering via URL query string. Stripe paymentIntents.create receives `amount` directly from searchParams.get('amount'). Attacker calls /api/payment?amount=1 → 1-cent paymentIntent for any product. After F-PRICE-TAMPER-1 the new payment-flow-checker scanner must fire CRITICAL.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

@@ -66,6 +66,7 @@ import { taintAnalyzerScanner } from './ast/taint-analyzer.js';
 import { nextPublicLeakScanner } from './quality/next-public-leak.js';
 import { middlewareAuthCheckerScanner } from './quality/middleware-auth-checker.js';
 import { edgeFunctionAuthCheckerScanner } from './quality/edge-function-auth-checker.js';
+import { paymentFlowCheckerScanner } from './quality/payment-flow-checker.js';
 import { subfinderScanner } from './recon/subfinder.js';
 import type { Scanner } from '@aegis-scan/core';
 
@@ -138,6 +139,7 @@ export function getAllScanners(): Scanner[] {
     nextPublicLeakScanner,
     middlewareAuthCheckerScanner,
     edgeFunctionAuthCheckerScanner,
+    paymentFlowCheckerScanner,
     subfinderScanner,
   ];
 }
@@ -222,5 +224,9 @@ export {
   jwtCheckerScanner,
   depConfusionCheckerScanner,
   taintAnalyzerScanner,
+  edgeFunctionAuthCheckerScanner,
+  paymentFlowCheckerScanner,
+  middlewareAuthCheckerScanner,
+  nextPublicLeakScanner,
   subfinderScanner,
 };
