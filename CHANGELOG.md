@@ -17,7 +17,83 @@ shown with the reason the target wasn't met.
 
 ---
 
-## [0.17.7] — 2026-04-29 — "Battle-tested detector cluster + DEFAULT=MAX + active-mode disclaimers"
+## [0.17.8] — 2026-04-29 — "External-audit-fix release (supersedes 0.17.7)"
+
+`@aegis-scan/*` family patch bump (`0.17.7` → `0.17.8`) and `@aegis-wizard/cli` (`0.17.7` → `0.17.8`) to ship the closure of an external red-team audit performed against the `0.17.7` release-cut on the same day. **`0.17.7` was held local-only and superseded by this release; do not use 0.17.7.**
+
+The audit (19 findings, see `aegis-precision/v0177-external-audit-findings-2026-04-29.md` — gitignored audit-archive) surfaced:
+- 1 CRITICAL release-blocker (DAST mode-gate bypass via `aegis audit --target`)
+- 8 HIGH detection-gaps in payment-flow-checker + edge-function-auth-checker that 1568 unit tests + 39 canary fixtures missed
+- 5 MEDIUM-tier issues (test-quality, prose accuracy, registry-parity strength)
+- 2 LOW (perf, vendor-name hygiene)
+- 3 DOCUMENTATION (tag-message, README modes-table, disclaimer wording)
+
+All 19 are closed in this release. The 12 adversarial fixtures the auditor wrote during the review are committed as a permanent regression-guard suite (now passing post-fix).
+
+### Fixed (CRITICAL — release-blocker for 0.17.7)
+
+- **CRIT-001 — DAST mode-gate** — `aegis audit --target https://victim.example.com` invoked nuclei + zap (and would have invoked strix / ptai / pentestswarm / subfinder if installed) live against the target with NO `--confirm` gate, NO legal disclaimer, and NO opt-in. Empirical proof: nuclei ran 120 s of HTTP probes against an unreachable host before timing out. The `0.17.7` disclaimer architecture (commit `f624035`) was one CLI flag away from being silently bypassed. Fix: every DAST/recon scanner that sends live traffic now early-returns when `config.mode !== 'pentest' && config.mode !== 'siege'`, with an error message that names both modes + tells the operator to use `aegis pentest` / `aegis siege` with `--confirm`. Files: `nuclei.ts`, `zap.ts`, `strix.ts`, `ptai.ts`, `pentestswarm.ts`, `subfinder.ts`. Empirical re-verify post-fix: zero DAST traffic from `aegis audit --target X`. (commit `a6e0474`)
+
+### Fixed (HIGH — detection bypass-classes in v0.17.7 scanners)
+
+- **HIGH-001..006 — payment-flow-checker bypass-class closure** — adversarial fixtures by the auditor proved 8 distinct bypass paths against the `0.17.7` payment-flow-checker. Fixes:
+  - HIGH-001: nested-destructure (`const { data: { amount } } = await req.json()`) — replaced single-level regex with balanced-brace extraction + recursive `extractBoundIdentifiersFromDestructure` walker.
+  - HIGH-002: spread-rebound (`const data = { ...(await req.json()) }`) — added Pass-1 root-binding patterns covering the spread-into-fresh-object idiom for json / formData / req.body.
+  - HIGH-003: cookies / headers blind — added Next.js 13+ App Router taint sources (`cookies().get(...)`, `headers().get(...)`, `x.cookies.get(...)`, `x.headers.get(...)`) to direct-source patterns + matching getter-binding patterns in Pass 4.
+  - HIGH-004: tRPC `input.amount` blind — Zod validates SHAPE not BUSINESS AUTHORISATION; added `\binput\.X` to direct-source patterns and `input` to implicit taint roots.
+  - HIGH-005: quantity tampering — Stripe Checkout `line_items[i].quantity` accepts negative integers; added `quantity` to the AMOUNT-field alternation alongside `amount` / `unit_amount` / `price`.
+  - HIGH-006: Server Action `formData.get` binding miss — pre-fix the inline taint pattern existed but no Pass added `const X = ...formData.get(...)` to the tainted-set, so shorthand `{ amount }` evaluated against an empty set; Pass 4 now covers `formData.get` / `cookies().get` / `headers().get` binding patterns with a wrapper-tolerant prefix that absorbs `Number(...)` / `parseInt(...)` coercions. (commit `2c816b7`)
+- **HIGH-007 — pentest target-reachability uses safeFetch** — `0.17.7` pentest used bare `fetch` with `redirect: 'follow'` for the target HEAD probe — no DNS-rebinding defense, no SSRF guard against private / link-local / cloud-metadata IPs, no allowlist. An attacker who controlled the target's DNS or redirect chain could pivot the probe to internal endpoints. Fix: pentest now uses `safeFetch` (mirrors siege.ts), with `isSafeFetchRejection` error handling and a new `--allow-loopback` flag for legitimate local dev-server pentest workflows. (commit `5fd1206`)
+- **HIGH-008 — edge-function-auth-checker bypass + FP closure** — pre-fix the scanner mis-classified in BOTH directions: (a) silent bypass via mere `req.headers.get('Authorization')` extraction without verification; (b) noisy FP on Edge Functions using non-Supabase auth (jsonwebtoken `jwt.verify`, Clerk, Lucia, Better-Auth) or user-authored helpers (`requireUser(req)`). Fixes: removed the lenient extract-only pattern; added `jwt.verify`, `clerkClient.users.getUser`, `getAuth(req)`, `lucia.validateSession`, `auth.api.getSession`; added a CamelCase user-authored auth-helper heuristic (`\bawait\s+(?:require|assert|verify|check|ensure|validate|authenticate)\w*\s*\(\s*[^)]*\b(?:req|request)\b/i`). (commit `f624035`'s replacement work; see `__tests__/quality/edge-function-auth-checker.test.ts` and `v0177-edge-fn-auth-bypass`)
+
+### Fixed (MEDIUM — test-quality / prose accuracy)
+
+- **MED-001 — `'use client'` detection no longer truncates at 200 bytes** — long copyright / JSDoc banners pushed the directive past the byte cap, causing client files to be mis-classified as server. Now scans first 30 lines via `content.split('\n').slice(0, 30)`. (commit `2c816b7`)
+- **MED-002 — registry parity test now identity-checked, not count-only** — pre-fix `getAllScanners().length === staticImports.length` could be balanced by a swap-one-for-another refactor (rename one identifier, accidentally remove another, totals balance, test passes). New assertion derives two normalized slugs from each imported identifier and verifies a matching `scanner.name` exists. (commit `26d47d3`)
+- **MED-003 — disclaimer `--state-file` claim parameterised per mode** — `aegis siege` has `--state-file`; `aegis pentest` does not. Pre-fix the disclaimer always claimed both modes recorded the authorization timestamp to `--state-file when configured`, which was misleading for pentest. Disclaimer text is now mode-aware. (commit `26d47d3`)
+- **MED-004 — adversarial fixtures + bypass-class unit tests adopted** — 12 audit-authored adversarial fixtures committed under `v0177-payment-flow-bypass/` (9) and `v0177-edge-fn-auth-bypass/` (3). 13 new unit tests across the affected scanner test files cover nested-destructure / spread-rebound / cookies / headers / tRPC / quantity / Server-Action / banner-FP / jsonwebtoken / custom-helper / mere-extract / Clerk / Better-Auth. (commits `2c816b7`, ... — formally tracked in commit `3c45b80`)
+- **MED-005 — CLI integration test for `--confirm` parsing** — `0.17.7` unit-tested `evaluateActiveModeAuthorization` directly, bypassing Commander.js. New `cli-confirm-integration.test.ts` spawns the built CLI binary and asserts the Commander-parsed flag behaves correctly across `--confirm`, missing `--confirm`, and `--confirm=false`. (commit `3c45b80`)
+
+### Fixed (LOW + DOCUMENTATION)
+
+- **LOW-001 — payment-flow-checker regex memoisation** — `'g'`-flagged copies of the SDK-call patterns are now built once at module init, eliminating per-file `RegExp` allocations. (commit `3c45b80`)
+- **LOW-002 — LLM-vendor name neutralisation** — replaced specific vendor names in `edge-function-auth-checker.ts` and `prompt-injection-checker.ts` advisory prose with neutral "major LLM providers" phrasing per project voice convention. (commit `3c45b80`)
+- **DOC-002 — README modes-table rewrite (post-CRIT-001)** — three-tier model with separate columns for Static SAST / DAST scanners / Active probes / Live HTTP traffic. Explicitly states what each tier runs and that DAST/probe scanners are mode-gated. (commit `26d47d3`)
+- **DOC-003 — disclaimer LLM-agent framework scope corrected** — strix/ptai/pentestswarm are in `getAllScanners()` so they run in BOTH pentest and siege (post-CRIT-001 mode-gate). Disclaimer no longer implies they are siege-only. (commit `26d47d3`)
+- **DOC-001 — tag-message commit-range accuracy** — `0.17.7` tag-message claimed "10 commits since 0.17.0" but the actual `v0.17.0..v0.17.7` range was 37 commits (named range was 10). The `0.17.8` tag-message uses `v0.17.0..HEAD` range counts and enumerates substantive themes accurately.
+
+### Validation
+
+- **51 / 51 canary fixtures across 12 phases pass** (was 39/10 in `0.17.7`):
+  ```
+  v0152-template-sqli              5/5
+  v0175-xss-string-literal         3/3
+  v0175-docker-arg-default         4/4
+  v0175-trpc-handler-fp            3/3
+  v0175-tagged-template-fp         3/3
+  v0177-hoc-auth-guard-fp          5/5
+  v0177-mass-assignment-role       4/4
+  v0177-prompt-injection-direct    4/4
+  v0177-edge-function-auth         4/4
+  v0177-price-tampering            4/4
+  v0177-payment-flow-bypass        9/9   (audit-adversarial, NEW v0.17.8)
+  v0177-edge-fn-auth-bypass        3/3   (audit-adversarial, NEW v0.17.8)
+  ```
+- **Unit tests**:
+  - `@aegis-scan/scanners`: 1587 / 1587 (was 1568 — +19 covering CRIT-001 + HIGH-001..008 regression-guards + MED-002 identity check)
+  - `@aegis-scan/cli`: 414 / 414 (was 409 — +5 integration tests for `--confirm` parsing)
+  - `@aegis-wizard/cli`: 304 / 304 (unchanged — alignment-only release)
+  - `@aegis-scan/mcp-server`: 17 / 17
+
+### Withdrawal note
+
+The `0.17.7` git tag remains in the repository as a historical record of the pre-audit-fix state but **was never pushed and never published**. v0.17.8 is the first publish-eligible release in the v0.17.x patch line.
+
+---
+
+## [0.17.7] — 2026-04-29 — "Battle-tested detector cluster + DEFAULT=MAX + active-mode disclaimers" — **WITHDRAWN, superseded by 0.17.8**
+
+> **NOTE:** `0.17.7` was held local-only after an external red-team audit on the same day surfaced a release-blocking CRIT-001 (DAST mode-gate bypass) plus 8 HIGH detection-gaps. The release-cut was withdrawn before push / publish; v0.17.8 supersedes it. The entry below is preserved verbatim for the audit-trail. **Do not use 0.17.7.**
 
 `@aegis-scan/*` family patch bump (`0.17.0` → `0.17.7`) covering three
 themed dogfood-scan rounds against vibecoded Next.js / Supabase

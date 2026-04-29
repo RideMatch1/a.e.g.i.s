@@ -8,7 +8,40 @@ by dogfood-audit + recon-report findings, not by a fixed schedule.
 
 ---
 
-## [0.17.7] — 2026-04-29 — "Scanner-family alignment (no functional changes)"
+## [0.17.8] — 2026-04-29 — "Scanner-family alignment (no functional changes)"
+
+Companion to the `@aegis-scan/*` v0.17.8 release (the external-audit-fix
+cut that supersedes the withdrawn `0.17.7`). The scanner family closes
+1 CRITICAL release-blocker + 8 HIGH detection-gaps + 5 MEDIUM-tier
+issues + 2 LOW + 3 DOC findings. See the root
+[`CHANGELOG.md`](../../CHANGELOG.md) [0.17.8] entry for the full
+surface.
+
+### Changed
+
+- **Version alignment only** — `@aegis-wizard/cli` 0.17.7 → 0.17.8 to
+  keep version parity with the scanner family. No source-tree changes
+  to the wizard package; templates, brief-generator, scaffold-questions,
+  and the CLI surface are byte-identical to the 0.17.7 tarball-state
+  (which itself was byte-identical to 0.17.4 — the wizard package has
+  had no functional changes across the 0.17.7 / 0.17.8 audit-fix
+  cycle). Existing `aegis init` / `aegis new` flows are unaffected.
+
+### Validation
+
+- Wizard-cli unit tests unchanged (304 / 304 prior baseline holds).
+- Integration with the scanner family verified at the workspace level
+  (`pnpm install` + cross-package `workspace:*` deps resolve correctly).
+
+---
+
+## [0.17.7] — 2026-04-29 — "Scanner-family alignment (no functional changes)" — **WITHDRAWN, superseded by 0.17.8**
+
+> **NOTE:** `0.17.7` was held local-only after the same-day external
+> audit of the scanner family. The wizard-cli was bumped 0.17.4 → 0.17.7
+> for parity, then re-bumped to 0.17.8 when the scanner family re-cut
+> as 0.17.8 to ship the audit fixes. **Do not use 0.17.7 of either
+> package.** The entry below is preserved verbatim for the audit-trail.
 
 Companion to the `@aegis-scan/*` v0.17.7 release. The scanner family
 shipped a battle-tested detector cluster (1 NEW scanner + 4 coverage
