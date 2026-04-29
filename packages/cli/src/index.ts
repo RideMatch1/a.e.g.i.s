@@ -74,14 +74,20 @@ program
 
 program
   .command('pentest [path]')
-  .description('Full pentest — all scanners including DAST against a live target (requires --target)')
+  .description(
+    'ACTIVE MODE — full pentest including DAST scanners (ZAP, Nuclei, Strix, ' +
+      'PTAI, Pentest-Swarm) against a live target. Sends LIVE HTTP traffic. ' +
+      'Requires --target and --confirm. Only run against systems you are ' +
+      'authorized to test (CFAA / §202a-c StGB / Computer Misuse Act).',
+  )
   .requiredOption('-t, --target <url>', 'Target URL to pentest (required)')
+  .option('--confirm', 'Acknowledge authorization to send live DAST/probe traffic to the target')
   .option('-f, --format <format>', 'Output format: terminal (default), json, sarif, html, markdown', 'terminal')
   .option('--no-color', 'Disable colored output')
   .action(
     async (
       path: string | undefined,
-      options: { target: string; format: string; color: boolean },
+      options: { target: string; format: string; color: boolean; confirm: boolean },
     ) => {
       if (!options.color) {
         chalk.level = 0;
@@ -92,7 +98,14 @@ program
 
 program
   .command('siege [path]')
-  .description('Multi-phase adversary simulation against a live target (requires --target or --roe)')
+  .description(
+    'ACTIVE MODE — multi-phase adversary simulation against a live target. ' +
+      'Sends LIVE HTTP traffic including fake-JWT auth probes, concurrent ' +
+      'POST race probes, header-tampering probes, and external LLM-pentest ' +
+      'frameworks. Requires --target (or --roe with target in scope) and ' +
+      '--confirm. Only run against systems you are authorized to test (CFAA / ' +
+      '§202a-c StGB / Computer Misuse Act).',
+  )
   .requiredOption('-t, --target <url>', 'Target URL for siege (required)')
   .option('--roe <path>', 'Rules of Engagement JSON file (APTS-SE-001 conformant). Validates target scope + temporal envelope before engagement start.')
   .option('--state-file <path>', 'JSONL event-stream + state snapshot file (APTS-HO-002/006/008 — enables resume + signal-based pause/kill).')

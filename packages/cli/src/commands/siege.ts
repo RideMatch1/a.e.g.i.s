@@ -54,6 +54,7 @@ import {
 import type { AuditResult, Finding, ScanCategory } from '@aegis-scan/core';
 import { getAllScanners, getAttackScanners } from '@aegis-scan/scanners';
 import { selectReporter, writeStdout } from '../utils.js';
+import { evaluateActiveModeAuthorization } from '../active-mode-disclaimer.js';
 import { relative } from 'path';
 
 export interface SiegeOptions {
@@ -279,15 +280,12 @@ export async function runSiege(
   }
 
   // Authorization gate — aegis siege sends LIVE HTTP requests
-  if (!options.confirm) {
-    console.error(chalk.red.bold('\n  ⚠  AEGIS SIEGE — ACTIVE ATTACK SIMULATION\n'));
-    console.error(chalk.yellow(`  Target: ${options.target}`));
-    console.error(chalk.yellow('  This will send live HTTP requests to the target URL.'));
-    console.error(chalk.yellow('  Only run against systems you own or have explicit authorization to test.\n'));
-    console.error(chalk.dim('  Add --confirm to acknowledge and proceed.'));
-    console.error(chalk.dim('  Example: aegis siege . --target https://localhost:3000 --confirm\n'));
-    return 1;
-  }
+  const auth = evaluateActiveModeAuthorization({
+    mode: 'siege',
+    target: options.target,
+    confirm: options.confirm === true,
+  });
+  if (!auth.confirmed) return 1;
 
   const resolvedPath = path || process.cwd();
 
