@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-rag-content-interp",
+  "cwe": 77,
+  "type": "TP",
+  "description": "nextjs-ai-note-app-class regression-guard. RAG retrieved `note.content` interpolated directly into LLM system-prompt template-literal. Indirect prompt-injection vector — attacker who can write a note (or where multi-user filter fails) injects payload via stored content. CRITICAL severity. After F-PROMPT-1 the scanner detects RAG-content interpolation idiom.",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}

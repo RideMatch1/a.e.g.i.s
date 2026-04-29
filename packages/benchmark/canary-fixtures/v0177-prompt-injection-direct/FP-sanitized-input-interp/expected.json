@@ -1,0 +1,9 @@
+{
+  "id": "v0177-FP-sanitized-input-interp",
+  "cwe": 77,
+  "type": "FP",
+  "description": "Smoke test: F-PROMPT-1 must NOT over-fire when a sanitizer (sanitizeForPrompt / sanitizeWithInjectionDetection / escapeForPrompt) wraps the interpolated user property. The sanitizer is the operator's own defense and is presumed sound at this scanner's resolution.",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}

@@ -664,4 +664,105 @@ describe('promptInjectionCheckerScanner — Field-Report end-to-end fixtures', (
         .join(', ')}`,
     ).toEqual([]);
   });
+
+  // ============================================================
+  // v0.17.7 F-PROMPT-1: prompt-builder + RAG-content + messages-spread
+  // Source: 2026-04-29 Round-3 dogfood (tripsage-ai + nextjs-ai-note-app)
+  // ============================================================
+
+  it('F-PROMPT-1: flags prompt-builder function interpolating ${input.X} into template literal', async () => {
+    createFile(projectPath, 'prompts/agents.ts', `
+      type Input = { destination: string; travelDates?: string };
+      export function buildDestinationPrompt(input: Input): string {
+        return [
+          'You are a destination researcher.',
+          \`Focus destination: \${input.destination}.\`,
+          input.travelDates ? \`Travel dates: \${input.travelDates}.\` : '',
+        ].filter(Boolean).join('\\n');
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const finding = result.findings.find(
+      (f) => f.cwe === 77 && /input.*property|user.*interpolat/i.test(f.title),
+    );
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe('high');
+  });
+
+  it('F-PROMPT-1 (RAG class): flags ${doc.content} interpolation in template literal', async () => {
+    createFile(projectPath, 'app/api/chat/route.ts', `
+      export async function POST(req) {
+        const relevantNotes = [{ id: '1', content: 'stub', title: 'stub' }];
+        const systemMessage = {
+          role: 'system',
+          content: 'You answer based on notes:\\n' +
+            relevantNotes.map((note) => \`Title: \${note.title}\\n\\nContent:\\n\${note.content}\`).join('\\n\\n'),
+        };
+        return Response.json({ ok: true, systemMessage });
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const finding = result.findings.find(
+      (f) => f.cwe === 77 && /retrieved|RAG|indirect/i.test(f.title),
+    );
+    expect(finding).toBeDefined();
+  });
+
+  it('F-PROMPT-1 (messages-spread class): flags spread of body.messages into LLM call', async () => {
+    createFile(projectPath, 'app/api/chat/route.ts', `
+      export async function POST(req) {
+        const body = await req.json();
+        const messagesTruncated = body.messages.slice(-6);
+        const systemMessage = { role: 'system', content: 'Be helpful.' };
+        const openai: any = { chat: { completions: { create: async () => null } } };
+        const response = await openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [systemMessage, ...messagesTruncated],
+        });
+        return Response.json({ response });
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const finding = result.findings.find(
+      (f) => f.cwe === 77 && /messages array spread|user-supplied messages/i.test(f.title),
+    );
+    expect(finding).toBeDefined();
+  });
+
+  it('F-PROMPT-1: does NOT flag when sanitizeForPrompt wraps the user property', async () => {
+    createFile(projectPath, 'prompts/safe.ts', `
+      import { sanitizeForPrompt } from '@/lib/security/prompt-sanitizer';
+      type Input = { destination: string };
+      export function buildPrompt(input: Input): string {
+        const safe = sanitizeForPrompt(input.destination, 200);
+        return \`You are a researcher. Destination: \${safe}.\`;
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const findings = result.findings.filter((f) => f.cwe === 77);
+    expect(findings).toEqual([]);
+  });
+
+  it('F-PROMPT-1: does NOT flag static system prompt (no interpolation)', async () => {
+    createFile(projectPath, 'prompts/static.ts', `
+      export const SYSTEM_PROMPT = 'You are a helpful assistant. Respond concisely.';
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const findings = result.findings.filter((f) => f.cwe === 77);
+    expect(findings).toEqual([]);
+  });
+
+  it('F-PROMPT-1: sanitizeWithInjectionDetection is also recognized as sanitizer', async () => {
+    createFile(projectPath, 'prompts/safe.ts', `
+      import { sanitizeWithInjectionDetection } from '@/lib/security/prompt-sanitizer';
+      type Input = { destination: string };
+      export function buildPrompt(input: Input): string {
+        const safe = sanitizeWithInjectionDetection(input.destination, 1000);
+        return \`Researcher. Destination: \${safe}.\`;
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const findings = result.findings.filter((f) => f.cwe === 77);
+    expect(findings).toEqual([]);
+  });
 });

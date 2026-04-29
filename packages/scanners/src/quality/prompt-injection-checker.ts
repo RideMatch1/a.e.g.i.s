@@ -86,6 +86,52 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; title: string; description: s
     description:
       'A prompt property is assigned a bare variable (not a string literal). If the variable is user-controlled, this enables prompt injection. Sanitize via escapeForPrompt / sanitizePrompt or wrap the variable inside a system-prompt-isolation template before dispatch.',
   },
+  // v0.17.7 F-PROMPT-1: prompt-builder pattern. A function whose body
+  // interpolates user/input/context properties into a template literal,
+  // typically returned and later assigned as `instructions`/`system` to
+  // an AI SDK call. Pre-v0.17.7 only matched .chat() / messages: / prompt:
+  // shapes — separate prompt-builder functions slipped through.
+  // Source: 2026-04-29 Round-3 dogfood (tripsage-ai src/prompts/agents.ts
+  // buildDestinationPrompt directly interpolated input.destination,
+  // input.travelDates, input.specificInterests).
+  {
+    pattern:
+      /`[^`]*\$\{(?:input|context|ctx|userInput|userMessage|request|req|user|message|msg|args|params|opts)\.[a-zA-Z_$][\w$]*[^`]*`/,
+    title:
+      'Prompt injection risk — user/input property interpolated into template literal',
+    description:
+      'A template literal interpolates a user/request/context property (e.g. ${input.destination}). If this template flows into an LLM `system`/`instructions`/prompt field, attacker-controlled fields enable prompt injection. Wrap the interpolated value in sanitizeForPrompt() / sanitizeWithInjectionDetection() before embedding, or restructure the prompt to use separate role/content fields rather than string concatenation. Indirect prompt injection is the highest-risk LLM vuln class — pattern-based defenses are insufficient against semantic-equivalent payloads, encoding tricks, and homoglyph-bypass; the safe pattern is to never let user content land in the system role.',
+  },
+  // v0.17.7 F-PROMPT-1 (RAG class): retrieved-content interpolation.
+  // External content (Pinecone results, web-crawl pages, RAG snippets)
+  // concatenated into a template literal that becomes the system prompt.
+  // CRITICAL severity — attacker who controls or pollutes the retrieval
+  // source (writes a note, poisons an embedding source, owns a crawled
+  // domain) injects payload without needing a user account.
+  // Source: 2026-04-29 Round-3 dogfood (nextjs-ai-note-app
+  // src/app/api/chat/route.ts relevantNotes.map(n => `${n.content}`)).
+  {
+    pattern:
+      /\$\{[^}]*?\.(?:content|text|pageContent|body|snippet|message|providerSummary|searchResults|relevantNotes|documents|chunks|results)\b[^}]*\}/,
+    title:
+      'Indirect prompt injection risk — RAG/retrieved content interpolated into template',
+    description:
+      'A template literal interpolates a `.content` / `.text` / `.pageContent` / `.snippet` field — the canonical shape of retrieved content (Pinecone, Weaviate, Chroma, web-search, RAG pipelines). External content is UNTRUSTED: an attacker who controls or pollutes the retrieval source (their own note in a multi-user app where the filter fails, a poisoned web page, a malicious document upload) can embed prompt-injection payloads in `.content` that hijack the LLM. Use clearly-delimited blocks the model is explicitly instructed to treat as data: `<retrieved-document>${escapeForPrompt(doc.content)}</retrieved-document>` and add output-side filtering. Severity is treated as HIGH because the indirect-injection class does not require attacker authentication on the target system.',
+  },
+  // v0.17.7 F-PROMPT-1 (messages-array-spread class): user-supplied
+  // messages array spread into LLM SDK call. Attacker controls roles —
+  // can include `{role: "system", content: "ignore prior"}` to override
+  // the developer-supplied system prompt.
+  // Source: 2026-04-29 Round-3 dogfood (nextjs-ai-note-app
+  // src/app/api/chat/route.ts: messages: [systemMessage, ...messagesTruncated]).
+  {
+    pattern:
+      /messages\s*:\s*\[[^\]]*?\.\.\.\s*(?:body\.messages|messagesTruncated|messages|userMessages|input\.messages|req\.body\.messages|request\.body\.messages|req\.messages|data\.messages)\b[^\]]*\]/,
+    title:
+      'Prompt injection risk — user-supplied messages array spread into LLM call',
+    description:
+      'A user-supplied messages array (body.messages / messagesTruncated / similar) is spread directly into the LLM SDK call as `messages: [systemMessage, ...userMessages]`. The OpenAI / Anthropic chat schemas allow arbitrary `role` values — an attacker who includes `{role: "system", content: "ignore prior instructions"}` in their messages array overrides the developer-supplied system prompt. Strip the role before forwarding: `messages.map(m => ({ ...m, role: "user" }))`, or accept only a single user-message string from the client and construct the messages array server-side.',
+  },
 ];
 
 /**
@@ -233,6 +279,19 @@ const SANITIZATION_PATTERNS: RegExp[] = [
   /\.replace\s*\(\s*\/\[#\*_`\]/,
   /stripMarkdown\s*\(/,
   /cleanInput\s*\(/,
+  // v0.17.7 F-PROMPT-1 — community-named sanitizers observed in 2026-04-29
+  // Round-3 dogfood (tripsage-ai src/lib/security/prompt-sanitizer.ts).
+  // The bare /sanitize\s*\(/ above does NOT match `sanitizeForPrompt(`
+  // (different identifier suffix), so the longer names need explicit
+  // entries. NOTE: this only short-circuits the file-level / nearby-line
+  // SANITIZATION check used by DANGEROUS_PATTERNS; WEAK_DEFENSE_PATTERNS
+  // continue to flag broken-sanitizer shapes regardless of their presence.
+  /sanitizeForPrompt\s*\(/,
+  /sanitizeWithInjectionDetection\s*\(/,
+  /sanitizeArray\s*\(/,
+  /sanitizeRecord\s*\(/,
+  /sanitizeRecordKeysAndValues\s*\(/,
+  /promptSanitizer\.\w+\s*\(/,
 ];
 
 export const promptInjectionCheckerScanner: Scanner = {

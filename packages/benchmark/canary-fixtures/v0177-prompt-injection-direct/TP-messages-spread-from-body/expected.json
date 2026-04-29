@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-messages-spread-from-body",
+  "cwe": 77,
+  "type": "TP",
+  "description": "User-supplied `body.messages` array spread directly into the LLM SDK call as `[systemMessage, ...body.messages]`. Attacker can include `{role: 'system', content: '...'}` in their messages array to override the system prompt — classic system-role-injection bypass. After F-PROMPT-1 the scanner detects the spread-from-body pattern.",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}

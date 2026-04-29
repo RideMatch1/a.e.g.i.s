@@ -1,0 +1,7 @@
+{
+  "name": "v0177-canary-FP-sanitized-input-interp",
+  "version": "0.0.1",
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0177-TP-prompt-builder-input-interp",
+  "cwe": 77,
+  "type": "TP",
+  "description": "tripsage-ai-class regression-guard. Prompt-builder function `buildDestinationPrompt` interpolates user-controlled `${input.destination}` / `${input.travelDates}` properties into a string later used as the LLM `instructions` field. Pre-v0.17.7 the prompt-injection-checker only matched .chat()/messages:/prompt: shapes — separate prompt-builder pattern was missed. After F-PROMPT-1 the scanner detects the input-property interpolation idiom.",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}
