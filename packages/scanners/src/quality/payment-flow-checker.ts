@@ -46,6 +46,12 @@ const PAYMENT_SDK_CALL_PATTERNS: RegExp[] = [
   /\bcheckoutSessions?\.create\s*\(/,
 ];
 
+// 'g'-flagged copies built once at module init for matchAll usage in scan().
+// v0.17.8 LOW-001 — prevents per-file RegExp construction in the inner loop.
+const PAYMENT_SDK_CALL_PATTERNS_GLOBAL: RegExp[] = PAYMENT_SDK_CALL_PATTERNS.map(
+  (p) => new RegExp(p.source, p.flags.includes('g') ? p.flags : 'g' + p.flags),
+);
+
 /** Field names whose value MUST be server-controlled in payment-SDK calls.
  *  `quantity` is included alongside the amount-class fields because Stripe
  *  Checkout `line_items[i].quantity` accepts any integer (including
@@ -388,9 +394,8 @@ export const paymentFlowCheckerScanner: Scanner = {
       const tainted = gatherTaintedIdentifiers(content);
       const seenCallSites = new Set<number>();
 
-      for (const sdkPattern of PAYMENT_SDK_CALL_PATTERNS) {
-        const re = new RegExp(sdkPattern.source, 'g' + (sdkPattern.flags.includes('i') ? 'i' : ''));
-        for (const match of content.matchAll(re)) {
+      for (const sdkPattern of PAYMENT_SDK_CALL_PATTERNS_GLOBAL) {
+        for (const match of content.matchAll(sdkPattern)) {
           const callStart = match.index!;
           if (seenCallSites.has(callStart)) continue;
           seenCallSites.add(callStart);

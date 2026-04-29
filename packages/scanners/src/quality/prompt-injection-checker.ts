@@ -63,7 +63,7 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; title: string; description: s
   },
   {
     // v0.10 Z7: direct-variable content assignment inside an LLM
-    // messages array — the idiomatic OpenAI SDK / Anthropic SDK shape:
+    // messages array — the idiomatic major-LLM-provider SDK shape:
     //   messages: [{ role: 'user', content: userMessage }]
     // The prior patterns required `${...}` interpolation; this shape
     // carries the same risk without a template-literal, so it escaped
@@ -76,7 +76,7 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; title: string; description: s
       'An LLM messages array has a `content:` field assigned a bare variable (not a string literal). If the variable contains user input, an attacker can inject role-switch instructions ("ignore previous instructions") or extract the system prompt. Wrap the variable in a sanitizer (escapeForPrompt / sanitizePrompt) or use a system-prompt-isolation pattern: always pass the user text inside a clearly-delimited block the model is instructed to treat as data, not instructions.',
   },
   {
-    // v0.10 Z7: direct-variable prompt assignment (Anthropic / Google
+    // v0.10 Z7: direct-variable prompt assignment (major-LLM-provider
     // Gemini shape):
     //   prompt: userMessage
     // Without a template literal there is no `${…}` anchor.
@@ -130,7 +130,7 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; title: string; description: s
     title:
       'Prompt injection risk — user-supplied messages array spread into LLM call',
     description:
-      'A user-supplied messages array (body.messages / messagesTruncated / similar) is spread directly into the LLM SDK call as `messages: [systemMessage, ...userMessages]`. The OpenAI / Anthropic chat schemas allow arbitrary `role` values — an attacker who includes `{role: "system", content: "ignore prior instructions"}` in their messages array overrides the developer-supplied system prompt. Strip the role before forwarding: `messages.map(m => ({ ...m, role: "user" }))`, or accept only a single user-message string from the client and construct the messages array server-side.',
+      'A user-supplied messages array (body.messages / messagesTruncated / similar) is spread directly into the LLM SDK call as `messages: [systemMessage, ...userMessages]`. The chat schemas of major LLM providers allow arbitrary `role` values — an attacker who includes `{role: "system", content: "ignore prior instructions"}` in their messages array overrides the developer-supplied system prompt. Strip the role before forwarding: `messages.map(m => ({ ...m, role: "user" }))`, or accept only a single user-message string from the client and construct the messages array server-side.',
   },
 ];
 
@@ -206,7 +206,7 @@ const WEAK_DEFENSE_PATTERNS: WeakDefenseRule[] = [
   {
     // Field-Report 2026-04-27 Beobachtung 4 — incomplete-role-coverage.
     //   messages.map(m => ({ ...m, content: m.role === 'user' ? sanitize(m.content) : m.content }))
-    // The OpenAI-compatible chat schema permits multi-turn arrays. Clients
+    // The standard chat schema permits multi-turn arrays. Clients
     // can include fake `role: 'assistant'` entries that the model reads as
     // its own prior output and follows. Mistral-large empirically broke
     // persona 6/10 against this shape. Same bug class:
@@ -217,7 +217,7 @@ const WEAK_DEFENSE_PATTERNS: WeakDefenseRule[] = [
     title:
       'LLM message sanitizer is role-gated — fake-assistant turns bypass it (Field-Report Beobachtung 4)',
     description:
-      'The chat-handler sanitizes messages conditionally on `m.role === "user"` (or skips on `role === "assistant"`). The OpenAI-compatible chat schema lets clients submit arbitrary multi-turn arrays — an attacker includes fake `role: "assistant"` entries which the model reads as its own prior turn and follows. Empirical pen-test (Field-Report 2026-04-27 §4): Mistral-large persona broken 6/10 without the user marker ever touching the sanitizer. Recommend: sanitize ALL messages unconditionally — drop the role-gate. If filtering is required for other reasons (e.g., system prompt isolation), do it AFTER sanitization, not as a sanitizer gate.',
+      'The chat-handler sanitizes messages conditionally on `m.role === "user"` (or skips on `role === "assistant"`). The standard chat schema lets clients submit arbitrary multi-turn arrays — an attacker includes fake `role: "assistant"` entries which the model reads as its own prior turn and follows. Empirical pen-test (Field-Report 2026-04-27 §4): a major-LLM persona broken 6/10 without the user marker ever touching the sanitizer. Recommend: sanitize ALL messages unconditionally — drop the role-gate. If filtering is required for other reasons (e.g., system prompt isolation), do it AFTER sanitization, not as a sanitizer gate.',
   },
   {
     // Field-Report 2026-04-27 Beobachtung 3 — incomplete bidi-strip set.

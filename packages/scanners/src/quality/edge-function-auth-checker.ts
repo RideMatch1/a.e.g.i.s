@@ -20,7 +20,7 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
  *     Anyone with the function URL gets full DB access.
  *
  *   Path B (HIGH — quota-burn): file calls a known paid third-party
- *     API host (OpenAI, Anthropic, Crawl4AI, ...) AND lacks an auth
+ *     API host (major LLM providers / Crawl4AI / etc.) AND lacks an auth
  *     check. Anyone with the function URL drains the developer's
  *     third-party quota — billing-attack class.
  *
@@ -184,7 +184,7 @@ export const edgeFunctionAuthCheckerScanner: Scanner = {
           title:
             'Supabase Edge Function calls paid third-party API without verifying caller JWT — quota-burn risk',
           description:
-            'A Supabase Edge Function makes calls to a known paid third-party API (OpenAI / Anthropic / Crawl4AI / Helius / etc.) without verifying the incoming request\'s Authorization header. Anyone with the function URL can repeatedly invoke it and drain the developer\'s third-party quota — billing-attack class. Verify the caller\'s JWT before initiating the upstream call, and add per-user rate-limiting (e.g., per-user-id token bucket via Redis or Supabase rate-limit middleware).',
+            'A Supabase Edge Function makes calls to a known paid third-party API (major LLM providers / Crawl4AI / Helius / etc.) without verifying the incoming request\'s Authorization header. Anyone with the function URL can repeatedly invoke it and drain the developer\'s third-party quota — billing-attack class. Verify the caller\'s JWT before initiating the upstream call, and add per-user rate-limiting (e.g., per-user-id token bucket via Redis or Supabase rate-limit middleware).',
           file,
           line: paidPattern
             ? findFirstMatchLine(content, paidPattern)
