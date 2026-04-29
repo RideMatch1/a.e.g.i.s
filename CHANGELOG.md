@@ -21,7 +21,7 @@ shown with the reason the target wasn't met.
 
 `@aegis-scan/*` family patch bump (`0.17.7` → `0.17.8`) and `@aegis-wizard/cli` (`0.17.7` → `0.17.8`) to ship the closure of an external red-team audit performed against the `0.17.7` release-cut on the same day. **`0.17.7` was held local-only and superseded by this release; do not use 0.17.7.**
 
-The audit (19 findings, see `aegis-precision/v0177-external-audit-findings-2026-04-29.md` — gitignored audit-archive) surfaced:
+The audit (19 findings, full report preserved in local working notes) surfaced:
 - 1 CRITICAL release-blocker (DAST mode-gate bypass via `aegis audit --target`)
 - 8 HIGH detection-gaps in payment-flow-checker + edge-function-auth-checker that 1568 unit tests + 39 canary fixtures missed
 - 5 MEDIUM-tier issues (test-quality, prose accuracy, registry-parity strength)
