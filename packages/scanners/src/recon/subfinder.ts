@@ -62,7 +62,7 @@ export const subfinderScanner: Scanner = {
       };
     }
 
-    if (config.mode !== 'pentest') {
+    if (config.mode !== 'pentest' && config.mode !== 'siege') {
       return {
         scanner: 'subfinder',
         category: 'infrastructure',
@@ -70,7 +70,7 @@ export const subfinderScanner: Scanner = {
         duration: Date.now() - start,
         available: true,
         error:
-          'subfinder requires --mode pentest (active reconnaissance — opt-in only)',
+          'subfinder requires --mode pentest or --mode siege (active reconnaissance — opt-in only via aegis pentest / aegis siege with --confirm)',
       };
     }
 

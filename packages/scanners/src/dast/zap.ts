@@ -80,6 +80,18 @@ export const zapScanner: Scanner = {
       };
     }
 
+    if (config.mode !== 'pentest' && config.mode !== 'siege') {
+      return {
+        scanner: 'zap',
+        category: 'dast',
+        findings: [],
+        duration: Date.now() - start,
+        available: true,
+        error:
+          'ZAP requires --mode pentest or --mode siege (active DAST traffic against the target — opt-in only via aegis pentest / aegis siege with --confirm)',
+      };
+    }
+
     // Choose scan type based on mode
     const scanScript = config.mode === 'pentest' ? 'zap-full-scan.py' : 'zap-baseline.py';
     const timeout = config.mode === 'pentest' ? 600_000 : 300_000;

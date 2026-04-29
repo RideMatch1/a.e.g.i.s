@@ -35,11 +35,11 @@ describe('zapScanner', () => {
     expect(result.error).toBe('ZAP requires --target URL');
   });
 
-  it('uses zap-baseline.py for scan mode', async () => {
+  it('uses zap-baseline.py for siege mode (lighter first-pass than full pentest)', async () => {
     mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
     mockReadFileSafe.mockReturnValue(JSON.stringify({ site: [] }));
 
-    const config = { target: 'https://example.com', mode: 'scan' } as unknown as AegisConfig;
+    const config = { target: 'https://example.com', mode: 'siege' } as unknown as AegisConfig;
     await zapScanner.scan('/tmp/project', config);
 
     expect(mockExec).toHaveBeenCalledWith(
@@ -67,7 +67,7 @@ describe('zapScanner', () => {
     mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
     mockReadFileSafe.mockReturnValue(JSON.stringify({ site: [] }));
 
-    const config = { target: 'http://localhost:3000', mode: 'scan' } as unknown as AegisConfig;
+    const config = { target: 'http://localhost:3000', mode: 'pentest' } as unknown as AegisConfig;
     await zapScanner.scan('/tmp/project', config);
 
     expect(mockExec).toHaveBeenCalledWith(
@@ -81,7 +81,7 @@ describe('zapScanner', () => {
     mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
     mockReadFileSafe.mockReturnValue(JSON.stringify({ site: [] }));
 
-    const config = { target: 'https://example.com', mode: 'scan' } as unknown as AegisConfig;
+    const config = { target: 'https://example.com', mode: 'pentest' } as unknown as AegisConfig;
     await zapScanner.scan('/tmp/project', config);
 
     const callArgs = mockExec.mock.calls[mockExec.mock.calls.length - 1][1] as string[];
@@ -121,7 +121,7 @@ describe('zapScanner', () => {
 
     mockReadFileSafe.mockReturnValue(JSON.stringify(zapReport));
 
-    const config = { target: 'https://example.com', mode: 'scan' } as unknown as AegisConfig;
+    const config = { target: 'https://example.com', mode: 'pentest' } as unknown as AegisConfig;
     const result = await zapScanner.scan('/tmp/project', config);
 
     expect(result.findings).toHaveLength(3);
@@ -145,7 +145,7 @@ describe('zapScanner', () => {
     mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
     mockReadFileSafe.mockReturnValue(null);
 
-    const config = { target: 'https://example.com', mode: 'scan' } as unknown as AegisConfig;
+    const config = { target: 'https://example.com', mode: 'pentest' } as unknown as AegisConfig;
     const result = await zapScanner.scan('/tmp/project', config);
 
     expect(result.findings).toHaveLength(0);
@@ -156,7 +156,7 @@ describe('zapScanner', () => {
     mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
     mockReadFileSafe.mockReturnValue('not json');
 
-    const config = { target: 'https://example.com', mode: 'scan' } as unknown as AegisConfig;
+    const config = { target: 'https://example.com', mode: 'pentest' } as unknown as AegisConfig;
     const result = await zapScanner.scan('/tmp/project', config);
 
     expect(result.findings).toHaveLength(0);
@@ -167,10 +167,28 @@ describe('zapScanner', () => {
     mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
     mockReadFileSafe.mockReturnValue(JSON.stringify({}));
 
-    const config = { target: 'https://example.com', mode: 'scan' } as unknown as AegisConfig;
+    const config = { target: 'https://example.com', mode: 'pentest' } as unknown as AegisConfig;
     const result = await zapScanner.scan('/tmp/project', config);
 
     expect(result.findings).toHaveLength(0);
     expect(result.error).toBeUndefined();
+  });
+
+  it('returns mode-gate error when mode is audit (CRIT-001 v0.17.8 fix)', async () => {
+    mockExec.mockClear();
+    const config = { target: 'https://example.com', mode: 'audit' } as unknown as AegisConfig;
+    const result = await zapScanner.scan('/tmp/project', config);
+    expect(result.findings).toHaveLength(0);
+    expect(result.error).toMatch(/--mode pentest or --mode siege/);
+    expect(mockExec).not.toHaveBeenCalled();
+  });
+
+  it('returns mode-gate error when mode is missing entirely (CRIT-001 v0.17.8 fix)', async () => {
+    mockExec.mockClear();
+    const config = { target: 'https://example.com' } as unknown as AegisConfig;
+    const result = await zapScanner.scan('/tmp/project', config);
+    expect(result.findings).toHaveLength(0);
+    expect(result.error).toMatch(/--mode pentest or --mode siege/);
+    expect(mockExec).not.toHaveBeenCalled();
   });
 });

@@ -55,6 +55,18 @@ export const nucleiScanner: Scanner = {
       };
     }
 
+    if (config.mode !== 'pentest' && config.mode !== 'siege') {
+      return {
+        scanner: 'nuclei',
+        category: 'dast',
+        findings: [],
+        duration: Date.now() - start,
+        available: true,
+        error:
+          'nuclei requires --mode pentest or --mode siege (active DAST traffic against the target — opt-in only via aegis pentest / aegis siege with --confirm)',
+      };
+    }
+
     const result = await exec('nuclei', ['-u', target, '-jsonl', '-silent']);
 
     const findings: Finding[] = [];

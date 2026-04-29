@@ -104,14 +104,14 @@ export const ptaiScanner: Scanner = {
       };
     }
 
-    if (config.mode !== 'pentest') {
+    if (config.mode !== 'pentest' && config.mode !== 'siege') {
       return {
         scanner: 'ptai',
         category: 'dast',
         findings: [],
         duration: Date.now() - start,
         available: true,
-        error: 'ptai requires --mode pentest (consumes LLM API tokens; opt-in only)',
+        error: 'ptai requires --mode pentest or --mode siege (consumes LLM API tokens + sends live traffic; opt-in via aegis pentest / aegis siege with --confirm)',
       };
     }
 

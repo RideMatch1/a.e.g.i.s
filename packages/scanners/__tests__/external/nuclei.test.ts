@@ -57,7 +57,7 @@ describe('nucleiScanner', () => {
       exitCode: 0,
     });
 
-    const config = { target: 'https://example.com' } as unknown as AegisConfig;
+    const config = { target: 'https://example.com', mode: 'pentest' } as unknown as AegisConfig;
     const result = await nucleiScanner.scan('/tmp/project', config);
 
     expect(result.findings).toHaveLength(2);
@@ -78,8 +78,35 @@ ${JSON.stringify({ 'template-id': 'test', info: { name: 'Test', severity: 'mediu
       exitCode: 0,
     });
 
-    const config = { target: 'https://example.com' } as unknown as AegisConfig;
+    const config = { target: 'https://example.com', mode: 'pentest' } as unknown as AegisConfig;
     const result = await nucleiScanner.scan('/tmp/project', config);
     expect(result.findings).toHaveLength(1);
+  });
+
+  it('returns mode-gate error when mode is audit/scan (CRIT-001 v0.17.8 fix)', async () => {
+    mockExec.mockClear();
+    const config = { target: 'https://example.com', mode: 'audit' } as unknown as AegisConfig;
+    const result = await nucleiScanner.scan('/tmp/project', config);
+    expect(result.findings).toHaveLength(0);
+    expect(result.error).toMatch(/--mode pentest or --mode siege/);
+    expect(mockExec).not.toHaveBeenCalled();
+  });
+
+  it('returns mode-gate error when mode is missing entirely (CRIT-001 v0.17.8 fix)', async () => {
+    mockExec.mockClear();
+    const config = { target: 'https://example.com' } as unknown as AegisConfig;
+    const result = await nucleiScanner.scan('/tmp/project', config);
+    expect(result.findings).toHaveLength(0);
+    expect(result.error).toMatch(/--mode pentest or --mode siege/);
+    expect(mockExec).not.toHaveBeenCalled();
+  });
+
+  it('runs nuclei when mode is siege (siege also allows DAST)', async () => {
+    mockCommandExists.mockResolvedValue(true);
+    mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 });
+    mockExec.mockClear();
+    const config = { target: 'https://example.com', mode: 'siege' } as unknown as AegisConfig;
+    await nucleiScanner.scan('/tmp/project', config);
+    expect(mockExec).toHaveBeenCalled();
   });
 });

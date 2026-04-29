@@ -88,15 +88,15 @@ export const strixScanner: Scanner = {
       };
     }
 
-    // Strix supports headless mode for CI; pentest-only because it consumes LLM tokens
-    if (config.mode !== 'pentest') {
+    // Strix supports headless mode for CI; pentest/siege-only because it consumes LLM tokens + sends live traffic
+    if (config.mode !== 'pentest' && config.mode !== 'siege') {
       return {
         scanner: 'strix',
         category: 'dast',
         findings: [],
         duration: Date.now() - start,
         available: true,
-        error: 'strix requires --mode pentest (consumes LLM API tokens; opt-in only)',
+        error: 'strix requires --mode pentest or --mode siege (consumes LLM API tokens + sends live traffic; opt-in via aegis pentest / aegis siege with --confirm)',
       };
     }
 
