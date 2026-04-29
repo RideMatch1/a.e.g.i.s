@@ -1,0 +1,9 @@
+{
+  "name": "v0177-canary-adv-05-trpc-input",
+  "version": "0.0.1",
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "@trpc/server": "^10.0.0",
+    "zod": "^3.0.0"
+  }
+}

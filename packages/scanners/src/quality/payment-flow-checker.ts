@@ -47,15 +47,29 @@ const PAYMENT_SDK_CALL_PATTERNS: RegExp[] = [
 ];
 
 /** Field names whose value MUST be server-controlled in payment-SDK calls.
+ *  `quantity` is included alongside the amount-class fields because Stripe
+ *  Checkout `line_items[i].quantity` accepts any integer (including
+ *  negatives), and a tainted quantity multiplied against a fixed `price`
+ *  is the same vuln-class as a tainted amount (refund-forge / arbitrary
+ *  multiplication). v0.17.8 HIGH-005 closure.
+ *
  *  Long-form (`amount: <expr>`) and ES6 shorthand (`{ amount, ... }`) both
  *  apply; for shorthand the value is the field name itself, treated as an
  *  identifier. */
-const AMOUNT_LONGFORM_RE =
-  /(?:^|[\{,\s])(amount|unit_amount|unit_amount_decimal|price|amount_in_cents|amount_due)\s*:\s*([^,\n}]+?)(?=\s*[,\n}])/g;
-const AMOUNT_SHORTHAND_RE =
-  /(?:^|[\{,])\s*(amount|unit_amount|unit_amount_decimal|price|amount_in_cents|amount_due)\s*(?=[,}\n])/g;
+const SENSITIVE_PAYMENT_FIELDS =
+  'amount|unit_amount|unit_amount_decimal|price|amount_in_cents|amount_due|quantity';
+const AMOUNT_LONGFORM_RE = new RegExp(
+  `(?:^|[\\{,\\s])(${SENSITIVE_PAYMENT_FIELDS})\\s*:\\s*([^,\\n}]+?)(?=\\s*[,\\n}])`,
+  'g',
+);
+const AMOUNT_SHORTHAND_RE = new RegExp(
+  `(?:^|[\\{,])\\s*(${SENSITIVE_PAYMENT_FIELDS})\\s*(?=[,}\\n])`,
+  'g',
+);
 
-/** Direct taint sources that may appear inline as the value expression. */
+/** Direct taint sources that may appear inline as the value expression.
+ *  v0.17.8 HIGH-003: cookies / headers added (Next.js 13+ App Router idioms).
+ *  v0.17.8 HIGH-004: tRPC `input.X` added (post-Zod-parse procedure args). */
 const DIRECT_TAINT_SOURCE_PATTERNS: RegExp[] = [
   /\bbody\.[a-zA-Z_$][\w$]*/,
   /\bbody\[\s*['"][^'"]+['"]\s*\]/,
@@ -65,11 +79,20 @@ const DIRECT_TAINT_SOURCE_PATTERNS: RegExp[] = [
   /\b(?:req|request)\.query\.[a-zA-Z_$][\w$]*/,
   /\b(?:req|request)\.body\.[a-zA-Z_$][\w$]*/,
   /\bformData\.get\s*\(/,
+  // v0.17.8 — Next.js 13+ App Router cookie / header taint sources
+  /\bcookies\s*\(\s*\)\s*\.get\s*\(/,
+  /\.cookies\s*\.get\s*\(/,
+  /\bheaders\s*\(\s*\)\s*\.get\s*\(/,
+  /\.headers\s*\.get\s*\(/,
+  // v0.17.8 — tRPC procedure input is post-Zod-parsed body, NOT
+  // semantically-validated (Zod checks shape, not authorisation)
+  /\binput\.[a-zA-Z_$][\w$]*/,
 ];
 
 /** Identifier names treated as implicitly-tainted body roots when no
- *  explicit binding is observed (Next.js / Express idiom). */
-const IMPLICIT_TAINT_ROOTS = new Set(['body', 'request', 'req']);
+ *  explicit binding is observed (Next.js / Express / tRPC idiom).
+ *  v0.17.8 HIGH-004: `input` added (tRPC procedure parameter). */
+const IMPLICIT_TAINT_ROOTS = new Set(['body', 'request', 'req', 'input']);
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -126,16 +149,83 @@ function findOpenParen(content: string, fromIndex: number): number {
   return content[fromIndex - 1] === '(' ? fromIndex - 1 : -1;
 }
 
-/** Build the set of identifiers proven tainted by client-controlled input. */
+/** Walk forward from `openIdx` (must point at `openCh`) and return the
+ *  index of the matching `closeCh`. Skips string literals and balances
+ *  nested pairs. Returns -1 if unmatched. */
+function findBalancedClose(
+  content: string,
+  openIdx: number,
+  openCh: string,
+  closeCh: string,
+): number {
+  if (content[openIdx] !== openCh) return -1;
+  let depth = 0;
+  for (let i = openIdx; i < content.length; i++) {
+    const c = content[i];
+    if (c === '"' || c === "'" || c === '`') {
+      const quote = c;
+      i++;
+      while (i < content.length && content[i] !== quote) {
+        if (content[i] === '\\') i++;
+        i++;
+      }
+      continue;
+    }
+    if (c === openCh) depth++;
+    else if (c === closeCh) {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/** Extract every identifier *bound* (not used as a key) inside a
+ *  destructure pattern body. Walks the pattern and skips identifiers
+ *  immediately followed by `:` (those are KEY names, the bound name
+ *  comes after the colon and is captured separately). Handles nested
+ *  destructures naturally because we just keep walking the inner
+ *  brace contents.
+ *
+ *  Examples:
+ *    `amount`               -> ['amount']
+ *    `data: { amount }`     -> ['amount']         (HIGH-001)
+ *    `data: { amount: x }`  -> ['x']
+ *    `a, b: { c, d }`       -> ['a', 'c', 'd']
+ *    `a = 0`                -> ['a']               (default values)
+ */
+function extractBoundIdentifiersFromDestructure(pattern: string): string[] {
+  const result: string[] = [];
+  const re = /[a-zA-Z_$][\w$]*/g;
+  let m;
+  while ((m = re.exec(pattern)) !== null) {
+    const id = m[0];
+    const after = pattern.slice(m.index + id.length);
+    if (/^\s*:/.test(after)) continue; // KEY name, not a bound name
+    result.push(id);
+  }
+  return result;
+}
+
+/** Build the set of identifiers proven tainted by client-controlled
+ *  input. v0.17.8 rewrite: nested-destructure aware (HIGH-001),
+ *  spread-rebound aware (HIGH-002), cookies/headers/formData binding
+ *  aware (HIGH-003 + HIGH-006), tRPC `input` aware (HIGH-004). */
 function gatherTaintedIdentifiers(content: string): Set<string> {
   const tainted = new Set<string>();
   const taintedRoots = new Set<string>();
 
-  // Pass 1 — root bindings: identifier = (await req.json() | req.body | request.body | etc.)
+  // Pass 1 — root bindings: identifier = <user-input expression>.
+  // Each pattern below makes the bound identifier a "tainted root":
+  // its property accesses propagate taint via Pass 3.
   const rootBindingPatterns: RegExp[] = [
     /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*await\s+(?:req|request)\.json\s*\(\s*\)/g,
     /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*await\s+(?:req|request)\.formData\s*\(\s*\)/g,
     /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*(?:req|request)\.body\b/g,
+    // v0.17.8 HIGH-002 — spread-rebound: `const X = { ...(await req.json()) }`
+    // wraps the parsed body into a fresh object. X.Y is still tainted.
+    /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*\{\s*\.\.\.\s*\(?\s*await\s+(?:req|request)\.(?:json|formData)\s*\(/g,
+    /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*\{\s*\.\.\.\s*(?:req|request)\.body\b/g,
   ];
   for (const re of rootBindingPatterns) {
     for (const m of content.matchAll(re)) {
@@ -144,39 +234,37 @@ function gatherTaintedIdentifiers(content: string): Set<string> {
     }
   }
 
-  // Pass 2 — destructure from any tainted root (explicit or implicit)
+  // Pass 2 — destructure (single- or nested-level) from any tainted
+  // root (explicit-binding or implicit-by-convention) OR direct from
+  // an inline await req.json() / req.body. Uses balanced-brace
+  // matching so nested patterns like `const { data: { amount } } = ...`
+  // surface every bound name (HIGH-001 closure).
   const allRoots = new Set<string>([...IMPLICIT_TAINT_ROOTS, ...taintedRoots]);
   const allRootsAlt = Array.from(allRoots).map(escapeRegex).join('|');
-  const destructureFromRoot = new RegExp(
-    `(?:const|let|var)\\s+\\{\\s*([^}]+?)\\s*\\}\\s*=\\s*(?:${allRootsAlt})\\b`,
-    'g',
+  const inlineRoots = [
+    `await\\s+(?:req|request)\\.json\\s*\\(\\s*\\)`,
+    `await\\s+(?:req|request)\\.formData\\s*\\(\\s*\\)`,
+    `(?:req|request)\\.body\\b`,
+    `(?:req|request)\\.query\\b`,
+  ].join('|');
+  const tailMatcher = new RegExp(
+    `^\\s*=\\s*(?:(?:${allRootsAlt})\\b|${inlineRoots})`,
   );
-  for (const m of content.matchAll(destructureFromRoot)) {
-    for (const part of m[1].split(',')) {
-      const id = part.trim().split(':')[0].trim().split('=')[0].trim();
-      if (id && /^[a-zA-Z_$][\w$]*$/.test(id)) tainted.add(id);
-    }
-  }
-  // Destructure direct from `await req.json()` (no binding)
-  for (const m of content.matchAll(
-    /(?:const|let|var)\s+\{\s*([^}]+?)\s*\}\s*=\s*await\s+(?:req|request)\.json\s*\(\s*\)/g,
-  )) {
-    for (const part of m[1].split(',')) {
-      const id = part.trim().split(':')[0].trim().split('=')[0].trim();
-      if (id && /^[a-zA-Z_$][\w$]*$/.test(id)) tainted.add(id);
-    }
-  }
-  // Destructure from req.formData() — Next.js form action pattern
-  for (const m of content.matchAll(
-    /(?:const|let|var)\s+\{\s*([^}]+?)\s*\}\s*=\s*await\s+(?:req|request)\.formData\s*\(\s*\)/g,
-  )) {
-    for (const part of m[1].split(',')) {
-      const id = part.trim().split(':')[0].trim().split('=')[0].trim();
-      if (id && /^[a-zA-Z_$][\w$]*$/.test(id)) tainted.add(id);
+
+  const destructureStart = /(?:const|let|var)\s+(\{)/g;
+  let dm: RegExpExecArray | null;
+  while ((dm = destructureStart.exec(content)) !== null) {
+    const braceIdx = dm.index + dm[0].length - 1;
+    const closeIdx = findBalancedClose(content, braceIdx, '{', '}');
+    if (closeIdx < 0) continue;
+    if (!tailMatcher.test(content.slice(closeIdx + 1))) continue;
+    const inner = content.slice(braceIdx + 1, closeIdx);
+    for (const id of extractBoundIdentifiersFromDestructure(inner)) {
+      tainted.add(id);
     }
   }
 
-  // Pass 3 — property assignment from any tainted root
+  // Pass 3 — property assignment from any tainted root: `const X = root.Y`
   for (const root of allRoots) {
     const re = new RegExp(
       `(?:const|let|var)\\s+([a-zA-Z_$][\\w$]*)\\s*=\\s*${escapeRegex(root)}\\.[a-zA-Z_$][\\w$]*`,
@@ -185,26 +273,26 @@ function gatherTaintedIdentifiers(content: string): Set<string> {
     for (const m of content.matchAll(re)) tainted.add(m[1]);
   }
 
-  // Pass 4 — searchParams.get(...) / req.query.X bindings
-  for (const m of content.matchAll(
-    /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*(?:[^;,\n]*?\.)?searchParams\.get\s*\(/g,
-  )) {
-    tainted.add(m[1]);
-  }
-  for (const m of content.matchAll(
+  // Pass 4 — getter-style taint sources bound to an identifier.
+  // Handles:
+  //   const x = searchParams.get('y')
+  //   const x = req.query.y
+  //   const x = formData.get('y')                       (HIGH-006)
+  //   const x = cookies().get('y')?.value               (HIGH-003)
+  //   const x = headers().get('y')                      (HIGH-003)
+  //   const x = Number(formData.get('y'))               (coerce wrapper)
+  // The leading prefix `(?:[^;=\n]*?\.)?` allows a property-chain or
+  // function-call wrapper before the getter (e.g. `Number(`,
+  // `parseInt(`, `(req as any).`).
+  const getterBindingPatterns: RegExp[] = [
+    /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*[^;\n]*?\bsearchParams\s*\.\s*get\s*\(/g,
+    /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*[^;\n]*?\bformData\s*\.\s*get\s*\(/g,
+    /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*[^;\n]*?\bcookies\s*\(\s*\)\s*\.\s*get\s*\(/g,
+    /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*[^;\n]*?\bheaders\s*\(\s*\)\s*\.\s*get\s*\(/g,
     /(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*(?:req|request)\.query\.[a-zA-Z_$][\w$]*/g,
-  )) {
-    tainted.add(m[1]);
-  }
-  // Destructure from searchParams: `const { amount } = Object.fromEntries(searchParams)` is uncommon; skip.
-  // Destructure from req.query: `const { amount } = req.query`
-  for (const m of content.matchAll(
-    /(?:const|let|var)\s+\{\s*([^}]+?)\s*\}\s*=\s*(?:req|request)\.query\b/g,
-  )) {
-    for (const part of m[1].split(',')) {
-      const id = part.trim().split(':')[0].trim().split('=')[0].trim();
-      if (id && /^[a-zA-Z_$][\w$]*$/.test(id)) tainted.add(id);
-    }
+  ];
+  for (const re of getterBindingPatterns) {
+    for (const m of content.matchAll(re)) tainted.add(m[1]);
   }
 
   return tainted;
@@ -288,9 +376,11 @@ export const paymentFlowCheckerScanner: Scanner = {
       if (content === null) continue;
 
       // Skip 'use client' files — payment SDKs are server-only; client files
-      // wrapping Stripe.js are non-issue.
-      const head = content.slice(0, 200);
-      if (/^\s*['"]use client['"];?/m.test(head)) continue;
+      // wrapping Stripe.js are non-issue. Scan first ~30 lines so a long
+      // JSDoc / copyright banner above the directive does not push it past
+      // a fixed byte cap (v0.17.8 MED-001 closure).
+      const headLines = content.split('\n').slice(0, 30).join('\n');
+      if (/^\s*['"]use client['"];?\s*$/m.test(headLines)) continue;
 
       // Cheap reject: no payment-SDK call patterns? skip the file entirely.
       if (!PAYMENT_SDK_CALL_PATTERNS.some((p) => p.test(content))) continue;

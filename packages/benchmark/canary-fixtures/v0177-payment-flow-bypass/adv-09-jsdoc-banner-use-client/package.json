@@ -1,0 +1,7 @@
+{
+  "name": "v0177-canary-adv-09-jsdoc-banner-use-client",
+  "version": "0.0.1",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  }
+}

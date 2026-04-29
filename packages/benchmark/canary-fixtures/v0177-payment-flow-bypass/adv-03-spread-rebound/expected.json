@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-03-spread-rebound",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Adversarial: const data = { ...(await req.json()) }; payment.amount = data.amount. Spread-into-fresh-object copy. data is bound via spread, not via Pass-1 root pattern. Pass-3 property-assignment-from-tainted-root only handles `const X = root.Y`, not `const X = { ...root }.Y` patterns.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

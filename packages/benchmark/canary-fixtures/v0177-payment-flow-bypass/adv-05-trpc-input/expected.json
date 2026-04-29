@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-05-trpc-input",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Adversarial: tRPC procedure with Zod-validated input.amount passed verbatim to Stripe. Zod proves type/shape but NOT business semantics — 'I am authorised to set this amount to whatever I want'. Scanner has no concept of input as taint root.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

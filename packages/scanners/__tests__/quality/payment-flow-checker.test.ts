@@ -306,4 +306,151 @@ describe('paymentFlowCheckerScanner', () => {
     const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
     expect(result.findings).toEqual([]);
   });
+
+  // v0.17.8 bypass-class regression-guards (post external-audit)
+
+  it('flags nested destructure: const { data: { amount } } = await req.json() (HIGH-001)', async () => {
+    writeRoute(
+      projectPath,
+      'nested-destructure',
+      `import Stripe from 'stripe';
+       const stripe = new Stripe('...');
+       export async function POST(req: Request) {
+         const { data: { amount } } = await req.json();
+         return stripe.paymentIntents.create({ amount, currency: 'usd' });
+       }`,
+    );
+    const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 602);
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe('critical');
+  });
+
+  it('flags spread-rebound: const data = { ...(await req.json()) } (HIGH-002)', async () => {
+    writeRoute(
+      projectPath,
+      'spread-rebound',
+      `import Stripe from 'stripe';
+       const stripe = new Stripe('...');
+       export async function POST(req: Request) {
+         const data = { ...(await req.json()) };
+         return stripe.paymentIntents.create({ amount: data.amount, currency: 'usd' });
+       }`,
+    );
+    const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 602);
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe('critical');
+  });
+
+  it('flags cookies()-sourced amount: const a = Number(cookies().get(...)?.value) (HIGH-003)', async () => {
+    writeRoute(
+      projectPath,
+      'cookie-amount',
+      `import { cookies } from 'next/headers';
+       import Stripe from 'stripe';
+       const stripe = new Stripe('...');
+       export async function POST() {
+         const amount = Number(cookies().get('amount')?.value);
+         return stripe.paymentIntents.create({ amount, currency: 'usd' });
+       }`,
+    );
+    const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 602);
+    expect(finding).toBeDefined();
+  });
+
+  it('flags headers()-sourced amount as taint (header-tampering class) (HIGH-003)', async () => {
+    writeRoute(
+      projectPath,
+      'header-amount',
+      `import { headers } from 'next/headers';
+       import Stripe from 'stripe';
+       const stripe = new Stripe('...');
+       export async function POST() {
+         const amount = Number(headers().get('x-amount'));
+         return stripe.paymentIntents.create({ amount, currency: 'usd' });
+       }`,
+    );
+    const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 602);
+    expect(finding).toBeDefined();
+  });
+
+  it('flags tRPC procedure input.amount (HIGH-004)', async () => {
+    writeRoute(
+      projectPath,
+      'trpc-input',
+      `import { z } from 'zod';
+       import { initTRPC } from '@trpc/server';
+       import Stripe from 'stripe';
+       const t = initTRPC.create();
+       const stripe = new Stripe('...');
+       export const r = t.router({
+         charge: t.procedure
+           .input(z.object({ amount: z.number() }))
+           .mutation(async ({ input }) => {
+             return stripe.paymentIntents.create({ amount: input.amount, currency: 'usd' });
+           }),
+       });`,
+    );
+    const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 602);
+    expect(finding).toBeDefined();
+  });
+
+  it('flags tainted quantity in line_items (HIGH-005 — refund-forge / arbitrary-multiplier)', async () => {
+    writeRoute(
+      projectPath,
+      'quantity-tampering',
+      `import Stripe from 'stripe';
+       const stripe = new Stripe('...');
+       export async function POST(req: Request) {
+         const { quantity } = await req.json();
+         return stripe.checkout.sessions.create({
+           line_items: [{ price: 'price_FIXED_ID', quantity }],
+           mode: 'payment',
+         });
+       }`,
+    );
+    const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 602);
+    expect(finding).toBeDefined();
+    expect(finding!.title).toMatch(/quantity/i);
+  });
+
+  it('flags Server Action with formData.get binding + shorthand (HIGH-006)', async () => {
+    writeRoute(
+      projectPath,
+      'server-action',
+      `'use server';
+       import Stripe from 'stripe';
+       const stripe = new Stripe('...');
+       export async function checkout(formData: FormData) {
+         const amount = Number(formData.get('amount'));
+         return stripe.paymentIntents.create({ amount, currency: 'usd' });
+       }`,
+    );
+    const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 602);
+    expect(finding).toBeDefined();
+  });
+
+  it('does NOT fire on a client-side file with a long JSDoc banner before "use client" (MED-001)', async () => {
+    const banner = '/**\n' + ' * '.repeat(60) + 'Long banner over 200 bytes\n */\n';
+    writeRoute(
+      projectPath,
+      'client-with-banner',
+      banner +
+        `'use client';
+         import Stripe from 'stripe';
+         const stripe = new Stripe('...');
+         export default function Page() {
+           const amount = 0;
+           stripe.paymentIntents.create({ amount, currency: 'usd' });
+         }`,
+    );
+    const result = await paymentFlowCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.scanner === 'payment-flow-checker')).toEqual([]);
+  });
 });

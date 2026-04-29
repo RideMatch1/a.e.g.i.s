@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-09-jsdoc-banner-use-client",
+  "cwe": 602,
+  "type": "FP",
+  "description": "Adversarial: file is a 'use client' component but starts with a >200-char JSDoc/copyright banner. Scanner head-slice is content.slice(0, 200) — 'use client' falls outside the slice → scanner thinks file is server-side and proceeds to scan it. (FP type: should NOT fire because file is client-side. If scanner DOES fire, head-slice cap is too small.)",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

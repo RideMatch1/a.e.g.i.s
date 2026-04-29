@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-06-aliased-stripe",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Adversarial: const billing = new Stripe(...) — aliased identifier. PAYMENT_SDK_CALL_PATTERNS only knows {stripe, stripeClient, stripeServer}. billing.paymentIntents.create() falls through. Standard codebase practice — name your client whatever fits the domain.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

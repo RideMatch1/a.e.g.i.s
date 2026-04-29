@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-01-multiline-amount",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Adversarial: amount value spans MULTIPLE lines after the colon. AMOUNT_LONGFORM_RE uses [^,\\n}]+? which terminates at \\n. Value 'body.amount' on the next line — regex captures empty / whitespace value-expr → scanner misses.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

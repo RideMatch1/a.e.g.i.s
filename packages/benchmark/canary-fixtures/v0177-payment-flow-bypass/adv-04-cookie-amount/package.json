@@ -1,0 +1,8 @@
+{
+  "name": "v0177-canary-adv-04-cookie-amount",
+  "version": "0.0.1",
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "next": "^15.0.0"
+  }
+}

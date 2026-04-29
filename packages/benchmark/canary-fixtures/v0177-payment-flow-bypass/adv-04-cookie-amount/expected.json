@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-04-cookie-amount",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Adversarial: cookies().get('amount').value as the source. Cookies are user-controlled. DIRECT_TAINT_SOURCE_PATTERNS does not include cookies().get(...) → scanner blind to cookie-tampering.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

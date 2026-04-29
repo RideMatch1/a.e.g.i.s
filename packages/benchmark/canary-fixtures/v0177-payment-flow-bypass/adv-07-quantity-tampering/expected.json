@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-07-quantity-tampering",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Adversarial: client-controlled `quantity` (NOT amount/unit_amount/price). Attacker sets quantity = -100 to flip sign / get refund OR a giant integer overflow. Same vuln class (client-controlled charge factor); F-PRICE-TAMPER-1 only checks amount-side fields. Coverage gap.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

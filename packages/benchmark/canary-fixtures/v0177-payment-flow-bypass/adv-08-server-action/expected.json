@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-08-server-action",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Adversarial: 'use server' Server Action with formData parameter. const amount = Number(formData.get('amount')). formData.get(...) IS in DIRECT_TAINT_SOURCE_PATTERNS, so should fire. Verifies pattern actually catches Server Actions (Next.js 14+ default form-handling).",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

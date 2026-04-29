@@ -1,0 +1,7 @@
+{
+  "name": "v0177-canary-adv-01-multiline-amount",
+  "version": "0.0.1",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  }
+}

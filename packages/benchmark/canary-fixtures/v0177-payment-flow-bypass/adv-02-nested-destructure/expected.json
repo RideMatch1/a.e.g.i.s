@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-02-nested-destructure",
+  "cwe": 602,
+  "type": "TP",
+  "description": "Adversarial: nested destructure const { data: { amount } } = await req.json(). The destructureFromRoot regex at line 150 matches single-level only: \\{ ... \\} = root. Inner { amount } is not a top-level identifier — taint never propagates to amount.",
+  "expected": [
+    { "scanner": "payment-flow-checker", "cwe": 602 }
+  ]
+}

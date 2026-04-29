@@ -1,0 +1,10 @@
+import Stripe from 'stripe';
+import { NextResponse } from 'next/server';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' });
+
+export async function POST(req: Request) {
+  const data = { ...(await req.json()) };
+  const session = await stripe.paymentIntents.create({ amount: data.amount, currency: 'usd' });
+  return NextResponse.json({ id: session.id });
+}
