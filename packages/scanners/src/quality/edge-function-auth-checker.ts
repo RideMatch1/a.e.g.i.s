@@ -37,14 +37,42 @@ const SERVICE_ROLE_KEY_RE =
 
 /** Patterns that indicate the incoming request's JWT is verified
  *  before the service-role-key DB call. Any of these inside the
- *  Deno.serve handler scope counts as auth boundary. */
+ *  Deno.serve handler scope counts as auth boundary.
+ *
+ *  v0.17.8 HIGH-008 — broader library coverage + user-authored-helper
+ *  heuristic. Mere `req.headers.get('Authorization')` extraction was
+ *  removed: extracting the header without verifying the token is the
+ *  classic extract-and-ignore bypass (audit-fixture adv-12). The new
+ *  patterns require an actual verification CALL or a CamelCase auth-
+ *  helper invocation that takes the request. */
 const JWT_VERIFY_PATTERNS = [
-  /auth\.getUser\s*\(/,                     // supabase.auth.getUser(...)
-  /\.auth\.getSession\s*\(/,                // supabase.auth.getSession(...)
-  /verifyJWT\s*\(/,                         // jose / custom verifyJWT
-  /jwtVerify\s*\(/,                         // jose
-  /verifyAccessToken\s*\(/,                 // custom helper
-  /req\.headers\.get\s*\(\s*['"]Authorization['"]/i, // mere extraction with later .auth.getUser
+  // Supabase
+  /\bauth\.getUser\s*\(/,                          // supabase.auth.getUser(...)
+  /\.auth\.getSession\s*\(/,                       // supabase.auth.getSession(...)
+  // jose (camelCase)
+  /\bverifyJWT\s*\(/,                              // custom verifyJWT
+  /\bjwtVerify\s*\(/,                              // jose
+  // jsonwebtoken (most popular Node JWT lib) — v0.17.8 HIGH-008
+  /\bjwt\.verify\s*\(/,
+  // Clerk — v0.17.8 HIGH-008
+  /\bclerkClient\.users\.getUser\s*\(/,
+  /\bclerkClient\.sessions\.verifySession\s*\(/,
+  /\bgetAuth\s*\(\s*(?:req|request)\b/,
+  // Lucia v3 — v0.17.8 HIGH-008
+  /\blucia\.validateSession\s*\(/,
+  /\b\.lucia\.validateSession\s*\(/,
+  // Better-Auth — v0.17.8 HIGH-008
+  /\bauth\.api\.getSession\s*\(/,
+  // Custom verifiers (preserved)
+  /\bverifyAccessToken\s*\(/,
+  // User-authored auth helpers — v0.17.8 HIGH-008
+  // Matches `await requireUser(req)`, `await assertAuthed(req, role)`,
+  // `await verifyTokenForRequest(req)`, `await checkAuth(request, role)`,
+  // `await ensureAuthenticated(req)`, `await validateSession(req)`,
+  // `await authenticateRequest(req)`. Restricted to `await` form +
+  // `req`/`request` as a passed argument so it does not match unrelated
+  // utility calls.
+  /\bawait\s+(?:require|assert|verify|check|ensure|validate|authenticate)\w*\s*\(\s*[^)]*\b(?:req|request)\b/i,
 ];
 
 /** Patterns that indicate the function calls a known paid third-party

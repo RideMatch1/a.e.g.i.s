@@ -163,4 +163,88 @@ describe('edgeFunctionAuthCheckerScanner', () => {
     expect(result.findings).toEqual([]);
     expect(result.available).toBe(true);
   });
+
+  // v0.17.8 HIGH-008 bypass-class regression-guards (post external-audit)
+
+  it('does NOT flag Edge Function using jsonwebtoken jwt.verify(...) before service-role', async () => {
+    createEdgeFunction(projectPath, 'jwt-lib', `
+      import jwt from 'jsonwebtoken';
+      import { createClient } from 'jsr:@supabase/supabase-js@2';
+      const admin = createClient(URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      Deno.serve(async (req) => {
+        const auth = req.headers.get('Authorization');
+        if (!auth) return new Response('Unauthorized', { status: 401 });
+        const token = auth.replace('Bearer ', '');
+        try { jwt.verify(token, Deno.env.get('JWT_SECRET')!); }
+        catch { return new Response('Unauthorized', { status: 401 }); }
+        const { data } = await admin.from('items').select('*');
+        return new Response(JSON.stringify(data));
+      });
+    `);
+    const result = await edgeFunctionAuthCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toEqual([]);
+  });
+
+  it('does NOT flag Edge Function using a user-authored requireUser(req) helper', async () => {
+    createEdgeFunction(projectPath, 'custom-helper', `
+      import { createClient } from 'jsr:@supabase/supabase-js@2';
+      import { requireUser } from './_shared/auth.ts';
+      const admin = createClient(URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      Deno.serve(async (req) => {
+        const user = await requireUser(req);
+        const { data } = await admin.from('items').select('*').eq('user_id', user.id);
+        return new Response(JSON.stringify(data));
+      });
+    `);
+    const result = await edgeFunctionAuthCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toEqual([]);
+  });
+
+  it('flags Edge Function that EXTRACTS Authorization header but never verifies (extract-and-ignore bypass)', async () => {
+    createEdgeFunction(projectPath, 'mere-extract', `
+      import { createClient } from 'jsr:@supabase/supabase-js@2';
+      const admin = createClient(URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      Deno.serve(async (req) => {
+        const _maybeToken = req.headers.get('Authorization');
+        const { data } = await admin.from('items').select('*');
+        return new Response(JSON.stringify(data));
+      });
+    `);
+    const result = await edgeFunctionAuthCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    const finding = result.findings.find((f) => f.cwe === 306);
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe('critical');
+  });
+
+  it('does NOT flag Edge Function using Clerk getAuth(req)', async () => {
+    createEdgeFunction(projectPath, 'clerk', `
+      import { getAuth } from '@clerk/nextjs/server';
+      import { createClient } from 'jsr:@supabase/supabase-js@2';
+      const admin = createClient(URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      Deno.serve(async (req) => {
+        const { userId } = getAuth(req);
+        if (!userId) return new Response('Unauthorized', { status: 401 });
+        const { data } = await admin.from('items').select('*');
+        return new Response(JSON.stringify(data));
+      });
+    `);
+    const result = await edgeFunctionAuthCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toEqual([]);
+  });
+
+  it('does NOT flag Edge Function using Better-Auth auth.api.getSession', async () => {
+    createEdgeFunction(projectPath, 'better-auth', `
+      import { auth } from './_shared/auth.ts';
+      import { createClient } from 'jsr:@supabase/supabase-js@2';
+      const admin = createClient(URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      Deno.serve(async (req) => {
+        const session = await auth.api.getSession({ headers: req.headers });
+        if (!session) return new Response('Unauthorized', { status: 401 });
+        const { data } = await admin.from('items').select('*');
+        return new Response(JSON.stringify(data));
+      });
+    `);
+    const result = await edgeFunctionAuthCheckerScanner.scan(projectPath, MOCK_CONFIG);
+    expect(result.findings).toEqual([]);
+  });
 });

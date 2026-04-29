@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-12-mere-extract-bypass",
+  "cwe": 306,
+  "type": "TP",
+  "description": "Adversarial bypass: Edge Function extracts Authorization header (req.headers.get('Authorization')) but NEVER verifies the JWT — token is read into a variable, then completely ignored. Service-role-key DB call follows. JWT_VERIFY_PATTERNS at line 47 includes /req\\.headers\\.get\\(\\s*['\"]Authorization['\"]/  — mere extraction satisfies the pattern. Scanner mistakenly believes auth is enforced and fails to fire CRITICAL.",
+  "expected": [
+    { "scanner": "edge-function-auth-checker", "cwe": 306 }
+  ]
+}

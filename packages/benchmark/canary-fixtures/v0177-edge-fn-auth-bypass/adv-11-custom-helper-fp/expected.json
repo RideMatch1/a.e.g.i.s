@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-11-custom-helper-fp",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Adversarial FP: custom auth helper requireUser(req) (very common Edge Function pattern). Scanner has no concept of user-authored helpers — JWT_VERIFY_PATTERNS is fixed library list. Scanner fires CRITICAL despite the function being properly auth-gated.",
+  "expected": [
+    { "scanner": "edge-function-auth-checker", "cwe": 306 }
+  ]
+}

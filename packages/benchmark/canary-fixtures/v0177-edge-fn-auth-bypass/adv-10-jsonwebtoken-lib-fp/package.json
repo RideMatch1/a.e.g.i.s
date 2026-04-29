@@ -1,0 +1,7 @@
+{
+  "name": "v0177-canary-adv-10-jsonwebtoken-lib-fp",
+  "version": "0.0.1",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.0"
+  }
+}

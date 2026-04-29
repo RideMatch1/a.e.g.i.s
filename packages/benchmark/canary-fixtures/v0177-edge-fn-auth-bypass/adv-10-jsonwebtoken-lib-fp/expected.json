@@ -1,0 +1,9 @@
+{
+  "id": "v0177-adv-10-jsonwebtoken-lib-fp",
+  "cwe": 306,
+  "type": "FP",
+  "description": "Adversarial FP: Edge Function uses `jsonwebtoken` lib (jwt.verify(...)) for auth check before touching service-role-key. JWT_VERIFY_PATTERNS only knows jose's jwtVerify (camelCase) — jwt.verify (dot notation) is NOT in the list. Scanner fires CRITICAL on a properly-authenticated function.",
+  "expected": [
+    { "scanner": "edge-function-auth-checker", "cwe": 306 }
+  ]
+}
