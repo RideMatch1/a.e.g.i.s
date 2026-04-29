@@ -8,6 +8,31 @@ by dogfood-audit + recon-report findings, not by a fixed schedule.
 
 ---
 
+## [0.17.7] — 2026-04-29 — "Scanner-family alignment (no functional changes)"
+
+Companion to the `@aegis-scan/*` v0.17.7 release. The scanner family
+shipped a battle-tested detector cluster (1 NEW scanner + 4 coverage
+extensions), the DEFAULT=MAX scanner-registry parity guard, and
+legal-liability disclaimers on the active-traffic modes (`siege` /
+`pentest`). See the root [`CHANGELOG.md`](../../CHANGELOG.md) [0.17.7]
+entry for the full surface.
+
+### Changed
+
+- **Version alignment only** — `@aegis-wizard/cli` 0.17.4 → 0.17.7 to
+  keep version parity with the scanner family. No source-tree changes
+  to the wizard package; templates, brief-generator, scaffold-questions,
+  and the CLI surface are byte-identical to the 0.17.4 tarball. Existing
+  `aegis init` / `aegis new` flows are unaffected.
+
+### Validation
+
+- Wizard-cli unit tests unchanged (304 / 304 prior baseline holds).
+- Integration with the scanner family verified at the workspace level
+  (`pnpm install` + cross-package `workspace:*` deps resolve correctly).
+
+---
+
 ## [0.17.4] — 2026-04-25 — "H3 final-closure + L2 template-adoption"
 
 ### Fixed (external audit v0.17.3 closures)
