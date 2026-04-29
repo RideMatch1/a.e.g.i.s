@@ -1,0 +1,7 @@
+repo=supabase/splinter
+sha=55db5b1f28e58d816f7d9136eed87eabcd95868d
+date=2026-04-27T02:38:17Z
+last_message=tighten advisor copy for pg_graphql and secdef lints (#161)
+file_count=28
+vendored_at=2026-04-29
+vendored_by=AEGIS-skill+scanner-integration (v1.0)
