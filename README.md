@@ -386,28 +386,37 @@ The AST-based taint tracker uses the TypeScript Compiler API to follow user inpu
 
 ## Scan Modes
 
-| Mode | Command | What it does | Active probes |
-|------|---------|--------------|---------------|
-| **scan** | `aegis scan .` | Quick pass — security, deps, quality, compliance, i18n (~3s) | no |
-| **audit** | `aegis audit .` | Full audit — same scanner set as scan, with deeper external-tool wrappers | no |
-| **pentest** ⚠ | `aegis pentest . --target URL --confirm` | Full audit + DAST scanners (ZAP, Nuclei, Strix, PTAI, Pentest-Swarm) against a live target | yes |
-| **siege** ⚠ | `aegis siege . --target URL --confirm` | Multi-phase attack simulation including fake-JWT / race / header-tamper probes against a live target | yes |
-| **fix** | `aegis fix .` | AI-powered remediation (Claude, OpenAI, Ollama, or templates) | no |
-| **history** | `aegis history . --blame` | Git blame enrichment — who introduced each finding | no |
-| **diff** | `aegis scan . --diff main` | Only report findings in files changed vs a git ref | no |
-| **diff-deps** | `aegis diff-deps --since=HEAD~1` | Dependency-change reporter — added/removed deps and major/minor/patch bumps against a git ref; flags risky major bumps on `criticalDeps` with exit 1. v0.15.0+ | no |
+Three-tier model — each tier is a strict superset of the previous:
 
-> **⚠ Active-mode authorization** — `pentest` and `siege` send live HTTP
-> traffic (DAST scans, probe payloads, external pentest frameworks) to the
-> URL passed via `--target`. Only run against systems you own or have
-> written authorization to test. Unauthorized active probing of third-party
-> systems may violate the **Computer Fraud and Abuse Act** (US 18 USC §1030),
-> **§202a-c StGB** (DE), the **Computer Misuse Act 1990** (UK), and equivalent
-> statutes worldwide. The `--confirm` flag is the operator's acknowledgement
-> of authorization; AEGIS records the timestamp to stderr (and to
-> `--state-file` when configured) for audit-trail purposes. Static modes
+| Mode | Command | Static SAST | DAST scanners | Active probes | Live HTTP traffic |
+|------|---------|:-----------:|:-------------:|:-------------:|:-----------------:|
+| **scan** | `aegis scan .` | ✓ | – | – | no |
+| **audit** | `aegis audit .` | ✓ | – | – | no |
+| **pentest** ⚠ | `aegis pentest . --target URL --confirm` | ✓ | ✓ | – | yes |
+| **siege** ⚠ | `aegis siege . --target URL --confirm` | ✓ | ✓ | ✓ | yes |
+| **fix** | `aegis fix .` | – | – | – | no |
+| **history** | `aegis history . --blame` | – | – | – | no |
+| **diff** | `aegis scan . --diff main` | ✓ (changed-files-only) | – | – | no |
+| **diff-deps** | `aegis diff-deps --since=HEAD~1` | – | – | – | no |
+
+- **Static SAST**: ~50 scanners covering security / deps / quality / compliance — pure local code analysis, no traffic to any target. Same scanner set in `scan` and `audit` (audit applies deeper external-wrapper invocation when their CLIs are installed).
+- **DAST scanners**: ZAP / Nuclei / Strix / PTAI / Pentest-Swarm. Send live HTTP probes / requests to the `--target` URL. Mode-gated on `mode === 'pentest' || 'siege'` — the `audit` and `scan` commands cannot invoke them even if `--target` is set (`--target` on those is a no-op for DAST).
+- **Active probes**: 5-tuple `auth-probe` / `header-probe` / `rate-limit-probe` / `privesc-probe` / `race-probe` from `getAttackScanners()`. Only `siege` invokes them.
+
+> **⚠ Active-mode authorization (`pentest` / `siege`)** — both modes send
+> LIVE HTTP TRAFFIC to the URL passed via `--target`. Only run against
+> systems you own or have written authorization to test. Unauthorized
+> active probing of third-party systems may violate the **Computer Fraud
+> and Abuse Act** (US 18 USC §1030), **§202a-c StGB** (DE), the **Computer
+> Misuse Act 1990** (UK), and equivalent statutes worldwide. The
+> `--confirm` flag is the operator's acknowledgement of authorization;
+> AEGIS records the timestamp to stderr (and to `--state-file` when
+> configured for `siege` — `pentest` has no `--state-file`) for
+> audit-trail purposes. The reachability probe in both modes uses
+> `safeFetch` with SSRF / DNS-rebinding / cloud-metadata defenses;
+> `--allow-loopback` opts in to local dev-server targets. Static modes
 > (`scan` / `audit` / `fix` / `history` / `diff`) are pure local code
-> analysis — no network traffic to the target.
+> analysis — no network traffic to any `--target`.
 
 ---
 

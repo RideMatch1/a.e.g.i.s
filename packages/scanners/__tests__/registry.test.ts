@@ -89,4 +89,46 @@ describe('scanner registry parity (DEFAULT=MAX guard)', () => {
       expect(names.has(expected)).toBe(true);
     }
   });
+
+  // v0.17.8 MED-002 — identity-checked parity, not just count parity.
+  // Pre-v0.17.8 a refactor that renamed an imported identifier and
+  // forgot to update getAllScanners() would still pass as long as the
+  // total count was preserved (e.g. accidental swap-one-for-another).
+  //
+  // The check below derives two expected slugs from each imported
+  // identifier — with and without the trailing "Scanner" suffix — to
+  // accommodate the project's two co-existing naming conventions:
+  //   - paymentFlowCheckerScanner -> "payment-flow-checker"      (suffix dropped)
+  //   - entropyScanner            -> "entropy-scanner"           (suffix retained)
+  //   - pentestSwarmScanner       -> "pentestswarm"              (single token)
+  // The dashes-stripped lowercase form of the registered scanner.name
+  // must match one of those two slugs.
+  it('every imported scanner identifier maps to a scanner.name in its respective registry (identity check)', () => {
+    const normalizeName = (name: string) => name.replace(/-/g, '').toLowerCase();
+    const expectedSlugs = (id: string) => {
+      const stripped = id.replace(/Scanner$/, '').toLowerCase();
+      const full = id.toLowerCase();
+      return new Set([stripped, full]);
+    };
+
+    const staticNormalized = new Set(getAllScanners().map((s) => normalizeName(s.name)));
+    for (const imp of staticImports) {
+      const slugs = expectedSlugs(imp.identifier);
+      const matched = [...slugs].some((slug) => staticNormalized.has(slug));
+      if (!matched) {
+        throw new Error(
+          `static scanner import "${imp.identifier}" has no matching getAllScanners() entry ` +
+            `(expected one of [${[...slugs].join(', ')}], registry has [${[...staticNormalized].join(', ')}])`,
+        );
+      }
+      expect(matched).toBe(true);
+    }
+
+    const attackNormalized = new Set(getAttackScanners().map((s) => normalizeName(s.name)));
+    for (const imp of attackImports) {
+      const slugs = expectedSlugs(imp.identifier);
+      const matched = [...slugs].some((slug) => attackNormalized.has(slug));
+      expect(matched).toBe(true);
+    }
+  });
 });

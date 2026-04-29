@@ -50,15 +50,20 @@ export function evaluateActiveModeAuthorization(
   if (mode === 'siege') {
     console.error(
       chalk.yellow(
-        `  Includes: fake-JWT auth probes, concurrent POST race probes,\n` +
-          `  header-tampering probes, and external LLM-agent pentest frameworks.`,
+        `  Includes: DAST scanners (ZAP, Nuclei) + external LLM-agent\n` +
+          `  pentest frameworks (Strix, PTAI, Pentest-Swarm-AI), PLUS active\n` +
+          `  probes (fake-JWT auth, concurrent POST race, header-tampering,\n` +
+          `  rate-limit, privilege-escalation).`,
       ),
     );
   } else {
     console.error(
       chalk.yellow(
-        `  Includes: DAST scanners (ZAP, Nuclei, Strix, PTAI, Pentest-Swarm-AI)\n` +
-          `  that actively probe the target URL.`,
+        `  Includes: DAST scanners (ZAP, Nuclei) + external LLM-agent\n` +
+          `  pentest frameworks (Strix, PTAI, Pentest-Swarm-AI) actively\n` +
+          `  probing the target URL. Does NOT run aegis siege's active-probe\n` +
+          `  set (auth / race / header / rate-limit / privesc) — that scope\n` +
+          `  remains opt-in via aegis siege.`,
       ),
     );
   }
@@ -78,8 +83,15 @@ export function evaluateActiveModeAuthorization(
       `  By passing --confirm you affirm authorization for the specified target.`,
     ),
   );
-  console.error(chalk.dim(`  AEGIS records the authorization timestamp to stderr (and to`));
-  console.error(chalk.dim(`  --state-file when configured) for audit-trail purposes.\n`));
+  // Only siege has --state-file (per packages/cli/src/index.ts); pentest does
+  // not, so the audit-trail clause is mode-specific (v0.17.8 MED-003 closure).
+  if (mode === 'siege') {
+    console.error(chalk.dim(`  AEGIS records the authorization timestamp to stderr (and to`));
+    console.error(chalk.dim(`  --state-file when configured) for audit-trail purposes.\n`));
+  } else {
+    console.error(chalk.dim(`  AEGIS records the authorization timestamp to stderr for`));
+    console.error(chalk.dim(`  audit-trail purposes.\n`));
+  }
   console.error(chalk.dim(`  Add --confirm to acknowledge and proceed.`));
   console.error(
     chalk.dim(
