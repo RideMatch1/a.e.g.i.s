@@ -21,6 +21,12 @@ const HEADER_RE_BY_SOURCE: Record<string, RegExp> = {
     /^<!-- aegis-local: forked \d{4}-\d{2}-\d{2} from SnailSploit\/Claude-Red@[0-9a-f]{40}; attribution preserved, see ATTRIBUTION\.md -->/,
   'aegis-native':
     /^<!-- aegis-local: AEGIS-native skill, MIT-licensed;.*-->/,
+  // F-OSINT-SKILL-PACK-1 — fork from elementalsouls/Claude-OSINT (MIT). The
+  // offensive-osint SKILL.md carries an additional PORT-NOTE inside the
+  // same HTML comment, so the closing `-->` may not appear on the first
+  // line; the regex anchors only on the opening sentence + SHA.
+  'elementalsouls-fork':
+    /^<!-- aegis-local: forked \d{4}-\d{2}-\d{2} from elementalsouls\/Claude-OSINT@[0-9a-f]{40} \(MIT-licensed\); attribution preserved, see ATTRIBUTION\.md/,
 };
 
 describe('attribution — every shipped SKILL.md preserves source-appropriate provenance', () => {

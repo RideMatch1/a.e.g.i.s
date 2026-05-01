@@ -11,9 +11,9 @@ import { loadAllSkills, resolveSkillsRoot } from '../src/skills-loader.js';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const EXPECTED_TOTAL = 55;
+const EXPECTED_TOTAL = 57;
 
-const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance', 'foundation'];
+const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance', 'foundation', 'osint'];
 
 const EXPECTED_SOURCES_BY_CATEGORY: Record<string, string[]> = {
   offensive: ['snailsploit-fork'],
@@ -22,6 +22,7 @@ const EXPECTED_SOURCES_BY_CATEGORY: Record<string, string[]> = {
   ops: ['aegis-native'],
   compliance: ['aegis-native'],
   foundation: ['aegis-native'],
+  osint: ['elementalsouls-fork'],
 };
 
 const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
@@ -78,6 +79,7 @@ const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
     'aegis-skill-creator',
     'dsgvo-compliance',
   ],
+  osint: ['offensive-osint', 'osint-methodology'],
 };
 
 describe('manifest — current shape', () => {

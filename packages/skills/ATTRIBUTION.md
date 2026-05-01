@@ -158,6 +158,58 @@ This avoids:
   ensures they always pull the freshest Supabase-team-maintained
   guidance.
 
+## OSINT skills — elementalsouls/Claude-OSINT
+
+All skills under `skills/osint/` are forked from
+[elementalsouls/Claude-OSINT](https://github.com/elementalsouls/Claude-OSINT)
+under MIT License (with offensive-security ethical-use notice).
+
+- **Upstream author:** Cyanide (elementalsouls)
+- **SPDX:** MIT
+- **Fork-SHA:** `ea42241d068e8112da0e4e28006207125c835c2e`
+- **Fork date:** 2026-05-01
+- **Skill count at fork:** 2 (`offensive-osint`, `osint-methodology`)
+- **Upstream-attribution format:** YAML frontmatter (`name:`, `description:`,
+  `version:`, `triggers:`). Both files preserved byte-identically inside the
+  body; AEGIS-local provenance header added above the YAML opener.
+
+### AEGIS-side modifications
+
+- Per-file `<!-- aegis-local: forked … from elementalsouls/Claude-OSINT@<sha> -->`
+  HTML header prepended above the YAML frontmatter on both `SKILL.md` files.
+- `offensive-osint/SKILL.md` carries an additional **PORT-NOTE** inside its
+  fork header explaining that the upstream `secret_scan.py` helper script is
+  NOT shipped (`@aegis-scan/skills` enforces a markdown-only invariant via
+  CI). The helper is scheduled for port to a TypeScript scanner module under
+  **F-EXTERNAL-SECRETS-1** (planned v0.18.x). Until then, operators run
+  AEGIS' existing `gitleaks` / `trufflehog` wrappers, or fetch the helper
+  directly from the upstream repository.
+- `offensive-osint/README.md` *Loading*, *Helper script*, *Self-test* and
+  *License* sections updated to reflect the AEGIS package layout (no manual
+  `cp` of `scripts/secret_scan.py` since the script is not shipped; smoke
+  tests referenced as upstream-only pending F-SKILL-SYNC-CI-1).
+- `osint-methodology/README.md` *Self-test* and *License* sections updated
+  similarly.
+- Upstream `LICENSE` and `tests/smoke-test-prompts.md` are NOT shipped — the
+  AEGIS root `LICENSE` covers all of `@aegis-scan/skills`, and the smoke
+  tests will land under `packages/skills/__tests__/skill-prompts/` when the
+  skill-validation CI is built (F-SKILL-SYNC-CI-1).
+
+### Why a separate top-level category instead of merging into `offensive/`
+
+`osint/` is intel-gathering tradecraft (collection + correlation + scoring),
+distinct from `offensive/` which encodes exploit-side red-team patterns
+(SSRF / SQLi / XSS / RCE / etc.). The `snailsploit-fork/` already contains
+much smaller `osint/` (399 lines) and `osint-methodology/` (434 lines)
+skills that overlap topically but are subset by content. Both kept side-by-
+side: the `snailsploit-fork/` versions remain available for operators who
+prefer the lighter checklist style; the `osint/` top-level category
+provides the operational arsenal (~5,800 lines of probe paths, regexes,
+validators, identity-fabric methodology, vendor fingerprints) that the
+`snailsploit-fork/` intentionally does not include. Frontmatter `name:`
+collisions across categories are acceptable — Claude Code skill-routing
+keys on path-relative identifiers, not the bare `name:` field.
+
 ## Future external cherry-pick candidates
 
 The `skills/` tree is also designed to grow across sources via
