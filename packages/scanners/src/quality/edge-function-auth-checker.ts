@@ -75,30 +75,33 @@ const JWT_VERIFY_PATTERNS = [
   /\bawait\s+(?:require|assert|verify|check|ensure|validate|authenticate)\w*\s*\(\s*[^)]*\b(?:req|request)\b/i,
 ];
 
-/** Patterns that indicate the function calls a known paid third-party
+/** Hostnames that indicate the function calls a known paid third-party
  *  API. Each of these hosts charges per-request — unauthenticated
- *  Edge Function = quota-burn billing-attack. */
-const PAID_API_HOST_PATTERNS = [
-  /api\.openai\.com/,
-  /api\.anthropic\.com/,
-  /api\.mistral\.ai/,
-  /api\.together\.xyz/,
-  /api\.x\.ai/,
-  /generativelanguage\.googleapis\.com/,
-  /api\.cohere\.ai/,
-  /api\.replicate\.com/,
-  /api\.helius-rpc\.com/,
-  /\.helius\.xyz/,
-  /quicknode\.com/,
-  /alchemy\.com/,
-  /infura\.io/,
-  /api\.crawl4ai\.com/,
-  /firecrawl\.dev/,
-  /api\.scrapingbee\.com/,
-  /api\.serpapi\.com/,
-  /api\.brave\.com/,
-  /api\.exa\.ai/,
-  /api\.tavily\.com/,
+ *  Edge Function = quota-burn billing-attack. Stored as plain strings +
+ *  matched via String.prototype.includes() to avoid the substring-regex
+ *  anchor concern (CodeQL js/regex/missing-regexp-anchor) — these are
+ *  literal hostnames with no regex semantics needed. */
+const PAID_API_HOSTS = [
+  'api.openai.com',
+  'api.anthropic.com',
+  'api.mistral.ai',
+  'api.together.xyz',
+  'api.x.ai',
+  'generativelanguage.googleapis.com',
+  'api.cohere.ai',
+  'api.replicate.com',
+  'api.helius-rpc.com',
+  '.helius.xyz',
+  'quicknode.com',
+  'alchemy.com',
+  'infura.io',
+  'api.crawl4ai.com',
+  'firecrawl.dev',
+  'api.scrapingbee.com',
+  'api.serpapi.com',
+  'api.brave.com',
+  'api.exa.ai',
+  'api.tavily.com',
 ];
 
 function findLineNumber(content: string, matchIndex: number): number {
@@ -139,7 +142,7 @@ export const edgeFunctionAuthCheckerScanner: Scanner = {
 
       const usesServiceRole = SERVICE_ROLE_KEY_RE.test(content);
       const hasJwtVerify = JWT_VERIFY_PATTERNS.some((p) => p.test(content));
-      const callsPaidApi = PAID_API_HOST_PATTERNS.some((p) => p.test(content));
+      const callsPaidApi = PAID_API_HOSTS.some((host) => content.includes(host));
 
       // Path A — CRITICAL: service-role-key without JWT verification.
       // Full RLS bypass available to any caller of the function URL.
@@ -176,7 +179,8 @@ export const edgeFunctionAuthCheckerScanner: Scanner = {
       // Quota-burn / billing-attack class.
       if (callsPaidApi && !hasJwtVerify) {
         const id = `EDGE-${String(idCounter++).padStart(3, '0')}`;
-        const paidPattern = PAID_API_HOST_PATTERNS.find((p) => p.test(content));
+        const paidHost = PAID_API_HOSTS.find((host) => content.includes(host));
+        const paidIdx = paidHost ? content.indexOf(paidHost) : -1;
         findings.push({
           id,
           scanner: 'edge-function-auth-checker',
@@ -186,8 +190,8 @@ export const edgeFunctionAuthCheckerScanner: Scanner = {
           description:
             'A Supabase Edge Function makes calls to a known paid third-party API (major LLM providers / Crawl4AI / Helius / etc.) without verifying the incoming request\'s Authorization header. Anyone with the function URL can repeatedly invoke it and drain the developer\'s third-party quota — billing-attack class. Verify the caller\'s JWT before initiating the upstream call, and add per-user rate-limiting (e.g., per-user-id token bucket via Redis or Supabase rate-limit middleware).',
           file,
-          line: paidPattern
-            ? findFirstMatchLine(content, paidPattern)
+          line: paidIdx >= 0
+            ? findLineNumber(content, paidIdx)
             : findFirstMatchLine(content, DENO_SERVE_RE),
           category: 'security',
           owasp: 'A04:2021',

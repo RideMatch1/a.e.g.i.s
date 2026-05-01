@@ -20,8 +20,12 @@ RULES_MD="$ROOT/packages/rules/supabase/RULES.md"
 [[ -f "$LOCK" ]] || { echo "ERROR: lock file missing: $LOCK" >&2; exit 2; }
 PINNED_SHA="$(grep '^sha=' "$LOCK" | cut -d= -f2)"
 
+# gh CLI handles upstream-SHA fetch in lieu of curl|python3 (eliminates the
+# Scorecard downloadThenRun finding on this line — gh authenticates +
+# does its own JSON parsing, no interpreter pipe).
+command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI required for upstream SHA fetch" >&2; exit 2; }
 echo "Pinned SHA:  $PINNED_SHA"
-LATEST_SHA="$(curl -fsSL https://api.github.com/repos/supabase/splinter/commits/main | python3 -c 'import json,sys;print(json.load(sys.stdin)["sha"])')"
+LATEST_SHA="$(gh api repos/supabase/splinter/commits/main --jq '.sha')"
 echo "Upstream SHA: $LATEST_SHA"
 
 if [[ "$PINNED_SHA" == "$LATEST_SHA" ]]; then
@@ -32,9 +36,8 @@ fi
 echo ""
 echo "⚠ Drift detected. Comparing rule files…"
 
-# Pull upstream lint filenames
-upstream_json="$(curl -fsSL "https://api.github.com/repos/supabase/splinter/contents/lints?ref=$LATEST_SHA")"
-upstream_files="$(echo "$upstream_json" | python3 -c 'import json,sys;[print(x["name"]) for x in json.load(sys.stdin) if x["type"]=="file" and x["name"].endswith(".sql")]' | sort)"
+# Pull upstream lint filenames via gh (handles auth + JSON parsing; no curl|python3 pipe).
+upstream_files="$(gh api "repos/supabase/splinter/contents/lints?ref=$LATEST_SHA" --jq '.[] | select(.type=="file" and (.name | endswith(".sql"))) | .name' | sort)"
 vendored_files="$(cd "$VENDOR_DIR" && ls *.sql 2>/dev/null | sort || true)"
 
 added="$(comm -23 <(echo "$upstream_files") <(echo "$vendored_files"))"
@@ -77,10 +80,9 @@ if [[ "${1:-}" == "--apply" ]]; then
     rm -f "$fname"
   done
 
-  # update lock
-  upstream_meta="$(curl -fsSL "https://api.github.com/repos/supabase/splinter/commits/$LATEST_SHA")"
-  date_iso="$(echo "$upstream_meta" | python3 -c 'import json,sys;print(json.load(sys.stdin)["commit"]["committer"]["date"])')"
-  message="$(echo "$upstream_meta" | python3 -c 'import json,sys;print(json.load(sys.stdin)["commit"]["message"].splitlines()[0])')"
+  # update lock — fetch metadata via gh (auth + JSON parsing built-in)
+  date_iso="$(gh api "repos/supabase/splinter/commits/$LATEST_SHA" --jq '.commit.committer.date')"
+  message="$(gh api "repos/supabase/splinter/commits/$LATEST_SHA" --jq '.commit.message | split("\n")[0]')"
   cat > "$LOCK" <<EOF
 repo=supabase/splinter
 sha=$LATEST_SHA

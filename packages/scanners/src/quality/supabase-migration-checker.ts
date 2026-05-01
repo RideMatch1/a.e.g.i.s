@@ -173,8 +173,6 @@ const SET_SEARCH_PATH_PATTERN = /\bSET\s+search_path\b/i;
 const AUTH_UID_REFERENCE = /\bauth\.uid\(\)/i;
 const AEGIS_GUARD_REFERENCE = /\b_aegis_authorize_user\b/i;
 const OWNERSHIP_CHECK_PATTERN = /\b(?:user_id|owner_id)\s*=\s*(?:auth\.uid\(\)|p_user_id|v_caller)/i;
-const DYNAMIC_SQL_PATTERN = /\bEXECUTE\s+(?:format\s*\(|['"`]?[^;]*\|\|)/i;
-const RAW_TABLE_NAME_FORMAT = /\bformat\s*\(\s*['"][^'"]*%I[^'"]*['"]/i;
 
 interface MigrationCheck {
   id: string;

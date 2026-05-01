@@ -146,15 +146,6 @@ function extractCallArgumentBlock(content: string, openParenIndex: number): stri
   return null;
 }
 
-function findOpenParen(content: string, fromIndex: number): number {
-  for (let i = fromIndex; i < content.length; i++) {
-    if (content[i] === '(') return i;
-    if (content[i] !== ' ' && content[i] !== '\t' && content[i] !== '\n') break;
-  }
-  // Pattern always matches up through `(`; the open paren is the last char.
-  return content[fromIndex - 1] === '(' ? fromIndex - 1 : -1;
-}
-
 /** Walk forward from `openIdx` (must point at `openCh`) and return the
  *  index of the matching `closeCh`. Skips string literals and balances
  *  nested pairs. Returns -1 if unmatched. */

@@ -21,18 +21,10 @@ const LOW_CONFIDENCE_SCANNERS = new Set([
   'react-doctor',          // quality, not security
 ]);
 
-// File-path patterns that indicate test/example/doc context (skip findings here)
-const NOISE_PATH = /(^|\/)(\.next|node_modules|dist|build|coverage|out|\.git|\.turbo)\//
-                || /\/(test|tests|__tests__|spec|fixtures?|playwright|cypress|e2e)\//i
-                || /\.test\.|\.spec\./i
-                || /\/(docs?|examples?|samples?|references?)\//i
-                || /(README|CHANGELOG|LICENSE|CONTRIBUTING|SECURITY)\.md$/
-                || /\.(md|mdx)$/i
-                || /(yarn|package|pnpm-)?lock\.(json|ya?ml)$/i
-                || /\.(env\.example|env\.sample|env\.local\.example|env\.template)$/i
-                || /(i18n|locales?|translations?)\.(json|lock|yaml|yml)$/i
-                || /\.(yaml|yml)$/i;  // config file noise — many trufflehog FPs in YAML
-
+// File-path patterns that indicate test/example/doc context (skip findings here).
+// The looksLikeNoisePath() function below is the actual gate — it inlines each
+// regex with .test() rather than chaining regex literals via ||, which would
+// short-circuit to the first regex (CodeQL js/trivial-conditional class).
 function looksLikeNoisePath(file) {
   if (!file) return true;
   return /(^|\/)(\.next|node_modules|dist|build|coverage|out|\.git|\.turbo)\//.test(file)
