@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# AEGIS pre-commit hook — operator-path leak gate (--staged mode).
+#
+# Catches absolute home-paths (/Users/<name>/, /home/<name>/) in
+# staged file contents BEFORE they enter the local commit. Closes
+# the v0.17.x hunt-script leak class — gitleaks CI catches secret-
+# format patterns post-push, but does NOT detect operator-path leaks.
+#
+# Installed to .git/hooks/pre-commit by scripts/install-hooks.sh.
+# To bypass in emergencies: git commit --no-verify (not recommended).
+
+set -e
+REPO_ROOT=$(git rev-parse --show-toplevel)
+exec "$REPO_ROOT/scripts/check-no-operator-paths.sh" --staged

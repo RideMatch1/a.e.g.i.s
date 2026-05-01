@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# AEGIS pre-push hook — local gitleaks scan (defense-in-depth).
+#
+# Runs gitleaks against the working tree before a push hits origin's
+# secret-scanning push-protection. Catches new secret-format patterns
+# locally so the contributor sees the failure before invoking GitHub's
+# server-side block.
+#
+# Skipped silently when gitleaks is not installed (the tool is not a
+# build-time dependency). Install via: brew install gitleaks (macOS)
+# or apt install gitleaks (Debian/Ubuntu) or download from
+# https://github.com/gitleaks/gitleaks/releases.
+#
+# Installed to .git/hooks/pre-push by scripts/install-hooks.sh.
+# To bypass in emergencies: git push --no-verify (not recommended).
+
+set -e
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  exit 0
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+# protect mode = scan staged + working-tree (pre-commit-equivalent).
+# detect mode would scan committed history, slower + redundant with CI.
+# --redact obscures any matched secret-content in the failure output.
+exec gitleaks protect --redact

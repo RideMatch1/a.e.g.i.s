@@ -44,9 +44,13 @@ The benchmark scans a vulnerable fixture app under `packages/benchmark/vulnerabl
 - **Target branch**: `main`. No long-lived feature branches for solo-scoped work.
 - **Pre-1.0 semantics**: breaking changes are allowed, but require a `CHANGELOG.md` entry under the current `[Unreleased]` heading describing migration.
 
-### Commit-message hygiene (Rule #13)
+### Pre-commit / pre-push hygiene (Rule #13 + operator-path gate + local secret-scan)
 
-AEGIS enforces a pre-commit scrub-gate on commit messages to catch accidental leaks of AI-attribution markers, TODO placeholders, and project-specific sensitive terms BEFORE commits land on a branch that may be pushed publicly.
+AEGIS layers three client-side hooks that catch leak-classes before they hit a public push. Each hook backstops the next, so a leak that slips one layer hits the next:
+
+1. **commit-msg** → `scripts/scrub-gate.sh`. Blocks commit messages containing AI-attribution markers, TODO placeholders, or project-specific scrub-terms. Catches accidental Claude / Anthropic / internal-codename leaks in the message itself.
+2. **pre-commit** → `scripts/check-no-operator-paths.sh --staged`. Blocks staged file contents containing absolute home-paths (`/Users/<name>/`, `/home/<name>/`). Catches the v0.17.x hunt-script leak class — gitleaks' default rules do not flag user-paths, so this gate exists to backstop them.
+3. **pre-push** → `gitleaks protect`. Local secret-format scan run before the push hits origin. Complements GitHub's secret-scanning push-protection (which only catches partner-validated secrets like Stripe live keys). Skipped when the `gitleaks` binary is not installed.
 
 **One-time install:**
 
@@ -54,12 +58,18 @@ AEGIS enforces a pre-commit scrub-gate on commit messages to catch accidental le
 ./scripts/install-hooks.sh
 ```
 
-This installs a local `commit-msg` hook. Every `git commit` then runs `scripts/scrub-gate.sh` on the message. Clean messages proceed; leaks are rejected with a pointer to the offending line.
+The installer is idempotent — safe to re-run. The pre-push hook is only installed if `gitleaks` is on `$PATH` (`brew install gitleaks` on macOS, equivalent package on Linux). After installing the binary, re-run the script.
 
-**What gets blocked:**
+**What gets blocked at commit-msg:**
 
-- Terms listed in `scripts/scrub-terms.generic.txt` (committed — universal OSS-hygiene terms like Claude, Anthropic, TODO, FIXME).
-- Terms you add to `scripts/scrub-terms.local.txt` (gitignored — your project-specific list, e.g. internal codenames, pre-disclosure handles).
+- Terms in `scripts/scrub-terms.generic.txt` (committed — universal OSS-hygiene terms like Claude, Anthropic, TODO, FIXME).
+- Terms in `scripts/scrub-terms.local.txt` (gitignored — your project-specific list of internal codenames + pre-disclosure handles).
+
+**What gets blocked at pre-commit:**
+
+- `/Users/<unix-username>/...` and `/home/<unix-username>/...` patterns in staged file content.
+- Allowlist covers `Users/Shared`, `Users/Library`, and common CI / example placeholders (`runner`, `ubuntu`, `dev`, `USER`, `myname`, …). Tracked exclusions: `node_modules/`, `dist/`, `packages/scanners/__tests__/`, `packages/benchmark/canary-fixtures/`, and upstream fork pedagogical content (`packages/skills/skills/(offensive|osint)/<name>-fork/`).
+- Replace any unintended hardcoded path with `REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"` (bash) or `${process.env.HOME}/...` template literal (Node).
 
 **What is warned-on but not blocked:**
 
@@ -69,12 +79,13 @@ This installs a local `commit-msg` hook. Every `git commit` then runs `scripts/s
 **Bypass (use sparingly):**
 
 ```bash
-git commit --no-verify
+git commit --no-verify   # bypasses commit-msg + pre-commit
+git push --no-verify     # bypasses pre-push
 ```
 
-Only use `--no-verify` when you've manually verified the message is clean and the hook is producing a false-positive. Prefer fixing the scrub-list.
+Only use `--no-verify` when you've manually verified that the gate is producing a false-positive. Prefer fixing the rules / allowlists. CI re-runs the equivalent gates on every push (CI workflow runs `check-no-operator-paths.sh`, Gitleaks workflow re-runs the secret scan), so a `--no-verify` push that introduces a real leak still fails CI; the local hooks save the round-trip.
 
-**Discipline-class:** this replaces the prior ad-hoc scrub-discipline with deterministic tooling. Background: on 2026-04-22 a discipline-level scrub-check false-negatived on a private-repo codename because the applied term-list was an ad-hoc subset. The hook catches such slips at commit-time rather than relying on memory-level enforcement. See `memory/reference_scrub_term_list.md` for the authoritative institutional scrub-term list.
+**Discipline-class:** these gates replace prior ad-hoc scrub-discipline with deterministic tooling. Background: on 2026-04-22 a discipline-level scrub-check false-negatived on a private-repo codename because the applied term-list was an ad-hoc subset. The commit-msg gate catches such slips at commit-time rather than memory-level enforcement. The operator-path gate was added in v0.18.x after a class-of-leak slipped through the commit-msg gate — the leaks were in *file contents*, not commit messages, so the message-only check did not see them. The v0.17.x hunt-scripts carried `/Users/<operator>/...` absolute paths inside their bash; the pre-commit + CI gate now catches that class. See `memory/reference_scrub_term_list.md` for the authoritative institutional scrub-term list.
 
 ## PR guidelines
 

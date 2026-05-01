@@ -15,6 +15,13 @@ shown with the reason the target wasn't met.
 
 - For `@aegis-wizard/cli` 0.17.1 and later, see [`packages/wizard-cli/CHANGELOG.md`](packages/wizard-cli/CHANGELOG.md). This root CHANGELOG covers the scanner family (`@aegis-scan/*`) + top-level arc-summary entries only.
 
+### Added (post-v0.18.0 hygiene — operator-path leak prevention)
+
+- **NEW `scripts/check-no-operator-paths.sh` gate** wired into the CI workflow. Scans tracked files for absolute home-paths (`/Users/<name>/`, `/home/<name>/`) that gitleaks' default ruleset does not flag. Excludes the standard binary / fixture / canary / upstream-fork directories that legitimately carry path-like literals. Closes the v0.17.x hunt-script leak class — the original commits were caught only at GitHub's secret-scanning push-protection (which does not flag user-paths) and would otherwise have ridden through to public history. Allowlist covers `Users/Shared`, `Users/Library`, and common CI / example placeholders (`runner`, `ubuntu`, `dev`, `USER`, `myname`, …).
+- **NEW pre-commit + pre-push hooks** under `scripts/hooks/`. Layered defense (commit-msg + pre-commit + pre-push) installed via `bash scripts/install-hooks.sh`. The pre-commit hook runs the operator-path gate against staged files before the commit lands locally. The pre-push hook runs `gitleaks protect` if the binary is on `$PATH`, mirroring CI's secret-format scan locally to save the round-trip on a server-side block. Per the no-lifecycle-scripts invariant, hooks are NOT auto-installed by `pnpm install` — contributors opt in via the installer.
+- **`.gitleaks.toml` allowlist additions** for `packages/skills/skills/osint/elementalsouls-fork/` and `packages/skills/skills/offensive/matty-fork/`. Both fork directories ship byte-identical upstream pedagogical content where detection-rule examples appear as teaching material; same structural class as the existing `snailsploit-fork` allowlist. Tarball-scrub gates in the publish workflows are unaffected (those operate on `dist/ + README + CHANGELOG + ATTRIBUTION`, which do not include skill-tree fork content).
+- **`CONTRIBUTING.md` hygiene section rewritten** to describe the layered three-hook defense + the operator-path gate's CI counterpart. Sets clear expectations for how `--no-verify` fits into the model (saves the round-trip; does not bypass CI).
+
 ---
 
 ## [0.18.0] — 2026-05-01 — "External-research extension cut (Tier-A: 5 F-targets shipped)"
