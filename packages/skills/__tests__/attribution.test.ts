@@ -27,6 +27,12 @@ const HEADER_RE_BY_SOURCE: Record<string, RegExp> = {
   // line; the regex anchors only on the opening sentence + SHA.
   'elementalsouls-fork':
     /^<!-- aegis-local: forked \d{4}-\d{2}-\d{2} from elementalsouls\/Claude-OSINT@[0-9a-f]{40} \(MIT-licensed\); attribution preserved, see ATTRIBUTION\.md/,
+  // F-SKILL-PACK-MATTY-1 — selective fork from matty69v/Bug-Bounty-Agents (MIT).
+  // 5 gap-filling skills: cicd-redteam, cloud-security, container-escape,
+  // mobile-pentester, subdomain-takeover. Each ships one self-contained
+  // SKILL.md with the fork-header on line 1.
+  'matty-fork':
+    /^<!-- aegis-local: forked \d{4}-\d{2}-\d{2} from matty69v\/Bug-Bounty-Agents@[0-9a-f]{40} \(MIT-licensed\); attribution preserved, see ATTRIBUTION\.md -->/,
 };
 
 describe('attribution — every shipped SKILL.md preserves source-appropriate provenance', () => {

@@ -11,12 +11,12 @@ import { loadAllSkills, resolveSkillsRoot } from '../src/skills-loader.js';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const EXPECTED_TOTAL = 57;
+const EXPECTED_TOTAL = 62;
 
 const EXPECTED_CATEGORIES = ['offensive', 'defensive', 'mitre-mapped', 'ops', 'compliance', 'foundation', 'osint'];
 
 const EXPECTED_SOURCES_BY_CATEGORY: Record<string, string[]> = {
-  offensive: ['snailsploit-fork'],
+  offensive: ['snailsploit-fork', 'matty-fork'],
   defensive: ['aegis-native'],
   'mitre-mapped': ['aegis-native'],
   ops: ['aegis-native'],
@@ -31,6 +31,9 @@ const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
     'ai-security',
     'basic-exploitation',
     'bug-identification',
+    'cicd-redteam',
+    'cloud-security',
+    'container-escape',
     'crash-analysis',
     'deserialization',
     'edr-evasion',
@@ -46,6 +49,7 @@ const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
     'jwt',
     'keylogger-arch',
     'mitigations',
+    'mobile-pentester',
     'oauth',
     'open-redirect',
     'osint',
@@ -58,6 +62,7 @@ const EXPECTED_NAMES_BY_CATEGORY: Record<string, string[]> = {
     'sqli',
     'ssrf',
     'ssti',
+    'subdomain-takeover',
     'vuln-classes',
     'waf-bypass',
     'windows-boundaries',

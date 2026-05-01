@@ -41,6 +41,53 @@ rule applies to any incoming updates — no stripping of upstream
 attribution, no removal of AEGIS-added headers, no paper-over of
 upstream format variance.
 
+## Offensive skills — matty69v/Bug-Bounty-Agents (selective fork)
+
+A subset of skills under `skills/offensive/matty-fork/` are forked from
+[matty69v/Bug-Bounty-Agents](https://github.com/matty69v/Bug-Bounty-Agents)
+under MIT License. The upstream is a 43-agent prompt library — AEGIS pulls
+only the five that fill documented coverage gaps and otherwise have no
+overlap with the existing `snailsploit-fork/` content.
+
+- **Upstream author:** matty69v
+- **SPDX:** MIT
+- **Fork-SHA:** `5f8b8301b1bfbbe3aece4f38337cef69d52af0dc`
+- **Fork date:** 2026-05-01
+- **Skill count at fork:** 5 (selective):
+  - `cicd-redteam` (529 lines) — closes CI/CD pipeline analysis gap
+  - `cloud-security` (104 lines) — closes Cloud Security Posture gap (AWS/GCP/Azure)
+  - `container-escape` (172 lines) — closes container/k8s breakout gap
+  - `mobile-pentester` (355 lines) — closes Mobile (APK/IPA) analysis gap
+  - `subdomain-takeover` (152 lines) — closes subdomain-takeover detection gap
+- **Upstream-attribution format:** YAML frontmatter (`name:`, `description:`,
+  `tools:`, `model:`). All five files preserved byte-identically inside the
+  body; AEGIS-local provenance header added above the YAML opener.
+
+### AEGIS-side modifications
+
+- Per-file `<!-- aegis-local: forked … from matty69v/Bug-Bounty-Agents@<sha> -->`
+  HTML header prepended above the YAML frontmatter on each `SKILL.md`.
+- The other 38 upstream skills overlap with existing AEGIS coverage
+  (`snailsploit-fork/`, programmatic scanners, or LLM-DAST-wrappers) and are
+  intentionally NOT forked.
+- Upstream's `_scope-guard.md` is a routing-excluded shared pre-flight prompt
+  that several main agents reference. The five forked skills retain those
+  textual references intact (byte-identical body), but the `_scope-guard.md`
+  itself is NOT shipped — AEGIS skill-loader requires kebab-case names that
+  cannot start with an underscore. Operators can fetch the upstream file
+  directly from the source repo if needed; AEGIS' own `--confirm` gate +
+  `evaluateActiveModeAuthorization()` (see `packages/cli/src/active-mode-
+  disclaimer.ts`) provides the equivalent enforced safety floor.
+
+### Why selective rather than full fork
+
+The upstream `_scope-guard.md` model is prompt-level (advisory, agent-
+referenced). AEGIS' active-mode disclaimer + `--confirm` gate is CLI-level
+(enforced, Commander.js-validated). Pulling all 43 agents would bloat the
+skill catalog with content that either duplicates AEGIS' programmatic
+checks or duplicates `snailsploit-fork/` coverage. The five selected fill
+documented gaps that no other AEGIS surface covers today.
+
 ## Defensive skills — AEGIS-native
 
 All skills under `skills/defensive/aegis-native/` are AEGIS-original
