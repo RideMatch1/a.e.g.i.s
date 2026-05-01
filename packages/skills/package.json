@@ -1,6 +1,6 @@
 {
   "name": "@aegis-scan/skills",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "AEGIS Skills — opt-in skill library for Claude Code and compatible AI agents. Offensive red-team methodology from curated sources, attribution preserved per-file. Multi-source-ready architecture with placeholder directories for future defensive (AEGIS-native) and MITRE-mapped extensions. Third sibling in the AEGIS full-repertoire toolkit alongside @aegis-scan/cli and @aegis-wizard/cli.",
   "license": "MIT",
   "author": "RideMatch1 <230386010+RideMatch1@users.noreply.github.com>",

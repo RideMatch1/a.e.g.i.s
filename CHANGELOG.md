@@ -17,6 +17,73 @@ shown with the reason the target wasn't met.
 
 ---
 
+## [0.18.0] — 2026-05-01 — "External-research extension cut (Tier-A: 5 F-targets shipped)"
+
+`@aegis-scan/*` family minor bump (`0.17.8` → `0.18.0`) and `@aegis-wizard/cli` (`0.17.8` → `0.18.0`) shipping the first batch of an external-research extension cycle. Six MIT-licensed upstream OSS repositories were audited, security-cleared, and selectively integrated; one GPL-3.0 candidate was rejected as license-incompatible; one license-asserted-only candidate (no `LICENSE` file) was kept as study-pattern with no code copy.
+
+Five F-targets shipped per the Tier-A drip (smallest-risk-first per advisor 2026-05-01). One NEW scanner (the highest-risk authoring step) gated behind a 6-fixture canary suite + 17 unit tests covering both the spec-correct rules AND the CSP3 strict-dynamic FP-trap. Zero regressions across the 12 prior canary phases (51 / 51) and the new phase (6 / 6) — total 57 / 57 across 13 phases.
+
+### Added (NEW scanner — F-CSP-EVAL-1)
+
+- **`csp-evaluator` static scanner** under `packages/scanners/src/quality/csp-evaluator.ts`. Auto-included in `getAllScanners()` per DEFAULT=MAX. Complements existing `header-checker` (which flags MISSING CSP) by flagging WEAK CSP policies that fail to mitigate XSS:
+  - HIGH: `'unsafe-inline'` without nonce / hash, `'unsafe-eval'`, `*` wildcard, `http://` (TLS-downgrade), `data:` / `blob:` in script-src
+  - MEDIUM: `'unsafe-inline'` WITH nonce / hash (CSP3 neutralizes; pre-CSP3 still loads)
+  - **CSP3 strict-dynamic awareness**: `'strict-dynamic'` + nonce / hash → URL allowlist + `'unsafe-inline'` are EXPLICITLY IGNORED per spec. Scanner short-circuits weak-source checks and only flags `'unsafe-eval'`. Without this, every modern hardened policy would be misflagged.
+  - Source-locations: `next.config.{ts,js,mjs,cjs}` `headers()` + `middleware.{ts,js}` `res.headers.set()` / bracket-assign. `<meta http-equiv>` is out-of-scope for the first cut.
+  - Inspired by the XSSNow upstream `js/csp-evaluator.js` (studied for spec-correct source-matching, not copied — implementation is AEGIS-original under MIT).
+
+### Added (skill-pack expansion)
+
+- **NEW `osint/` skill category** at `packages/skills/skills/osint/` (F-OSINT-SKILL-PACK-1). Forked from elementalsouls' upstream OSINT pack (MIT, fork-SHA `ea42241d068e8112da0e4e28006207125c835c2e`):
+  - `osint/elementalsouls-fork/offensive-osint/SKILL.md` (4168 lines) — operational arsenal: 43+-pattern modern-AI-API-key catalog, 80+-template dork corpus across 9 categories, vendor edge-appliance fingerprints (Citrix Netscaler / F5 BIG-IP / Pulse / FortiGate / PaloAlto / Exchange OWA), identity-fabric concrete endpoints (Entra / Okta / ADFS / M365 deep-enum), 9 read-only credential validators, 27 attack-path templates, sector-specific recon.
+  - `osint/elementalsouls-fork/osint-methodology/SKILL.md` (1693 lines) — 5-stage recon pipeline, asset-graph discipline (29 asset types), severity rubric, breach × identity correlation (HudsonRock / HIBP / IntelX / Dehashed), email-security audit, vulnerability prioritization (CVE × EPSS × KEV).
+  - PORT-NOTE: upstream `secret_scan.py` helper script NOT shipped (skills package is markdown-only by CI invariant). Helper queued for port to `packages/scanners/src/recon/external-secret-scan.ts` under F-EXTERNAL-SECRETS-1 (planned v0.18.x).
+- **5 selective skills under `offensive/matty-fork/`** (F-SKILL-PACK-MATTY-1). Forked from matty69v's upstream Bug-Bounty-Agents (MIT, fork-SHA `5f8b8301b1bfbbe3aece4f38337cef69d52af0dc`):
+  - `cicd-redteam` (529 lines) — fills CI/CD pipeline analysis gap.
+  - `cloud-security` (104 lines) — fills CSPM gap (AWS / GCP / Azure).
+  - `container-escape` (172 lines) — fills container / k8s breakout gap.
+  - `mobile-pentester` (355 lines) — fills Mobile (APK / IPA) gap.
+  - `subdomain-takeover` (152 lines) — fills subdomain-takeover gap. Doubles as methodology input for the future F-SUBDOMAIN-TAKEOVER-1 recon scanner.
+
+### Added (regression corpus — F-XSS-PAYLOADS-1)
+
+- **`packages/scanners/__tests__/fixtures/xss-payloads.yaml`** — 1017-payload XSS regression corpus from XSSNow upstream (MIT, fork-SHA `ce1d4ba68ce3fc9329113b16dd6218a598471434`). 19 categories: 182 WAF-bypass, 170 generic-bypass, 112 csp-bypass, 111 advanced, 97 basic, 67 dom, 42 browser-quirk, 40 framework-specific, 10 polyglot, etc. Use cases: (a) regression-fixture for `xss-checker.ts` static rules, (b) seed corpus for the future siege-mode active probe under F-WAF-BYPASS-1 (planned v0.18.x).
+- **NEW root `.semgrepignore`** scoped to `packages/scanners/__tests__/fixtures/` to prevent semgrep self-scan poisoning on the deliberately-bad payload content. AEGIS-native scanners already honor `isTestFile()` and auto-skip `__tests__/` paths; this closes the gap for the external `semgrep` wrapper.
+
+### Changed (disclaimer language — F-DISCLAIMER-2)
+
+- **`packages/cli/src/active-mode-disclaimer.ts`** — three new advisory blocks added on the unconfirmed flow of both `aegis siege` and `aegis pentest`:
+  1. **Authorization-forms enumeration** — Rules of Engagement (ROE), Statement of Work (SOW) / signed pentest agreement, bug-bounty programme scope, internal change-management approval, equivalent written authorization.
+  2. **Will-NOT refusal-list** — explicit safety floor: no destroy / modify / exfiltrate, no take-offline, no lateral move outside scope, no auth-bypass without authorization, no silent privesc / persistence.
+  3. **Third-party LLM data-flow advisory** — Strix / PTAI / Pentest-Swarm-AI are LLM-agent frameworks running in pentest + siege; target URLs + response bodies + findings may transit third-party LLM providers. Recommends local-model endpoints / target-data redaction.
+- Confirm-mode banner unchanged (still brief). Regression-guard test asserts the new advisory blocks do NOT leak into the confirmed-path output.
+- Inspired by 0xSteph's pentest-ai-agents DISCLAIMER.md (MIT).
+
+### Validation
+
+- **57 / 57 canary fixtures across 13 phases pass** (was 51 / 51 across 12). New phase: `v0180-csp-eval` (4 TP + 2 FP, including the CSP3 strict-dynamic FP-trap regression-guard).
+- **Unit tests**:
+  - `@aegis-scan/scanners`: 1604 / 1604 (was 1587 — +17 covering csp-evaluator)
+  - `@aegis-scan/cli`: 422 / 422 (was 414 — +8 covering F-DISCLAIMER-2 sections)
+  - `@aegis-scan/skills`: 536 / 536 (was 491 — +45 covering osint/ + matty-fork skills)
+  - `@aegis-wizard/cli`: 304 / 304 (alignment-only release; tests unchanged)
+  - `@aegis-scan/mcp-server`: 17 / 17 (alignment-only)
+- **Self-scan delta**: post-F-XSS-PAYLOADS-1 fixture embed: fixture-findings = 0 (`.semgrepignore` works as intended).
+
+### License & attribution discipline
+
+Five MIT-licensed upstream repositories sourced. Every forked file carries an `<!-- aegis-local: forked … -->` HTML attribution header with fork-date + upstream + 40-hex SHA pin. Per-source AEGIS-side modifications documented in `packages/skills/ATTRIBUTION.md`. Root `CREDITS.md` updated with all five sources + two cite-only OSINT augmentations (jivoi/awesome-osint CC BY-SA 4.0 + rawfilejson/awesome-osint-arsenal MIT). One GPL-3.0 candidate (frangelbarrera/OSINT-BIBLE) was rejected as license-incompatible. One license-asserted-but-no-LICENSE-file candidate (AKCodez/hackingtool-plugin) was kept as study-pattern only.
+
+### Deferred to v0.18.x (Tier-B / Tier-C)
+
+The extension-research spec catalogues 14 additional F-targets across Tier-B (~30h: F-DOCTOR-1 preflight CLI + F-SUBDOMAIN-TAKEOVER-1 recon scanner + F-GRAPHQL-1 introspection / depth-bomb + F-EXTERNAL-SECRETS-1 + F-WAF-BYPASS-1 mutator + 7 wrapper candidates: WPScan / XSStrike / Bandit / Grype / httpx / Nikto / ScoutSuite) and Tier-C (~19h: F-SESSION-1 SQLite findings persistence + F-PREFLIGHT-PATTERN-1 + F-SKILL-SYNC-CI-1).
+
+### Known limitations (deferred to v0.18.1)
+
+- **csp-evaluator template-literal nonce-substitution**: the regex captures the literal text inside the value-string. For runtime-built CSPs like `` `script-src 'nonce-${nonce}' 'strict-dynamic'` `` the captured token is `'nonce-${nonce}'` literally; the nonce-detection regex `/^'nonce-[A-Za-z0-9+/=_-]+'$/` does not match `${...}` interpolation. A hardened middleware that builds CSP from a runtime-generated nonce per request will be misclassified — `'unsafe-inline'` paired with such a nonce reports HIGH instead of MEDIUM, and `'strict-dynamic'` + interpolated-nonce stops short-circuiting weak-source checks. Real-world Next.js middleware uses this pattern. Fix is to recognize template-literal placeholder tokens (`${...}` / `\${...}`) as valid nonce values during evaluation. Tracked as F-CSP-EVAL-2 for v0.18.1.
+
+---
+
 ## [0.17.8] — 2026-04-29 — "External-audit-fix release (supersedes 0.17.7)"
 
 `@aegis-scan/*` family patch bump (`0.17.7` → `0.17.8`) and `@aegis-wizard/cli` (`0.17.7` → `0.17.8`) to ship the closure of an external red-team audit performed against the `0.17.7` release-cut on the same day. **`0.17.7` was held local-only and superseded by this release; do not use 0.17.7.**

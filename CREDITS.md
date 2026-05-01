@@ -67,6 +67,33 @@ These tools will be integrated as scanner wrappers in future releases.
 | Lynis | [CISOfy/lynis](https://github.com/CISOfy/lynis) | GPL-3.0 | System hardening auditing — OS configuration, authentication, file permissions | infrastructure |
 | ScoutSuite | [nccgroup/ScoutSuite](https://github.com/nccgroup/ScoutSuite) | GPL-2.0 | Multi-cloud security auditing (AWS/Azure/GCP) — referenced only due to GPL | infrastructure |
 
+## Forked Skill Content (v0.18.0+, per-source attribution)
+
+These upstream projects ship content that AEGIS forks selectively under permissive licenses. Each forked file carries a per-file `<!-- aegis-local: forked … -->` HTML attribution header pinning fork-date + upstream + 40-hex SHA. Per-source AEGIS-side modifications are documented in [`packages/skills/ATTRIBUTION.md`](packages/skills/ATTRIBUTION.md).
+
+| Source | License | Fork-SHA | Used For |
+|--------|---------|----------|----------|
+| [SnailSploit/Claude-Red](https://github.com/SnailSploit/Claude-Red) | MIT | `c74d53e2…` (2026-04-23) | 37 offensive skills under `packages/skills/skills/offensive/snailsploit-fork/` (vuln-class checklists for SSRF, SQLi, XSS, RCE, etc.) |
+| [elementalsouls upstream OSINT pack](https://github.com/elementalsouls/Claude-OSINT) | MIT | `ea42241d…` (2026-05-01) | NEW `osint/` skill category — `offensive-osint` (4168 lines: AI-key regex catalog, dorks, vendor fingerprints, identity-fabric, validators) + `osint-methodology` (1693 lines: 5-stage recon, asset-graph, breach correlation, email-security audit) under `packages/skills/skills/osint/elementalsouls-fork/` |
+| [matty69v/Bug-Bounty-Agents](https://github.com/matty69v/Bug-Bounty-Agents) | MIT | `5f8b8301…` (2026-05-01) | 5 selective skills under `packages/skills/skills/offensive/matty-fork/` (cicd-redteam / cloud-security / container-escape / mobile-pentester / subdomain-takeover — gap-fillers for CI-CD / CSPM / k8s-breakout / Mobile / DNS-takeover) |
+| [XSSNow upstream payload database](https://github.com/dr34mhacks/XSSNow) | MIT | `ce1d4ba6…` (2026-05-01) | 1017-payload XSS regression corpus at `packages/scanners/__tests__/fixtures/xss-payloads.yaml` (19 categories: WAF-bypass, polyglots, browser-quirks, csp-bypass) |
+
+### Cite-only OSINT references (v0.18.0)
+
+These curated awesome-lists were evaluated as augmentation candidates and surface tools / techniques operators may want beyond AEGIS' direct scanner coverage. Listed for cross-referencing; no code or content is forked.
+
+| Source | License | Note |
+|--------|---------|------|
+| [jivoi/awesome-osint](https://github.com/jivoi/awesome-osint) | CC BY-SA 4.0 | ~1469-entry curated tool/resource directory — broader than AEGIS' web-app scanner scope (people / geospatial / maritime / threat-intel feeds). ShareAlike clause precludes fork into AEGIS' MIT codebase; cite-only. |
+| [rawfilejson/awesome-osint-arsenal](https://github.com/rawfilejson/awesome-osint-arsenal) | MIT | ~1100-tool curated catalog. Niche augmentations (camera-dork queries / Telegram OSINT bot directory / Russian person-lookup catalog) plausible follow-ups. The repo's `install_osint_arsenal.sh` is NOT forked — risky `curl \| sudo bash` patterns + unsigned-binary downloads + offensive RAT/phishing-kit clones. |
+
+### Rejected candidates (license-incompatible or absent)
+
+| Source | License | Reason |
+|--------|---------|--------|
+| frangelbarrera/OSINT-BIBLE | GPL-3.0 | Copyleft incompatible with AEGIS MIT; pulling content would force AEGIS-wide relicense. SKIPPED. |
+| AKCodez/hackingtool-plugin | MIT-by-README-only (no `LICENSE` file) | License asserted in README but no standalone `LICENSE` file at fork-SHA — too thin for direct code extraction. The preflight verdict-shape pattern (`ready` / `partial` / `blocked` + priority-ranked recommendations) was studied for inspiration of the planned F-DOCTOR-1 / F-PREFLIGHT-PATTERN-1 work but no code copied. Study-pattern only. |
+
 ## Referenced & Inspiration
 
 These projects inspired AEGIS patterns, methodologies, or rule designs. No code was copied.
@@ -84,6 +111,8 @@ These projects inspired AEGIS patterns, methodologies, or rule designs. No code 
 | DSGVO Checklist | [philippkrabatsch-prog/claude-code-dsgvo-checklist](https://github.com/philippkrabatsch-prog/claude-code-dsgvo-checklist) | MIT | DSGVO compliance checklist structure, data processing inventory patterns, consent flow requirements |
 | project-codeguard | [cosai-oasis/project-codeguard](https://github.com/cosai-oasis/project-codeguard) | Apache-2.0 | AI-generated code security benchmarking, LLM code review patterns, automated security scoring |
 | Internal Security Suite | Private | Proprietary | Battle-tested patterns from 7 Red Team attack waves on production multi-tenant SaaS — 34 regression guards covering OWASP A01-A10, multi-tenant isolation, PII safety, encryption patterns |
+| 0xSteph upstream pentest-ai-agents | [0xSteph/pentest-ai-agents](https://github.com/0xSteph/pentest-ai-agents) | MIT | DISCLAIMER.md three-block structure (authorization-forms / refusal-list / LLM data-flow advisory) — adapted into `packages/cli/src/active-mode-disclaimer.ts` under F-DISCLAIMER-2. No code copied; wording is AEGIS-original. |
+| YogSec/Hacking-Tools | [yogsec/Hacking-Tools](https://github.com/yogsec/Hacking-Tools) | MIT | Pure curated awesome-list (~270 tools across 13 categories) — surfaced 16+ wrapper-candidate tools (WPScan / XSStrike / Bandit / Grype / ScoutSuite / Nikto / httpx) tracked under v0.18.x Tier-B F-targets. No code or content forked. |
 
 ## Custom AEGIS Scanners
 

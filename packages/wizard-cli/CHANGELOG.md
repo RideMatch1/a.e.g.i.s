@@ -8,6 +8,16 @@ by dogfood-audit + recon-report findings, not by a fixed schedule.
 
 ---
 
+## [0.18.0] — 2026-05-01 — "Scanner-family alignment (no functional changes)"
+
+Companion to the `@aegis-scan/*` v0.18.0 release (the external-research extension cut shipping 5 Tier-A F-targets: F-DISCLAIMER-2 + F-OSINT-SKILL-PACK-1 + F-SKILL-PACK-MATTY-1 + F-XSS-PAYLOADS-1 + F-CSP-EVAL-1). See the root [`CHANGELOG.md`](../../CHANGELOG.md) [0.18.0] entry for the full surface.
+
+### Changed
+
+- **Version bump only** — `0.17.8` → `0.18.0`. Wizard pattern library and `aegis init` / `aegis new` scaffolding are unchanged in this release. Tests: 304 / 304 (unchanged).
+
+---
+
 ## [0.17.8] — 2026-04-29 — "Scanner-family alignment (no functional changes)"
 
 Companion to the `@aegis-scan/*` v0.17.8 release (the external-audit-fix

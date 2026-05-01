@@ -8,11 +8,36 @@ and quality-audit completion, not by a fixed schedule.
 
 ---
 
-## [Unreleased]
+## [0.5.0] — 2026-05-01 — "External-research extension: NEW osint/ category + 5 selective offensive skills"
 
-### Added
+Minor bump for the v0.18.0 scanner-family release-cut. Adds NEW `osint/` top-level skill category (2 skills, 5861 lines) and selective fork from a second offensive upstream (5 gap-filling skills, 1322 lines). Skill-count grows from 55 to 62; source-namespaces grow from 2 (`snailsploit-fork`, `aegis-native`) to 4 (+`elementalsouls-fork`, +`matty-fork`).
+
+### Added (NEW category — F-OSINT-SKILL-PACK-1)
+
+- **`skills/osint/`** — NEW top-level category for intel-gathering tradecraft (distinct from `offensive/` exploit-side patterns). Forked from elementalsouls' upstream OSINT pack (MIT, fork-SHA `ea42241d068e8112da0e4e28006207125c835c2e`):
+  - `osint/elementalsouls-fork/offensive-osint/SKILL.md` (4168 lines, 204KB) — operational arsenal: 43+-pattern modern-AI-API-key catalog, 80+-template dork corpus, vendor edge-appliance fingerprints, identity-fabric concrete endpoints, 9 read-only credential validators, 27 attack-path templates.
+  - `osint/elementalsouls-fork/osint-methodology/SKILL.md` (1693 lines, 93KB) — 5-stage recon pipeline, asset-graph discipline, breach × identity correlation, email-security audit, vulnerability prioritization (CVE × EPSS × KEV).
+- PORT-NOTE: upstream `secret_scan.py` helper script NOT shipped (`@aegis-scan/skills` markdown-only CI invariant). Helper queued for port to `packages/scanners/src/recon/external-secret-scan.ts` under F-EXTERNAL-SECRETS-1 (planned v0.18.x).
+
+### Added (selective fork — F-SKILL-PACK-MATTY-1)
+
+- **5 skills under `skills/offensive/matty-fork/`** — selective fork of matty69v's upstream Bug-Bounty-Agents (MIT, fork-SHA `5f8b8301b1bfbbe3aece4f38337cef69d52af0dc`). Pulled 5 of 43 upstream agents that fill documented AEGIS coverage gaps; the other 38 overlap with existing snailsploit-fork content or programmatic scanners and are intentionally not pulled.
+  - `cicd-redteam` (529 lines) — CI/CD pipeline analysis (GH Actions / GitLab CI / Jenkins / Argo / Tekton)
+  - `cloud-security` (104 lines) — CSPM (AWS / GCP / Azure)
+  - `container-escape` (172 lines) — container / k8s breakout
+  - `mobile-pentester` (355 lines) — Mobile (APK / IPA) — OWASP MASTG / MASVS
+  - `subdomain-takeover` (152 lines) — dangling-CNAME detection
+- Upstream's `_scope-guard.md` advisory prompt is NOT shipped — AEGIS skill-loader requires kebab-case names that cannot start with underscore, and the safety floor is already enforced at the CLI gate (`evaluateActiveModeAuthorization()` + `--confirm` in active-mode-disclaimer.ts). The 5 forked skills retain their textual scope-guard references byte-identical (per snailsploit-fork preservation precedent).
+
+### Added (Plans.md SSOT pattern)
 
 - **Plans.md — Live Working-Plan SSOT pattern** in `aegis-orchestrator/SKILL.md`. Defines `.aegis/Plans.md` as the single source of truth for in-flight tasks + acceptance criteria + blockers, complementing `state.json` (machine-readable phase) and handover docs (point-in-time snapshots). Lifecycle: orchestrator initializes, specialist skills update, handover-writer summarizes at session-end. AC-discipline: every task carries observable + independently verifiable acceptance criteria; task is DONE only when all AC are checked; blocked tasks keep AC unchanged and document the blocker. Concept adapted from [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) (MIT) — pure markdown integration, no fork, no Go binary, no install.
+
+### Validation
+
+- **Unit tests: 536 / 536** (was 491 — +45 across new sources).
+- **Manifest invariants** updated: EXPECTED_TOTAL 55 → 62; EXPECTED_CATEGORIES adds `osint`; EXPECTED_SOURCES_BY_CATEGORY adds `elementalsouls-fork` (osint) + `matty-fork` (offensive); EXPECTED_NAMES_BY_CATEGORY extends offensive (+5) and adds osint (+2).
+- **Attribution invariants** updated: HEADER_RE_BY_SOURCE +2 entries.
 - **Gate 10 — Residue-Check** added to `aegis-quality-gates/SKILL.md`. Detects stale commit-SHAs in handover docs (caught the v0.4.0 publish-procedure bug where rebase invalidated cited SHAs), broken markdown cross-links in shipped SKILL.md content, orphan path references, phantom `_INDEX.md` skill rows pointing at non-existent paths, dead `<!-- aegis-local: -->` provenance refs. Pure shell + grep methodology — runs in both `--quick` and `--final` modes, plus a new `--residue` operator-on-demand mode for post-rebase / post-merge checks. Concept adapted from claude-code-harness's `harness doctor --residue` (MIT).
 - **Plans.md task-discipline** referenced from `aegis-module-builder/SKILL.md`. Module-builder feature-specs map their acceptance-criteria 1:1 onto the Plans.md AC-checkbox format defined in aegis-orchestrator. Module-build phases 2-6 check off AC as they progress; task moves DONE only when all AC are checked.
 
