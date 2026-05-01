@@ -44,6 +44,18 @@ paths = [
 ]
 
 [[allowlists]]
+description = "elementalsouls-fork — byte-identical upstream OSINT pedagogical content showing private_key/credential detection-rule examples (the patterns ARE the teaching content)"
+paths = [
+    '''^packages/skills/skills/osint/elementalsouls-fork/''',
+]
+
+[[allowlists]]
+description = "matty-fork — byte-identical upstream offensive pedagogical content showing detection-rule examples (paired with elementalsouls-fork allowlist; same class as snailsploit-fork)"
+paths = [
+    '''^packages/skills/skills/offensive/matty-fork/''',
+]
+
+[[allowlists]]
 description = "AEGIS scanner's own test fixtures — by-design secret-like strings for detection validation (entropy-scanner, jwt-detector, crypto-auditor, gitleaks wrapper, trufflehog wrapper, integration.fix-guidance)"
 paths = [
     '''^packages/scanners/__tests__/''',
