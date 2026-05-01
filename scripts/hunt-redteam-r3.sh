@@ -14,7 +14,8 @@
 set -uo pipefail
 
 WORKDIR="$HOME/findings/redteam-r3-$(date +%Y%m%d)"
-AEGIS_CLI="<REPO_ROOT>/packages/cli/dist/index.js"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+AEGIS_CLI="$REPO_ROOT/packages/cli/dist/index.js"
 mkdir -p "$WORKDIR/clones" "$WORKDIR/scans"
 cd "$WORKDIR"
 
@@ -127,4 +128,4 @@ done < targets.txt
 
 echo ""
 echo "🎉 Round 3 hunt done. Triage with:"
-echo "    node <REPO_ROOT>/scripts/triage-vibecoded.mjs $WORKDIR/scans"
+echo "    node $REPO_ROOT/scripts/triage-vibecoded.mjs $WORKDIR/scans"

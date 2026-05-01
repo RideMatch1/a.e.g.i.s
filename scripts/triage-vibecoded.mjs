@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const SCANS_DIR = process.argv[2] || '$HOME/findings/vibecoded-fresh-20260429/scans';
+const SCANS_DIR = process.argv[2] || `${process.env.HOME}/findings/vibecoded-fresh-20260429/scans`;
 
 // Known FP-prone scanners on this corpus class — DON'T trust without manual review
 const LOW_CONFIDENCE_SCANNERS = new Set([

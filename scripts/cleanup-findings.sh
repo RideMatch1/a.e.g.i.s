@@ -3,11 +3,12 @@
 # Usage: bash scripts/cleanup-findings.sh [findings-dir]
 #
 # After triage is complete, run this to wipe all cloned third-party
-# repos. Scan-result JSONs are kept by default (small, archived under
-# aegis-precision/scan-archives/ if you want longer retention).
+# repos. Scan-result JSONs are kept by default (small; archive them
+# to your own per-engagement working directory if you want longer
+# retention — they are NOT auto-archived by this script).
 #
-# Per battle-testing directive 2026-04-29: clones must not accumulate
-# locally. Run this at the end of every hunt session.
+# Per battle-testing convention: clones must not accumulate locally.
+# Run this at the end of every hunt session.
 
 set -uo pipefail
 

@@ -6,7 +6,8 @@
 set -uo pipefail
 
 WORKDIR="$HOME/findings/crypto-vibecoded-$(date +%Y%m%d)"
-AEGIS_CLI="<REPO_ROOT>/packages/cli/dist/index.js"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+AEGIS_CLI="$REPO_ROOT/packages/cli/dist/index.js"
 mkdir -p "$WORKDIR/clones" "$WORKDIR/scans"
 cd "$WORKDIR"
 
