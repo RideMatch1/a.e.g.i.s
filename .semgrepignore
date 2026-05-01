@@ -1,0 +1,9 @@
+# AEGIS-side semgrep-ignore — supplements scanner-internal isTestFile()
+# logic (which the AEGIS-native scanners honor but semgrep's wrapper
+# does not). Keep entries minimal and rationale-tagged.
+#
+# F-XSS-PAYLOADS-1 (v0.18.0): the dr34mhacks/XSSNow corpus deliberately
+# contains XSS-attack patterns (bidi unicode, ws://-WebSocket payloads,
+# polyglot strings). Those are TPs by design in a payload corpus; they
+# would otherwise inflate AEGIS' self-scan with intentional content.
+packages/scanners/__tests__/fixtures/
