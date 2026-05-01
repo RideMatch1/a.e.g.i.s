@@ -1,0 +1,47 @@
+## MIT-License — anonymized teaching snippet for brutaler-anwalt
+## References: audit-patterns.md Phase 4 DSE-Drift-Audit Style 2
+## Pattern: GitHub Actions Cron-Trigger fuer DSGVO-Retention-Cleanup
+
+# File: .github/workflows/data-retention.yml
+
+name: data-retention-cleanup
+
+on:
+  schedule:
+    # tgl. 03:00 UTC = 04:00 CET (low-traffic-window)
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Trigger retention API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          API_URL: ${{ secrets.RETENTION_API_URL }}  # https://<your-domain>/api/cron/data-retention
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$API_URL" ]; then
+            echo "::error::CRON_SECRET or RETENTION_API_URL not set in GH secrets"
+            exit 1
+          fi
+          response=$(curl -sS -w "\n%{http_code}" -X POST "$API_URL" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            --max-time 60)
+          body=$(echo "$response" | sed '$d')
+          status=$(echo "$response" | tail -n1)
+          echo "::group::API response"
+          echo "$body"
+          echo "::endgroup::"
+          if [ "$status" != "200" ]; then
+            echo "::error::retention API returned status $status"
+            exit 1
+          fi
+
+# VERIFY in repo:
+#   gh workflow run data-retention-cleanup
+#   gh run list --workflow=data-retention-cleanup --limit 5

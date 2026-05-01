@@ -112,6 +112,39 @@ Für jede Verarbeitung (Website-Besuch, Kontaktformular, Newsletter, Shop-Bestel
 
 ---
 
+## Checkliste 3b: AGB B2C-Online — Pflicht-Klauseln-Komplettliste (post-V3.1-Audit 2026-05-01)
+
+Bei B2C-Online-Anbietern (Webshop, SaaS-Subscription, App-Store-Abo) sind folgende Klauseln **gleichzeitig** Pflicht. Fehlt eine → typischer Abmahn-Hebel.
+
+| Pflicht-Klausel | Rechtsgrundlage | Verify-Command |
+|----------------|-----------------|----------------|
+| Widerrufsbelehrung (vollstaendig) | § 312g BGB + § 355 BGB | `grep -i "Widerrufsbelehrung\|14 Tage" agb.html` |
+| Muster-Widerrufsformular (Anlage 2 zu Art. 246a § 1 Abs. 2 EGBGB) | EGBGB | `grep -i "Muster.Widerrufsformular" agb.html` |
+| Button-Loesung "zahlungspflichtig bestellen" | § 312j Abs. 3 BGB | UI-Probe Checkout-Button |
+| § 312k BGB Online-Kuendigungsbutton-Hinweis (auch in AGB) | § 312k BGB | `grep -i "kuendigungsbutton\|jetzt kuendigen" agb.html` |
+| § 309 Nr. 9 lit. b BGB Monatskuendigung nach Erstlaufzeit | § 309 BGB (Faires-Verbraucher-Vertraege-Gesetz 2022) | `grep -i "monat\|monatlich.*kuendb" agb.html` |
+| § 36 VSBG-Hinweis (Verbraucherschlichtung-Bereitschaft) | § 36 VSBG | `grep -i "VSBG\|Verbraucherschlichtung\|Streitbeilegung" agb.html` |
+| Art. 14 ODR-Link (https://ec.europa.eu/consumers/odr/) | EU 524/2013 | `grep "ec.europa.eu/consumers/odr" agb.html` |
+| Genehmigungsfiktion-Verbot bei AGB-Aenderungen | § 308 Nr. 5 BGB + BGH XI ZR 26/20 | grep auf "gilt als genehmigt" → falls vorhanden = Verstoss |
+| AGB-Stand-Datum + Versionshistorie | Art. 5 lit. a DSGVO + Transparenz-Pflicht | `grep -oE "Stand:.{0,30}" agb.html` |
+
+**Az.-Anker:** BGH I ZR 169/17 (15.03.2018) für § 36 VSBG, BGH I ZR 161/24 (22.05.2025) für § 312k.
+
+## Checkliste 3c: Affiliate / Werbung / Influencer (UWG § 5a Abs. 4)
+
+| Surface | Pflicht-Disclaimer | Position | Verify |
+|---------|---------------------|----------|--------|
+| Empfehlungs-Page (Affiliate-Links) | "Werbehinweis: Diese Seite enthaelt Affiliate-Links" | OBEN sichtbar (vor Produkt-Listing), nicht nur Footer | `curl <url> \| grep -ic "Werbehinweis"` |
+| Einzelner Affiliate-Link | `*` Sternchen + Footnote ODER `[Werbung]`-Tag inline | inline am Link | DOM-Probe |
+| Influencer-Posts | "Werbung" / "Anzeige" | erste Zeile / Stories: Sticker | manuelles Audit |
+| Newsletter mit Affiliate | "Werbehinweis" im Header | erste Zeile | E-Mail-Inhalt-Audit |
+
+**Az.-Anker:** LG Muenchen I 4 HK O 14302/15 "Brand Ambassador" (29.04.2019, Influencer-Werbung als "Werbung"/"Anzeige") [secondary-source-verified]; BGH I ZR 125/14 "Goldbärenbarren" (06.02.2014, Werbeartikel-Kennzeichnung).
+
+**Component-Pattern:** wiederverwendbare `AffiliateDisclaimer`-Component im Layout der Empfehlungs-Routes einbauen. Component-Vorlage: `references/templates/AffiliateDisclaimer.tsx.example`. Einbau-Pattern: in `(dashboard)/empfehlungen/layout.tsx` o.ae. Layout-Datei der Affiliate-Routes.
+
+---
+
 ## Checkliste 4: Auftragsverarbeitungsvertrag (AVV, Art. 28 DSGVO)
 
 ### Muss ein AVV abgeschlossen werden?

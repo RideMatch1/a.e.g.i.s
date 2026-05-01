@@ -97,6 +97,32 @@
 
 ---
 
+## DSFA-Trigger-Liste (Art. 35 DSGVO) — post-V3.1-Audit 2026-05-01
+
+DSFA = Datenschutz-Folgenabschätzung. Pflicht wenn "voraussichtlich hohes Risiko" (Art. 35 Abs. 1) oder Verarbeitung gem. DSK-Whitelist 2018 / BayLDA-Hinweise. KMU-Privileg gilt **nicht** für DSFA (anders als für VVT Art. 30 Abs. 5).
+
+| Trigger | DSFA-Status |
+|---------|-------------|
+| KI-Chat / KI-Auswertung mit User-PII (auch indirekt: Halter ueber Tier-Profile) | empfohlen (Art. 35 Abs. 3 lit. a Profiling-Naehe) |
+| Public-User-PII-Listings (Vermisst, Marketplace, oeffentliches Profil) | empfohlen (Art. 35 Abs. 3 lit. b umfangreiche Verarbeitung) |
+| Auswertung Gesundheitsdaten (auch Tier-Gesundheit + Halter-Daten kombiniert) | empfohlen |
+| Aggregation aus 3+ Auftragsverarbeitern in einem Profil | empfohlen |
+| Geo-Standort-Tracking | empfohlen |
+| Automatisierte Entscheidungen (Art. 22 DSGVO) | **Pflicht** |
+| Besondere Kategorien Art. 9 (auch nur Halter-Allergien beim Kontaktformular) | **Pflicht** |
+
+Bei Match → DSFA-Doc als interne Doku anlegen (Vorlage: BayLDA-Hinweise zur DSFA + DSK-Whitelist 2018). Beispiel-Template: siehe `references/templates/DSFA-template.md`.
+
+## VVT (Verzeichnis Verarbeitungstätigkeiten, Art. 30 DSGVO) — KMU-Best-Practice
+
+Pflicht-Status: Verantwortlicher mit ≥ 250 MA ODER regelmäßige Verarbeitung sensibler Daten ODER hohes Risiko. KMU-Privileg Art. 30 Abs. 5 → < 250 MA mit gelegentlicher Verarbeitung ohne Sonderkategorien sind nicht VVT-pflichtig.
+
+Best-Practice trotzdem: BayLDA empfiehlt VVT auch fuer KMU zur Erfuellung Rechenschaftspflicht Art. 5 Abs. 2.
+
+Mindestinhalt pro Verarbeitungstätigkeit: Zweck / Rechtsgrundlage / Datenkategorien / Empfaenger / Drittland-Status / Speicherdauer / TOMs.
+
+Beispiel-Template: siehe `references/templates/VVT-template.md`.
+
 ## Bußgeldrahmen (Art. 83 DSGVO)
 
 ### Stufe 1 — bis 10 Mio. € oder 2% Jahresumsatz (der höhere Betrag)

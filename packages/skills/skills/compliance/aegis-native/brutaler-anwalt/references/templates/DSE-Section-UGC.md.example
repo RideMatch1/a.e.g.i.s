@@ -1,0 +1,77 @@
+---
+license: MIT
+purpose: DSE-Block-Vorlage fuer UGC-Plattformen (Vermisst, Marketplace, Forum, Profile).
+references: audit-patterns.md Phase 5c UGC-PUBLIC-PII-AUDIT
+sources: Art. 6 Abs. 1 lit. a + lit. f DSGVO + EuGH C-131/12 Google Spain + DSA Art. 16
+---
+
+# DSE-Section: User-Generated-Content (UGC) — Vorlage
+
+> Dieser Block gehoert in deine Datenschutzerklaerung wenn deine Plattform
+> oeffentlich abrufbare User-Posts hat (Vermisst-Inserate, Marketplace-Listings,
+> Forum-Threads, oeffentliche Profile, oeffentliche Kommentare).
+
+## `<N>`. Nutzer-veroeffentlichte Inhalte (UGC)
+
+### `<N>.1` Welche Daten werden veroeffentlicht?
+
+Wenn Sie als Nutzer einen Beitrag in `<unsere-Plattform>` (z.B. ein
+Vermisst-Inserat, eine Marketplace-Anzeige, einen Forum-Beitrag, ein
+oeffentliches Profil) veroeffentlichen, sind folgende Daten oeffentlich
+abrufbar:
+
+- `<Auflistung der Felder>`, z.B.: Vorname, Stadt, Telefonnummer, E-Mail,
+  Foto, Tier-Daten, freier Text
+
+Diese Daten sind nach Veroeffentlichung **fuer alle Internetnutzer
+einsehbar**, koennen von Suchmaschinen indexiert werden und ggf. von
+Drittanbietern (Wayback Machine, Google Cache) gespeichert werden.
+
+### `<N>.2` Rechtsgrundlage
+
+Art. 6 Abs. 1 lit. a DSGVO — Einwilligung. Die Einwilligung wird beim
+Abschicken des Posting-Formulars durch eine Pflicht-Checkbox eingeholt
+(siehe Posting-Form in der App / auf der Website). Die Checkbox ist nicht
+vorausgewaehlt; ohne aktive Bestaetigung kann kein Post abgeschickt werden.
+
+### `<N>.3` Speicherdauer
+
+`<konkret, z.B.: "Vermisst-Inserate werden 90 Tage nach dem Status
+\"gefunden\" automatisch geloescht. Marketplace-Anzeigen verfallen 30 Tage
+nach Inaktivitaet. Forum-Beitraege werden bis zur expliziten Loeschung durch
+den Nutzer aufbewahrt.">`
+
+Die automatischen Loesch-Cron-Jobs sind dokumentiert (siehe
+`references/templates/data-retention-cron.ts.example` als Pattern).
+
+### `<N>.4` Recht auf Loeschung (Art. 17 DSGVO)
+
+Sie koennen Ihre Beitraege jederzeit selbst loeschen ueber `<Pfad zum
+Loeschen-UI>`. Wir setzen zusaetzlich `X-Robots-Tag: noindex` Header auf
+allen UGC-Detail-Pages mit personenbezogenen Daten — damit Suchmaschinen
+nicht in den Cache nehmen, was Sie spaeter loeschen wollen
+(Az.-Anker: EuGH C-131/12 Google Spain). Wir leiten Loesch-Anfragen
+auf Wunsch auch an Google / Bing / DuckDuckGo weiter
+(siehe Hilfe-FAQ `<URL>` fuer Anleitung).
+
+### `<N>.5` Notice-and-Action gem. DSA (Art. 16)
+
+Bei rechtswidrigen UGC-Inhalten haben Sie ein Notice-and-Action-Recht.
+Reichen Sie eine Meldung ein unter `<URL zum Report-Endpoint>` oder per
+E-Mail an `<email>`. Wir reagieren innerhalb von `<X>` Tagen (DSA Art. 16
+verlangt unverzuegliche Bearbeitung; bei Strafverfolgungs-relevanten
+Inhalten unverzuegliche Behoerden-Meldung).
+
+### `<N>.6` Empfehlung an Nutzer
+
+Wir empfehlen, in oeffentlichen UGC-Posts:
+- nicht die Privatadresse, nur Stadt
+- bevorzugt eine sekundaere E-Mail-Adresse oder Plattform-interne Inbox
+- bei Telefonnummer pruefen ob Kontakt-Formular reicht
+
+`<weitere Branchen-spezifische Hinweise>`
+
+---
+
+*Disclaimer: technisch-indikative Vorlage, keine Rechtsberatung i.S.d. § 2 RDG.
+Vor produktivem Einsatz von Fachanwalt fuer Datenschutzrecht pruefen lassen.*

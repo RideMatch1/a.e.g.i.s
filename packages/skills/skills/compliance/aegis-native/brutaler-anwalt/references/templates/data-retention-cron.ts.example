@@ -1,0 +1,52 @@
+// MIT-License — anonymized teaching snippet for brutaler-anwalt
+// References: audit-patterns.md Phase 4 DSE-Drift-Audit Style 2 (DSE-Aussage "wir loeschen nach X")
+// Pattern: Next.js API-Route mit Bearer-Auth, idempotent, audit-logged
+
+// File: src/app/api/cron/data-retention/route.ts (Next.js App-Router)
+
+import { NextRequest, NextResponse } from 'next/server';
+
+const RETENTION_DAYS = Number(process.env.DATA_RETENTION_DAYS ?? '180');
+
+export async function POST(req: NextRequest) {
+  // 1. Bearer-Auth — Cron-Secret aus env, nicht hardcoded
+  const authHeader = req.headers.get('authorization') ?? '';
+  const expected = `Bearer ${process.env.CRON_SECRET}`;
+  if (!process.env.CRON_SECRET || authHeader !== expected) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  // 2. Compute cutoff
+  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+
+  // 3. Delete-Logik — pro Tabelle / Collection / Bucket einzeln
+  const results = {
+    cutoff: cutoff.toISOString(),
+    deleted: {} as Record<string, number>,
+  };
+
+  try {
+    // Pseudocode — durch echten DB-Client ersetzen
+    // results.deleted.session_logs = await db.sessionLogs.deleteMany({ created_at: { lt: cutoff } });
+    // results.deleted.lost_found_posts = await db.lostFoundPosts.deleteMany({ expires_at: { lt: new Date() } });
+    // results.deleted.unverified_signups = await db.users.deleteMany({ verified: false, created_at: { lt: cutoff } });
+  } catch (err) {
+    console.error('[retention-cron] error', err);
+    return NextResponse.json({ error: 'cleanup-failed', details: String(err) }, { status: 500 });
+  }
+
+  // 4. Audit-Log — Pflicht fuer Rechenschafts-Nachweis Art. 5 Abs. 2 DSGVO
+  console.log(JSON.stringify({
+    event: 'data_retention_cleanup',
+    timestamp: new Date().toISOString(),
+    cutoff: results.cutoff,
+    deleted: results.deleted,
+  }));
+
+  return NextResponse.json(results);
+}
+
+// VERIFY:
+//   curl -X POST https://<your-domain>/api/cron/data-retention \
+//     -H "Authorization: Bearer $CRON_SECRET"
+//   # erwarte 200 + JSON mit deleted-counts; ohne Auth 401.

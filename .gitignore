@@ -22,6 +22,13 @@ aegis-precision/
 # Rule #13 developer-local scrub-terms
 scripts/scrub-terms.local.txt
 
+# ARK676 puzzle/game working notes — local-only, never commit
+docs/ark-memory/
+docs/HTML WECRY-virus
+docs/puzzle*.md
+docs/phase7-live-tests.md
+docs/graphql-test.md
+
 # pnpm pack / npm pack output — per-package tarballs produced during
 # local publish rehearsals. They can accidentally get git-added and
 # should never land in a commit.

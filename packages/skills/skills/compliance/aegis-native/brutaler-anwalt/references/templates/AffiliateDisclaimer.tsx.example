@@ -1,0 +1,54 @@
+// MIT-License — anonymized teaching snippet for brutaler-anwalt
+// References: checklisten.md Checkliste 3c (UWG § 5a Abs. 4)
+// Az.-Anker: LG Muenchen I 4 HK O 14302/15 (Influencer-Werbung als "Werbung"/"Anzeige")
+
+// File: src/components/shared/AffiliateDisclaimer.tsx
+// Use: import + render at top of any /empfehlungen, /partnerprogramm, /tipp,
+//      /best-of route. Pflicht: visible above-the-fold + before product listing.
+
+import React from 'react';
+
+interface AffiliateDisclaimerProps {
+  /** optional override of default copy */
+  text?: string;
+  /** className override for layout-specific styling */
+  className?: string;
+}
+
+const DEFAULT_TEXT =
+  'Werbehinweis: Diese Seite enthält Affiliate-Links (mit * markiert). ' +
+  'Wenn Sie über einen solchen Link einkaufen, erhalten wir eine kleine ' +
+  'Provision. Für Sie entstehen dadurch keine Mehrkosten. Diese Provision ' +
+  'finanziert unsere Arbeit und beeinflusst nicht unsere Empfehlung.';
+
+export function AffiliateDisclaimer({
+  text = DEFAULT_TEXT,
+  className = '',
+}: AffiliateDisclaimerProps) {
+  return (
+    <aside
+      role="note"
+      aria-label="Werbehinweis"
+      className={`affiliate-disclaimer ${className}`.trim()}
+      data-testid="affiliate-disclaimer"
+    >
+      <p>{text}</p>
+    </aside>
+  );
+}
+
+// USAGE (example layout, e.g., src/app/(dashboard)/empfehlungen/layout.tsx):
+//
+//   import { AffiliateDisclaimer } from '@/components/shared/AffiliateDisclaimer';
+//   export default function EmpfehlungenLayout({ children }) {
+//     return (
+//       <>
+//         <AffiliateDisclaimer />
+//         {children}
+//       </>
+//     );
+//   }
+//
+// VERIFY:
+//   curl https://<your-domain>/empfehlungen | grep -ic 'Werbehinweis'
+//   # erwarte: >= 1 Treffer

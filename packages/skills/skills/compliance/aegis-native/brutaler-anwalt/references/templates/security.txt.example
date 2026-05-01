@@ -1,0 +1,26 @@
+# MIT-License — anonymized teaching snippet for brutaler-anwalt
+# References: audit-patterns.md Phase 2 Public-Static-File-Audit
+# Spec: RFC 9116 (https://www.rfc-editor.org/rfc/rfc9116)
+#
+# File: public/.well-known/security.txt
+# Critical: KEINE Placeholder-Tokens (`{{...}}`, `<...>`, `YOUR_*`, `AGENT:`,
+#           `TODO:`, `FIXME:`) im Production-Build. Die folgenden Werte sind
+#           OPERATOR-VERANTWORTUNG, vor Deploy konkret zu setzen.
+
+Contact: mailto:security@<your-domain>
+Contact: https://<your-domain>/security/contact
+Expires: 2027-12-31T23:59:59Z
+Encryption: https://<your-domain>/.well-known/pgp-key.txt
+Acknowledgments: https://<your-domain>/security/hall-of-fame
+Preferred-Languages: de, en
+Canonical: https://<your-domain>/.well-known/security.txt
+Policy: https://<your-domain>/security/responsible-disclosure
+Hiring: https://<your-domain>/karriere
+
+# Pre-Deploy-Verify:
+#   curl -s https://<your-domain>/.well-known/security.txt | \
+#     grep -E '\{\{|<[A-Z_]+>|YOUR_|AGENT:|ASSISTANT:|TODO:|FIXME:|placeholder' && \
+#     echo "🔴 KRITISCH — unrendered Template" || echo "✓ clean"
+#
+# Expires-Datum: alle 6-12 Monate updaten. Das Datum ist hier ein Lehrbuch-Wert
+# und MUSS vom Operator vor Deploy gesetzt werden. RFC 9116 verlangt < 1 Jahr.

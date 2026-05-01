@@ -214,9 +214,8 @@ npx @aegis-scan/cli scan --output aegis-report.json
 # externe-Tool-Outputs + 0-1000 Score + FORTRESS→CRITICAL Grade.
 ```
 
-Der Skill kann den `aegis-report.json` mit derselben Schweregrad-Mapping-
-Tabelle konsumieren, die im Abschnitt "Compliance-Frameworks-Mapping"
-unten beschrieben ist.
+Der Skill kann dann den `aegis-report.json` analog zu jedem operator-internen
+Scanner konsumieren (selbe Schweregrad-Mapping-Tabelle).
 
 ### Compliance-Frameworks-Mapping (a.e.g.i.s → Anwalts-Bewertung)
 
@@ -231,7 +230,7 @@ Bei DSGVO-spezifischen a.e.g.i.s-Findings: pruefe Cross-Risiko mit Pages-Content
 
 ### Nutzungs-Empfehlung
 
-- **Default-SCAN-Modus des Skills**: reine Pages-Content-Analyse (Texte, AGB, Datenschutzerklaerung, Cookie-Banner, Impressum) — schnell + token-effizient. Code-Layer-Findings werden optional einbezogen, wenn der User `@aegis-scan/cli` aktiv eingebunden hat.
+- **Default-SCAN-Modus des Skills**: Nutze nur den operator-internen Scanner (falls vorhanden) ODER reine Pages-Content-Analyse. Schnell + token-effizient.
 - **Tiefe-Mode**: Wenn User `/anwalt scan --deep` oder Aehnliches anfragt: Schlage zusaetzlich `@aegis-scan/cli` vor.
 - **CI-Mode**: a.e.g.i.s liefert eine GitHub-Actions-Recipe (`ci/github-action/`) — koennte vom User in CI eingebunden werden, dann konsumiert der Skill die PR-Comments mit Score + Top-Findings.
 

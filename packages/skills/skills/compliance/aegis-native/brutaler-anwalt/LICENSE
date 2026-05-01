@@ -1,0 +1,43 @@
+MIT License
+
+Copyright (c) 2026 brutaler-anwalt Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+# Hinweis zu Inhalt der References-Files
+
+- Auszuege aus deutschen Gesetzen (`references/gesetze/DSGVO/`, `BDSG/`, `BGB/`,
+  `UWG/` etc.) sind gemeinfreie Werke nach § 5 UrhG und werden mit
+  Quellen-Hinweis auf https://www.gesetze-im-internet.de/ wiedergegeben.
+- Auszuege aus EU-Verordnungen (`DSA-2022-2065`, `AI-Act-2024-1689` etc.) werden
+  unter Creative Commons Attribution 4.0 (CC BY 4.0) der Europaeischen Union
+  per https://eur-lex.europa.eu/ wiedergegeben.
+- BGH/EuGH/OLG-Entscheidungen in `references/bgh-urteile.md` werden mit Az.
+  und Source-URL der jeweiligen Justizportale zitiert. Tenor-Auszuege sind
+  Kurz-Zusammenfassungen (kein Volltext).
+
+# RDG-Disclaimer
+
+Dieser Skill ist eine technisch-indikative Compliance-Pruef-Hilfe. Er stellt
+keine Rechtsdienstleistung im Sinne von § 2 RDG dar (BGH I ZR 113/20 Smartlaw,
+09.09.2021) und ersetzt nicht die Beratung durch einen zugelassenen
+Rechtsanwalt fuer IT- bzw. Datenschutzrecht. Fuer verbindliche Auskuenfte zu
+konkreten Sachverhalten ist anwaltliche Beratung erforderlich.

@@ -1,0 +1,64 @@
+// MIT-License — anonymized teaching snippet for brutaler-anwalt
+// References: audit-patterns.md env-driven Tracking-Component
+// Pattern: env-driven Umami / Plausible / Fathom Tracking-Snippet
+
+// File: src/components/analytics/UmamiScript.tsx
+// Use: include in app/layout.tsx (root layout). Loads only after consent OR
+//      if the tracker is configured "cookieless + IP-anon + DNT respect".
+
+import Script from 'next/script';
+
+interface UmamiScriptProps {
+  /** override the env-default; pass site-id explicitly when SSR-safe */
+  websiteId?: string;
+}
+
+export function UmamiScript({ websiteId }: UmamiScriptProps) {
+  // 1. host: env-driven; default = your own analytics subdomain (NOT vendor-default cloud).
+  //    NEVER hardcode a vendor cloud URL — that's a Drittland-Trigger.
+  const host = (
+    process.env.NEXT_PUBLIC_ANALYTICS_HOST ??
+    'https://<your-analytics-subdomain>'
+  ).replace(/\/+$/, '');
+
+  // 2. site-id from env (or prop override)
+  const id = websiteId ?? process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID;
+
+  // 3. fail-soft: no tracking if env not configured (better than fallback to default-cloud)
+  if (!id) {
+    return null;
+  }
+
+  return (
+    <Script
+      strategy="afterInteractive"
+      src={`${host}/script.js`}
+      data-website-id={id}
+      data-host-url={host}
+      // Privacy-Hardening: respect DNT and GPC client-side (server-side opt: track-DNT off)
+      data-do-not-track="true"
+      // Cookieless mode + IP-anonymisation are server-side settings.
+      // The DSE statement MUST match the actual server-config — verify with admin-panel.
+      async
+    />
+  );
+}
+
+// USAGE in app/layout.tsx:
+//
+//   import { UmamiScript } from '@/components/analytics/UmamiScript';
+//   export default function RootLayout({ children }) {
+//     return (
+//       <html><body>{children}<UmamiScript /></body></html>
+//     );
+//   }
+//
+// VERIFY:
+//   curl -s https://<your-domain> | grep -oE 'data-host-url="[^"]+"'
+//   # erwarte: dein operator-eigener Analytics-Host, nie ein Vendor-Cloud-Default
+//
+// DSE-PFLICHT (analog dazu):
+//   "Wir nutzen das selbstgehostete Analyse-Tool [Tool-Name] auf <your-analytics-subdomain>.
+//    Verarbeitung erfolgt cookieless mit serverseitiger IP-Anonymisierung. DNT/GPC werden
+//    respektiert. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
+//    aggregierter Reichweitenmessung). Widerspruch jederzeit moeglich..."

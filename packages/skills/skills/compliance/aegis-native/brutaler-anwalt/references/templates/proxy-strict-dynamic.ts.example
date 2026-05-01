@@ -1,0 +1,80 @@
+// MIT-License — anonymized teaching snippet for brutaler-anwalt
+// References: audit-patterns.md HIGH-RISK CSP unsafe-inline Migration
+// Pattern: Next.js (App Router) middleware.ts / proxy.ts mit Strict-Dynamic-CSP
+
+// File: src/middleware.ts (oder src/proxy.ts) — Next.js 14+
+// Pattern: per-request nonce → CSP-Header → propagate via x-nonce request-header.
+// Layout liest x-nonce via headers().get('x-nonce') und gibt es an inline-Scripts.
+
+import { NextRequest, NextResponse } from 'next/server';
+
+const cspDirectives = (nonce: string) => [
+  `default-src 'self'`,
+  // Strict-Dynamic + nonce: ersetzt unsafe-inline ohne legitime inline-scripts zu brechen
+  `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https:`,
+  // Style: nonce + self; unsafe-inline weiterhin nur zugelassen wenn unvermeidbar
+  `style-src 'self' 'nonce-${nonce}'`,
+  `img-src 'self' data: https://<your-cdn-domain>`,
+  `font-src 'self' data:`,
+  // Connect: API-Endpoints + 3rd-party-Services aus DSE
+  `connect-src 'self' https://<api-domain> https://<analytics-host>`,
+  `frame-src 'self' https://<embed-domains>`,
+  `object-src 'none'`,
+  `base-uri 'self'`,
+  `form-action 'self'`,
+  `frame-ancestors 'none'`,
+  `upgrade-insecure-requests`,
+].join('; ');
+
+export function middleware(req: NextRequest) {
+  // 1. Generate per-request nonce (16 random bytes, base64)
+  const nonce = btoa(crypto.getRandomValues(new Uint8Array(16)).join(''));
+
+  // 2. Forward via request-header so layout/components can read it
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-nonce', nonce);
+
+  // 3. Build response with CSP-Header
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set('Content-Security-Policy', cspDirectives(nonce));
+
+  // 4. Defense-in-depth headers
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'Strict-Transport-Security',
+    'max-age=63072000; includeSubDomains; preload',
+  );
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(self), interest-cohort=()',
+  );
+
+  return response;
+}
+
+export const config = {
+  matcher: '/:path*',
+};
+
+// USAGE in layout.tsx:
+//
+//   import { headers } from 'next/headers';
+//   export default function RootLayout({ children }) {
+//     const nonce = headers().get('x-nonce') ?? '';
+//     return (
+//       <html>
+//         <body>
+//           <Script id="bootstrap" nonce={nonce} strategy="beforeInteractive">
+//             {`/* inline bootstrap */`}
+//           </Script>
+//           {children}
+//         </body>
+//       </html>
+//     );
+//   }
+//
+// VERIFY:
+//   curl -sIS https://<your-domain> | grep -i 'content-security-policy'
+//   # erwarte: 'nonce-...' + 'strict-dynamic' enthalten, KEIN 'unsafe-inline'

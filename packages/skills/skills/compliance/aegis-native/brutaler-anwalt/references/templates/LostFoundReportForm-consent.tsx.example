@@ -1,0 +1,126 @@
+// MIT-License — anonymized teaching snippet for brutaler-anwalt
+// References: audit-patterns.md Phase 5c UGC-PUBLIC-PII-AUDIT
+// Pattern: Posting-Form mit Pflicht-Checkbox "wird oeffentlich" (Art. 7 DSGVO Einwilligung)
+
+// File: src/components/forms/LostFoundReportForm.tsx (Beispiel: Vermisst-Inserat)
+// Generalisierbar fuer: Marketplace-Inserate, Forum-Threads, oeffentliche Profile.
+
+'use client';
+
+import { useState, FormEvent } from 'react';
+
+interface LostFoundFormState {
+  petName: string;
+  city: string;
+  contactPhone: string;
+  contactEmail: string;
+  description: string;
+  photo: File | null;
+  // Pflicht-Consent — ohne diesen kein Submit
+  publicConsent: boolean;
+  // Optional zusaetzlich: Speicherdauer-Consent + DSE-Akzeptanz
+  privacyAccepted: boolean;
+}
+
+const initialState: LostFoundFormState = {
+  petName: '',
+  city: '',
+  contactPhone: '',
+  contactEmail: '',
+  description: '',
+  photo: null,
+  publicConsent: false,
+  privacyAccepted: false,
+};
+
+export function LostFoundReportForm() {
+  const [form, setForm] = useState<LostFoundFormState>(initialState);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Submit-Gate — Pflicht-Checkbox + DSE-Akzeptanz
+  const canSubmit =
+    form.publicConsent &&
+    form.privacyAccepted &&
+    form.petName.length > 0 &&
+    form.city.length > 0 &&
+    (form.contactPhone.length > 0 || form.contactEmail.length > 0);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!canSubmit) {
+      setError('Bitte fuelle alle Pflichtfelder aus und bestaetige beide Hinweise.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => {
+        if (v instanceof File) fd.append(k, v);
+        else if (typeof v === 'boolean') fd.append(k, v ? 'true' : 'false');
+        else fd.append(k, String(v));
+      });
+      const res = await fetch('/api/lost-found', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      // erfolgreich — redirect / toast
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="lost-found-form">
+      {/* ... regular fields ... */}
+
+      {/* PFLICHT-Consent — sichtbar, NICHT vorausgewaehlt */}
+      <fieldset className="consent-block" aria-required="true">
+        <legend>Veroeffentlichungs-Hinweise (Pflicht)</legend>
+
+        <label className="consent-row">
+          <input
+            type="checkbox"
+            checked={form.publicConsent}
+            onChange={(e) => setForm({ ...form, publicConsent: e.target.checked })}
+            required
+          />
+          <span>
+            Ich habe verstanden, dass dieser Beitrag <strong>oeffentlich
+            abrufbar</strong> ist und in Suchmaschinen erscheinen koennte.
+            Telefonnummer/E-Mail werden bewusst veroeffentlicht, damit Finder
+            Kontakt aufnehmen koennen.
+          </span>
+        </label>
+
+        <label className="consent-row">
+          <input
+            type="checkbox"
+            checked={form.privacyAccepted}
+            onChange={(e) => setForm({ ...form, privacyAccepted: e.target.checked })}
+            required
+          />
+          <span>
+            Ich akzeptiere die <a href="/datenschutz" target="_blank">
+              Datenschutzerklaerung</a> und stimme der Verarbeitung gem. Art. 6
+            Abs. 1 lit. a DSGVO zu. Ich kann den Beitrag jederzeit selbst
+            loeschen.
+          </span>
+        </label>
+      </fieldset>
+
+      {error && <div role="alert" className="form-error">{error}</div>}
+
+      <button type="submit" disabled={!canSubmit || submitting}>
+        {submitting ? 'Wird abgeschickt…' : 'Vermisst-Inserat veroeffentlichen'}
+      </button>
+    </form>
+  );
+}
+
+// VERIFY:
+//   - Server-Side: API muss `publicConsent === true` UND `privacyAccepted === true` enforcen
+//     (Client-Disable allein reicht nicht — Browser-Devtools koennen den Disable umgehen).
+//   - Audit-Log: pro Posting consentId + IP-prefix + Zeitpunkt + Form-Version speichern
+//     (Rechenschaftspflicht Art. 5 Abs. 2).

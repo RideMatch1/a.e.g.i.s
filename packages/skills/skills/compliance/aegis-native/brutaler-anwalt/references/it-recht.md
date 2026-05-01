@@ -58,6 +58,28 @@
 | **EU AI Act (EU 2024/1689)** | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32024R1689 | Risikobasierter Ansatz für KI-Systeme; ab 2025/2026 schrittweise in Kraft |
 | **Produkthaftungsrichtlinie (neu, 2024)** | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32024L2853 | Haftung auch für Software und KI-Systeme |
 
+### Verbraucherschutz / Whistleblower / Barrierefreiheit (2023-2025 in Kraft)
+| Gesetz | Volltext | Relevanz |
+|--------|---------|---------|
+| **HinSchG (Hinweisgeberschutzgesetz)** | https://www.gesetze-im-internet.de/hinschg/ | Whistleblower-Schutz; in Kraft seit 02.07.2023; ab 250 MA seit 02.07.2023 Pflicht; ab 50-249 MA seit 17.12.2023 Pflicht. Bussgeld bei fehlendem Meldekanal bis 20.000 EUR (§ 40 HinSchG, Bussgeld-Sanktion seit 01.12.2023). Quelle: [IHK Stuttgart](https://www.ihk.de/stuttgart/fuer-unternehmen/recht-und-steuern/arbeitsrecht/whistleblowing-5169770) |
+| **BFSG (Barrierefreiheitsstaerkungsgesetz)** | https://www.gesetze-im-internet.de/bfsg/ | Setzt EU-Accessibility-Act um; in Kraft seit 28.06.2025 fuer B2C-Online-Angebote (Webshops, Apps mit Vertragsabschluss, Buchungs-Plattformen). WCAG 2.1 Level AA verpflichtend. Mikrounternehmen <2 Mio. EUR Umsatz/Bilanzsumme + <10 MA = ausgenommen. § 30 BFSG Bussgeld bis 100.000 EUR. Quelle: [Wettbewerbszentrale BFSG-Leitfaden](https://www.wettbewerbszentrale.de/barrierefreiheitsstaerkungsgesetz-gilt-ab-28-juni-2025-was-unternehmen-jetzt-wissen-muessen/) · [HÄRTING BFSG im E-Commerce](https://haerting.de/wissen/das-barrierefreiheitsstaerkungsgesetz-bfsg-im-e-commerce/) |
+| **Faires-Verbraucherver­traege-Gesetz** | BGBl. I 2021 S. 4368 | § 309 Nr. 9 lit. b BGB Verlaengerungs-Klausel-Reform (in Kraft seit 01.03.2022) + § 312k BGB Online-Kuendigungsbutton (in Kraft seit 01.07.2022) |
+| **VDuG (Verbandsklagen-RL Umsetzungsgesetz)** | https://www.gesetze-im-internet.de/vdug/ | Abhilfeklage von Verbraucherverbaenden seit 13.10.2023 — kann tausende Verbraucherforderungen kollektiv buendeln |
+
+### Plattformrecht / Marktregulierung (EU-Verordnungen 2022-2024)
+| Verordnung | Volltext | Relevanz |
+|------------|---------|---------|
+| **Digital Services Act (DSA, EU 2022/2065)** | https://eur-lex.europa.eu/eli/reg/2022/2065/oj | Pflichten fuer Hosting-Dienste, Online-Plattformen, sehr grosse Plattformen (VLOPs). Volle Anwendung seit 17.02.2024. Pflicht: Notice-and-Action, transparente AGB, Dunkles-Muster-Verbot, Werbe-Transparenz. § 21 DDG i.V.m. DSA-DG (DE-Umsetzung). |
+| **Digital Markets Act (DMA, EU 2022/1925)** | https://eur-lex.europa.eu/eli/reg/2022/1925/oj | Gilt nur fuer "Gatekeeper" (>= 75 Mrd. EUR Marktkapitalisierung + 45 Mio. EU-Endnutzer). KMU nicht direkt betroffen — aber Marktverhalten der Gatekeeper aendert sich (Interoperabilitaet, Self-Preferencing-Verbot). |
+
+### Drohend / im Anflug (Beobachtungs-Liste)
+| Vorhaben | Status (Stand 2026-04-30) | Relevanz |
+|----------|---------------------------|---------|
+| **EU AI Act Art. 50** (Transparenz-Pflichten) | Anwendbar **ab 02.08.2026** (24 Mt nach Inkrafttreten); Bussgeld bis 15 Mio. EUR / 3% Jahresumsatz nach Art. 99. Quelle: [TUEV Rheinland](https://consulting.tuv.com/aktuelles/ki-im-fokus/transparenzpflichten-eu-ai-act-art-50) | Chatbots / KI-Bilder / Emotionserkennung muessen Nutzer ueber KI-Charakter informieren. |
+| **Cyber Resilience Act (EU 2024/2847)** | Schrittweise ab 11.12.2024; volle Anwendung 11.12.2027 | Sicherheitspflichten fuer "Produkte mit digitalen Elementen" (IoT, Software). |
+| **Data Act (EU 2023/2854)** | Anwendbar ab 12.09.2025 | B2B-Datenzugang, Wechsel-Pflichten fuer Cloud-Anbieter. |
+| **NIS2-Umsetzungsgesetz DE (NIS2UmsuCG)** | Bundestags-Verfahren laufend (Stand 2026-04-30 — Status pruefen) | Setzt EU NIS2-RL in DE-Recht um. Bis dahin gilt das alte BSIG. |
+
 ---
 
 ## Impressumspflicht (§ 5 DDG, vormals § 5 TMG)
