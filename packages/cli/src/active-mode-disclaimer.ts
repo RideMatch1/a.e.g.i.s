@@ -78,6 +78,34 @@ export function evaluateActiveModeAuthorization(
   console.error(chalk.dim(`    • §202a-c StGB (DE) — Ausspähen / Abfangen von Daten`));
   console.error(chalk.dim(`    • Computer Misuse Act 1990 (UK)`));
   console.error(chalk.dim(`    • equivalent statutes in other jurisdictions\n`));
+  // F-DISCLAIMER-2 — authorization-form enumeration. Operators frequently
+  // ask "what counts as authorization?". Naming the canonical forms reduces
+  // ambiguity and shifts the legal-clarity burden off the tool.
+  console.error(chalk.yellow(`  Acceptable authorization-forms include:`));
+  console.error(chalk.dim(`    • Rules of Engagement (ROE) document for the engagement`));
+  console.error(chalk.dim(`    • Statement of Work (SOW) or signed pentest agreement`));
+  console.error(chalk.dim(`    • Bug-bounty programme scope explicitly covering the target`));
+  console.error(chalk.dim(`    • Internal change-management approval (for own systems)`));
+  console.error(chalk.dim(`    • Equivalent written authorization from the system owner\n`));
+  // F-DISCLAIMER-2 — negative-list. Explicit refusal-of-action set so
+  // operators (and downstream LLM-agent integrators) know the safety
+  // floor, even when prompted to do otherwise.
+  console.error(chalk.yellow(`  AEGIS active modes will NOT:`));
+  console.error(chalk.dim(`    • destroy, modify, or exfiltrate target data`));
+  console.error(chalk.dim(`    • take systems offline or disrupt production service`));
+  console.error(chalk.dim(`    • move laterally outside the declared engagement scope`));
+  console.error(chalk.dim(`    • bypass authentication when authorization is missing`));
+  console.error(chalk.dim(`    • silently elevate privileges or persist on the target\n`));
+  // F-DISCLAIMER-2 — third-party LLM data-flow advisory. DAST scanners
+  // Strix / PTAI / Pentest-Swarm-AI are LLM-agent frameworks invoked in
+  // both pentest and siege modes (post v0.17.8 mode-gate); operators
+  // should know data leaves the local machine when they enable them.
+  console.error(chalk.yellow(`  Third-party LLM data-flow advisory:`));
+  console.error(chalk.dim(`    DAST agents Strix / PTAI / Pentest-Swarm-AI are LLM-agent`));
+  console.error(chalk.dim(`    frameworks. Target URLs, response bodies, and findings may`));
+  console.error(chalk.dim(`    be transmitted to third-party LLM providers during the run.`));
+  console.error(chalk.dim(`    For sensitive engagements, configure local-model endpoints`));
+  console.error(chalk.dim(`    or redact target-identifying data before invocation.\n`));
   console.error(
     chalk.yellow(
       `  By passing --confirm you affirm authorization for the specified target.`,
