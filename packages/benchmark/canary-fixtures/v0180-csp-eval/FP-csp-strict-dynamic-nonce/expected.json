@@ -1,0 +1,9 @@
+{
+  "id": "v0180-FP-csp-strict-dynamic-nonce",
+  "cwe": 693,
+  "type": "FP",
+  "description": "FP regression-guard: 'strict-dynamic' + nonce is the modern hardened pattern — CSP3 browsers ignore url-allowlist + 'unsafe-inline' when strict-dynamic is paired with a nonce / hash. csp-evaluator MUST NOT fire.",
+  "expected": [
+    { "scanner": "csp-evaluator", "cwe": 693 }
+  ]
+}

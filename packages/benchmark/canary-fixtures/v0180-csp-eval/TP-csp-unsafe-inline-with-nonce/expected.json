@@ -1,0 +1,9 @@
+{
+  "id": "v0180-TP-csp-unsafe-inline-with-nonce",
+  "cwe": 693,
+  "type": "TP",
+  "description": "CSP script-src has 'unsafe-inline' AND a nonce. CSP3-aware browsers ignore 'unsafe-inline' when a nonce is present, but pre-CSP3 browsers still execute it. csp-evaluator MUST fire at MEDIUM severity (operator should drop the redundant 'unsafe-inline').",
+  "expected": [
+    { "scanner": "csp-evaluator", "cwe": 693 }
+  ]
+}

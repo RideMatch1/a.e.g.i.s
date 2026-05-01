@@ -1,0 +1,9 @@
+{
+  "id": "v0180-TP-csp-wildcard-host",
+  "cwe": 693,
+  "type": "TP",
+  "description": "CSP script-src includes wildcard host `*`. Allows ANY host to serve script — fully neuters origin-restriction. csp-evaluator MUST fire at HIGH severity.",
+  "expected": [
+    { "scanner": "csp-evaluator", "cwe": 693 }
+  ]
+}

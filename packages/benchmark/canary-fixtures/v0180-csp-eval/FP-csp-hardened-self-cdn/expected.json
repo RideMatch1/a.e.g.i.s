@@ -1,0 +1,9 @@
+{
+  "id": "v0180-FP-csp-hardened-self-cdn",
+  "cwe": 693,
+  "type": "FP",
+  "description": "FP regression-guard: a well-hardened policy — 'self' + one HTTPS CDN, object-src 'none', base-uri 'self', no unsafe-* directives. csp-evaluator MUST NOT fire.",
+  "expected": [
+    { "scanner": "csp-evaluator", "cwe": 693 }
+  ]
+}

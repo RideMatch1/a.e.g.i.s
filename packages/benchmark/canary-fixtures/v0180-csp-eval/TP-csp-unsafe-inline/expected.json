@@ -1,0 +1,9 @@
+{
+  "id": "v0180-TP-csp-unsafe-inline",
+  "cwe": 693,
+  "type": "TP",
+  "description": "CSP script-src includes 'unsafe-inline' without a paired nonce / hash / strict-dynamic. Inline-script XSS payloads execute. csp-evaluator MUST fire at HIGH severity.",
+  "expected": [
+    { "scanner": "csp-evaluator", "cwe": 693 }
+  ]
+}

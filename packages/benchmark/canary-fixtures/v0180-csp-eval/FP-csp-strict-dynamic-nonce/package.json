@@ -1,0 +1,7 @@
+{
+  "name": "v0180-canary-fp-csp-strict-dynamic-nonce",
+  "version": "0.0.1",
+  "dependencies": {
+    "next": "^14.0.0"
+  }
+}

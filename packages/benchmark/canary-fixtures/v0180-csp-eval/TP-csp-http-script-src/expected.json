@@ -1,0 +1,9 @@
+{
+  "id": "v0180-TP-csp-http-script-src",
+  "cwe": 693,
+  "type": "TP",
+  "description": "CSP script-src lists an `http://` origin (plain-text TLS-stripped). Active-network attacker can downgrade + inject script. csp-evaluator MUST fire at HIGH severity.",
+  "expected": [
+    { "scanner": "csp-evaluator", "cwe": 693 }
+  ]
+}
