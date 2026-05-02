@@ -42,6 +42,9 @@ packages/*/*.tgz
 # with the same prefix are NOT auto-ignored.
 packages/benchmark/vulnerable-app/src/__aegis_*/
 
+# MCP-server validate-path test scratch dir (env-portable replacement for os.tmpdir())
+packages/mcp-server/__tests__/.scratch/
+
 # CycloneDX SBOM files generated at publish-time by
 # scripts/generate-sbom.sh. Per-version artifacts; never source-of-truth.
 sbom.cdx.json

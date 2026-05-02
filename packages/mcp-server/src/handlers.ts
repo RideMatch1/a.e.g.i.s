@@ -2,28 +2,69 @@ import { loadConfig, Orchestrator } from '@aegis-scan/core';
 import { getAllScanners } from '@aegis-scan/scanners';
 import type { AuditResult, Finding, ScanCategory } from '@aegis-scan/core';
 import * as path from 'node:path';
-import { existsSync } from 'node:fs';
+import * as os from 'node:os';
+import { existsSync, realpathSync } from 'node:fs';
 
-/** Validate that a path is safe to scan (no traversal, must exist) */
-function validatePath(inputPath: string): string {
-  // Check RAW input BEFORE resolve (resolve strips ..)
-  if (inputPath.includes('..')) {
-    throw new Error(`Path traversal detected: ${inputPath}`);
-  }
-  // Block null bytes (path injection on some OS)
+const SYSTEM_BLOCKED_RAW = [
+  '/etc', '/private/etc',
+  '/root', '/private/root',
+  '/usr', '/bin', '/sbin', '/sys', '/proc',
+  '/var/log', '/private/var/log',
+  '/var/db', '/private/var/db',
+  '/var/root', '/private/var/root',
+  '/var/spool', '/private/var/spool',
+  '/var/audit', '/private/var/audit',
+  '/tmp', '/private/tmp',
+  '/var/tmp', '/private/var/tmp',
+  '/Volumes',
+  'C:\\Windows', 'C:\\Program Files', 'C:\\ProgramData', 'C:\\Users\\Default',
+];
+
+const USER_SECRET_DIRS = ['.ssh', '.aws', '.gnupg', '.config', '.docker', '.kube', '.azure', '.gcloud'];
+
+function buildCanonicalBlocklist(): string[] {
+  const home = os.homedir();
+  const userSecrets = USER_SECRET_DIRS.map((d) => path.join(home, d));
+  const all = [...SYSTEM_BLOCKED_RAW, ...userSecrets];
+  // realpath canonicalizes through symlinks so /etc and /private/etc both normalize to the same form
+  return all.map((p) => {
+    try { return realpathSync(p); } catch { return p; }
+  });
+}
+
+const CANONICAL_BLOCKLIST = buildCanonicalBlocklist();
+
+/** Validate that a path is safe to scan (no traversal, no system/user-secret directories, must exist) */
+export function validatePath(inputPath: string): string {
+  // Null-byte check first — on some OS the null byte truncates the path before downstream checks see it
   if (inputPath.includes('\0')) {
     throw new Error(`Null byte in path: ${inputPath}`);
   }
-  const resolved = path.resolve(inputPath);
-  // Block system directories (Unix + Windows)
-  const blocked = ['/etc', '/root', '/var', '/usr', '/bin', '/sbin', '/sys', '/proc',
-    'C:\\Windows', 'C:\\Program Files', 'C:\\ProgramData'];
-  if (blocked.some((b) => resolved.startsWith(b))) {
-    throw new Error(`Blocked system path: ${resolved}`);
+  if (inputPath.includes('..')) {
+    throw new Error(`Path traversal detected: ${inputPath}`);
   }
+  const resolved = path.resolve(inputPath);
+
+  // Canonicalize via realpath when path exists — catches symlink-escape (user-link → /etc) and macOS aliasing (/etc ↔ /private/etc)
+  let canonical = resolved;
+  try {
+    canonical = realpathSync(resolved);
+  } catch {
+    // path doesn't exist; existsSync below will reject
+  }
+
+  // Exact-match OR <prefix>/<sep> to avoid /etcetera-style false-positives that the previous startsWith allowed
+  const isBlocked = (p: string): boolean =>
+    CANONICAL_BLOCKLIST.some((b) => p === b || p.startsWith(b + path.sep));
+
+  if (isBlocked(resolved) || isBlocked(canonical)) {
+    throw new Error(`Blocked system or user-secret path: ${resolved}`);
+  }
+
   if (!existsSync(resolved)) {
     throw new Error(`Path does not exist: ${resolved}`);
   }
+
   return resolved;
 }
 
