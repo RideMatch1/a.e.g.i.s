@@ -252,12 +252,14 @@ describe('applyOpsecDispatcher — global dispatcher save/restore', () => {
 
     const restore = applyOpsecDispatcher({ proxy: `http://127.0.0.1:${proxyPort}` });
     try {
-      // Use undici's fetch (NOT globalThis.fetch) — Node 22's bundled fetch
-      // does not share dispatcher state with the npm undici module. The
-      // production CLI flows via attack-probe scanners which call native
-      // fetch; the operator-facing semantics are the same once Node merges
-      // its bundled undici with the npm install (Node 24+ direction). For
-      // now, this test exercises the actual ProxyAgent + dispatcher path.
+      // Use undici's fetch directly to keep the dispatcher path explicit in
+      // the assertion (no assumption about which undici copy provides
+      // globalThis.fetch). Node's bundled undici and the npm undici share
+      // global dispatcher state via the well-known
+      // Symbol.for('undici.globalDispatcher.1'), so production flows that
+      // call globalThis.fetch in attack-probes route through the same
+      // ProxyAgent installed here. The 7.x and 8.x undici lines have
+      // identical proxyTunnel default + dispatcher contract.
       const response = await undiciFetch(`http://127.0.0.1:${targetPort}/probe`);
       const body = await response.text();
       expect(body).toBe('proxied-tunnel');
