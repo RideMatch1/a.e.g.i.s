@@ -54,7 +54,7 @@
   "dependencies": {
     "ignore": "7.0.5",
     "picomatch": "^4.0.0",
-    "undici": "8.1.0",
+    "undici": "7.25.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
