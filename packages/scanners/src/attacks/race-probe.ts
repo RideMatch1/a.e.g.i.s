@@ -1,4 +1,4 @@
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, applyOpsecHeaders } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { relative } from 'path';
 
@@ -104,19 +104,26 @@ export const raceProbeScanner: Scanner = {
       try {
         // WARNING: Sends CONCURRENT_REQUESTS (5) simultaneous POST requests.
         // Limited to 5 to minimise side-effects on real servers.
+        // Phase-17 OPSEC: UA-only override; pacing/jitter is intentionally NOT applied
+        // here — this probe tests concurrency-handling, and spacing the requests would
+        // defeat the test.
         const requests = Array.from({ length: CONCURRENT_REQUESTS }, () => {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 10_000);
-          return fetch(url, {
-            method: 'POST',
-            signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json',
-              'User-Agent': 'AEGIS-Security-Scanner/0.1',
+          const init = applyOpsecHeaders(
+            {
+              method: 'POST',
+              signal: controller.signal,
+              headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'AEGIS-Security-Scanner/0.1',
+              },
+              body: JSON.stringify({ test: true }),
+              redirect: 'follow',
             },
-            body: JSON.stringify({ test: true }),
-            redirect: 'follow',
-          }).finally(() => clearTimeout(timeout));
+            config.opsec,
+          );
+          return fetch(url, init).finally(() => clearTimeout(timeout));
         });
 
         const responses = await Promise.allSettled(requests);

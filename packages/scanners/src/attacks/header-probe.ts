@@ -1,3 +1,4 @@
+import { opsecPace, applyOpsecHeaders } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 
 interface SecurityHeader {
@@ -86,17 +87,20 @@ export const headerProbeScanner: Scanner = {
     }
 
     try {
+      await opsecPace(config.opsec);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
 
-      const response = await fetch(config.target, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'AEGIS-Security-Scanner/0.1',
+      const init = applyOpsecHeaders(
+        {
+          method: 'GET',
+          signal: controller.signal,
+          headers: { 'User-Agent': 'AEGIS-Security-Scanner/0.1' },
+          redirect: 'follow',
         },
-        redirect: 'follow',
-      });
+        config.opsec,
+      );
+      const response = await fetch(config.target, init);
 
       clearTimeout(timeout);
 

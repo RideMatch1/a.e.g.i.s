@@ -1,4 +1,4 @@
-import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { walkFiles, readFileSafe, applyOpsecHeaders } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { relative } from 'path';
 
@@ -77,20 +77,27 @@ export const rateLimitProbeScanner: Scanner = {
       const url = `${baseUrl}${endpoint}`;
 
       try {
-        // Send BURST_COUNT rapid requests (no delay between them)
+        // Send BURST_COUNT rapid requests (no delay between them).
+        // Phase-17 OPSEC: UA-only override; pacing/jitter is intentionally NOT
+        // applied — the entire purpose of this probe is to verify the target
+        // rate-limits a burst, so spacing AEGIS' own requests would defeat it.
         const requests = Array.from({ length: BURST_COUNT }, () => {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 10_000);
-          return fetch(url, {
-            method: 'POST',
-            signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json',
-              'User-Agent': 'AEGIS-Security-Scanner/0.1',
+          const init = applyOpsecHeaders(
+            {
+              method: 'POST',
+              signal: controller.signal,
+              headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'AEGIS-Security-Scanner/0.1',
+              },
+              body: JSON.stringify({ email: 'test@aegis-probe.local', password: 'probe-test' }),
+              redirect: 'follow',
             },
-            body: JSON.stringify({ email: 'test@aegis-probe.local', password: 'probe-test' }),
-            redirect: 'follow',
-          }).finally(() => clearTimeout(timeout));
+            config.opsec,
+          );
+          return fetch(url, init).finally(() => clearTimeout(timeout));
         });
 
         const responses = await Promise.allSettled(requests);

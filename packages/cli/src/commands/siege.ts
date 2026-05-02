@@ -80,9 +80,26 @@ export interface SiegeOptions {
    * link-local, or cloud-metadata rejection.
    */
   allowLoopback?: boolean;
+  /** Phase-17 OPSEC — User-Agent header override for outbound traffic. */
+  userAgent?: string;
+  /** Phase-17 OPSEC — random delay 0..N ms between outbound requests. Excludes burst-tests. */
+  jitterMs?: number;
+  /** Phase-17 OPSEC — minimum delay between outbound requests in ms. Excludes burst-tests. */
+  rateMs?: number;
   format?: string;
   confirm?: boolean;
   color?: boolean;
+}
+
+function buildOpsec(options: { userAgent?: string; jitterMs?: number; rateMs?: number }) {
+  if (options.userAgent === undefined && options.jitterMs === undefined && options.rateMs === undefined) {
+    return undefined;
+  }
+  return {
+    userAgent: options.userAgent,
+    jitterMs: options.jitterMs,
+    rateMs: options.rateMs,
+  };
 }
 
 interface ReconResult {
@@ -208,10 +225,12 @@ async function runReconnaissance(
 async function runVulnerabilityDiscovery(
   projectPath: string,
   target: string,
+  opsec: ReturnType<typeof buildOpsec>,
   spinner: ReturnType<typeof ora>,
 ): Promise<AuditResult> {
   const config = await loadConfig(projectPath, 'siege');
   config.target = target;
+  config.opsec = opsec;
 
   const orchestrator = new Orchestrator();
   const allScanners = getAllScanners();
@@ -239,6 +258,7 @@ async function runVulnerabilityDiscovery(
 async function runExploitationAttempts(
   projectPath: string,
   target: string,
+  opsec: ReturnType<typeof buildOpsec>,
   highCriticalCount: number,
   spinner: ReturnType<typeof ora>,
 ): Promise<Finding[]> {
@@ -246,6 +266,7 @@ async function runExploitationAttempts(
 
   const config = await loadConfig(projectPath, 'siege');
   config.target = target;
+  config.opsec = opsec;
 
   const orchestrator = new Orchestrator();
   const attackScanners = getAttackScanners();
@@ -865,7 +886,7 @@ export async function runSiege(
       emit(makeEvent(engagementId, 'phase-transition', { phase: 'discovery', transition: 'enter' }));
       const phaseStart = Date.now();
       const discoveryResult = await withPhaseTimeout(
-        runVulnerabilityDiscovery(resolvedPath, options.target, spinner),
+        runVulnerabilityDiscovery(resolvedPath, options.target, buildOpsec(options), spinner),
         { phase: 'discovery', timeout_ms: phaseTimeoutMs },
       );
       if (discoveryResult.timed_out) {
@@ -958,6 +979,7 @@ export async function runSiege(
         runExploitationAttempts(
           resolvedPath,
           options.target,
+          buildOpsec(options),
           highCritical.length,
           spinner,
         ),

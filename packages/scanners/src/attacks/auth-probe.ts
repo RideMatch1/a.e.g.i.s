@@ -1,4 +1,5 @@
 import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { opsecPace, applyOpsecHeaders } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { join, relative } from 'path';
 
@@ -78,17 +79,20 @@ export const authProbeScanner: Scanner = {
       const url = `${config.target.replace(/\/$/, '')}${route}`;
 
       try {
+        await opsecPace(config.opsec);
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5_000);
 
-        const response = await fetch(url, {
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'User-Agent': 'AEGIS-Security-Scanner/0.1',
+        const init = applyOpsecHeaders(
+          {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'User-Agent': 'AEGIS-Security-Scanner/0.1' },
+            redirect: 'follow',
           },
-          redirect: 'follow',
-        });
+          config.opsec,
+        );
+        const response = await fetch(url, init);
 
         clearTimeout(timeout);
 

@@ -45,3 +45,10 @@ export {
   type ChainVerifyOk,
   type ChainVerifyFailure,
 } from './chain.js';
+
+export {
+  opsecPace,
+  applyOpsecHeaders,
+  _resetOpsecPacingForTesting,
+  type OpsecOptions,
+} from './opsec.js';

@@ -206,6 +206,17 @@ export interface SuppressionOptions {
   warnNaked?: boolean;
 }
 
+/**
+ * Phase-17 OPSEC options applied to outbound active-mode traffic. Mirrors the
+ * `OpsecOptions` type re-exported from `runtime/opsec` so AegisConfig is a
+ * single import for downstream scanners. Field semantics: see runtime/opsec.ts.
+ */
+export interface AegisConfigOpsec {
+  jitterMs?: number;
+  rateMs?: number;
+  userAgent?: string;
+}
+
 export interface AegisConfig {
   projectPath: string;
   stack: DetectedStack;
@@ -216,6 +227,8 @@ export interface AegisConfig {
   ignore?: string[];
   target?: string;
   mode: 'scan' | 'audit' | 'pentest' | 'siege' | 'fortress';
+  /** Phase-17 OPSEC options for outbound active-mode traffic. */
+  opsec?: AegisConfigOpsec;
   /** When set, only report findings for files in this list (diff mode). Absolute paths. */
   diffFiles?: string[];
   /** User-defined taint sources extending built-in TAINT_SOURCES. */

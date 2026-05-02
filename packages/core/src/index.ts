@@ -58,6 +58,9 @@ export {
   hashCanonical,
   ChainedEmitter,
   verifyAuditChain,
+  opsecPace,
+  applyOpsecHeaders,
+  _resetOpsecPacingForTesting,
   type EngagementEvent,
   type EngagementEventBase,
   type EventSink,
@@ -72,6 +75,7 @@ export {
   type ChainVerifyResult,
   type ChainVerifyOk,
   type ChainVerifyFailure,
+  type OpsecOptions,
 } from './runtime/index.js';
 export {
   assignCiaVector,

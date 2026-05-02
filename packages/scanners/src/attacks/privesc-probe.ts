@@ -1,4 +1,5 @@
 import { walkFiles, readFileSafe } from '@aegis-scan/core';
+import { opsecPace, applyOpsecHeaders } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { relative } from 'path';
 
@@ -90,18 +91,23 @@ export const privescProbeScanner: Scanner = {
 
       // --- Request 1: fake staff JWT (vertical privilege escalation) ---
       try {
+        await opsecPace(config.opsec);
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5_000);
 
-        const response = await fetch(url, {
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'User-Agent': 'AEGIS-Security-Scanner/0.1',
-            'Authorization': `Bearer ${FAKE_STAFF_JWT}`,
+        const init = applyOpsecHeaders(
+          {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+              'User-Agent': 'AEGIS-Security-Scanner/0.1',
+              'Authorization': `Bearer ${FAKE_STAFF_JWT}`,
+            },
+            redirect: 'follow',
           },
-          redirect: 'follow',
-        }).finally(() => clearTimeout(timeout));
+          config.opsec,
+        );
+        const response = await fetch(url, init).finally(() => clearTimeout(timeout));
 
         if (response.status === 200) {
           const id = `PRIVESC-${String(idCounter++).padStart(3, '0')}`;
@@ -124,17 +130,20 @@ export const privescProbeScanner: Scanner = {
 
       // --- Request 2: no auth at all (CRITICAL: unauthenticated admin access) ---
       try {
+        await opsecPace(config.opsec);
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5_000);
 
-        const response = await fetch(url, {
-          method: 'GET',
-          signal: controller.signal,
-          headers: {
-            'User-Agent': 'AEGIS-Security-Scanner/0.1',
+        const init = applyOpsecHeaders(
+          {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { 'User-Agent': 'AEGIS-Security-Scanner/0.1' },
+            redirect: 'follow',
           },
-          redirect: 'follow',
-        }).finally(() => clearTimeout(timeout));
+          config.opsec,
+        );
+        const response = await fetch(url, init).finally(() => clearTimeout(timeout));
 
         if (response.status === 200) {
           const id = `PRIVESC-${String(idCounter++).padStart(3, '0')}`;

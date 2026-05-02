@@ -8,7 +8,9 @@ vi.mock('@aegis-scan/core', () => ({
   readFileSafe: () => null,
   commandExists: async () => true,
   exec: async () => ({ stdout: '', stderr: '', exitCode: 0 }),
-  isTestFile: (filePath) => /\.(test|spec|e2e)\.(ts|tsx|js|jsx|mjs|cjs)$/.test(filePath) || /[\/\\]__tests__[\/\\]/.test(filePath) || /[\/\\]__mocks__[\/\\]/.test(filePath) || /[\/\\](playwright|cypress|e2e)[\/\\]/.test(filePath),
+  isTestFile: (filePath: string) => /\.(test|spec|e2e)\.(ts|tsx|js|jsx|mjs|cjs)$/.test(filePath) || /[\/\\]__tests__[\/\\]/.test(filePath) || /[\/\\]__mocks__[\/\\]/.test(filePath) || /[\/\\](playwright|cypress|e2e)[\/\\]/.test(filePath),
+  opsecPace: async () => {},
+  applyOpsecHeaders: (init: any) => init ?? {},
 }));
 
 import { headerProbeScanner } from '../../src/attacks/header-probe.js';
