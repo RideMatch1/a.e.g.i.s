@@ -86,12 +86,13 @@ program
   .option('--user-agent <ua>', 'Phase-17 OPSEC: User-Agent header for outbound DAST/probe traffic (default: scanner-specific UA).')
   .option('--jitter-ms <n>', 'Phase-17 OPSEC: random delay 0..N ms added between outbound requests on top of --rate-ms.', (v: string) => Number.parseInt(v, 10))
   .option('--rate-ms <n>', 'Phase-17 OPSEC: minimum delay between outbound requests in ms (e.g. 200 = at most 5 req/s).', (v: string) => Number.parseInt(v, 10))
+  .option('--proxy <url>', 'Phase-17 OPSEC: route ALL native fetch (attack-probes + LLM-API in aegis fix) through this http(s) proxy via undici.ProxyAgent. Shell-out DAST tools (zap/nuclei/strix/ptai/pentestswarm) bypass — configure those per-tool.')
   .option('-f, --format <format>', 'Output format: terminal (default), json, sarif, html, markdown', 'terminal')
   .option('--no-color', 'Disable colored output')
   .action(
     async (
       path: string | undefined,
-      options: { target: string; format: string; color: boolean; confirm: boolean; allowLoopback?: boolean; userAgent?: string; jitterMs?: number; rateMs?: number },
+      options: { target: string; format: string; color: boolean; confirm: boolean; allowLoopback?: boolean; userAgent?: string; jitterMs?: number; rateMs?: number; proxy?: string },
     ) => {
       if (!options.color) {
         chalk.level = 0;
@@ -122,13 +123,14 @@ program
   .option('--user-agent <ua>', 'Phase-17 OPSEC: User-Agent header for outbound DAST/probe traffic (default: scanner-specific UA).')
   .option('--jitter-ms <n>', 'Phase-17 OPSEC: random delay 0..N ms added between outbound requests on top of --rate-ms. Excludes burst-tests (race-probe, rate-limit-probe).', (v: string) => Number.parseInt(v, 10))
   .option('--rate-ms <n>', 'Phase-17 OPSEC: minimum delay between outbound requests in ms (e.g. 200 = at most 5 req/s). Excludes burst-tests.', (v: string) => Number.parseInt(v, 10))
+  .option('--proxy <url>', 'Phase-17 OPSEC: route ALL native fetch (attack-probes + LLM-API in aegis fix) through this http(s) proxy via undici.ProxyAgent. Shell-out DAST tools (zap/nuclei/strix/ptai/pentestswarm) bypass — configure those per-tool.')
   .option('-f, --format <format>', 'Output format: terminal (default), json, sarif, html, markdown', 'terminal')
   .option('--confirm', 'Acknowledge authorization to send live attack traffic')
   .option('--no-color', 'Disable colored output')
   .action(
     async (
       path: string | undefined,
-      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; sandboxMode?: string; heartbeatUrl?: string; phaseTimeoutMinutes?: number; allowLoopback?: boolean; userAgent?: string; jitterMs?: number; rateMs?: number; format: string; confirm: boolean; color: boolean },
+      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; sandboxMode?: string; heartbeatUrl?: string; phaseTimeoutMinutes?: number; allowLoopback?: boolean; userAgent?: string; jitterMs?: number; rateMs?: number; proxy?: string; format: string; confirm: boolean; color: boolean },
     ) => {
       if (!options.color) {
         chalk.level = 0;

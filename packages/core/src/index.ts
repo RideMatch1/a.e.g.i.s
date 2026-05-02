@@ -60,6 +60,8 @@ export {
   verifyAuditChain,
   opsecPace,
   applyOpsecHeaders,
+  applyOpsecDispatcher,
+  validateProxyUrl,
   _resetOpsecPacingForTesting,
   type EngagementEvent,
   type EngagementEventBase,

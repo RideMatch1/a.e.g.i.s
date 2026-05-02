@@ -215,6 +215,8 @@ export interface AegisConfigOpsec {
   jitterMs?: number;
   rateMs?: number;
   userAgent?: string;
+  /** Upstream HTTP(S) proxy URL — see runtime/opsec.ts for routing semantics. */
+  proxy?: string;
 }
 
 export interface AegisConfig {

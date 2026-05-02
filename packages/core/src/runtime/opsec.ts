@@ -1,14 +1,19 @@
+import { getGlobalDispatcher, setGlobalDispatcher, ProxyAgent, type Dispatcher } from 'undici';
+
 /**
  * Phase-17 OPSEC (Operational Security) options for outbound traffic during
- * active-mode engagements. Controls request pacing + UA fingerprint to support
- * non-paranoid environments (dev-server testing, CI ephemerals) and to reduce
- * detection surface against rate-limited targets.
+ * active-mode engagements. Controls request pacing, UA fingerprint, and
+ * upstream proxy routing — supports non-paranoid environments (dev-server
+ * testing, CI ephemerals) and reduces detection surface against rate-limited
+ * targets.
  *
- * Proxy-chain support is intentionally NOT included in this iteration — it
- * requires `undici.ProxyAgent` + `setGlobalDispatcher`, which would add a
- * runtime dependency. A `--proxy` flag without that wiring would be
- * decorative (the brutal-honest test: point at mitmproxy, verify no requests
- * bypass). Tracked as F-OPSEC-PROXY-1 follow-up.
+ * Proxy semantics: when `proxy` is set, `applyOpsecDispatcher` calls
+ * `undici.setGlobalDispatcher(new ProxyAgent(proxy))`, which routes ALL
+ * `fetch()` calls in the Node process through that upstream proxy — including
+ * native fetch in attack-probes AND LLM-API calls in `aegis fix`. DAST tool
+ * wrappers (zap, nuclei, strix, ptai, pentestswarm) shell out to external
+ * binaries via `child_process.exec` and do NOT honor the dispatcher; they
+ * use their own per-tool proxy configuration.
  */
 export interface OpsecOptions {
   /** Random delay 0..jitterMs added between requests on top of rateMs */
@@ -17,6 +22,12 @@ export interface OpsecOptions {
   rateMs?: number;
   /** User-Agent header override (default: scanner-specific UA when unset) */
   userAgent?: string;
+  /**
+   * Upstream HTTP(S) proxy URL (e.g. `http://127.0.0.1:8080` for mitmproxy).
+   * Routes all native-fetch traffic through the proxy via undici.ProxyAgent.
+   * Shell-out DAST tools bypass this — see module-level docstring.
+   */
+  proxy?: string;
 }
 
 let lastRequestTime = 0;
@@ -66,4 +77,51 @@ export function applyOpsecHeaders(
     result.headers = headers;
   }
   return result;
+}
+
+/**
+ * Validate a proxy URL eagerly — fail-fast at CLI flag-parse time rather
+ * than mid-engagement on the first outbound request. Throws on invalid URL,
+ * non-http(s) protocol, or ProxyAgent constructor failure.
+ *
+ * Exposed so CLI handlers can validate `--proxy` before any orchestrator
+ * setup (per advisor 2026-05-02 — operator gets a clear error up-front).
+ */
+export function validateProxyUrl(proxy: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(proxy);
+  } catch {
+    throw new Error(`Invalid --proxy URL: ${proxy} (must be http(s)://host:port)`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`Invalid --proxy protocol: ${parsed.protocol} (only http: and https: supported)`);
+  }
+  // ProxyAgent construction performs additional validation (parsing port,
+  // host); surface those errors to the operator pre-engagement too.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _probe = new ProxyAgent(proxy);
+}
+
+/**
+ * Apply the opsec proxy by saving the current global undici dispatcher and
+ * installing a `ProxyAgent`. Returns a restore-fn that puts the prior
+ * dispatcher back — callers MUST invoke it on engagement teardown (and tests
+ * MUST invoke it in afterEach to avoid cross-test state leakage).
+ *
+ * No-op (returns identity restore-fn) when opsec is undefined or proxy is
+ * unset. Validates the proxy URL via `validateProxyUrl` before mutating
+ * global state — callers that already validated may still call this safely.
+ */
+export function applyOpsecDispatcher(opsec?: OpsecOptions): () => void {
+  if (!opsec?.proxy) return () => {};
+  validateProxyUrl(opsec.proxy);
+  const prior: Dispatcher = getGlobalDispatcher();
+  const agent = new ProxyAgent(opsec.proxy);
+  setGlobalDispatcher(agent);
+  return () => {
+    setGlobalDispatcher(prior);
+    // Best-effort agent close — never throw from a teardown fn.
+    void agent.close().catch(() => {});
+  };
 }

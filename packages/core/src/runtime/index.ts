@@ -49,6 +49,8 @@ export {
 export {
   opsecPace,
   applyOpsecHeaders,
+  applyOpsecDispatcher,
+  validateProxyUrl,
   _resetOpsecPacingForTesting,
   type OpsecOptions,
 } from './opsec.js';

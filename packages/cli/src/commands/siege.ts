@@ -23,6 +23,8 @@ import {
   verifyConfig,
   safeFetch,
   isSafeFetchRejection,
+  applyOpsecDispatcher,
+  validateProxyUrl,
   detectAuthorityClaim,
   detectScopeExpansion,
   composeEgressAllowlist,
@@ -86,19 +88,27 @@ export interface SiegeOptions {
   jitterMs?: number;
   /** Phase-17 OPSEC — minimum delay between outbound requests in ms. Excludes burst-tests. */
   rateMs?: number;
+  /** Phase-17 OPSEC — upstream HTTP(S) proxy URL routed via undici dispatcher. */
+  proxy?: string;
   format?: string;
   confirm?: boolean;
   color?: boolean;
 }
 
-function buildOpsec(options: { userAgent?: string; jitterMs?: number; rateMs?: number }) {
-  if (options.userAgent === undefined && options.jitterMs === undefined && options.rateMs === undefined) {
+function buildOpsec(options: { userAgent?: string; jitterMs?: number; rateMs?: number; proxy?: string }) {
+  if (
+    options.userAgent === undefined &&
+    options.jitterMs === undefined &&
+    options.rateMs === undefined &&
+    options.proxy === undefined
+  ) {
     return undefined;
   }
   return {
     userAgent: options.userAgent,
     jitterMs: options.jitterMs,
     rateMs: options.rateMs,
+    proxy: options.proxy,
   };
 }
 
@@ -307,6 +317,17 @@ export async function runSiege(
     confirm: options.confirm === true,
   });
   if (!auth.confirmed) return 1;
+
+  // Validate --proxy URL fail-fast (per advisor 2026-05-02) — surface
+  // ProxyAgent-construction errors up-front, not mid-engagement.
+  if (options.proxy) {
+    try {
+      validateProxyUrl(options.proxy);
+    } catch (err) {
+      console.error(chalk.red(`Error: ${err instanceof Error ? err.message : String(err)}`));
+      return 1;
+    }
+  }
 
   const resolvedPath = path || process.cwd();
 
@@ -744,6 +765,12 @@ export async function runSiege(
     );
   }
 
+  // Phase-17 OPSEC: install the upstream proxy dispatcher (no-op when
+  // --proxy unset). Restore in the finally block below so a long-lived
+  // parent process (CI runner, test harness) does not leak the dispatcher
+  // into later work. Validated already at flag-parse time above.
+  const restoreDispatcher = applyOpsecDispatcher(buildOpsec(options));
+
   try {
     // Verify target is reachable — APTS-MR-007/008/009 hardened path.
     // Baseline response-time captured here for the SC-015 post-test integrity probe.
@@ -1144,5 +1171,7 @@ export async function runSiege(
     heartbeatHandle.stop();
     handlers.uninstall();
     return 1;
+  } finally {
+    restoreDispatcher();
   }
 }

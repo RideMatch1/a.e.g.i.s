@@ -165,6 +165,11 @@ vi.mock('@aegis-scan/core', () => ({
   escalateOnSeverity: vi.fn().mockReturnValue({ escalate: false, action: 'continue', reason: 'mock-default-no-escalation', apts_refs: ['APTS-HO-011'] }),
   escalateOnConfidence: vi.fn().mockReturnValue({ escalate: false, action: 'continue', reason: 'mock-default-no-escalation', apts_refs: ['APTS-HO-013'] }),
   escalateOnComplianceTrigger: vi.fn().mockReturnValue({ escalate: false, action: 'continue', reason: 'mock-default-no-match', apts_refs: ['APTS-HO-014'] }),
+  // F-OPSEC-PROXY-1 — siege calls applyOpsecDispatcher (no-op when --proxy
+  // unset) and validateProxyUrl (no-op when --proxy unset). Mock both as
+  // pass-through so tests that don't exercise --proxy are unaffected.
+  applyOpsecDispatcher: vi.fn().mockReturnValue(() => {}),
+  validateProxyUrl: vi.fn(),
 }));
 
 vi.mock('@aegis-scan/reporters', () => ({
