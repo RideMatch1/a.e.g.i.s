@@ -132,6 +132,23 @@ const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; title: string; description: s
     description:
       'A user-supplied messages array (body.messages / messagesTruncated / similar) is spread directly into the LLM SDK call as `messages: [systemMessage, ...userMessages]`. The chat schemas of major LLM providers allow arbitrary `role` values — an attacker who includes `{role: "system", content: "ignore prior instructions"}` in their messages array overrides the developer-supplied system prompt. Strip the role before forwarding: `messages.map(m => ({ ...m, role: "user" }))`, or accept only a single user-message string from the client and construct the messages array server-side.',
   },
+  // v0.18.0 F-PROMPT-AGENT-LOOP-1: agent-loop tool-feedback class.
+  // The canonical AI SDK chat-loop appends tool results back into the
+  // conversation via messages.push({ role: 'tool', content: toolResult }).
+  // The toolResult is attacker-controllable when the tool fetches from
+  // external sources (web-search, file-read, RPC, document-retrieval).
+  // Pre-v0.18 patterns anchored on `messages: [...]` array literals only
+  // and missed the .push() shape. Concept-only inspiration from the
+  // LLM-Red-Teamer's-Playbook agentic-trust-boundary chapter (CC-BY-SA-4.0
+  // upstream — see CREDITS.md "Referenced & Inspiration"). Pattern is
+  // AEGIS-original; no upstream prose copied.
+  {
+    pattern: /messages\.push\s*\(\s*\{[^}]*?content\s*:\s*(?:`[^`]*\$\{|(?!['"`])(?!\s*[\[\{])\w+)/,
+    title:
+      'Prompt injection risk — variable pushed into messages without sanitization',
+    description:
+      'A `messages.push({ ..., content: <variable> })` call appends an attacker-controllable value into the LLM conversation. In agent loops this is typically a tool-result (web-search, fetched document, RPC output) — content that an attacker who controls the upstream source (poisoned document, malicious search result, compromised tool response) can use to inject prompt-override instructions into the LLM context. Wrap the value in a sanitization step before push, or insert it inside an explicitly-delimited data block the model is instructed to treat as untrusted: `<tool-output>${escapeForPrompt(toolResult)}</tool-output>`.',
+  },
 ];
 
 /**

@@ -1,0 +1,7 @@
+{
+  "name": "v0180-canary-TP-messages-push-tool-result",
+  "version": "0.0.1",
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}

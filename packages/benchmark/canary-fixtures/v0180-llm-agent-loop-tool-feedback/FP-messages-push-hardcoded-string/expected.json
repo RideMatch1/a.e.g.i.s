@@ -1,0 +1,7 @@
+{
+  "id": "v0180-FP-messages-push-hardcoded-string",
+  "cwe": 77,
+  "type": "FP",
+  "description": "Negative case — messages.push() with a hardcoded string literal carries no attacker-controllable content. Must NOT fire. Guards the new .push() pattern from being over-broad.",
+  "expected": []
+}

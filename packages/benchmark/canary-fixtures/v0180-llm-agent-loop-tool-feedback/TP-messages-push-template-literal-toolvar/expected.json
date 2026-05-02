@@ -1,0 +1,9 @@
+{
+  "id": "v0180-TP-messages-push-template-literal-toolvar",
+  "cwe": 77,
+  "type": "TP",
+  "description": "Agent-loop tool-feedback variant — messages.push() with a template-literal that interpolates an attacker-controlled tool-output variable. The template-literal anchor `${toolOutput}` is the same indirect-injection vector as the bare-variable form; both must fire.",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}

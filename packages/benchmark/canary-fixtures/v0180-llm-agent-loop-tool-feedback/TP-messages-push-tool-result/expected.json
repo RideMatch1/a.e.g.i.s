@@ -1,0 +1,9 @@
+{
+  "id": "v0180-TP-messages-push-tool-result",
+  "cwe": 77,
+  "type": "TP",
+  "description": "Agent-loop tool-feedback class. messages.push() appends a bare variable carrying the result of an external tool call (HTTP fetch, web search, file read) back into the conversation. Indirect prompt-injection: an attacker who controls the upstream tool source (poisons a fetched page, injects a search-result document) can hijack the LLM. Inspired by the LLM-Red-Teamer's-Playbook agentic-trust-boundary class (cite-only inspiration; pattern is AEGIS-original). Pre-v0.18.x existing patterns anchored on `messages: [...]` array-literals only and missed the .push() shape.",
+  "expected": [
+    { "scanner": "prompt-injection-checker", "cwe": 77 }
+  ]
+}

@@ -766,3 +766,95 @@ describe('promptInjectionCheckerScanner — Field-Report end-to-end fixtures', (
     expect(findings).toEqual([]);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v0.18.0 F-PROMPT-AGENT-LOOP-1: agent-loop tool-feedback class.
+//   messages.push({ role: 'tool', content: <attacker-controllable-var> })
+// Concept-only inspiration from the LLM-Red-Teamer's-Playbook agentic-trust-
+// boundary chapter (CC-BY-SA-4.0 upstream); pattern is AEGIS-original.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('promptInjectionCheckerScanner — F-PROMPT-AGENT-LOOP-1 (messages.push tool-feedback)', () => {
+  let projectPath: string;
+
+  beforeEach(() => {
+    projectPath = makeTempProject();
+  });
+
+  it('flags messages.push with bare-variable content (canonical agent-loop tool-feedback)', async () => {
+    createFile(projectPath, 'src/app/api/agent/route.ts', `
+      async function runTool(_tc: unknown): Promise<string> { return 'stub'; }
+      export async function POST(req: Request) {
+        const body = await req.json();
+        const messages: Array<{ role: string; content: string }> = body.messages ?? [];
+        for (const tc of body.toolCalls ?? []) {
+          const toolResult = await runTool(tc);
+          messages.push({ role: 'tool', content: toolResult });
+        }
+        return Response.json({ ok: true, messages });
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.title.includes('pushed into messages'));
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits[0].cwe).toBe(77);
+    expect(hits[0].owasp).toBe('A03:2021');
+  });
+
+  it('flags messages.push with template-literal interpolating attacker-controlled var', async () => {
+    createFile(projectPath, 'src/lib/agent.ts', `
+      async function fetchExternalDoc(_url: string): Promise<string> { return 'stub'; }
+      export async function step(messages: Array<{ role: string; content: string }>, docUrl: string) {
+        const toolOutput = await fetchExternalDoc(docUrl);
+        messages.push({
+          role: 'user',
+          content: \`Tool retrieved:\\n\${toolOutput}\\n\\nSummarize.\`,
+        });
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.title.includes('pushed into messages'));
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('does NOT flag messages.push with hardcoded string literal (regression-guard)', async () => {
+    createFile(projectPath, 'src/lib/static-history.ts', `
+      export function build(): Array<{ role: string; content: string }> {
+        const messages: Array<{ role: string; content: string }> = [];
+        messages.push({ role: 'system', content: 'You are a helpful assistant.' });
+        messages.push({ role: 'assistant', content: 'How can I help you today?' });
+        messages.push({ role: 'user', content: 'Tell me about TypeScript.' });
+        return messages;
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.title.includes('pushed into messages'));
+    expect(hits).toEqual([]);
+  });
+
+  it('does NOT flag messages.push with object literal as content (e.g. structured payload)', async () => {
+    createFile(projectPath, 'src/lib/structured-push.ts', `
+      export function pushStructured(messages: any[], chunks: any[]) {
+        messages.push({ role: 'user', content: [{ type: 'text', text: 'static' }] });
+        messages.push({ role: 'assistant', content: { kind: 'structured', value: 1 } });
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.title.includes('pushed into messages'));
+    expect(hits).toEqual([]);
+  });
+
+  it('does NOT flag messages.push when sanitization is in the same file', async () => {
+    createFile(projectPath, 'src/lib/sanitized-push.ts', `
+      import { sanitizeForPrompt } from '@/lib/security/prompt-sanitizer';
+      async function runTool(): Promise<string> { return 'stub'; }
+      export async function step(messages: Array<{ role: string; content: string }>) {
+        const toolResult = sanitizeForPrompt(await runTool());
+        messages.push({ role: 'tool', content: toolResult });
+      }
+    `);
+    const result = await promptInjectionCheckerScanner.scan(projectPath, AI_CONFIG);
+    const hits = result.findings.filter((f) => f.title.includes('pushed into messages'));
+    expect(hits).toEqual([]);
+  });
+});
