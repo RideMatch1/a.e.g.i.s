@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-eval-static-literal",
+  "cwe": 94,
+  "type": "FP",
+  "description": "FP regression-guard: top-level eval() of a static literal string. Bad practice but NOT persistence — there is no attacker-controlled input path. Different vuln class (general code-injection static analysis), not persistence. persistence-pattern-checker MUST NOT fire CWE-94 (literal-string discriminator).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 94 }
+  ]
+}

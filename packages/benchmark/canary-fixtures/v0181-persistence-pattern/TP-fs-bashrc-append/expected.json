@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-fs-bashrc-append",
+  "cwe": 506,
+  "type": "TP",
+  "description": "Top-level fs.appendFile to ~/.bashrc — embeds an attacker command into the user's shell init, runs on every new terminal session. Persistence beyond the lifetime of the original process. persistence-pattern-checker MUST fire CWE-506 (Embedded Malicious Code).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 506 }
+  ]
+}

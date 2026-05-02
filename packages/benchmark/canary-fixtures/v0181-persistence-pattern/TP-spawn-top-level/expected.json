@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-spawn-top-level",
+  "cwe": 506,
+  "type": "TP",
+  "description": "child_process.spawn called at module top-level — runs on every import. Canonical persistence/backdoor pattern. persistence-pattern-checker MUST fire CWE-506 (Embedded Malicious Code).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 506 }
+  ]
+}

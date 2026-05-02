@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-spawn-in-function",
+  "cwe": 506,
+  "type": "FP",
+  "description": "FP regression-guard: child_process.spawn INSIDE a function body. The function only runs when the operator explicitly invokes it — not at module load. NOT persistence. persistence-pattern-checker MUST NOT fire CWE-506 (in-function discriminator).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 506 }
+  ]
+}

@@ -30,6 +30,7 @@ import { tenantIsolationCheckerScanner } from './quality/tenant-isolation-checke
 import { pathTraversalCheckerScanner } from './quality/path-traversal-checker.js';
 import { promptInjectionCheckerScanner } from './quality/prompt-injection-checker.js';
 import { redosCheckerScanner } from './quality/redos-checker.js';
+import { persistencePatternCheckerScanner } from './quality/persistence-pattern-checker.js';
 import { cspEvaluatorScanner } from './quality/csp-evaluator.js';
 import { rscDataCheckerScanner } from './quality/rsc-data-checker.js';
 import { rlsBypassCheckerScanner } from './quality/rls-bypass-checker.js';
@@ -104,6 +105,7 @@ export function getAllScanners(): Scanner[] {
     pathTraversalCheckerScanner,
     promptInjectionCheckerScanner,
     redosCheckerScanner,
+    persistencePatternCheckerScanner,
     cspEvaluatorScanner,
     rscDataCheckerScanner,
     rlsBypassCheckerScanner,
@@ -194,6 +196,7 @@ export {
   pathTraversalCheckerScanner,
   promptInjectionCheckerScanner,
   redosCheckerScanner,
+  persistencePatternCheckerScanner,
   cspEvaluatorScanner,
   rscDataCheckerScanner,
   rlsBypassCheckerScanner,

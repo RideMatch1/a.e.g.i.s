@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-config-file-spawn",
+  "cwe": 506,
+  "type": "FP",
+  "description": "FP regression-guard: top-level child_process.spawn inside next.config.js. Build-time config files legitimately do top-level work (codegen, env validation). persistence-pattern-checker MUST NOT fire CWE-506 (config-file path-exclusion discriminator).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 506 }
+  ]
+}

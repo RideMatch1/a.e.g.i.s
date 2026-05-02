@@ -15,6 +15,21 @@ shown with the reason the target wasn't met.
 
 - For `@aegis-wizard/cli` 0.17.1 and later, see [`packages/wizard-cli/CHANGELOG.md`](packages/wizard-cli/CHANGELOG.md). This root CHANGELOG covers the scanner family (`@aegis-scan/*`) + top-level arc-summary entries only.
 
+### Added (Red-team-blueprint Phase 5 — F-PHASE5-PERSISTENCE-1)
+
+- **NEW `persistence-pattern-checker` static scanner** in `packages/scanners/src/quality/persistence-pattern-checker.ts`. Detects code that runs automatically on module import (no operator action required) — the supply-chain malware / backdoor shape that ESLint rules + Semgrep's default ruleset miss because the patterns themselves are legal Node.js. Closes the red-team-blueprint Phase 5 detection gap.
+- **5 rule classes** with sharp TP/FP boundaries:
+  - Top-level `child_process.spawn` / `exec` / `execFile` / `execSync` → CWE-506 (Embedded Malicious Code), HIGH
+  - Top-level dynamic `require(varName)` / `import(varName)` (incl. IIFE-wrapped) → CWE-829 (Inclusion of Functionality from Untrusted Control Sphere), HIGH
+  - Top-level `eval(varName)` / `new Function(varName)` → CWE-94 (Code Injection), HIGH
+  - Top-level `fs.writeFile` / `appendFile` to user-config persistence targets (`.bashrc`, `.zshrc`, `.profile`, `.ssh/authorized_keys`, launchd plists, systemd units, `cron.d`, `crontab`) → CWE-506, HIGH
+  - Top-level `cron.schedule(fn)` / `setInterval(fn)` background-task registration → CWE-912 (Hidden Functionality), MEDIUM
+- **Implementation: regex + bracket-nesting state machine** (matches existing AEGIS scanner shape — console-checker, redos-checker). "Top-level" = brace-depth 0 ignoring class/object-literal blocks. **IIFE handling**: top-level `(async () => { ... })()` counts as top-level inside the IIFE body because the wrapping function executes immediately on import — proves the scanner is not just a column-0 grep. Comments are stripped before pattern matching to avoid false positives on commented-out persistence patterns.
+- **Path exclusions** with documented rationale: test files (`*.test.ts`, `__tests__/`), `scripts/`, `migrations/`, build-time config files (`*.config.{ts,js,mjs,cjs}`, `next.config.js`, `vite.config.ts`, etc) — these legitimately do top-level work. **Static-arg discriminator**: `require('./local')` and `eval('1+1')` are NOT flagged (they're auditable / different vuln class); only attacker-controllable inputs (env-vars, function calls, template-with-interp) trigger the rule.
+- **Auto-included in `aegis scan` / `audit` / `pentest` / `siege`** per the DEFAULT=MAX directive — registered in `packages/scanners/src/index.ts:getAllScanners()`. New scanners require zero opt-in.
+- **6 TP + 5 FP canary fixtures** under `packages/benchmark/canary-fixtures/v0181-persistence-pattern/` — including a deliberate IIFE evasion fixture (`TP-iife-dynamic-import`) and a config-file path-exclusion FP (`FP-config-file-spawn`). Pre-implementation gap-proof + post-implementation pass: 11/11.
+- **18 unit tests** in `packages/scanners/__tests__/quality/persistence-pattern-checker.test.ts` — 9 TP-class tests (one per rule + new-Function + setInterval), 8 FP-suppression boundary regression-guards (in-function spawn, static-string require, literal eval, project-relative fs writes, config-file path-exclusion, test-file exclusion, no-call identifier, scripts/ exclusion), 1 finding-shape contract test.
+
 ### Added (Phase-17 OPSEC — F-OPSEC-PROXY-1)
 
 - **NEW `--proxy <url>` flag on `aegis siege` + `aegis pentest`** routes ALL native-fetch outbound traffic through an upstream HTTP(S) proxy via `undici.ProxyAgent` + `setGlobalDispatcher`. Closes the deferred Phase-17 follow-up that left `--jitter-ms` / `--rate-ms` / `--user-agent` shipping without an upstream-routing primitive. Fail-fast URL validation at flag-parse time (`new ProxyAgent(...)` + protocol check) — operator gets a clear error pre-engagement, not mid-probe.

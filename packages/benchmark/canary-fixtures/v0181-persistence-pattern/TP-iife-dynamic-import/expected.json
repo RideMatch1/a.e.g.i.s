@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-iife-dynamic-import",
+  "cwe": 829,
+  "type": "TP",
+  "description": "IIFE wrapping a dynamic import(varName) at module top-level — executes on import even though the dangerous call is indented. Proves the scanner handles bracket-nesting, not just column-0 grep. persistence-pattern-checker MUST fire CWE-829 (Inclusion of Functionality from Untrusted Control Sphere).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 829 }
+  ]
+}

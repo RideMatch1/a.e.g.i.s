@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-authorized-keys-write",
+  "cwe": 506,
+  "type": "TP",
+  "description": "Top-level fs.writeFile to ~/.ssh/authorized_keys — installs an attacker SSH key. Most aggressive backdoor shape; persistent across re-installs of the original package. persistence-pattern-checker MUST fire CWE-506 (Embedded Malicious Code).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 506 }
+  ]
+}

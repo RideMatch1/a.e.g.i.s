@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-require-env-var",
+  "cwe": 829,
+  "type": "TP",
+  "description": "Top-level require(process.env.X) — loads attacker-controlled module on import. Cleanest supply-chain shape: post-publish poisoned-tarball can ship a benign-looking package that calls this at module load. persistence-pattern-checker MUST fire CWE-829 (Inclusion of Functionality from Untrusted Control Sphere).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 829 }
+  ]
+}

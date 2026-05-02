@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-eval-startup",
+  "cwe": 94,
+  "type": "TP",
+  "description": "Top-level eval(decodeURIComponent(process.env.PAYLOAD)) — executes attacker-supplied code on module import. persistence-pattern-checker MUST fire CWE-94 (Code Injection).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 94 }
+  ]
+}

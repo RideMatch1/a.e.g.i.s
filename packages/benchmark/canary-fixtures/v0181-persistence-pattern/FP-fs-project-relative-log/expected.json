@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-fs-project-relative-log",
+  "cwe": 506,
+  "type": "FP",
+  "description": "FP regression-guard: top-level fs.appendFile to a project-relative log path. NOT a persistence target — the file lives inside the project, not in the user's shell-init or SSH config. persistence-pattern-checker MUST NOT fire CWE-506 (path-classifier discriminator).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 506 }
+  ]
+}

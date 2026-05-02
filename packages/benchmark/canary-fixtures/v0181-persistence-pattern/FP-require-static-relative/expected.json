@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-require-static-relative",
+  "cwe": 829,
+  "type": "FP",
+  "description": "FP regression-guard: top-level require() with a static relative-path string. Auditable, no attacker-controlled string. persistence-pattern-checker MUST NOT fire CWE-829 (static-string discriminator).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 829 }
+  ]
+}
