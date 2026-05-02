@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-regexp-method-exec",
+  "cwe": 506,
+  "type": "FP",
+  "description": "FP regression-guard: `regex.exec(args)` is RegExp.prototype.exec, NOT child_process.exec. v0181 first-application battle-test surfaced this on AEGIS's own mass-assignment-checker. Negative-lookbehind `(?<!\\.)` excludes method-call shapes; bare `exec(` is no longer detected (too ambiguous), only the explicit `child_process.exec(` namespace fires. persistence-pattern-checker MUST NOT fire CWE-506.",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 506 }
+  ]
+}

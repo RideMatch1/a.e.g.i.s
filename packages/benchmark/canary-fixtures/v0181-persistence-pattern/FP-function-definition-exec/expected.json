@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-function-definition-exec",
+  "cwe": 506,
+  "type": "FP",
+  "description": "FP regression-guard: `export function exec(` is a function DEFINITION, not a call. v0181 first-application battle-test surfaced this on AEGIS's own packages/core/src/utils.ts. Negative-lookbehind `(?<!function\\s)` excludes definition sites. persistence-pattern-checker MUST NOT fire CWE-506.",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 506 }
+  ]
+}

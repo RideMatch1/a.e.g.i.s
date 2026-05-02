@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-callback-async-arrow",
+  "cwe": 829,
+  "type": "FP",
+  "description": "FP regression-guard: dynamic import() INSIDE an async-arrow callback passed to a top-level function call (e.g. next-intl getRequestConfig). The callback fires per-request, not on module load — the function-call-with-callback shape is NOT an IIFE. v0181 first-application battle-test surfaced this on Spa-App. persistence-pattern-checker MUST NOT fire CWE-829 (IIFE-vs-callback discriminator).",
+  "expected": [
+    { "scanner": "persistence-pattern-checker", "cwe": 829 }
+  ]
+}

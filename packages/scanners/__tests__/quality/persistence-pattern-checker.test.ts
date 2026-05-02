@@ -266,6 +266,53 @@ describe('persistence-pattern-checker — FP suppression (boundary regression-gu
     const result = await persistencePatternCheckerScanner.scan(proj, MOCK_CONFIG);
     expect(result.findings.filter((f) => f.cwe === 912)).toHaveLength(0);
   });
+
+  it('does NOT flag function-call-with-async-arrow callback (IIFE-vs-callback discriminator, Spa-App next-intl pattern)', async () => {
+    // v0181 first-application battle-test surfaced this on Spa-App's
+    // next-intl request config. getRequestConfig(async () => { ... })
+    // is a top-level call to a HOST function with a callback argument —
+    // the callback only fires when the host invokes it, NOT on module
+    // load. Distinct from a true IIFE (\`(async () => {})()\`).
+    const proj = makeTempProject();
+    writeFile(
+      proj,
+      'src/request.ts',
+      `function getRequestConfig(_handler: () => Promise<unknown>) { return null; }\nexport default getRequestConfig(async () => {\n  const locale = 'de';\n  const messages = (await import(\`@/messages/\${locale}.json\`)).default;\n  return { locale, messages };\n});\n`,
+    );
+    const result = await persistencePatternCheckerScanner.scan(proj, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.cwe === 829)).toHaveLength(0);
+  });
+
+  it('does NOT flag function DEFINITION named exec/spawn (function-definition discriminator, AEGIS utils.ts pattern)', async () => {
+    // v0181 first-application self-scan surfaced this on AEGIS's own
+    // packages/core/src/utils.ts. \`export function exec(...)\` is a
+    // definition, not a call. \`(?<!function\\s)\` lookbehind excludes
+    // definition sites.
+    const proj = makeTempProject();
+    writeFile(
+      proj,
+      'src/utils.ts',
+      `import * as childProcess from 'node:child_process';\nexport function exec(cmd: string) {\n  return childProcess.execFile(cmd);\n}\nexport function spawn(cmd: string) {\n  return childProcess.spawn(cmd);\n}\n`,
+    );
+    const result = await persistencePatternCheckerScanner.scan(proj, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.cwe === 506)).toHaveLength(0);
+  });
+
+  it('does NOT flag RegExp.prototype.exec method calls (regexp-method discriminator, AEGIS mass-assignment-checker pattern)', async () => {
+    // v0181 first-application self-scan surfaced this on AEGIS's own
+    // mass-assignment-checker. \`regex.exec(input)\` is RegExp method
+    // not child_process. \`(?<!\\.)\` lookbehind excludes method-call
+    // shapes. Bare \`exec(\` is no longer detected (too ambiguous);
+    // only explicit \`child_process.exec(\` namespace fires.
+    const proj = makeTempProject();
+    writeFile(
+      proj,
+      'src/parser.ts',
+      `const re = /(\\w+)/;\nexport function parse(s: string) {\n  return re.exec(s);\n}\nconst HEADER_RE = /^Auth:\\s+(\\w+)/;\nconst sample = 'Auth: x';\nconst m = HEADER_RE.exec(sample);\nexport const TOKEN = m ? m[1] : null;\n`,
+    );
+    const result = await persistencePatternCheckerScanner.scan(proj, MOCK_CONFIG);
+    expect(result.findings.filter((f) => f.cwe === 506)).toHaveLength(0);
+  });
 });
 
 describe('persistence-pattern-checker — finding-shape contract', () => {

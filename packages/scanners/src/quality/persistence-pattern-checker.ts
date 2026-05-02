@@ -326,24 +326,37 @@ export const persistencePatternCheckerScanner: Scanner = {
       const content = readFileSafe(file);
       if (content === null) continue;
 
-      // Pass 1: spawn / exec / execFile / execSync at top-level (any args)
+      // FP classes caught during v0181 first-application battle-test:
+      //  - `export function exec(` is a function DEFINITION, not a call.
+      //    Negative-lookbehind `(?<!function\s)` excludes the definition site.
+      //  - `dataRe.exec(args)` is RegExp.prototype.exec, not child_process.
+      //    Negative-lookbehind `(?<!\.)` excludes method calls; explicit
+      //    `child_process.NAME` is allowed via the second alternation.
+      //  - Bare `exec(` is too ambiguous (RegExp/iterators/test-frameworks
+      //    all use the name). Detected only via the explicit `child_process.`
+      //    namespace; bare-name detection keeps the unambiguous 5
+      //    (spawn, spawnSync, execSync, execFile, execFileSync).
       const spawnRe =
-        /\b(?:child_process\.)?(?:spawn|spawnSync|exec|execSync|execFile|execFileSync)\s*\(/;
+        /(?<!function\s)(?<!\.)\b(?:spawn|spawnSync|execSync|execFile|execFileSync)\s*\(|\bchild_process\.(?:spawn|spawnSync|exec|execSync|execFile|execFileSync)\s*\(/;
 
-      // Pass 2: dynamic require / import (variable or template-with-interp)
-      // True positive when the ARGUMENT is non-static
-      const requireRe = /\brequire\s*\(/;
-      const importCallRe = /\bimport\s*\(/;
+      // Pass 2: dynamic require / import (variable or template-with-interp).
+      // Same lookbehinds: skip `function require(` definitions + `obj.require(` methods.
+      const requireRe = /(?<!function\s)(?<!\.)\brequire\s*\(/;
+      const importCallRe = /(?<!function\s)(?<!\.)\bimport\s*\(/;
 
-      // Pass 3: eval / new Function with non-static arg
-      const evalRe = /\beval\s*\(/;
+      // Pass 3: eval / new Function. Bare `eval(` excluding `obj.eval(` and
+      // `function eval(`. `new Function` is unambiguous (constructor call).
+      const evalRe = /(?<!function\s)(?<!\.)\beval\s*\(/;
       const newFunctionRe = /\bnew\s+Function\s*\(/;
 
-      // Pass 4: fs writes to user-config paths
-      const fsWriteRe = /\b(?:fs\.)?(?:appendFile(?:Sync)?|writeFile(?:Sync)?)\s*\(/;
+      // Pass 4: fs writes to user-config paths. fs-method names are stable
+      // enough that the bare-form is safe (writeFile/appendFile have no
+      // common collision with stdlib methods at this severity threshold).
+      const fsWriteRe = /(?<!function\s)\b(?:fs\.)?(?:appendFile(?:Sync)?|writeFile(?:Sync)?)\s*\(/;
 
-      // Pass 5: cron.schedule / setInterval at top-level
-      const cronRe = /\b(?:cron\.schedule|node-?cron|nodeSchedule\.scheduleJob|setInterval)\s*\(/;
+      // Pass 5: cron.schedule / setInterval at top-level.
+      const cronRe =
+        /(?<!function\s)(?<!\.)\b(?:setInterval)\s*\(|\b(?:cron\.schedule|nodeSchedule\.scheduleJob)\s*\(/;
 
       const matchers: { rule: PersistenceRule; pattern: RegExp }[] = [
         { rule: RULE_SPAWN_TOP_LEVEL, pattern: spawnRe },
@@ -467,8 +480,15 @@ function analyzeTopLevel(content: string): {
     const code = stripped.text;
     codeByLine.push(code);
 
+    // True IIFE: the opening `(` is at expression-statement start (line
+    // begins with optional `!`/`;`/`void `/`await `/whitespace, then `(`).
+    // Anchored at line start to avoid false-positives on function-call-
+    // with-callback patterns like `getRequestConfig(async () => {})` or
+    // `app.use(async (req, res) => {})` — those execute the callback only
+    // when the host invokes it, not on module load. v0181-battle-test
+    // surfaced this on Spa-App's next-intl request config.
     const iifeOpenRe =
-      /\(\s*(?:async\s*)?\(?[^)]*\)?\s*=>\s*\{|\(\s*(?:async\s+)?function\s*[^{]*\{/;
+      /^\s*(?:[!;]|void\s+|await\s+)?\(\s*(?:async\s*)?\(?[^)]*\)?\s*=>\s*\{|^\s*(?:[!;]|void\s+|await\s+)?\(\s*(?:async\s+)?function\s*[^{]*\{/;
     if (iifeOpenRe.test(code) && braceDepth === 0) {
       iifeStackDepth.push(braceDepth);
     }
