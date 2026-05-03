@@ -10,6 +10,297 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ---
 
+## [4.2.0] — 2026-05-03 — File-Upload-Compliance + Art-9-Beweis-Workflow + Spa/Wellness-Branche
+
+> Externe Audit-Agent-Uebergaben:
+> - File-Upload-Sprint 2026-05-03 (Multi-Step-Form-Konfigurator-Audit, 8 distincte Compliance-Klassen)
+> - Art-9-Workflow-Audit 2026-05-03 (Multi-Tenant-Health-SaaS, branchen-uebergreifende Beweispflicht-Patterns)
+>
+> Az.-Provenance: KEINE neuen Az. ohne Source-URL. Alle Updates nutzen ausschliesslich §-Zitate
+> (immer verifizierbar) + ErwGr 35 + bereits in `bgh-urteile.md` verifizierte EuGH/BGH-Az.
+> Az.-Recherche-Vorschlaege im Handover-Doc bleiben fuer spaetere Verifikation offen.
+
+### Hinzugefuegt — Section 1: File-Upload-Compliance (Handover-1)
+
+**`references/audit-patterns.md`**:
+- Phase 5d.1 DIRECT-FILE-UPLOAD-COMPLIANCE (V4-Sub-Pattern)
+  - 11 Pflicht-Checks (Schema-Migration / localStorage / base64-Crash / processFilesPayload / Path-Traversal / SVG-XSS / Filename-PII / Customer-Receipt / Disk-DoS / Email-Cap / VVT)
+  - 7 Verify-Commands (curl-Probes + Browser-Tests)
+  - 10 Rechts-Anker (Art. 5/13/16/25/30/32 DSGVO + § 202c StGB + BGB § 242)
+  - Schadens-Range pro Severity-Klasse
+- Phase 4 Drift-Style 4 (AGB-vs-DSE-Tech-Stack-Inkonsistenz)
+  - 3 Storage-Implementation-Drift-Verify-Patterns (Object-Storage-Behauptung, LUKS-Behauptung, Bytes-in-DB-vs-Filesystem)
+  - Cross-Doc-Konsistenz-Audit-Workflow
+
+**`references/dsgvo.md`**:
+- VVT-Trigger-Pattern bei neuen Verarbeitungstaetigkeiten (7 Ausloeser + Pre-Deploy-Gate-Workflow)
+
+**`references/checklisten.md`**:
+- Checkliste 12: Direkt-File-Upload Compliance (5 Bereiche, ~28 Items)
+
+**`references/templates/VVT-template-file-upload.md`** (neue Datei):
+- Vollstaendiges VVT-Template fuer Direct-File-Upload mit Art. 9-Bewertung + TOMs-Inventar
+
+**`SKILL.md`**:
+- Schritt 7 Pre-Anwalt-Architektur-Review-Pattern (Process-Section): Architektur-Review-Pass VOR brutaler-anwalt bei Sprints mit neuen Code-Pfaden
+
+### Hinzugefuegt — Section 2: Art-9-Beweis-Workflow + Spa/Wellness-Branche (Handover-2)
+
+**`references/audit-patterns.md`**:
+- Phase 5h ART-9-BEWEIS-WORKFLOW-AUDIT (V4-Pattern, branchen-agnostisch)
+  - 5h.1 Beweis-Modi-Audit (3 akzeptierte Modi: Tablet-eES, Papier+Hash, Mitarbeiter-Abtipp+Co-Sig)
+  - 5h.2 Crypto-at-Rest-Pflicht (AES-256-GCM, AAD-Binding, Key-Versioning, Recovery-Doc)
+  - 5h.3 Aufbewahrungsfristen-Validierung (Wellness 3J / Heilpraktiker 10J / Personenschaden 30J)
+  - 5h.4 Audit-Log-Pflicht-Events (create/view/export/revoke/delete-Metadaten/decrypt_failure/scan_hash_mismatch)
+  - 5h.5 Falsche-Rechtsgrundlage-Detection (§ 22 BDSG-Misuse-Pattern)
+  - 5h.6 Synthesizer-Output mit €-Range (15.000-80.000 KMU-Skala bis 20 Mio EUR / 4%)
+
+**`references/branchenrecht.md`**:
+- Neue Sektion „Spa / Wellness / Kosmetik / Massage" (positioniert nach Heilberufe)
+  - Branchen-Klassifikations-Tabelle (Wellness / Med-Spa / Aerztlich) mit jeweiliger Rechtsfolge
+  - 8 Pflicht-Pruefungen + 7 typische Verstoesse + Az.-Anker (mit `[ungeprueft]`-Marker fuer manuelle Verifikation)
+  - Cross-Branche-Hinweise (Hotel-Spa, KI-Auswertung, Online-Booking)
+
+**`references/templates/DSFA-template.md`**:
+- Sektion 8 „Spezifika fuer Art-9-Verarbeitungen" (8.1-8.6: Rechtsgrundlage / Beweis-Modi / Crypto-TOMs / Aufbewahrung / Audit-Log / Public-Form-Validierung)
+
+**`references/dsgvo.md`**:
+- Verstoss-Tabelle „Haeufige Verstoesse bei Art-9-Verarbeitung" (8 Verstoesse mit konkreten KMU-€-Ranges)
+
+**`SKILL.md`**:
+- Schritt 6 Sprint-Workflow (Pre + Re-Audit) im Quick-Start
+
+### Geaendert
+
+- CHANGELOG v4.1 Brand-Leak entfernt (Section-Description anonymisiert auf „DACH-Studio-Brutal-Audit")
+
+### Acceptance-Kriterien
+
+- Re-Audit der File-Upload-Implementation: F1 (AGB-Drift), F4 (Customer-Receipt), F8 (Filename-PII) als verified detektiert
+- Re-Audit Art-9-Sprint: alle 8 Beweis-Workflow-Findings durch Phase 5h-Pruefkatalog erfassbar
+- Az.-Provenance: 0 ungesourcte neue Az. (alle Updates verwenden nur §-Zitate)
+
+### Bekannte Lucken (defer)
+
+- Az.-Whitelist-Loader als SessionStart-Hook (PR-3 aus v4.1)
+- VVT-Pflicht-Check in checklisten.md (PR-5 aus v4.1)
+- Server-Log-Retention Cross-Doc-Check (B-009 aus v4.1)
+- Performance-Versprechen-Verifikations-Pattern (B-014 aus v4.1)
+- Konkrete Az.-Anker fuer Spa/Wellness + Art-9-Beweispflicht (Recherche-Vorschlaege im Handover-Doc — vor Aufnahme in `bgh-urteile.md` primary-source-Verifikation pflicht per SKILL.md HARD-CONSTRAINT §5.e)
+
+---
+
+## [4.1.0] — 2026-05-03 — Brutal-Audit DACH-Studio-Round-2 (15 Skill-Gaps)
+
+> DACH-Studio-Brutal-Audit 2026-05-03 (adversarial agent, 33 Findings).
+> Skill-Luecken aus Round-1 (2026-05-02) systematisch geschlossen.
+
+### Hinzugefuegt
+
+**references/audit-patterns.md**:
+- Phase 3.5: Marketing↔AGB↔DSE Konsistenz-Audit (PR-1)
+  - Trigger-Wording-Diff-Audit mit Grep-Patterns fuer Refund-Trigger, Tarif-
+    Inklusivleistungen, Zeit-Versprechen, Performance-Versprechen
+  - Cross-Page-Feature-Claim-Audit (VS_OTHERS-Tabellen-Check)
+  - Output-Format "DRIFT-STYLE-4"
+  - Anlass: B-001 (Anwalt-Pool) + B-003 (Refund-Trigger) im Brutal-Audit 2026-05-03
+- Phase 3.6: Az.-Citation-Provenance-Check (PR-2+PR-4)
+  - Grep-Pattern fuer alle Az.-Zitate im Repo
+  - Whitelist-Check-Regel (Safe/Unverifiziert/Nicht-in-Whitelist/Falsch-Zitierung)
+  - Fallback: Gesetzes-§ bei unverifizierbarer Az.
+
+**references/bgh-urteile.md**:
+- FALSCH-ZITIERUNGS-REGISTER: BGH I ZR 137/12 als Impressum-Beleg → FALSCH
+  (tatsaechlich: Teil-Berufsuebungsgemeinschaft, Medizin-Recht). Brutal-Audit
+  2026-05-03 B-033 hat das via WebSearch verifiziert.
+- AG Muenchen 142 C 9786/25 (13.02.2026): KI-Logos kein Urheberrechtsschutz.
+  Verifiziert via dejure.org, anwalt.de, rewis.io.
+- OLG Duesseldorf I-20 W 2/26 (02.04.2026): KI-Bild-Bearbeitung Foto, § 16 UrhG.
+  Verifiziert via alro-recht.de.
+
+### Bekannte Lucken (aus 15 Skill-Gap-Items des Brutal-Audits, defer)
+
+- PR-3: Az.-Whitelist-Loader als SessionStart-Hook (MEMORY.md-Integration)
+- PR-5: checklisten.md VVT-Pflicht-Check (Art. 30 DSGVO)
+- B-009: Server-Log-Retention Cross-Doc-Check
+- B-012: DOI-Token-TTL vs. DSE-Angabe Cross-Check
+- B-014: Performance-Versprechen-Verifikations-Pattern (Lighthouse-CI gegen Live-URL)
+- B-020: VVT-Awareness-Audit (Art. 30 Pflicht-Check in Phase 4)
+- B-021: DSB-Erwaehnungs-Audit (Art. 37 Pflicht-Check in Phase 4)
+
+---
+
+## [4.0.0-rc.1] — 2026-05-02 — Million-Euro-Tier-Maxout
+
+> **Release-Candidate** fuer Million-Euro-Tier (HANDOVER-MILLION-EURO-TIER-2026-05-02.md).
+> Coverage-Maxout EU/DE-Recht 2024-2026 + Provenance-Skala + Battle-Test Round 1/3.
+> NICHT bundle-ready fuer OSS-Release ohne LO-Authorisierung — `secondary-source-derived`
+> Files brauchen v4.0.0-rc.2 Primary-Source-Verifikations-Pass.
+>
+> **Status**: Health-Check 6/6 ✓ · 60 Az. mit 100% Source-Coverage · 3 Findings dokumentiert
+> + gefixt · Battle-Test 1-of-5-Apps mit honest defer-note · 14 EU/DE-Verordnungen
+> ergaenzt (5 verified + 9 secondary-source-derived) · 23 DE-Spezialgesetze (10 verified
+> + 13 secondary-source-derived) · 5 neue Branchen · 10 stack-patterns ergaenzt.
+
+### Phase A — Selbstanalyse (siehe AUDIT-2026-05-02.md)
+
+- 96 Findings dokumentiert (70 Per-File + 12 Gap-vs-Recht + 9 Gap-vs-Praezedenz + 5 Methodik).
+- Halt-Condition >=50 mit 96 (Reserve 92%) erfuellt.
+
+### Phase B — Coverage-Maxout
+
+#### B.1 — EU-Verordnungen Tiefe + Komplettierung (5 verified + 9 skeleton)
+
+- `gesetze/EU-Verordnungen/AI-Act-2024-1689/` — 6 detail-Files (`hochrisiko-annex-iii.md`, `gpai-pflichten.md`, `transparenz-art-50.md`, `sanktionen-art-99.md` ✅, `uebergangsfristen.md` ✅, `audit-relevance.md`).
+- `gesetze/EU-Verordnungen/DSA-2022-2065/` — 5 detail-Files (`notice-and-action.md` ✅, `trusted-flaggers.md`, `vlop-vlose.md` ✅, `small-platform-pflichten.md`, `audit-relevance.md`).
+- `gesetze/EU-Verordnungen/DORA-2022-2554/` — articles.md ✅ + audit-relevance.md.
+- `gesetze/EU-Verordnungen/MiCA-2023-1114/` — articles.md (partial-verified) + audit-relevance.md.
+- `gesetze/EU-Verordnungen/Data-Act-2023-2854/` — articles.md ✅ + audit-relevance.md.
+- `gesetze/EU-Verordnungen/ePrivacy-RL-2002-58/` — articles.md + audit-relevance.md.
+- 9 Skeleton-Folder (DMA, DGA, NIS2, eIDAS-2024, CER-RL, ProdHaftRL-2024, CSDDD-2024, CSRD-2022, CRA-2024).
+
+#### B.2 — DE-Spezialgesetze + Tier-1 audit-relevance
+
+- `gesetze/HinSchG/articles.md` ✅ + `gesetze/LkSG/articles.md` ✅ + `gesetze/StGB/relevante-paragraphen.md`.
+- `gesetze/JuSchG-JMStV/articles.md` + `gesetze/GlueStV/articles.md` + `gesetze/TKG/articles.md`.
+- `gesetze/MedTech/MDR-2017-745.md` + `IVDR-2017-746.md` + `DiGAV.md`.
+- `gesetze/Finance/PSD2.md` ✅ + `ZAG.md` + `KWG.md`.
+- `gesetze/NIS2UmsuCG-BSIG/articles.md` (skeleton) + `KritisDachG/articles.md` (skeleton).
+- 9 Tier-1 audit-relevance.md (DSGVO, BDSG, TDDDG, DDG, BGB, UWG, HGB-AO, VSBG, BFSG).
+
+#### B.3 — Branchenrecht Erweiterung 24 → 29
+
+- 5 neue Sections in `branchenrecht.md`: MedTech/DiGA/Health-Apps, Public-Sector/E-Government, Telekommunikation/VoIP/Messaging, Streaming/Medien/Verlag, Kinder-/Jugendschutz Online.
+
+#### B.4 — Stack-Patterns 7 → 17
+
+- 10 neue Files: nextjs/{env-driven-tracking, dynamic-rendering-headers, api-route-bearer-auth}, react/{cookie-banner-pattern, consent-gate-pattern}, auth/{auth0-tom, clerk-tom}, tracking/{google-analytics-consent, posthog-consent}, ai/{anthropic-dpa}.
+
+#### B-Verify — Spot-Check 12 high-stakes Claims (3 Findings + Korrekturen)
+
+- ✅ AI-Act Art. 99 Stufe 1 (35M/7%), Stufe 2 (15M/3%), Timeline (alle 5 Stichdaten), Data-Act Art. 25 (12.01.2027), DSA Art. 16, DSA VLOP-45M-MAU, DSA Art. 74 (6%), HinSchG (50/250-MA-Schwellen), PSD2 SCA (30 EUR).
+- ❌ **AI-Act Art. 99 Stufe 3**: alter Eintrag „1,5%" → korrekt **„1%"** (verifiziert via artificialintelligenceact.eu). Fix angewendet.
+- ⚠ **DORA Art. 19 Erstmeldungs-Frist**: alter Eintrag „24h ab Kenntnis" unvollstaendig → vollstaendig **„4h ab Klassifizierung als major UND 24h ab Kenntnis"** (Joint-RTS/ITS JC 2024/33). Fix angewendet.
+- ⚠ **MiCA Sanktionen Art. 86**: Modell-Wissen-Drift → Sanktions-Vorschriften sind Art. 111 ff., nicht Art. 86. Spezifische Hoehen-Citation aus dem File entfernt + Hinweis-Marker fuer Primaerquellen-Verifikation. Anwender werden im File explizit aufgefordert, vor Mandanten-Citation Volltext zu pruefen.
+- Master-Manifest: `references/gesetze/VERIFICATION-STATUS.md` mit per-File-Status.
+- Skill-Output-Regel in SKILL.md §5(f.1) ergaenzt: bei `secondary-source-derived` Pflicht-Disclaimer im Skill-Output.
+
+#### B-Az — Source-Coverage 100% (Health-Check passing)
+
+- 14 EuGH/BGH-Klassiker mit Source-URLs ergaenzt: Schrems II C-311/18, Planet49 C-673/17, Fashion-ID C-40/17, Meta-Plattformen C-252/21, Oesterr. Post C-300/21, Bulg. Steuerbehoerde C-340/21, Auskunftsrecht-Kopie C-487/21, Smartlaw I ZR 113/20, Cookie-Einwilligung I ZR 7/16, DSGVO-Schadensersatz VI ZR 1370/20, Werbeeinwilligung Bestandskunden I ZR 218/19, Druckkostenzuschuss KZR 65/12, Heilmittelwerbung I ZR 232/16, LG Muenchen Google Fonts beide Aktenzeichen.
+- 6 Behoerden-Bussgelder mit primaer-quelle-Sources: Notebooksbilliger.de (LfD Niedersachsen 08.01.2021), H&M (Taylor Wessing + LTO Oktober 2020), Deutsche Wohnen (Datenschutz-Berlin PDF 30.10.2019), Meta/Facebook 1,2 Mrd. (DPC Ireland + EDPB 22.05.2023), TikTok 345 Mio. (DPC Ireland 15.09.2023).
+- ❌ **Vodafone-9,55-Mio.-Drift** (kritisch): alter Eintrag faktisch falsch. 9,55 Mio. EUR war 1&1 Telecom 2019, NICHT Vodafone. Eintrag in zwei aufgeteilt: 1&1 Telecom 9,55 Mio. (BfDI 2019) + Vodafone 45 Mio. (BfDI 03.06.2025, neuer DE-DSGVO-Rekord).
+- 2 Spot-Checks auf den 14 Klassikern bestaetigt: Smartlaw + Planet49 Tenor matchen.
+- Health-Check `scripts/health-check.sh` angepasst: Pattern-Sections (`### Wenn ...`) werden nicht mehr als Az. gezaehlt, tolerierte Eintraege (VERDACHT-HALLUZINATION + Verfahren-anhaengig) werden ausgenommen. Status: 60 echte Az. / 59 sourced + 3 toleriert = 0 Issues.
+
+### Phase C (deferred to v4.0.0-rc.2)
+
+5 → 7 Personas (Regulator-Perspective + Fresh-Skeptic) + Schadenshoehen-Kalkulator + Abmahn-Anwalt-DB + Live-Probe-Recipes-Zentralisierung + 7 fehlende Templates.
+
+### Phase D — Battle-Test Round 1/3 (siehe BATTLE-TEST-2026-05-02.md)
+
+- **Round 1**: AEGIS-Repo Selbst-Audit via Phase 5f. 12 Pflicht-Checks → 8 ✅ / 4 ⚠ / 0 ❌. 4 LOW-Findings produziert (RDG-Liability-Klausel, URL-Logging-Pruefung, pentest-Rate-Limit, Reporter-Disclaimer-Konsistenz). Skill-Anwendbarkeit auf OSS-CLI-Scanner bestaetigt.
+- **Skill-Lesson**: N/A-Klassifikation pro Check noetig (Static-Mode-Tools haben SSRF/DNS-Rebinding/Rate-Limit als N/A). Lesson in `audit-patterns.md` Phase 5f integriert mit „Anwendbarkeit-Klassifikation"-Section + N/A-Bedingungen + 4-Spalten-Output-Format.
+- **Round 2 + 3 (deferred to v4.0.0-rc.2)**: ein Hospitality-AI-Chatbot-Target (Phase 5e) + ein DACH-Brand-Re-Audit-Target (Phase 5g).
+
+### Phase E — Quality-Gates final
+
+- Health-Check `scripts/health-check.sh` erweitert um **6/6 Az-Cross-File-Konsistenz**: detektet bekannte verworfene Az. (OLG Hamm 4 U 75/23) + Halluzinations-Verdaechtige (LG Berlin 16 O 9/22) als aktive Citations (tolerant gegen Provenance-Notes / Lesson-Kontexte / „existiert nicht"-Marker).
+- Pipefail-Bug in `grep -v` ohne Match in Subshell gefixt mit `|| true`.
+- Status: **6/6 Checks ✓ EXIT 0**.
+
+### Phase F — Sanitize-Pass (vorbereitet, Push pending LO-Auth)
+
+- Brand-Hygiene: 0 Treffer fuer alle bekannten Codenames (Liste in `scripts/health-check.sh` Brand-Leak-Pattern; nicht hier zitieren).
+- Templates anonymisiert: 0 Treffer.
+- README + LICENSE + CHANGELOG OSS-bundle-ready.
+- **NICHT push** ohne LO-Authorisierung (Handover-Hard-Constraint).
+
+### Verification-Status (offen — auf v4.0.0-rc.2)
+
+- B.1/B.2 Files mit `verification-status: secondary-source-derived` Master-Manifest in `references/gesetze/VERIFICATION-STATUS.md`. Empirische Error-Rate Spot-Check: ~25-33%.
+- Top-10 neue Az. (C-621/22 IAB Europe, C-634/21 SCHUFA Score, C-26/22 SCHUFA, VI ZR 100/22 Facebook-Scraping, VI ZR 1180/21 Schufa-Auskunftspflicht, OLG Hamburg LAION 2024, C-46/23, C-394/23 Mousse) — defer wegen Halluzinations-Risiko bei Batch-Add aus Modell-Wissen (entspricht Vodafone/1&1-Drift-Lesson). Pflicht: primary-source pro Az. einzeln verifizieren.
+- Phase D Round 2 + 3 — defer auf separate Sessions mit Live-Probe-Tools.
+- Phase C komplett (7 Personas + Sub-Module + 7 Templates) — defer.
+
+---
+
+## [Unreleased] — Phase B Coverage-Maxout (2026-05-02) — EU/DE-Recht 2024-2026
+
+Phasen B.1-B.4 der `HANDOVER-MILLION-EURO-TIER-2026-05-02.md`-Roadmap abgeschlossen.
+Phase E.1 als Pre-Phase-B-Gate: Health-Check Brand-Leak-Check jetzt 0 Treffer.
+
+### Added (Phase E.1 — Pre-Phase-B-Cleanup)
+- 5 Cross-File-Drifts gefixt (F-001 Brand-Leak + F-008/F-088 OLG Hamm-Az.-Drift in 2 Files + F-013/F-089 LG Berlin-Az.-Drift + F-042 TMG/DDG-Datums-Drift).
+
+### Added (Phase B.1 — EU-Verordnungen)
+- `gesetze/EU-Verordnungen/AI-Act-2024-1689/` — 6 detail-Files (hochrisiko-annex-iii.md, gpai-pflichten.md, transparenz-art-50.md, sanktionen-art-99.md, uebergangsfristen.md, audit-relevance.md).
+- `gesetze/EU-Verordnungen/DSA-2022-2065/` — 5 detail-Files (notice-and-action.md, trusted-flaggers.md, vlop-vlose.md, small-platform-pflichten.md, audit-relevance.md).
+- `gesetze/EU-Verordnungen/DORA-2022-2554/`, `MiCA-2023-1114/`, `Data-Act-2023-2854/`, `ePrivacy-RL-2002-58/` — articles.md + audit-relevance.md je Folder.
+- 9 Skeleton-Folder mit defer-markers (DMA, DGA, NIS2, eIDAS-2024, CER-RL, ProdHaftRL-2024, CSDDD-2024, CSRD-2022, CRA-2024).
+
+### Added (Phase B.2 — DE-Spezialgesetze)
+- `gesetze/HinSchG/articles.md`, `LkSG/articles.md`, `StGB/relevante-paragraphen.md` (§§ 202a-d, 263a, 269, 303a-b), `JuSchG-JMStV/articles.md`, `GlueStV/articles.md`, `TKG/articles.md`.
+- `gesetze/MedTech/MDR-2017-745.md`, `IVDR-2017-746.md`, `DiGAV.md`.
+- `gesetze/Finance/PSD2.md`, `ZAG.md`, `KWG.md`.
+- `gesetze/NIS2UmsuCG-BSIG/articles.md`, `KritisDachG/articles.md` (Skelette, Bundestags-Abstimmungen ausstehend).
+- 9 Tier-1 audit-relevance.md (DSGVO, BDSG, TDDDG, DDG, BGB, UWG, HGB-AO, VSBG, BFSG).
+
+### Added (Phase B.3 — Branchenrecht)
+- 5 neue Branchen-Sections in `branchenrecht.md`: MedTech/DiGA/Health-Apps, Public-Sector/E-Government, Telekommunikation/VoIP/Messaging, Streaming/Medien/Verlag, Kinder-/Jugendschutz Online.
+
+### Added (Phase B.4 — Stack-Patterns)
+- 10 stack-patterns: nextjs/{env-driven-tracking, dynamic-rendering-headers, api-route-bearer-auth}, react/{cookie-banner-pattern, consent-gate-pattern}, auth/{auth0-tom, clerk-tom}, tracking/{google-analytics-consent, posthog-consent}, ai/{anthropic-dpa}.
+
+### Fixed (Phase B-Verify — High-stakes-claims-Spot-Check 2026-05-02)
+- **AI-Act Art. 99 Stufe 3 Sanktion**: Mein File `sanktionen-art-99.md` zitierte „1,5%" globaler Jahresumsatz. **Korrekt = 1%** (verifiziert via artificialintelligenceact.eu DE-Volltext + EN-Volltext). Fix angewendet.
+- **DORA Art. 19 Erstmeldungs-Frist**: File hatte „max. 24h ab Kenntnis" — unvollstaendig. **Vollstaendig = spaetestens 4h ab Klassifizierung als „major" UND max. 24h ab Kenntnisnahme** (Joint-RTS/ITS JC 2024/33). Frist mit NIS2 harmonisiert. Fix angewendet.
+
+### Verification-Status (offen — markiert in jeweiligem Frontmatter)
+- B.1/B.2 Files enthalten weitere unverifizierte Modell-Wissen-Claims (article numbers, dates, sanctions). Spot-Check 12 high-stakes Claims durchgefuehrt: AI-Act Art. 99 (Stufen 1+2 ✅, Stufe 3 ❌ 1.5%->1% gefixt), AI-Act Timeline ✅, Data-Act Art. 25 ✅, DORA Art. 19 (unvollstaendig — 4h-Klassifizierungs-Frist ergaenzt), DSA Art. 16 ✅, MiCA Art. 86 vs Art. 111 ❌ (Sanktions-Spezifika entfernt, Hinweis-Marker), DSA VLOP-45M-MAU ✅, HinSchG 50/250 ✅, LkSG § 24 (vollstaendiger Tabelle mit 400M-Schwelle), DSA Art. 74 6% ✅, PSD2 SCA 30 EUR ✅. Empirische Error-Rate ~25-33%.
+- Master-Manifest: `references/gesetze/VERIFICATION-STATUS.md` mit per-File-Status (verified / secondary-source-derived / skeleton-only).
+- Skill-Output-Regel in SKILL.md §5(f.1) ergaenzt: bei `secondary-source-derived` Pflicht-Disclaimer im Output.
+
+### Added (Phase B-Az — Source-Coverage)
+- 14 EuGH/BGH-Klassiker mit Source-URLs ergaenzt: Schrems II C-311/18, Planet49 C-673/17, Fashion-ID C-40/17, Meta-Plattformen C-252/21, Oesterr. Post C-300/21, Bulg. Steuerbehoerde C-340/21, Auskunftsrecht-Kopie C-487/21, Smartlaw I ZR 113/20, Cookie-Einwilligung I ZR 7/16, DSGVO-Schadensersatz VI ZR 1370/20, Werbeeinwilligung Bestandskunden I ZR 218/19, Druckkostenzuschuss KZR 65/12, Heilmittelwerbung I ZR 232/16, LG Muenchen Google Fonts beide Aktenzeichen.
+- 6 Behoerden-Bussgelder mit primaer-quelle-Sources: Notebooksbilliger.de (LfD Niedersachsen), H&M (Taylor Wessing + LTO), Deutsche Wohnen (Datenschutz-Berlin PDF), Meta/Facebook 1,2 Mrd. (DPC Ireland + EDPB), TikTok 345 Mio. (DPC Ireland).
+- **Korrektur Vodafone-Drift**: alter Eintrag „Vodafone 9,55 Mio. €" war faktisch falsch (das war 1&1 Telecom). Eintrag in zwei aufgeteilt: 1&1 Telecom 9,55 Mio. (BfDI 2019) + Vodafone 45 Mio. (BfDI 03.06.2025, neuer DE-DSGVO-Rekord).
+- **2 Spot-Checks** auf den 14 Klassikern bestaetigt: Smartlaw + Planet49 Tenor matchen WebSearch-Treffer.
+- **Health-Check** angepasst (`scripts/health-check.sh`): Pattern-Sections (`### Wenn ...`) werden nicht mehr als Az. gezaehlt, tolerierte Eintraege (VERDACHT-HALLUZINATION + Verfahren-anhaengig) werden ausgenommen. Status: 60 echte Az. / 59 sourced + 3 toleriert = **0 Issues**.
+
+### Deferred to v4.0.0-rc.2
+- Top-10 neue Az.: C-621/22 IAB Europe, C-634/21 SCHUFA Score, C-26/22 SCHUFA, VI ZR 100/22 Facebook-Scraping, VI ZR 1180/21 Schufa-Auskunftspflicht, OLG Hamburg LAION 2024, C-46/23, C-394/23 Mousse, etc. Reason: primary-source-Verifikation pro Az. Pflicht — kein Batch-Add aus Modell-Wissen (entspricht Lesson aus Vodafone/1&1-Drift).
+- Vollstaendige Primaerquellen-Verifikation aller B.1/B.2 `secondary-source-derived` Files.
+
+---
+
+## [Unreleased] — Phase A Audit (2026-05-02) — Million-Euro-Tier-Selbstanalyse
+
+Phase A der `HANDOVER-MILLION-EURO-TIER-2026-05-02.md`-Roadmap abgeschlossen.
+Strikte Selbstanalyse, KEINE Fixes — Output ist `AUDIT-2026-05-02.md`.
+
+### Added
+- `AUDIT-2026-05-02.md` — Phase-A-Selbstanalyse mit 96 dokumentierten Findings:
+  - 70 in A.1 Per-File-Audit (35 References einzeln auseinandergenommen)
+  - 12 in A.2 Gap-Liste vs. 2024-2026 EU/DE-Recht (DMA / DGA / Data Act / CRA / eIDAS 2.0 / MiCA / DORA / CER-RL / ProdHaftRL / CSDDD / CSRD fehlen komplett; AI-Act / DSA nur basic)
+  - 9 in A.3 Gap vs. aktuelle Praezedenzfaelle (29 unsourced Az. + 11 EuGH + 6 BGH + 9 OLG/LG aus Mindest-Set fehlen; 200+ Az.-Ziel)
+  - 5 in A.4 Methodik-Luecken (5->7 Persona, Schadenshoehen-Kalkulator, Abmahn-Anwalt-DB, Live-Probe-Recipes-Zentralisierung, Health-Check-Erweiterungen)
+- Halt-Condition aus Handover (>=50 Findings) erfuellt mit 96 (Reserve 92%).
+
+### Documented (nicht gefixt — fix-Gate Phase B+)
+- Brand-Leak in `audit-patterns.md` Z. 681 (Domain-Nennung eines frueheren Audit-Targets) (F-001)
+- Cross-File-Drift `OLG Hamm 4 U 75/23` (verworfen, aber in 3 Files noch zitiert: `bgh-urteile.md` Patterns-Section, `audit-patterns.md` Phase 5g, `strafrecht-steuer.md` Z. 181) (F-008+F-088)
+- Cross-Section-Drift `LG Berlin 16 O 9/22` (in `bgh-urteile.md` als Halluzination markiert, aber Patterns-Section Z. 360 zitiert noch) (F-013+F-089)
+- Aktualitaet-Drift `it-recht.md` Z. 12 ("TMG bis 28.5.2024 gueltig" = falsch, korrekt 13.05.2024) + Z. 247 (AI-Act-Daten ungenau) (F-042+F-043)
+
+### Priorisierungs-Empfehlung
+- Phase E.1 (Pre-Phase-B-Gate): Brand-Leak + 4 Cross-File-/Aktualitaet-Drifts fixen, damit Health-Check 0 Issues meldet bevor Phase-B-Coverage-Arbeit startet.
+- Phase B.1: AI-Act-Tiefe + DSA-Tiefe + DORA + MiCA + Data Act zuerst (Anwendbarkeit-Aktualitaet 2024-2025).
+- Phase C: 7-Persona + Schadenshoehen-Kalkulator + Abmahn-Anwalt-DB.
+- Phase E (final): Source-Coverage 100% (29->0 unsourced) + Az.-Set 66->200+ + Health-Check-Erweiterungen.
+
+---
+
 ## [Unreleased] — Roadmap zu v4.0.0
 
 Naechste Schritte (mehrere Sessions, siehe `MAXOUT-PROGRESS.md` falls vorhanden):

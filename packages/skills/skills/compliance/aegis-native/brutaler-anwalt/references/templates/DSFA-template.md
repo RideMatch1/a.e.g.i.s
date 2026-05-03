@@ -69,6 +69,59 @@ sources: BayLDA-Hinweise zur DSFA + DSK-Whitelist 2018
 DSFA mindestens jaehrlich oder bei wesentlicher Aenderung der Verarbeitung
 ueberpruefen. Naechstes Review: `<YYYY-MM-DD>`.
 
+## 8. Spezifika fuer Art-9-Verarbeitungen (V4-Pattern, post-Art-9-Workflow-Audit 2026-05-03)
+
+Bei besonderen Kategorien Art. 9 DSGVO (Gesundheitsdaten, biometrisch, Gewerkschaft,
+Religion, politische Meinung) gelten **verschaerfte Anforderungen** (Art. 35 Abs. 3
+lit. b — DSFA Pflicht; KMU-Privileg gilt nicht).
+
+### 8.1 Rechtsgrundlage-Pruefung
+
+- Hauptpfad: Art. 9 Abs. 2 lit. a DSGVO (ausdrueckliche Einwilligung)
+- Alternativen pruefen + ausschliessen:
+  - lit. b (Arbeitsrecht / Sozialschutz) — nur HR-Kontexte
+  - lit. c (lebenswichtige Interessen) — nur Notfall
+  - lit. f (Rechtsanspruechen) — nur prozessual
+  - lit. h (Gesundheitsvorsorge durch Berufsgeheimnistraeger) — nur Heilberuf
+- § 22 BDSG: Detail-Erlaubnis-Norm, NUR wenn lit. h greift
+- **Verbotener Verweis**: Art. 6 Abs. 1 lit. f (berechtigtes Interesse) — bei Art-9 nicht zulaessig
+
+### 8.2 Beweis-Pflicht-Mechanismus (Art. 7 Abs. 1)
+
+| Modus | Implementierung |
+|-------|-----------------|
+| Tablet-eES | SignaturePad-PNG verschluesselt im DB-Record (eIDAS Art. 3 Nr. 10) |
+| Papier eigenhaendig + Scan | Original im Tresor + SHA-256-Hash in DB |
+| Mitarbeiter-Abtipp + Scan + Mitarbeiter-Co-Signatur | Pflicht-Upload + Mitarbeiter-Bestaetigungs-Signatur |
+
+### 8.3 Crypto-at-Rest-TOMs
+
+- [ ] AES-256-GCM (oder ChaCha20-Poly1305) mit AAD-Bindung an Row-ID
+- [ ] Key-Versioning im Ciphertext-Format
+- [ ] Decrypt-Fail-Audit-Log (Tampering- + Key-Loss-Detection)
+- [ ] Recovery-Procedure dokumentiert (`docs/security/encryption-recovery.md`)
+- [ ] Mind. 3 unabhaengige Key-Backup-Standorte (Production-ENV + Vault + Offline)
+
+### 8.4 Aufbewahrungs-Differenzierung
+
+| Setup | Frist | Norm |
+|-------|-------|------|
+| Wellness/Kosmetik | 3 Jahre | BGB § 195 |
+| Heilpraktiker | 10 Jahre | BGB § 630f Abs. 3 |
+| Personenschaden-Sondercase | bis 30 Jahre | BGB § 199 Abs. 2 |
+
+### 8.5 Audit-Log-Pflicht-Events
+
+- create / view / export / revoke / delete (Metadaten-only beim DELETE!)
+- decrypt_failure mit reason + version + keyId
+- scan_hash_mismatch (Tampering-Indikator)
+
+### 8.6 Public-Form-Validierung
+
+Wenn Patienten via Public-Tablet/Self-Service Anamnese ausfuellen koennen — Pflicht-Signatur-Block muss UI-seitig vor Submit erzwingen werden. DB-CHECK-Constraint allein → schlechte UX (500-Error statt Submit-Block).
+
+> Audit-Pattern fuer Art-9: siehe `references/audit-patterns.md` Phase 5h (Art-9-Beweis-Workflow-Audit).
+
 ---
 
 *Disclaimer: Diese Vorlage ist eine technisch-indikative Hilfe, keine Rechtsberatung

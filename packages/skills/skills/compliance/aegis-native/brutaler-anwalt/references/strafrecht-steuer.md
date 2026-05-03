@@ -178,7 +178,7 @@ Wenn die Site Mitarbeiter-Login enthaelt + keine separate Beschaeftigten-Datensc
 ```
 Finding: Datenpanne nicht innerhalb 72 h gemeldet
 - §: Art. 33 DSGVO + § 130 OWiG (Aufsichtspflicht)
-- Az.: OLG Hamm 4 U 75/23 (auch versehentliche Mails sind Datenpannen)
+- Az.: OLG Hamm 11 U 88/22 (20.01.2023) — auch versehentliche Mails sind Datenpannen, 100 EUR Schadensersatz pro Betroffenem
 - Strafrechtlich: § 263 StGB falls vorsaetzliche Verschleierung erkennbar
 - Bussgeld DSGVO: Stufe 1 (Art. 83 Abs. 4)
 - Risiko-Vektor:

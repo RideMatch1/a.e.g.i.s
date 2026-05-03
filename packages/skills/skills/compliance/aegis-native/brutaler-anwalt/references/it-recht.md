@@ -9,8 +9,8 @@
 ### Telemedienrecht / Digitale Dienste
 | Gesetz | Volltext | Relevanz |
 |--------|---------|---------|
-| **TMG** (Telemediengesetz) — bis 28.5.2024 gültig | https://www.gesetze-im-internet.de/tmg/ | Impressumspflicht (§ 5), Haftung für Inhalte (§§ 7-10) — **Achtung: abgelöst durch DDG** |
-| **DDG** (Digitale-Dienste-Gesetz) — seit 14.3.2024 | https://www.gesetze-im-internet.de/ddg/ | Impressumspflicht § 5 (= TMG § 5), Umsetzung des DSA |
+| **TMG** (Telemediengesetz) — bis 13.5.2024 gültig | https://www.gesetze-im-internet.de/tmg/ | Impressumspflicht (§ 5), Haftung für Inhalte (§§ 7-10) — **Achtung: abgelöst durch DDG** |
+| **DDG** (Digitale-Dienste-Gesetz) — seit 14.5.2024 | https://www.gesetze-im-internet.de/ddg/ | Impressumspflicht § 5 (= TMG § 5), Umsetzung des DSA |
 | **DSA** (Digital Services Act, EU 2022/2065) | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32022R2065 | Plattformhaftung, Transparenzpflichten, Risikoaudits für große Plattformen |
 | **DMA** (Digital Markets Act, EU 2022/1925) | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32022R1925 | Verpflichtungen für "Gatekeeper" (Apple, Google, Meta, Amazon...) |
 | **TTDSG** | https://www.gesetze-im-internet.de/ttdsg/ | Cookies, E-Privacy (→ auch dsgvo.md) |

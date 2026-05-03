@@ -41,6 +41,64 @@
 
 ---
 
+## Spa / Wellness / Kosmetik / Massage (V4-Pattern, post-Art-9-Workflow-Audit 2026-05-03)
+
+### Trigger
+- URL-Pattern: `*-spa.*`, `*-wellness.*`, `*-kosmetik.*`, `*-beauty.*`, `*-massage.*`, `*hotel*spa*`, `*beauty-salon*`
+- Content-Keywords: „Anamnese", „Allergien", „Kontraindikationen", „Hauttyp", „Schwangerschaftsmassage", „Behandlungsraeume"
+- schema.org @type: `BeautySalon`, `DaySpa`, `HealthAndBeautyBusiness`
+- Cross-Branche: oft gemischt mit `LodgingBusiness` (Hotel-Spa) oder `MedicalBusiness` (Med-Spa mit Heilpraktiker)
+
+### Branchen-Klassifikation (KRITISCH fuer Rechtsfolge)
+
+| Setup | Rechtsregime | Aufbewahrung | DSGVO-Rechtsgrundlage |
+|-------|--------------|--------------|------------------------|
+| Reine Wellness/Kosmetik (kein Heilpraktiker) | § 823 BGB Verkehrssicherungspflicht + § 280 BGB Pflichtverletzung | BGB § 195 (3 Jahre) + § 199 Abs. 4 (10 Jahre Hoechstfrist) | Art. 9 Abs. 2 lit. a DSGVO (Einwilligung) |
+| Medizinisches Spa mit Heilpraktiker | § 630a-h BGB Behandlungsvertrag | BGB § 630f Abs. 3 (10 Jahre) | § 22 Abs. 1 Nr. 1 lit. b BDSG (Gesundheitsvorsorge) ODER Art. 9 Abs. 2 lit. h |
+| Aerztliche Leistung im Spa (Botox, Filler) | § 630a-h BGB voll | BGB § 630f Abs. 3 (10 Jahre) | § 22 BDSG (Berufsgeheimnistraeger) |
+
+### Pflicht-Pruefungen
+
+- [ ] **Anamnese-Beweis-Workflow** (Art. 9 Abs. 2 lit. a + Art. 7 Abs. 1 DSGVO): Wer Gesundheitsdaten erhebt, muss Einwilligung **kryptographisch beweisbar** dokumentieren. Mindestens eines:
+  - Tablet-Signatur (eIDAS Art. 3 Nr. 10 — eES) mit Audit-Trail
+  - Eigenhaendige Unterschrift auf Papier + gescannt + Hash-Bindung (SHA-256) in DB
+  - Mitarbeiter-Abtipp + Pflicht-Original-Scan + Mitarbeiter-Co-Signatur
+- [ ] **Branchen-Klassifikation explizit** in Datenschutzerklaerung: Wellness vs. Heilpraktiker vs. Aerztlich. Falsche Annahme der Heilberufs-Privilegien (§ 22 BDSG) ist verbreiteter Verstoss.
+- [ ] **DSFA-Pflicht** (Art. 35 Abs. 3 lit. b DSGVO): bei systematischer Erhebung Art-9-Daten (jeder Spa-Gast bekommt Anamnese erfasst). KMU-Privileg gilt **nicht** fuer DSFA bei Art-9.
+- [ ] **Aufbewahrungsfrist** dokumentiert + automatisiert (Cron / Scheduled-Job): 3 Jahre Wellness, 10 Jahre Heilpraktiker. Verlaengerung bei dokumentiertem Schadensfall (BGB § 199 Abs. 2: bis 30 Jahre bei Personenschaden).
+- [ ] **Encryption at-rest** fuer alle Art-9-Felder (AES-256-GCM mit AAD-Bindung an Row-ID, Defense gegen Block-Swap-Attacks).
+- [ ] **Audit-Log** fuer JEDEN Lese-Zugriff auf Anamnese (Art. 5 Abs. 2 Rechenschaftspflicht).
+- [ ] **Widerrufs-Workflow** Art. 7 Abs. 3 DSGVO als sichtbarer Button + Pflicht-Audit-Log mit Begruendung.
+- [ ] **Heilpraktiker-Erlaubnis-Check**: wenn Akupunktur, Schroepfen, Massagen mit Heilversprechen, Lymphdrainage etc. angeboten werden — Heilpraktiker-Erlaubnis (HeilprG) **Pflicht**, sonst Strafbar (§ 5 HeilprG).
+- [ ] **HWG-Compliance** wenn Heilversprechen beworben (Anti-Aging, Faltenglaettung, Cellulite-Reduktion mit Wirknachweis-Behauptung).
+
+### Typische Verstoesse
+
+- **Anamnese ohne Pflicht-Unterschrift erfasst** — Mitarbeiter tippt Allergien direkt im Admin-UI ein, ohne dass Gast bestaetigt. Beweispflicht Art. 7 Abs. 1 nicht erfuellt.
+- **Falsche § 22 BDSG-Berufung** — Spa-Mitarbeiter sind keine Berufsgeheimnistraeger im Sinne § 22 Abs. 1 Nr. 1 lit. b BDSG (anders als Aerzte/Heilpraktiker mit § 203 StGB-Schweigepflicht). Rechtsgrundlage **muss** Art. 9 Abs. 2 lit. a DSGVO (ausdrueckliche Einwilligung) sein.
+- **Aufbewahrungsfrist zu kurz** — z.B. 12 oder 24 Monate, dann Schaden tritt in Jahr 3 auf. Hotel kann Anamnese nicht mehr vorlegen → § 280 BGB-Beweisproblem.
+- **Audit-Log fehlt fuer Anamnese-Lese-Zugriff** — kein Nachweis welcher Mitarbeiter wann welche Gesundheitsdaten gesehen hat. Diskriminierungs-Vorwurf-Defense unmoeglich.
+- **Werbung mit Heilversprechen** ohne Heilpraktiker-Erlaubnis → § 5 HeilprG (Strafbarkeit) + § 3 HWG (Wettbewerbsverstoss, UWG-Hebel).
+- **Originalpapier ohne kryptographische Bindung** an DB-Eintrag — Mitarbeiter scannt + tippt ab, aber DB-Inhalt ist nicht beweisbar mit Original verknuepft. Im Bestreitungsfall: Inhalts-Diskrepanz nicht aufloesbar.
+- **DSFA fehlt** — bei Pruefung durch Aufsichtsbehoerde Art. 35 Verstoss = Stufe 1 Bussgeld (bis 10 Mio EUR / 2%).
+
+### Az.-Anker
+
+- **Beweispflicht Einwilligung Art-9**: etablierte EuGH-Rechtsprechung zu Art. 7 + Art. 9 DSGVO. Spezifische Az. `[ungeprueft, manuelle Verifikation vor Schriftsatz erforderlich]` — Empfehlung: Az. zu Art. 9 + Beweispflicht in `bgh-urteile.md` ergaenzen wenn primaer-quellen-verifiziert (curia.europa.eu / bundesgerichtshof.de).
+- **§ 630h BGB Beweislastumkehr**: gilt NUR bei medizinischer Behandlung, NICHT bei Wellness. Wichtige Abgrenzung — Wellness fallback auf § 286 ZPO freie Beweiswuerdigung.
+- **§ 5 HeilprG Strafbarkeit**: Heilberufsausuebung ohne Erlaubnis = Strafrechtlich verfolgt, BGH-Linie zu „Heilkunde" weit ausgelegt (bspw. Lymphdrainage, energetische Behandlungen, „Heilmassagen").
+- **Hauttyp/Schwangerschaft als Art-9**: defensiv ausgelegt nach ErwGr 35 DSGVO + EuGH-Rechtsprechung zu weitem Gesundheitsdaten-Begriff.
+
+### Cross-Branche-Hinweise
+
+- Hotel-Spa: zusaetzlich `LodgingBusiness`-Layer pruefen (Reisebranche-Sektion)
+- Wenn KI-Auswertung der Anamnese (Empfehlungen): EU AI Act + KI-Health-Layer-Sektion zusaetzlich
+- Wenn Online-Booking: zusaetzlich E-Commerce-Layer (BFSG seit 28.06.2025)
+
+> Audit-Pattern: siehe `references/audit-patterns.md` Phase 5h (Art-9-Beweis-Workflow-Audit).
+
+---
+
 ## Anwaelte / Kanzleien
 
 ### Berufsordnung Rechtsanwaelte (BORA)
@@ -629,6 +687,134 @@ URL-Pattern: `*-github.io`, `*-readthedocs.*`. Repo-Struktur: package.json mit `
 - LICENSE fehlt → All-Rights-Reserved Default → Forks rechtlich unklar
 - Telemetry-On-by-Default ohne Opt-Out → DSGVO + dejure-Gemeinschaft
 - security.txt mit Placeholder-Tokens (siehe `audit-patterns.md` Phase 2)
+
+---
+
+## MedTech / DiGA / Health-Apps
+
+### Trigger
+URL-Pattern: `*-health.*`, `*-medizin.*`, `*-symptom.*`, `*-diagnose.*`. Tech-Stack: Health-related libs (e.g. `@medplum/*`, FHIR-Clients), Symptom-Checker-APIs. Content: "Diagnose", "Behandlung", "Symptom-Check", "Therapie-Empfehlung".
+
+### Pflicht-Pruefungen
+| Check | Rechtsgrundlage | Verify |
+|-------|-----------------|--------|
+| MDR-Klassifizierung der App (Klasse I/IIa/IIb/III) | MDR Art. 51 + Anhang VIII | CE-Pruefung |
+| Klinische Bewertung dokumentiert | MDR Art. 61 + Anhang XIV | interner Vault |
+| BfArM-Listung als DiGA (wenn anwendbar) | DiGAV + § 139e SGB V | https://diga.bfarm.de/ |
+| EUDAMED-Registrierung | MDR Art. 33 | EUDAMED-DB |
+| Vigilanz-Meldungs-Prozess | MDR Art. 87-89 | interne Procedure |
+| AI-Act-Hochrisiko-Pruefung (wenn AI-Diagnose) | AI-Act Annex III Nr. 5.d | FRIA + DSFA |
+| DSGVO Art. 9 (Gesundheitsdaten) | Art. 9 + § 22 BDSG | DSE + DSFA Pflicht |
+| Heilmittelwerbe-Pruefung | HWG | Marketing-Audit |
+| Zero-Retention-AVV bei AI-Vendor | DSGVO Art. 28 + 32 | AVV-Pruefung |
+
+### Typische Verstoesse
+- KI-Diagnose ohne CE-Mark als SaMD = MDR-Verstoss + Art. 50 AI-Act
+- Heilversprechen ohne klinische Bewertung = HWG § 3
+- Health-Daten-Drittlandtransfer ohne SCC + TIA = Art. 44 DSGVO + Stufe 2
+
+### Az.-Anker
+- BGH I ZR 232/16 (Heilmittelwerbung, 15.02.2018)
+- EuGH C-21/23 Lindenapotheke (04.10.2024)
+
+### Cross-Reference
+- MedTech-Gesetze: `gesetze/MedTech/MDR-2017-745.md`, `gesetze/MedTech/IVDR-2017-746.md`, `gesetze/MedTech/DiGAV.md`
+- AI-Act: `gesetze/EU-Verordnungen/AI-Act-2024-1689/`
+
+---
+
+## Public-Sector / E-Government
+
+### Trigger
+URL-Pattern: `*.bund.de`, `*.land.*.de`, `*.kommune.*`, `*.behoerde.*`. Auftraggeber: oeffentliche Stelle. schema.org @type: GovernmentOrganization, GovernmentService.
+
+### Pflicht-Pruefungen
+| Check | Rechtsgrundlage | Verify |
+|-------|-----------------|--------|
+| EGovG-Konformitaet | EGovG (Bund + Laender) | Doku |
+| OZG-Anbindung | OZG (Onlinezugangsgesetz) | Service-Anbindung |
+| BFSG Pflicht (auch fuer Behoerden) | BFSG | WCAG 2.1 AA |
+| BSI-Mindestanforderungen | BSIG / IT-Grundschutz | Audit |
+| Beschaffungsrecht | UVgO / VgV | Vergabeverfahren |
+| IT-PLR-Konsolidierung-Konformitaet | Bund-IT-Standard | wenn Bund-Auftrag |
+| Datenschutz | DSGVO + BDSG + LDSG | Datenschutz-Konzept |
+| Barrierefreiheit | BITV 2.0 | WCAG-Audit |
+
+### Typische Verstoesse
+- BITV-Verstoss bei Behoerden-Site = direkter Pruefungs-Anlass
+- Vergabe-Verstoss bei Beschaffung = Vergabe-Aufhebung
+- Datenpanne in Behoerden-Kontext = besondere oeffentliche Wirkung
+
+### Cross-Reference
+- BFSG: `gesetze/BFSG/audit-relevance.md`
+
+---
+
+## Telekommunikation / VoIP / Messaging
+
+### Trigger
+URL-Pattern: `*-call.*`, `*-voip.*`, `*-messenger.*`, `*-sms.*`. Tech-Stack: Twilio, MessageBird, Vonage, RingCentral. Content: "Telefonie", "SMS", "VoIP", "Messaging-Service".
+
+### Pflicht-Pruefungen
+| Check | Rechtsgrundlage | Verify |
+|-------|-----------------|--------|
+| BNetzA-Anzeige | TKG § 9 | BNetzA-Listung |
+| Notruf-Pflicht (110/112) | TKG §§ 164-167 | Notruf-Routing |
+| Vertraulichkeits-Pflicht | TKG § 109 + Art. 5 ePrivacy-RL | Verschluesselungs-Audit |
+| Telekom-Daten-Loesch-Pflicht | TKG § 169 + DSGVO Art. 5 lit. e | Cron-Audit |
+| Verkehrsdaten-Pflicht | TKG | Loesch-Konzept |
+| Kunden-Identifikations-Pflicht | TKG bei Prepaid | KYC-Pflicht |
+
+### Cross-Reference
+- TKG: `gesetze/TKG/articles.md`
+- ePrivacy-RL: `gesetze/ePrivacy-RL-2002-58/`
+
+---
+
+## Streaming / Medien / Verlag
+
+### Trigger
+URL-Pattern: `*-tv.*`, `*-stream.*`, `*-news.*`, `*-zeitung.*`, `*-verlag.*`. schema.org @type: NewsArticle, NewsMediaOrganization, VideoObject, BroadcastService.
+
+### Pflicht-Pruefungen
+| Check | Rechtsgrundlage | Verify |
+|-------|-----------------|--------|
+| MStV § 18 V.i.S.d.P. | Medienstaatsvertrag § 18 | Impressum + V.i.S.d.P. |
+| Trennungsgrundsatz | UWG § 5a + MStV | Layout-Audit |
+| Urheberrecht-Compliance | UrhG | Image-/Video-Source-Audit |
+| KI-generierte-Inhalte-Pflicht | AI-Act Art. 50 Abs. 5 | Article-Footer ab 02.08.2026 |
+| Quellen-Angabe bei Zitaten | UrhG § 51 | manuelles Audit |
+| Leistungsschutzrecht | UrhG § 87f | LSR-Quellenliste |
+| Jugendschutz-Beschraenkung | JMStV §§ 4-5 | Age-Gate / AVS |
+| Kinder-Werbungs-Verbot | DSA Art. 28 + JMStV § 6 | Targeting-Audit |
+| Streaming-Lizenz-Compliance | UrhG | Lizenz-Vertrag-Pruefung |
+
+### Cross-Reference
+- AI-Act Art. 50: `gesetze/EU-Verordnungen/AI-Act-2024-1689/transparenz-art-50.md`
+- JuSchG / JMStV: `gesetze/JuSchG-JMStV/articles.md`
+
+---
+
+## Kinder- / Jugendschutz Online
+
+### Trigger
+URL-Pattern: `*-kids.*`, `*-jugend.*`, `*-school.*`, `*-game.*`. Content: an Kinder oder Jugendliche gerichtet. AGE-Gate < 18 vorhanden.
+
+### Pflicht-Pruefungen
+| Check | Rechtsgrundlage | Verify |
+|-------|-----------------|--------|
+| AGE-Gate bei Onboarding | DSA Art. 28 + JMStV § 4 | Onboarding-Flow |
+| DSGVO Art. 8 Eltern-Einwilligung < 16 J | DSGVO Art. 8 + § 21 BDSG | Consent-Flow |
+| Profiling-Werbung-Verbot < 18 J | DSA Art. 28 | Ad-Configuration-Audit |
+| Trennungsgrundsatz Werbung | JMStV § 6 | Layout-Audit |
+| Spiel-Verkaufs-Beschraenkung | JuSchG § 14 | Inhalts-Audit |
+| Zugangsbarriere bei entwicklungsbeeintraechtigenden Inhalten | JMStV §§ 4-5 | technisches Mittel |
+| Kinder-Cookies-Sonderregeln | EuGH-Auslegung Art. 6 lit. f | Consent-Banner |
+| BzKJ / KJM Compliance | JMStV § 7 (Anbieter-Beauftragter) | Anbieter-Doku |
+
+### Cross-Reference
+- JuSchG / JMStV: `gesetze/JuSchG-JMStV/articles.md`
+- DSA Art. 28: `gesetze/EU-Verordnungen/DSA-2022-2065/articles.md`
 
 ---
 

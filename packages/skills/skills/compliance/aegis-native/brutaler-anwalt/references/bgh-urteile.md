@@ -21,30 +21,37 @@
 - **Tenor**: EU-US Privacy Shield ungueltig. Transfers in die USA nur mit zusaetzlichen Massnahmen (SCC + TIA).
 - **Anwendung**: Bei Drittlandtransfer in USA pruefen: Standardvertragsklauseln (SCC) abgeschlossen? Transfer Impact Assessment (TIA) durchgefuehrt? Wenn nein → Verstoss Art. 44 ff. DSGVO.
 - **Folge fuer 2026**: EU-US Data Privacy Framework (seit Juli 2023) ersetzt Privacy Shield. Klage durch noyb anhaengig. Bis EuGH-Entscheidung gilt DPF, aber Risiko-Hinweis im DSE.
+- **Source**: [curia.europa.eu C-311/18](https://curia.europa.eu/juris/liste.jsf?num=C-311/18)
 
 ### C-673/17 — Planet49 (01.10.2019)
 - **Tenor**: Vorausgewaehltes Cookie-Banner-Haekchen ist KEINE wirksame Einwilligung. Aktive Handlung erforderlich.
 - **Anwendung**: Cookie-Banner mit Pre-Tick = sofort UWG/DSGVO-Verstoss.
+- **Source**: [curia.europa.eu C-673/17](https://curia.europa.eu/juris/liste.jsf?num=C-673/17)
 
 ### C-40/17 — Fashion-ID (29.07.2019)
 - **Tenor**: Website-Betreiber ist gemeinsam Verantwortlicher (Art. 26 DSGVO) fuer Datenuebermittlung an Facebook durch Like-Button.
 - **Anwendung**: Jeder Social-Media-Plugin / Tracker, der Daten an Dritte sendet → Mit-Verantwortlichkeit. Vereinbarung nach Art. 26 erforderlich.
+- **Source**: [curia.europa.eu C-40/17](https://curia.europa.eu/juris/liste.jsf?num=C-40/17)
 
 ### C-252/21 — Meta-Plattformen (04.07.2023)
 - **Tenor**: Berechtigtes Interesse (Art. 6(1)(f)) reicht NICHT als Rechtsgrundlage fuer personalisierte Werbung. Einwilligung erforderlich.
 - **Anwendung**: Werbung-Targeting ohne Consent = Verstoss.
+- **Source**: [curia.europa.eu C-252/21](https://curia.europa.eu/juris/liste.jsf?num=C-252/21)
 
 ### C-300/21 — Oesterreichische Post (04.05.2023)
 - **Tenor**: Immaterieller Schaden i.S.v. Art. 82 DSGVO erfordert KEINE Erheblichkeitsschwelle. Auch geringer Aerger ist ersatzfaehig, sofern konkret nachweisbar.
 - **Anwendung**: Bei DSGVO-Verstoss kann jeder Betroffene Schadensersatz fordern. Empoerung allein reicht nicht — konkret darzulegen.
+- **Source**: [curia.europa.eu C-300/21](https://curia.europa.eu/juris/liste.jsf?num=C-300/21)
 
 ### C-340/21 — Bulgarische Steuerbehoerde (14.12.2023)
 - **Tenor**: Immaterieller Schaden bei Datenleck schon durch Befuerchtung des Missbrauchs. Beweislastumkehr fuer TOMs.
 - **Anwendung**: Bei Datenpanne hat Betroffener Recht auf Schadensersatz auch ohne realen Missbrauch — Verantwortlicher muss beweisen, dass TOMs angemessen waren.
+- **Source**: [curia.europa.eu C-340/21](https://curia.europa.eu/juris/liste.jsf?num=C-340/21)
 
 ### C-487/21 — Auskunftsrecht-Kopie (04.05.2023)
 - **Tenor**: Art. 15 Abs. 3 DSGVO gewaehrt vollstaendige Kopie aller Daten — nicht nur Zusammenfassung.
 - **Anwendung**: Auskunftsanfragen muessen detailliert beantwortet werden, inkl. aller Empfaenger und konkreter Daten.
+- **Source**: [curia.europa.eu C-487/21](https://curia.europa.eu/juris/liste.jsf?num=C-487/21)
 
 ---
 
@@ -53,25 +60,31 @@
 ### I ZR 113/20 — Smartlaw (09.09.2021)
 - **Tenor**: Automatisierte Erstellung eines individuellen Vertrags durch Software ist KEINE Rechtsdienstleistung i.S.d. RDG, wenn der Nutzer selbst entscheidet und kein konkreter Einzelfall geprueft wird.
 - **Anwendung**: Compliance-Scanner / Audit-Tools (incl. dieser Skill) = keine RDG-Verletzung, sofern technisch-indikativ und kein Einzelfall-Beratung.
+- **Source**: [dejure.org BGH I ZR 113/20](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+113/20)
 
 ### I ZR 7/16 — Cookie-Einwilligung (28.05.2020)
 - **Tenor**: Vorausgewaehlte Checkbox fuer Cookies ist unwirksame Einwilligung. Setzt Planet49 (EuGH C-673/17) in deutsches Recht um.
 - **Anwendung**: Pre-checked Cookie-Boxen = unwirksamer Consent → Tracking ohne Rechtsgrundlage → § 25 TTDSG-Verstoss.
+- **Source**: [dejure.org BGH I ZR 7/16](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+7/16)
 
 ### VI ZR 1370/20 — DSGVO-Schadensersatz (17.10.2023)
 - **Tenor**: Verlust der Kontrolle ueber personenbezogene Daten kann immateriellen Schaden begruenden.
 - **Anwendung**: Bei Datenpanne / Datenleck koennen Betroffene Schadensersatz nach Art. 82 DSGVO fordern.
+- **Source**: [dejure.org BGH VI ZR 1370/20](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=VI+ZR+1370/20)
 
 ### I ZR 218/19 — Werbeeinwilligung Bestandskunden (10.02.2022)
 - **Tenor**: Werbeeinwilligung im Kontext einer Bestellung muss klar und gesondert eingeholt werden. Kopplung mit AGB-Annahme unwirksam.
 - **Anwendung**: Newsletter-Anmeldung bei Checkout muss separat sein (kein vorausgewaehltes Haekchen, keine Kopplung mit AGB-Akzeptanz).
+- **Source**: [dejure.org BGH I ZR 218/19](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+218/19)
 
 ### KZR 65/12 — Druckkostenzuschussverlag (24.03.2015) [aelter, immer noch zitiert]
 - **Anwendung**: Standardvertraege ueber Werkleistungen unterliegen AGB-Recht (§§ 305 ff. BGB). § 307-Inhaltskontrolle.
+- **Source**: [dejure.org BGH KZR 65/12](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=KZR+65/12)
 
 ### I ZR 232/16 — Heilmittelwerbung (15.02.2018)
 - **Tenor**: Werbung fuer rezeptpflichtige Arzneimittel ausserhalb Fachkreise verboten (§ 10 HWG).
 - **Anwendung**: Pharma-/Medizin-Sites: Heilmittelwerbe-Compliance pruefen.
+- **Source**: [dejure.org BGH I ZR 232/16](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+232/16)
 
 ---
 
@@ -81,9 +94,11 @@
 - **Tenor**: Einbindung von Google Fonts via Google-CDN ohne Einwilligung verletzt DSGVO + § 13 GG (Persoenlichkeitsrecht). Schadensersatz: 100 €.
 - **Anwendung**: Externe Google Fonts (`fonts.googleapis.com`, `fonts.gstatic.com`) ohne Consent → Abmahn-Risiko hoch. Loesung: Lokales Selbst-Hosten der Fonts in `/public/fonts/` als WOFF2.
 - **Folge**: Welle von Massen-Abmahnungen 2022/2023 (Streitwert 170–500 € pro Fall). Auch wenn rechtsmissbrauechlich-Grenze (§ 8c UWG) bei Abmahn-Vereinen, einzelner Schadensersatz weiter durchsetzbar.
+- **Source**: [openjur.de LG Muenchen I 3 O 17493/20](https://openjur.de/u/2422562.html) · [dejure.org](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=LG+M%C3%BCnchen+I&Aktenzeichen=3+O+17493/20)
 
 ### LG Muenchen I — 35 O 5839/22 (2023)
 - **Tenor**: Einbindung von externen Schriftarten ohne Consent ist Verstoss; Streitwert auf 500 € beschraenkt bei einmaliger Nutzung.
+- **Source**: [dejure.org LG Muenchen I 35 O 5839/22](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=LG+M%C3%BCnchen+I&Aktenzeichen=35+O+5839/22)
 
 ### OLG Koeln — 6 U 8/22 (Cookie-Banner-Gestaltung, 03.11.2022) [unverifiziert]
 - **Tenor**: „Akzeptieren" gross/farbig + „Ablehnen" versteckt = unzulaessige Manipulation des Consent. Verstoss gegen § 25 TTDSG.
@@ -312,25 +327,40 @@
 
 ## Behoerden-Bussgelder (relevante Faelle)
 
-### Notebooksbilliger.de — 10,4 Mio. € (LfDI Niedersachsen, 2021)
-- **Grund**: Videoueberwachung Mitarbeiter ohne Rechtsgrundlage.
+### Notebooksbilliger.de — 10,4 Mio. € (LfDI Niedersachsen, 08.01.2021)
+- **Grund**: Videoueberwachung Mitarbeiter ohne Rechtsgrundlage. Lager / Verkauf / Pause-Bereiche, 60-Tage-Speicherung.
 - **Bedeutung**: Beschaeftigtendatenschutz § 26 BDSG ist DSGVO-relevant, hohe Bussgelder moeglich.
+- **Source**: [LfD Niedersachsen — Pressemitteilung 08.01.2021](https://www.lfd.niedersachsen.de/startseite/infothek/presseinformationen/lfd-niedersachsen-verhangt-bussgeld-uber-10-4-millionen-euro-gegen-notebooksbilliger-de-196019.html)
 
-### H&M — 35,3 Mio. € (HmbBfDI, 2020)
-- **Grund**: Detaillierte Profile von Mitarbeitern (Krankheiten, religioese Ueberzeugungen).
-- **Bedeutung**: Besondere Kategorien Art. 9 DSGVO → drakonische Strafen.
+### H&M — 35,3 Mio. € (HmbBfDI, Oktober 2020)
+- **Grund**: „Welcome Back Talks" — systematisches Profiling Hunderter Mitarbeiter (Krankheiten, religioese Ueberzeugungen, Familien-Krisen) am Service-Center Nuernberg seit 2014. Speicher-Konfig-Fehler legte Daten 10/2019 mehrere Stunden firmweit offen.
+- **Bedeutung**: Besondere Kategorien Art. 9 DSGVO → drakonische Strafen. Damals hoechstes deutsches DSGVO-Bussgeld.
+- **Source**: [Taylor Wessing — 35 Mio. EUR DSGVO-Bussgeld gegen H&M](https://www.taylorwessing.com/de/insights-and-events/insights/2020/10/35-mio-eur-dsgvo-bussgeld-gegen-hm) · [LTO — Datenschutzbeauftragter Hamburg Bussgeld H&M](https://www.lto.de/recht/nachrichten/n/datenschutzbeauftragter-hamburg-bussgeld-h-und-m-35-millionen-euro)
 
-### Deutsche Wohnen — 14,5 Mio. € (Berlin, 2019)
-- **Grund**: Kein Loesch-Konzept fuer alte Mieterdaten. Spaeter durch BGH zur Konkretisierung der Verantwortlichkeit gehoben (BGH VI ZR 14/22, 2023).
+### Deutsche Wohnen — 14,5 Mio. € (Berliner Datenschutzbeauftragte, 30.10.2019)
+- **Grund**: Kein Loesch-Konzept fuer Mieterdaten. Archiv-System ohne Loeschmoeglichkeit, jahrealte Privatdaten ohne Pruefung der Erforderlichkeit.
+- **Bedeutung**: Spaeter durch EuGH C-807/21 (05.12.2023) zur DSGVO-Verantwortlichkeit / Bussgeld-Auslegung weiterentwickelt; Verfahren beim LG Berlin II noch anhaengig 2024-2025.
+- **Source**: [Datenschutz-Berlin — Pressemitteilung PDF 05.11.2019](https://www.datenschutz-berlin.de/fileadmin/user_upload/pdf/pressemitteilungen/2019/20191105-PM-Bussgeld_DW.pdf)
 
-### Vodafone — 9,55 Mio. € (BfDI, 2021)
-- **Grund**: Werbeanrufe ohne Einwilligung.
+### 1&1 Telecom — 9,55 Mio. € (BfDI, 2019)
+- **Grund**: Unzureichende Identifikationsverfahren in der Hotline (Auth nur via Name + Geburtsdatum). Verstoss Art. 32 DSGVO (TOMs).
+- **Bedeutung**: Klassiker fuer „Auth-Defizit"-Bussgelder; spaeter VG Bonn-Verfahren mit Reduktion auf 900.000 EUR (2020) — illustriert Verhaeltnismaessigkeits-Pflicht der Behoerde.
+- **Source**: [BfDI Pressemitteilungen-Archiv 1&1](https://www.bfdi.bund.de/SharedDocs/Pressemitteilungen/DE/2019/30_BfDIverhaengtGeldbusse1und1.html) · [VG Bonn 1&1-Reduktion-Urteil](https://openjur.de/u/2333517.html)
 
-### facebook — 1,2 Mrd. € (Irland DPC, 2023)
-- **Grund**: Datentransfer in die USA ohne ausreichende Garantien.
+### Vodafone — 45 Mio. € (BfDI, 03.06.2025) — neuer Rekord-Bussgeld
+- **Grund**: Unerlaubte Werbeanrufe via Vertriebspartner + Auth-Defizite gegenueber Kundenservice. Untersuchung lief ab 2021.
+- **Bedeutung**: Hoechstes DE-DSGVO-Bussgeld bisher (Stand 2026-05). Ueberholte das H&M-Bussgeld (35,3 Mio. €).
+- **Source**: [BfDI — Pressemitteilung 03.06.2025 Geldbusse Vodafone](https://www.bfdi.bund.de/SharedDocs/Pressemitteilungen/DE/2025/06_Geldbu%C3%9Fe-Vodafone.html) · [heise — BfDI record fines Vodafone](https://www.heise.de/en/news/BfDI-record-fines-Vodafone-pays-45-million-euros-10423780.html)
 
-### TikTok — 345 Mio. € (Irland DPC, 2023)
-- **Grund**: Verarbeitung von Kinderdaten ohne ausreichende Schutzmassnahmen.
+### Meta Platforms Ireland (Facebook) — 1,2 Mrd. € (Irland DPC, 22.05.2023)
+- **Grund**: Datentransfer in die USA mit SCC + supplementary measures, aber Risiken nach EuGH C-311/18 nicht ausreichend adressiert. Verstoss Art. 46 Abs. 1 DSGVO.
+- **Bedeutung**: Bisheriges hoechstes DSGVO-Bussgeld in der EU. EDPB-Bindungs-Beschluss vom 13.04.2023.
+- **Source**: [DPC Ireland — Pressemitteilung 22.05.2023](https://www.dataprotection.ie/en/news-media/press-releases/Data-Protection-Commission-announces-conclusion-of-inquiry-into-Meta-Ireland) · [EDPB — Pressemitteilung 1.2 Bn. € fine](https://www.edpb.europa.eu/news/news/2023/12-billion-euro-fine-facebook-result-edpb-binding-decision_en)
+
+### TikTok — 345 Mio. € (Irland DPC, 15.09.2023)
+- **Grund**: Kinderdatenverarbeitung (31.07.-31.12.2020): Family-Pairing-Setting, Age-Verification, Transparenz-Defizite, Dark-Patterns. Verstoss Art. 5(1)(a)(c)(f), 12(1), 13(1)(e), 24(1), 25(1)(2) DSGVO.
+- **Bedeutung**: Erstes grosses Bussgeld zu Kinder-DSGVO. Fortgesetzt durch 530-Mio.-Bussgeld 02.05.2025 (China-Datentransfer).
+- **Source**: [DPC Ireland — Pressemitteilung 15.09.2023](https://www.dataprotection.ie/en/news-media/press-releases/DPC-announces-345-million-euro-fine-of-TikTok) · [DPC Ireland — Folgebussgeld 530 Mio. 02.05.2025](https://www.dataprotection.ie/en/news-media/latest-news/irish-data-protection-commission-fines-tiktok-eu530-million-and-orders-corrective-measures-following)
 
 ---
 
@@ -349,7 +379,7 @@
 - Pruefe: Empfaenger DPF-zertifiziert? SCC abgeschlossen? TIA dokumentiert? Datenschutzerklaerung erwaehnt Drittlandtransfer + Garantien?
 
 ### Wenn Datenpanne:
-- Zitiere: Art. 33 DSGVO (72 h) + EuGH C-340/21 + OLG Hamm 4 U 75/23
+- Zitiere: Art. 33 DSGVO (72 h) + EuGH C-340/21 + OLG Hamm 11 U 88/22 (20.01.2023)
 - Fristen: Erstmeldung 72 h an Aufsichtsbehoerde, ggf. Betroffeneninformation Art. 34.
 
 ### Wenn personalisierte Werbung ohne Consent:
@@ -357,8 +387,8 @@
 - Fix: Einwilligung nach Art. 6(1)(a) DSGVO statt Art. 6(1)(f).
 
 ### Wenn Newsletter Single-Opt-In:
-- Zitiere: LG Berlin 16 O 9/22 + § 7 UWG
-- Fix: Double-Opt-In implementieren (Bestaetigungsmail mit Token-Link).
+- Zitiere: BGH I ZR 218/07 (Cold-Outreach-Klassiker) + BGH I ZR 12/22 (Bestandskunden-Mehrfach-Werbung) + § 7 Abs. 2 Nr. 3 UWG
+- Fix: Double-Opt-In implementieren (Bestaetigungsmail mit Token-Link, TTL 24-48h, werbe-frei).
 
 ### Wenn Auskunftsanfrage abgelehnt/unvollstaendig:
 - Zitiere: Art. 15 DSGVO + EuGH C-487/21
@@ -381,3 +411,46 @@ Wenn unsicher:
 > Vergleichbare Faelle: [allgemeiner Hinweis]
 > [ungepruefte Az.-Nummer] — bitte separat verifizieren vor anwaltlicher Verwendung
 ```
+
+---
+
+## ⚠️ FALSCH-ZITIERUNGS-REGISTER (post-Brutal-Audit 2026-05-03)
+
+> Diese Section listet Az., die bekannt-falsch in bestimmten Kontexten verwendet wurden.
+> NIEMALS aus diesem Register zitieren fuer den genannten Falsch-Kontext.
+
+### BGH I ZR 137/12 — NICHT fuer Impressum-Pflicht zitieren
+
+- **Tatsaechlicher Inhalt**: Teil-Berufsausuebungsgemeinschaft von Aerzten,
+  Vereinbarkeit von Berufsordnungs-Beschraenkungen mit Art. 12 Abs. 1 GG (BGH 15.05.2014).
+- **Faelschlicherweise verwendet als**: Beleg fuer Impressum-Pflicht / § 5 TMG / § 5 DDG
+- **Entdeckt**: Brutal-Audit 2026-05-03 (B-033) via WebSearch (lexetius.com, juris.bundesgerichtshof.de, dejure.org)
+- **Korrekte Alternative fuer Impressum-Pflicht-Argument**:
+  `§ 5a Abs. 1 UWG i.V.m. § 5 DDG als Marktverhaltensregel i.S.d. § 3a UWG`
+- **Source**: [dejure.org BGH I ZR 137/12](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+137/12)
+
+---
+
+## AG-/LG-/OLG-Urteile (KI-Recht, 2026)
+
+### AG Muenchen 142 C 9786/25 — KI-Logos kein Urheberrechtsschutz (13.02.2026)
+
+- **Tenor**: KI-generierte Logos unterfallen mangels schoepferischer Eigenleistung
+  eines Menschen NICHT dem Urheberrechtsschutz (§ 2 UrhG). Reines KI-Output = kein Werkschutz.
+- **Anwendung**: Website-Betreiber, die KI-Logos verwenden, haben kein exklusives
+  Urheberrecht daran. Wettbewerber koennen die gleiche KI-Variante nutzen.
+  AGB-Klauseln zu „KI-Bildgenerierung" koennen sich auf dieses Az. beziehen.
+- **Provenance**: Verifiziert via WebSearch 2026-05-03 (dejure.org, anwalt.de, rewis.io, legalsmart.de). Nicht rechtskraeftig.
+- **Source**: [dejure.org AG Muenchen 142 C 9786/25](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=AG+M%C3%BCnchen&Aktenzeichen=142+C+9786/25)
+
+### OLG Duesseldorf I-20 W 2/26 — KI-Bild-Bearbeitung Foto, § 16 UrhG (02.04.2026)
+
+- **Tenor**: KI-Bearbeitung eines Fotos (Prompt-basierte Transformation) stellt
+  keinen Vervielfaeltigungsvorgang i.S.v. § 16 UrhG dar, wenn die KI keine
+  exakte Kopie erzeugt. Einstweilige Verfuegung eines Schutzrechts-Inhabers
+  daher abgewiesen.
+- **Anwendung**: Wenn ein KI-Tool ein Foto transformiert (kein 1:1-Copy), ist die
+  § 16-Verletzungsbehauptung fraglich. AGB-Klauseln zu „KI-Bilder aus Fotos"
+  koennen sich auf dieses Az. beziehen.
+- **Provenance**: Verifiziert via WebSearch 2026-05-03 (alro-recht.de, OLG Duesseldorf Beschluss 02.04.2026).
+- **Source**: [alro-recht.de OLG Duesseldorf I-20 W 2/26](https://alro-recht.de/urteil-olg-duesseldorf-i-20-w-226-ki-bild-aus-foto/)

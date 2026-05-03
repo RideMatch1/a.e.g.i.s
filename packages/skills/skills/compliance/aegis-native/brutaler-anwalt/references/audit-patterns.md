@@ -6,6 +6,97 @@
 
 ---
 
+## Phase 0: URL-INVENTORY (V4-Pattern, post-DACH-Studio-Audit 2026-05-02)
+
+> **PFLICHT vor Phase 1.** Ohne systematische URL-Enumeration uebersieht der
+> Auditor Subsites — und genau dort sitzen oft die kritischen Findings
+> (Pricing-Page → § 312k Kuendigungsbutton; Konfigurator → DSE-Hinweis-Block;
+> /scan → Phase 5f-Surface). Lesson aus DACH-Studio-Audit Round 1: ohne
+> URL-First haetten 4 von 8 Findings gefehlt.
+
+### DEFAULT-SCOPE — „Audit alle gefundenen URLs"
+
+**Wenn der User nicht explizit eingrenzt** („Audit nur /datenschutz") gilt:
+- ALLE Pages des Repos werden enumeriert.
+- ALLE API-Routes werden enumeriert.
+- ALLE in `<Footer>` + `<Navigation>` verlinkten URLs werden gepruefft.
+- Cross-Page-Konsistenz-Pruefungen (Phase 4 + neue) werden auf den vollen Set angewandt.
+
+**Wenn User explizit „nur X" sagt**: nur X auditieren, aber im Output **eine Section „nicht-auditierte URLs"** auflisten — Auditor traegt keine Verantwortung fuer das, was er nicht gesehen hat.
+
+### Discovery-Patterns
+
+#### Static-Site / Code-Repo
+
+| Stack | Pattern |
+|---|---|
+| Next.js App-Router (15/16) | `find src/app -type f -name "page.tsx" -o -name "page.ts"` |
+| Next.js Pages-Router | `find src/pages -type f -name "*.tsx" -o -name "*.ts"` |
+| Next.js API-Routes | `find src/app/api -type f -name "route.tsx" -o -name "route.ts"` |
+| Remix / React-Router | `find app/routes -type f -name "*.tsx" -o -name "*.ts"` |
+| Astro | `find src/pages -type f -name "*.astro"` |
+| Vue / Nuxt | `find pages -type f -name "*.vue"` |
+| WordPress | DB-Query: `wp post list --post_type=page --field=post_name` |
+
+#### Live-Site (Black-Box-Audit)
+
+```bash
+# 1. Sitemap
+curl -s https://example.com/sitemap.xml | grep -oE "https?://[^<]+" | sort -u
+
+# 2. robots.txt
+curl -s https://example.com/robots.txt
+
+# 3. Footer + Nav crawl
+curl -s https://example.com | grep -oE 'href="(/[^"]*)"' | sed 's/href="//;s/"//' | sort -u
+
+# 4. Common DE-Pflicht-Pfade probe
+for slug in impressum datenschutz agb widerruf widerrufsformular kuendigung scanner-haftungsausschluss erklaerung-zur-barrierefreiheit cookies kontakt; do
+  curl -sI "https://example.com/$slug" | head -1
+done
+```
+
+### Pflicht-DE-Subsites-Set
+
+Bei DE/EU-Compliance-Audit MUSS der Auditor pruefen, welche dieser Pages
+existieren bzw. Pflicht waeren:
+
+| Page | Pflicht wenn | Az. / § |
+|---|---|---|
+| `/impressum` | IMMER (DE-Anbieter) | § 5 DDG |
+| `/datenschutz` | IMMER (Datenverarbeitung) | Art. 13/14 DSGVO |
+| `/agb` | bei Vertragsanbahnung / B2B/B2C | § 305 ff. BGB |
+| `/widerruf` + `/widerrufsformular` | B2C-Online-Vertrag (Fernabsatz) | § 312g + § 357 BGB |
+| `/kuendigung` | Online-abgeschlossenes B2C-Dauerschuldverhaeltnis | § 312k BGB (BGH I ZR 161/24) |
+| `/scanner-haftungsausschluss` o.ae. | wenn Site Scanner/Audit-Tool als Service anbietet | RDG § 2 (BGH I ZR 113/20) |
+| `/erklaerung-zur-barrierefreiheit` | B2C-Online-Anbieter ab BFSG-Geltung | BFSG seit 28.06.2025 (Mikrounternehmen-Disclosure auch wenn ausgenommen) |
+| Cookie-Settings (Re-Open) | wenn Tracking-Cookies | § 25 TDDDG |
+
+### URL-Inventory-Output (Pflicht-Format im Skill-Output)
+
+```markdown
+## Audit-Surface (Phase 0)
+
+**Pages (N)**: /, /agb, /datenschutz, ...
+**API-Routes (M)**: /api/scan, /api/chat, ...
+**Pflicht-Pages-Konformitaet**:
+- ✅ /impressum vorhanden
+- ✅ /datenschutz vorhanden
+- ❌ /kuendigung FEHLT (KRITISCH bei B2C-Dauerschuldverhaeltnis — siehe Phase 3)
+- ⚠ /erklaerung-zur-barrierefreiheit vorhanden (BFSG-Mikrounternehmen-Disclosure pruefen)
+```
+
+### Halt-Condition fuer Phase 0
+
+Phase 0 ist erst **abgeschlossen** wenn:
+1. URL-Liste mit min. 5 Pflicht-Pages-Coverage gepruefft (impressum, datenschutz, agb, widerruf, kontakt)
+2. API-Routes enumeriert (wenn Code-Repo verfuegbar)
+3. Output enthaelt explizit „nicht-auditierte URLs" wenn User Scope eingegrenzt hat
+
+NICHT in Phase 1 wechseln, bevor Phase 0 sauber.
+
+---
+
 ## Phase 1: HEADER-AUDIT (curl -sSI)
 
 ### CSP-Anti-Patterns (sofort 🔴 KRITISCH)
@@ -270,7 +361,7 @@ extrahierbar → KRITISCH-Finding: Anbieter unklar identifizierbar.
 
 ## Phase 4: DSE-AUDIT
 
-### Stand-Datum-Hygiene-Check (post-V3.1-Audit 2026-05-01)
+### Stand-Datum-Hygiene-Check (post-V3.1-Audit 2026-05-01, V4-Erweiterung post-DACH-Studio-Audit 2026-05-02)
 
 Nach jedem Compliance-Sweep ist das Stand-Datum auf DSE + AGB zu aktualisieren PLUS Versionshistorie zu pflegen. Fehlendes Update = Drift-Style-2 (Behauptung "Stand vom X" ist veraltet).
 
@@ -281,7 +372,166 @@ curl -sS https://<site>/datenschutz | grep -oE 'Stand:[^<]{0,30}' | head -1
 curl -sS https://<site>/agb | grep -oE 'Stand:[^<]{0,30}' | head -1
 ```
 
-**Finding-Pattern:** Stand-Datum > 3 Monate alt UND letzter Compliance-Commit nach Stand-Datum → Drift-Style-2 (Wahrsch. 5%, €-Range 0–500). Fix: Stand auf aktuellen Monat + Versions-Bump (v2.0 → v2.1) + Versionshistorie-Sektion in DSE + AGB ergaenzen.
+**Finding-Pattern Drift-Style-2:** Stand-Datum > 3 Monate alt UND letzter Compliance-Commit nach Stand-Datum → Wahrsch. 5%, €-Range 0–500. Fix: Stand auf aktuellen Monat + Versions-Bump (v2.0 → v2.1) + Versionshistorie-Sektion in DSE + AGB ergaenzen.
+
+#### Stand-Datum-DRIFT-STYLE-3 (Code-Layer, V4-Pattern, post-DACH-Studio-Audit 2026-05-02)
+
+**Lesson aus DACH-Studio-Audit Round 1**: bei einem React/Next.js-Repo wurde
+in 6 von 6 Pflicht-Pages `new Date().toLocaleDateString('de-DE', ...)` als
+Stand-Datum-Quelle gefunden. Bedeutet: bei JEDEM Page-Load wird das HEUTIGE
+Datum als „Stand" angezeigt — egal wann die letzte redaktionelle
+Anwalts-Pruefung war.
+
+**Juristisches Risiko**:
+- DSGVO Art. 13 Abs. 3: Bei wesentlichen Aenderungen muss Betroffener informiert werden — wenn das Stand-Datum bei jedem Refresh neu ist, gibt es keine reproduzierbare Basis.
+- Beweisproblem: Bei einer Klage „die DSE hatte am X.Y.2025 keine Mistral-AI-Section" kann der Anbieter nicht beweisen, was damals drinstand — `new Date()`-Pattern liefert immer das heutige Datum.
+- AGB § 305 Abs. 2 BGB: Aenderungen muessen klar zeitlich verortbar sein.
+
+**Code-Layer Detection (Pflicht-Check fuer Code-Repo-Audit)**:
+
+```bash
+# Im Pflicht-Pages-Set NIE `new Date()` als Stand-Datum-Quelle:
+grep -rEn "new Date\(\)|toLocaleDateString" \
+  src/app/{impressum,datenschutz,agb,widerruf,widerrufsformular,scanner-haftungsausschluss,erklaerung-zur-barrierefreiheit}/page.tsx
+# Erwartung: 0 Hits
+# Bei Hits: KRITISCH — Drift-Style-3 — Stand-Datum-Code-Drift
+```
+
+**Korrektur-Pattern** (vorbildlich, immer als FIXED Constant):
+
+```tsx
+// File: src/app/datenschutz/page.tsx (oder /agb, /impressum, ...)
+const STAND = '01. Mai 2026';  // FIX, manuell gepflegt bei redaktioneller Pruefung
+const VERSION = '2.1';
+
+return (
+  <p>Stand: {STAND} · Version {VERSION}</p>
+);
+```
+
+**Wahrscheinlichkeit / Schadens-Range Drift-Style-3**:
+- Erstabmahn-Risiko: 30% (low-to-medium, kritisch wenn ausgeloest)
+- Schaden: 500–2.500 EUR (UWG-Abmahnung) + 5.000–15.000 EUR Klagefall (Beweisnot)
+- Az.-Kontext: BGH VI ZR 1370/20 (Beweispflicht des Verantwortlichen Art. 5 Abs. 2 DSGVO)
+
+**Skill-Output bei Drift-Style-3-Finding**:
+```
+🔴 Stand-Datum-Code-Drift in N Pflicht-Pages (KRITISCH)
+- Datei X.tsx Z. N: `new Date().toLocaleDateString(...)`
+- Fix: ersetze mit `const STAND = 'TT. Monat YYYY'`-Konstante
+- Gilt fuer: impressum/datenschutz/agb/widerruf/widerrufsformular/scanner-haftungsausschluss
+- Schadensrange: 500–2.500 EUR Erstabmahnung
+```
+
+#### Drift-Style 4 (AGB-vs-DSE-Tech-Stack-Inkonsistenz, V4-Pattern, post-File-Upload-Sprint 2026-05-03)
+
+Wenn AGB einen „Liefer-Stack" oder „Tech-Stack" auflisten (z.B. § 3a) und DSE
+parallel die Datenverarbeitung beschreibt — beide MUESSEN konsistent sein.
+Klassische Drift-Ausloeser:
+
+- DSE wird wegen DSGVO-Pflicht aktualisiert (z.B. nach Sprint), AGB nicht
+- AGB-Refactor benennt Tech-Stack-Komponenten, DSE schweigt
+- Storage-Migration (z.B. local Disk → Object Storage) wird in einem Doc dokumentiert, im anderen nicht
+
+**Pflicht-Audit:**
+
+| Audit-Frage | Verify |
+|-------------|--------|
+| AGB §X-Liefer-Stack-Sektion identifiziert? | grep fuer „Liefer-Stack", „Tech-Stack", „Sub-Verarbeiter" in /agb-Page |
+| DSE §-Sub-Verarbeiter-Sektion identifiziert? | grep fuer „Auftragsverarbeiter", „Sub-Verarbeiter" in /datenschutz-Page |
+| Sind die Komponenten-Listen identisch? | side-by-side diff der Tech-Stack-Listen |
+| Fehlt eine Komponente in einem von beiden? | UWG §5a-Hebel — ergaenzen beide Seiten parallel |
+
+**Storage-Implementation-Drift-Verifikation (3 Spezial-Verify-Patterns):**
+
+| Behauptung in DSE | Verify-Command | Bei Drift |
+|-------------------|----------------|-----------|
+| „Daten landen in <Object-Storage-Endpoint>" (fuer Customer-Uploads) | Code-grep nach `aws-sdk` / `s3.putObject` ODER `fs.writeFile`-Pfad — was wird wirklich genutzt? | Wenn Code lokale Disk nutzt → DSE-Aussage anpassen (lokale-Disk + Object-Storage-Differenzierung pro Daten-Typ) |
+| „Verschluesselung at-rest (LUKS-Volume)" fuer VPS-Disk | `ssh prod 'lsblk -f' && cryptsetup status` — `crypto_LUKS`-Filesystem auf relevanter Mount? | Wenn nicht aktiv: ENTWEDER LUKS einrichten ODER DSE-Aussage relativieren auf „Disk-Verschluesselung gem. Server-Setup" |
+| „Bytes nur in Datenbank, nicht in Filesystem" — wenn Direct-File-Upload aktiv ist | Code-grep nach `fs.writeFile` fuer Customer-Daten + container-volumes | Wenn Filesystem-Persistenz tatsaechlich aktiv: DSE-Aussage anpassen, Filesystem-Storage-Pfad mit Retention + TOMs ergaenzen |
+
+**Schadens-Klasse Drift-Style 4:** identisch mit Drift-Style-2 (1.000-3.000 EUR Bussgeld + UWG-§3a/5a-Hebel)
+
+### § 312k BGB Kuendigungsbutton-Check (V4-Pattern, post-DACH-Studio-Audit 2026-05-02)
+
+**Trigger**: Site bietet wiederkehrendes Online-Abonnement / Dauerschuldverhaeltnis (Pricing mit „monatlich kuendbar", „/Monat", „Mitgliedschaft", „Subscription") + B2C-Käufer moeglich.
+
+**Pflicht** nach BGH I ZR 161/24 (22.05.2025) + § 312k BGB:
+- „Jetzt-kuendigen"-Button auf oeffentlich erreichbarer URL (NICHT nur im Login-Bereich) — OLG Nuernberg 3 U 2214/23
+- Pfad ohne Login durchlaufbar — OLG Duesseldorf I-20 UKl 3/23
+- Button-Beschriftung: „Jetzt kuendigen" o.ae. eindeutig — OLG Hamburg 5 UKI 1/23
+- Bestaetigungsseite + Eingangsbestaetigung-Email
+- Funktioniert auch bei Dauerschuldverhaeltnissen mit fester Laufzeit (Probe-Abos, Punkte-Pakete) — BGH I ZR 161/24 explizit klarstellt
+
+**Detection**:
+
+```bash
+# 1. Pricing-Page enumerate
+find src/app -path "*/preise/page.tsx" -o -path "*/pricing/page.tsx"
+
+# 2. Wiederkehrungs-Indikator?
+grep -rEn "/Monat|/Mo |monatlich kündbar|monatlich kuendbar|Subscription|Abo|Mitgliedschaft" src/app/preise/page.tsx
+
+# 3. Kuendigungs-Page existiert?
+find src/app -name "kuendigung*" -o -name "kündigung*"
+# Erwartung: existiert auf oeffentlicher URL (kein Login).
+
+# 4. Footer-Link "Vertrag kuendigen" / "Kuendigung"?
+grep -rE "kuendigung|kündigung|jetzt kündigen|jetzt kuendigen" src/components/Footer.tsx src/components/Navigation.tsx
+```
+
+**Finding-Pattern**:
+- 🔴 KRITISCH — Pricing zeigt „monatlich kuendbar" + B2C moeglich + KEINE /kuendigung-Page → Wahrsch. 70%, €-Range 1.500–4.000 EUR Erstabmahnung + 5.000–25.000 EUR Vertragsstrafe-Risiko
+- 🟡 HOCH — /kuendigung existiert nur im Login-Bereich → 50%, 1.500–4.000 EUR
+- 🟡 HOCH — /kuendigung-Button heisst „Vertrag beenden" / „Mitgliedschaft kuendigen" statt „Jetzt kuendigen" → 30%, 500–2.000 EUR (OLG Hamburg-Linie)
+
+**Fix-Pattern** (Pflicht-Skelett):
+
+```tsx
+// File: src/app/kuendigung/page.tsx (oeffentlich, kein Login)
+export default function KuendigungPage() {
+  return (
+    <main>
+      <h1>Vertrag kuendigen.</h1>
+      <p>Hier koennen Sie Ihren Vertrag online kuendigen — ohne Login, sofort.</p>
+      <form action="/api/kuendigung" method="POST">
+        {/* Pflicht-Felder: Kunden-ID, Email, Vertrag-Art, Kuendigungsart (ordentlich / ausserordentlich), Kuendigungsdatum */}
+        <button type="submit" name="action" value="ordentlich">
+          Jetzt ordentlich kuendigen
+        </button>
+        <button type="submit" name="action" value="ausserordentlich">
+          Jetzt ausserordentlich kuendigen
+        </button>
+      </form>
+    </main>
+  );
+}
+```
+
+```tsx
+// Plus: Footer-Link "Vertrag kuendigen" sichtbar wie /widerruf
+// In src/components/Footer.tsx LEGAL_LINKS:
+{ label: 'Vertrag kuendigen', href: '/kuendigung' }
+```
+
+**ALTERNATIV (rechts-sicher fuer reine B2B-Anbieter)**: AGB B2B-only festschreiben + auf /preise klar B2B-Indikator („Nur fuer Unternehmer i.S.d. § 14 BGB. Keine Verbraucher-Vertraege.") setzen → § 312k entfaellt. Aber: Conversion-Verlust bei Solo-Selbststaendige (Coach, Yoga-Lehrer, Heilpraktiker), die teils als Verbraucher einordnungsfaehig sind.
+
+### PAngV / MwSt-Compliance-Check (V4-Pattern, post-DACH-Studio-Audit 2026-05-02)
+
+**Trigger**: Pricing-Page mit konkreten Euro-Beträgen ohne klare MwSt-Indikation.
+
+**Pflicht** (Preisangabenverordnung — PAngV):
+- B2C: Endpreis MUSS inkl. MwSt sein, mit klarem Hinweis „inkl. 19% MwSt."
+- B2B: kann netto sein, ABER mit klarem Hinweis „zzgl. 19% MwSt."
+
+**Detection**:
+
+```bash
+grep -nE "MwSt|netto|brutto|inkl\.|zzgl\.|mehrwertsteuer|umsatzsteuer" src/app/preise/page.tsx
+# Bei 0 Hits + Pricing mit €-Betraegen: 🟡 HOCH-Finding (PAngV-Drift)
+```
+
+**Schadens-Range**: 500–1.500 EUR Wettbewerbszentrale-Erstabmahnung.
 
 ### Pflicht-Sektionen (Art. 13 DSGVO)
 
@@ -577,6 +827,94 @@ curl -X POST https://example.com/api/configurator/upload \
 - Origin-Bypass + RCE via Path-Traversal = potentiell unbegrenzt (Datenpanne Art. 33+34 + Schadensersatz Art. 82 pro Betroffenem)
 - Pricing-Manipulation = Vermoegensschaden + § 263a StGB (Computerbetrug) wenn vorsaetzlich
 
+### 5d.1 DIRECT-FILE-UPLOAD-COMPLIANCE (V4-Sub-Pattern, post-File-Upload-Sprint 2026-05-03)
+
+**Anlass:** Multi-Step-Forms (Konfigurator, Onboarding, Quoting) implementieren
+zunehmend echte File-Uploads (Logos, Bilder, PDFs, Mood-Boards) statt nur
+Filename-Stubs. Echter Upload-Pfad oeffnet 8 distincte Risiko-Klassen die der
+allgemeine „MIME + Magic + Size + Disposition"-Liner nicht abdeckt. Pflicht-
+Erweiterung wenn Site File-Upload neu einfuehrt oder Schema migriert.
+
+**Pflicht-Checks:**
+
+| Check | Pattern | Bei Fehlen | Rechts-Anker |
+|-------|---------|------------|--------------|
+| Schema-Migration-Type-Drift | Wenn Datenmodell von `string[]` (Filename-Stub) auf `Object[]` (Metadata-Ref) wechselt: Server-Schema, Client-Types, alle Konsumenten (md-generators, JSON-exports, Personas/Fixtures) atomar migrieren. Andernfalls Submit-400 oder silent-corruption. | KRITISCH (Submit blockiert; Daten-Korruption) | Art. 25 DSGVO (Privacy by Design — falsche Defaults korrumpieren Schema) |
+| localStorage Schema-Bruch-Migration | Bei schemainkompatiblem WizardData-Type-Wechsel: Storage-Key-Bump (`v2`→`v3`) ODER Defensive-Migration auf Mount (Type-Check + Fallback auf Initial-State). Rueckkehrende User mit alter v2-Struktur duerfen NICHT silent-corrupted-State submitten. | HOCH (User verliert Wizard-Progress; bei silent corruption: 400 unverstaendlich) | UX/Treu+Glauben (BGB §242) |
+| base64-Encoding Spread-Crash | `btoa(String.fromCharCode(...new Uint8Array(buf)))` crasht bei >256kB Files (Argument-Spread-Limit). Pflicht-Pattern: `FileReader.readAsDataURL(f)` + `dataUrl.split(',')[1]`. Test mit echter >5MB-Datei (kleine Test-Files croaken nicht). | KRITISCH (Submit failed silent fuer grosse Files; User sieht Generic-Error) | Art. 32 DSGVO (Verfuegbarkeit), §5a UWG (Funktion behauptet aber nicht eingehalten) |
+| processFilesPayload Position | Server-side File-Save MUSS nach `generateProjectId()` gerufen werden, NICHT nach Zod-Validation alleine. Falsche Position → `.inquiries/undefined/uploads/` Folder-Path. | KRITISCH (Disk-Pollution + falsche Folder-Struktur) | Art. 5 lit. e (Speicherbegrenzung — falsche Folder-Pfade verfehlen Cleanup-Cron) |
+| Path-Traversal-Schutz (3-Layer) | (1) `path.basename(item.name)` strippt Pfad-Segmente, (2) `replace(/[^a-zA-Z0-9._-]/g, '_')` whitelist sichert Filename, (3) UUID-Praefix verhindert Filename-Collisions. Layer 1 alleine ist NICHT ausreichend (Unicode-Normalize-Bypass moeglich). | KRITISCH (Filesystem-Escape, RCE wenn Folder im Web-Root) | § 202c StGB, Art. 32 DSGVO |
+| SVG-XSS bei Operator-Open | SVG kann embedded JavaScript enthalten. Wenn Operator den Mail-Anhang im Browser oeffnet (download → click → browser opens .svg) → JS-Execution im file://-Origin. Mitigation: SVG aus Whitelist, ODER server-side Sanitize (DOMPurify-style), ODER Content-Disposition: attachment forced. | MITTEL (Operator-System-Angriff durch adversarial Customer) | Art. 32 DSGVO, §202c StGB (theoretisch) |
+| Filename-PII in Server-Logs | `logger.warn('upload', 'rejected', { name: item.name })` landet in Logs mit Retention >180 Tage. Filenames koennen PII enthalten („max-mustermann-portrait.jpg"). Pflicht: SHA-256-Hash statt raw filename. | NIEDRIG (Datenminimierung Art. 5 lit. c) | Art. 5 lit. c + lit. e DSGVO |
+| Customer-Receipt Upload-Summary | Customer-Bestaetigungs-Mail muss erwaehnen ob/wieviele Files angekommen sind, sonst hat Customer keinen Praxis-Pfad zu Art. 16 (Berichtigung) — er weiss nicht was gespeichert wurde. | MITTEL (Art. 16 praktisch behindert) | Art. 16 + Art. 13 DSGVO, BGB §242 |
+| Disk-Quota / DoS-Vector | Per-IP rate-limit (z.B. 20 submissions/h × 15 MB) ergibt theoretisches Maximum (z.B. 300 MB/h) das bei N attackierenden IPs zur Disk-Fill fuehrt. Pflicht: `fs.statfs`-Check vor write (refuse wenn free <500 MB) ODER per-IP-Tagesbudget mit Redis-Counter. | HOCH (Verfuegbarkeits-Verstoss Art. 32) | Art. 32 Abs. 1 lit. b DSGVO |
+| Email-Attachment Total-Cap | Wenn Files als SMTP-Attachment versendet: Total-Limit clientseitig (vor base64) UND serverseitig (vor `transporter.sendMail`) durchsetzen. Standard SMTP-Receiver-Limits: 15-25 MB. Ueber-Limit → Mail wird vom Receiver gebounct → Operator bekommt nichts. | HOCH (Lead-Verlust + DSGVO Art. 5 lit. f bei Bounces an Public-MTA-Logs) | Art. 32 DSGVO |
+| VVT-Update-Pflicht | Direct-File-Upload ist eine **neue Verarbeitungstaetigkeit** im Sinne Art. 30 DSGVO. Auch bei KMU-Privileg (< 250 MA) ist VVT-Eintrag BayLDA-Best-Practice und Pflicht-Beleg bei Aufsichtsbehoerden-Audit. | MITTEL (Erschwerungsgrund bei Datenpanne; Stufe-1-Risiko) | Art. 30 + Art. 5 Abs. 2 DSGVO |
+
+**Verify-Commands (Direct-File-Upload-spezifisch):**
+
+```bash
+# 1. base64-Spread-Crash-Test (grosser File)
+dd if=/dev/urandom of=/tmp/big.png bs=1M count=8 # 8 MB Test-File
+# Browser-Test: Upload via UI + DevTools-Network-Inspect
+# Erwartung: Submit-200, kein RangeError im Console
+
+# 2. Path-Traversal-Probe
+curl -X POST https://example.com/api/configurator -H "Origin: https://example.com" \
+  -H "Content-Type: application/json" \
+  -d '{"filesPayload":{"logos":[{"name":"../../etc/passwd","type":"image/png","data":"AAAA"}]}}'
+# Erwartung: 200 (Lead OK), Datei aber als sanitized name in uploads/ ODER skipped
+
+# 3. SVG-XSS-Test
+echo '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>' | base64 > /tmp/svg.b64
+curl -X POST https://example.com/api/configurator -H "Origin: https://example.com" \
+  -H "Content-Type: application/json" \
+  -d "{\"filesPayload\":{\"logos\":[{\"name\":\"test.svg\",\"type\":\"image/svg+xml\",\"data\":\"$(cat /tmp/svg.b64)\"}]}}"
+# Erwartung-A (sicher): 200, aber SVG-Anhang gestrippt/sanitized in Operator-Mail
+# Erwartung-B (akzeptabel): 200, SVG ist Anhang aber Operator-Mail mit Warnung
+
+# 4. Disk-Quota-Probe (Stress-Test, NUR auf Staging)
+for i in $(seq 1 25); do
+  curl -X POST https://staging.example.com/api/configurator ... &
+done
+# Erwartung: nach <500MB free disk → API antwortet 200 aber Files werden skipped
+
+# 5. Type-Migration-Regression (Server-Schema akzeptiert beide?)
+curl -X POST https://example.com/api/configurator -H "Origin: https://example.com" \
+  -H "Content-Type: application/json" \
+  -d '{"uploadedLogos":["legacy-string-format.svg"]}'
+# Erwartung: 400 (Schema rejects old format). Wenn 200 → Schema permissiv = silent corruption-Risiko
+
+# 6. localStorage v-bump-Test (manuell im Browser)
+# DevTools Application → LocalStorage → Old-Key (v2) mit alter Struktur → Page reload
+# Erwartung: alter Key geloescht, Wizard-Initial-State, keine Submit-Korruption
+
+# 7. Customer-Receipt-Upload-Summary
+# Manueller Test: 1 Logo + 0 Bilder hochladen, Submit
+# Erwartung: Customer-Bestaetigungs-Mail enthaelt „1 Logo erhalten"
+```
+
+**Rechts-Anker (Direct-File-Upload-spezifisch):**
+- Art. 5 Abs. 1 lit. c DSGVO — Datenminimierung (kein PII in Logs, MIME-Whitelist)
+- Art. 5 Abs. 1 lit. e DSGVO — Speicherbegrenzung (Cleanup-Cron MUSS uploads/ erfassen)
+- Art. 5 Abs. 1 lit. f DSGVO — Vertraulichkeit (TLS + at-rest-Verschluesselung; SVG-XSS-Schutz)
+- Art. 13 DSGVO — Info-Pflicht (Datei-Typen + Speicher-Pfad + Empfaenger pre-Upload)
+- Art. 16 DSGVO — Berichtigung (Customer-Receipt-Upload-Summary)
+- Art. 25 DSGVO — Privacy by Design (Schema-Migration ohne Type-Drift)
+- Art. 30 DSGVO — VVT-Update bei neuer Verarbeitungstaetigkeit
+- Art. 32 Abs. 1 lit. a + lit. b DSGVO — Verschluesselung + Verfuegbarkeit
+- § 202c StGB — Vorbereitung Datenausspaehung bei Path-Traversal-Vector
+- BGB § 242 (Treu+Glauben) — base64-Crash + Customer-Receipt-Luecke = Funktions-Versprechen-Bruch
+
+**Schadensschaetzung Direct-File-Upload-Klasse:**
+- KRITISCH (Path-Traversal, base64-Crash) ohne Mitigation: 1.000-5.000 EUR Bussgeld + UWG-Abmahn-Risiko
+- HOCH (Disk-DoS, Email-Attachment-Cap, Schema-Migration): 500-3.000 EUR + Operator-Pain (Lead-Verlust)
+- MITTEL (Customer-Receipt, VVT, SVG-XSS): 0-1.500 EUR Bussgeld
+- NIEDRIG (Filename-PII): 0-300 EUR Bussgeld (Hygiene-Empfehlung)
+
+> Action-Liste: siehe `references/checklisten.md` Checkliste 12 (Direkt-File-Upload Compliance).
+> VVT-Template: siehe `references/templates/VVT-template-file-upload.md`.
+
 ---
 
 ## Phase 5e: AI-CHATBOT-/LLM-DSGVO-AUDIT (V3.3-Pattern, post-2026-05-01)
@@ -664,6 +1002,33 @@ gleichzeitig als Verantwortlicher fuer die Scanner-Eingabe-Daten UND als
 potentieller Active-Probe-Akteur gegen Drittseiten — mit StGB-Implikation
 wenn nicht authorisiert.
 
+### Anwendbarkeit-Klassifikation (V4.0-Lesson, post-Battle-Test-2026-05-02)
+
+Phase 5f ist dual-skoped — fuer **SaaS-Scanner-Services** UND **OSS-CLI-Scanner-Tools**.
+Nicht alle Pflicht-Checks gelten fuer beide. Vor der Pruefung Target-Klasse identifizieren:
+
+| Target-Klasse | Beispiele | Pflicht-Checks (von 14) |
+|---|---|---|
+| **SaaS-Scanner-Service** (oeffentlicher Audit-Endpoint) | securityscanner.io, Cookiebot-Audit, page-speed-tools | Alle 14 + AGB / DSE / Impressum aus Phasen 1-4 |
+| **OSS-CLI-Scanner-Tool** (Local-Code-Scan) | Semgrep, gitleaks, AEGIS, ESLint-Security | Reduzierter Set: SSRF/DNS-Rebinding/Rate-Limit/Eingabe-URL-Logging sind oft N/A |
+| **Hybrid (CLI + Active-Probe-Modus)** | nmap, Nuclei, AEGIS-pentest-Mode | Aktive-Probes-Authorisierung + Rate-Limit + User-Consent **PFLICHT**; SSRF N/A wenn Operator-Target |
+
+**N/A-Bedingungen (anstelle von ❌)**:
+- **SSRF-Defense / DNS-Rebinding**: N/A wenn Tool keinen User-supplied-URL-Fetch macht (Static-Mode-CLI-Scanner).
+- **Rate-Limit auf Endpoint**: N/A wenn Tool kein Public-Endpoint hat (OSS-CLI-Local-Mode).
+- **Eingabe-URL-Logging**: N/A wenn Tool nur Local-Code scannt (kein URL-Input).
+- **Output-Sanitization (Brand-Hygiene)**: gilt fuer ALLE Klassen, weil Findings-Output an Operator geht.
+
+Audit-Output-Format mit N/A-Spalte:
+
+```markdown
+| Check | Status | Beleg |
+|---|---|---|
+| SSRF-Defense | ✅ N/A | Static-Mode-Tool, kein User-URL-Fetch |
+| Rate-Limit | ⚠ pruefen | Active-Probe-Mode existiert, Default-Rate unklar |
+| Active-Probes-Authorisierung | ✅ | --confirm-Flag dokumentiert |
+```
+
 **Pflicht-Checks**:
 
 | Check | Pattern | Bei Fehlen |
@@ -678,6 +1043,8 @@ wenn nicht authorisiert.
 | Output-Sanitization | Scanner-Result darf keine internen Codenames / Operator-Brand-Refs / private Cluster-Hostnames leaken | HOCH (Brand-Hygiene) |
 | Drittstellen-Hinweis | Scanner-AGB klart, ob Eingabe-URL an WHOIS/Reverse-DNS/Geo-IP-Provider weitergegeben wird | HOCH (Art. 13 DSGVO) |
 | FP-/FN-Tracking-Doku | Anbieter dokumentiert Test-Coverage + bekannte FP/FN-Klassen — Pflicht-Transparenz fuer Scanner-Glaubwuerdigkeit | MITTEL |
+| Rechtsform-aware Impressum-Check (V3.4-Lesson, post-2026-05-01) | Impressum-Vollstaendigkeits-Pruefer dürfen NICHT pauschal gegen alle 7 § 5 DDG Pflicht-Klassen messen — Class 4 (Vertretung) + Class 5 (Handelsregister) sind nur fuer **juristische Personen** Pflicht (§ 5 Abs. 1 Nr. 1 + Nr. 4 DDG). Fuer Einzelunternehmer/Freiberufler/Selbststaendige sind beide N/A. Anlass: Live-Audit-Run gegen ein Sole-Proprietor-Target (Einzelunternehmer mit vollstaendigem Impressum) zeigte 4/7 = FAIL als False-Positive, weil der Scanner die natuerliche-Person-Konstellation nicht erkannte. Pflicht-Logik: (1) Rechtsform-Suffix-Detektor (GmbH/AG/KG/UG/OHG/GbR/SE/e.K./e.V./Limited/Genossenschaft/...), (2) Legal-Person-Indicator-Detektor (HRB/HRA/Amtsgericht/Geschäftsführer/vertreten durch), (3) Scope-Trim auf Erst-Sektion (vor Berufshaftpflicht/EU-Streitschlichtung-Headers, weil Drittanbieter-AGs sonst false-classify). Bei 'natural' detected: Threshold sinkt auf 4 of 5 (Anschrift/PLZ/Email/USt/Telefon) und Output sagt explizit „natürliche Person/Einzelunternehmer". Plus: Class 3 Email-Regex muss eine Plain-Email-Fallback-Pattern haben — `mailto:`-Praefixe werden von cheerio.text() aus href-Attributen gestripped, daher matcht der primaere `mailto:|kontakt:|email:`-Pattern auf gerendertem Plain-Text nichts. | KRITISCH (False-Positive-Vermeidung — sonst Unrechts-FAIL gegen rechtskonforme Sole-Proprietor-Sites) |
+| Plain-Email-Supplemental fuer DDG-Kontaktklasse | § 5 DDG Abs. 1 Nr. 2 Pflicht-Email kann auf der gerenderten Page als „info@example.de" stehen — der HTML-Attribut-Praefix `mailto:` ist nach cheerio.text()-Extraction weg. Ein Scanner der nur `mailto:|kontakt:|e-mail:` matcht uebersehen die nackte Email. Pflicht-Pattern: Plain-Email-Regex `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}` als Supplement. | HOCH (FN-Vermeidung) |
 | User-Consent-Hinweis Scanner | Bei oeffentlichen Scannern: Hinweis dass User nur eigene Domain pruefen darf; Erwerb-Form fuer Pen-Test-Authorisierung wenn Drittseiten erlaubt | KRITISCH (Strafrechts-Risiko) |
 | Scan-Output-Disclaimer pro Finding | Jede Empfehlung markiert mit „technisch-indikativ, anwaltliche Beratung empfohlen" | HOCH |
 
@@ -825,6 +1192,95 @@ nc -zv -w 5 mail.example.com 25   # nur fuer Server-zu-Server, oft outbound-bloc
 - DOI fehlt = Wettbewerbsabmahnung 800-3.000 EUR + Behoerden-Bussgeld
 - Bestaetigungs-Mail mit Werbung (LG Stendal) = 100-500 EUR Schadensersatz pro Empfaenger
 - 3rd-party-SMTP ohne AVV = Bussgeld 10.000-50.000 EUR (Art. 83 Stufe 2)
+
+---
+
+## Phase 5h: ART-9-BEWEIS-WORKFLOW-AUDIT (V4-Pattern, post-Art-9-Workflow-Audit 2026-05-03)
+
+**Trigger**: Site verarbeitet besondere Kategorien Art. 9 DSGVO (Gesundheitsdaten, biometrisch, Gewerkschaft, Religion, politische Meinung). Erkennbar an:
+
+- Form-Felder: Allergien, Kontraindikationen, Schwangerschaft, Medikamente, Vorerkrankungen, Hauttyp, BMI, Krankheits-Historie
+- Service-Beschreibung mit Begriffen wie „Anamnese", „Patient", „medizinische Beratung", „Heilbehandlung", „Therapie", „DiGA"
+- DB-Schema mit `*_encrypted`-Spalten + Health-Daten-Bezug
+- API-Endpoints unter `/health/`, `/medical/`, `/anamnese/`, `/patient/`
+
+### 5h.1 Beweis-Modi-Audit
+
+Prueft ob die Site **mindestens einen kryptographisch beweisbaren Modus** fuer die Erfassung der Art-9-Daten implementiert. Art. 9 Abs. 2 lit. a + Art. 7 Abs. 1 DSGVO verlangen vom Verantwortlichen die **Beweispflicht** der Einwilligung.
+
+**Drei akzeptierte Modi (mind. einer Pflicht):**
+
+| Modus | Mechanismus | eIDAS-Klasse | Beweis-Stufe |
+|-------|-------------|--------------|--------------|
+| A) Tablet/Touch-Signatur | SignaturePad → PNG eingebettet in DB-Encryption | eES (Art. 3 Nr. 10) | Mittel |
+| B) Eigenhaendige Papier-Unterschrift + Scan | Original mit eigenhaendiger Unterschrift gescannt + SHA-256-Hash in DB gespeichert | nicht eIDAS-relevant (Papier-Beweis § 416 ZPO) | Hoch |
+| C) Mitarbeiter-Abtipp + Original-Scan + Mitarbeiter-Co-Signatur | Mitarbeiter tippt + signiert eigene Bestaetigung „korrekt abgetippt" + Pflicht-Upload des Original-Scans | eES + § 416 ZPO | Mittel-Hoch |
+
+**Anti-Pattern (Defizit-Indikatoren):**
+
+- Mitarbeiter kann im Admin-UI Art-9-Daten erfassen OHNE Patient-Bestaetigung
+- Audit-Log „Mitarbeiter X hat eingegeben" wird als Beweis behandelt → Eigenbeweis Stufe 0
+- consent_method-Feld erlaubt 'checkbox' / 'verbal' ohne weitere Beweis-Spalten
+- DB-CHECK-Constraint fehlt: Anamnese-Insert ist auch ohne Beweis-Element moeglich
+
+### 5h.2 Crypto-at-Rest-Pflicht
+
+**Pflicht-Pruefungen:**
+
+- [ ] Art-9-Felder mit AES-256-GCM (oder vergleichbar starkem AEAD) verschluesselt
+- [ ] **AAD-Binding** an Row-Identifier (z.B. `<table>:<row_id>`) — verhindert Block-Swap-Attacks (Ciphertext einer Zeile in andere kopieren)
+- [ ] **Key-Versioning** im Ciphertext-Format (z.B. `v2:<keyId>:<iv>:<ct>:<tag>`) — ermoeglicht Live-Key-Rotation ohne Re-encrypt-Sweep
+- [ ] **Decrypt-Fail-Audit-Log** — jeder Decrypt-Fehler (auth_failed / unknown_key_id / format_error) wird in audit_log mit Metadaten geloggt (Tampering-Detection + Key-Loss-Detection)
+- [ ] **Recovery-Doc** existiert (z.B. `docs/security/encryption-recovery.md`) mit Rotation-Procedure + Backup-Pflicht (mindestens 3 unabhaengige Standorte: Production-ENV + Vault + Offline-encrypted)
+- [ ] **Originalpapier-Scans im Storage**: Bytes pre-upload verschluesselt (defense-in-depth gegen Storage-Compromise) + SHA-256-Hash im DB-Record (Tampering-Detection beim Download)
+
+### 5h.3 Aufbewahrungsfristen-Validierung
+
+Verschiedene Fristen je nach rechtlichem Status:
+
+| Setup | Frist | Norm |
+|-------|-------|------|
+| Wellness/Kosmetik (kein Heilberuf) | 3 Jahre nach letzter Behandlung | BGB § 195 + § 199 Abs. 4 (max 10 Jahre) |
+| Heilpraktiker | 10 Jahre nach Behandlungsende | BGB § 630f Abs. 3 |
+| Aerzte (gleicher Berufsregeln) | 10 Jahre | BGB § 630f Abs. 3 + MBO-AE |
+| Bei dokumentiertem Personenschaden | bis 30 Jahre | BGB § 199 Abs. 2 |
+| Buchhaltungs-relevante Belege | 6 / 10 Jahre | HGB § 257 / AO § 147 (gilt NICHT fuer Anamnese als reines Health-Datum) |
+
+**Anti-Pattern**: 12 oder 24 Monate Default ohne Differenzierung — zu kurz fuer Schadens-Verjaehrung. Bei Schaden im Jahr 3 ist Anamnese geloescht → Beweisproblem.
+
+### 5h.4 Audit-Log-Pflicht (Art. 5 Abs. 2 + Art. 30 DSGVO)
+
+**Pflicht-Events fuer Art-9-Daten:**
+
+- `<resource>_created` mit consent_method + proof_modes-Hash
+- `<resource>_viewed` (jeder Lese-Zugriff)
+- `<resource>_exported` (PDF/CSV)
+- `<resource>_revoked` mit Begruendung (Art. 7 Abs. 3)
+- `<resource>_deleted` mit METADATEN (KEINE Health-Snapshots — sonst Art. 17 nur in audit_log umsiedeln)
+- `decrypt_failure` mit reason + version + keyId
+- `scan_hash_mismatch` (Tampering-Indikator)
+
+**Anti-Pattern**: Audit-Log enthaelt Plaintext-Snapshot der Health-Daten bei DELETE → Art. 17 wird umgangen.
+
+### 5h.5 Falsche-Rechtsgrundlage-Detection
+
+Haeufigster Verstoss: Site beruft sich auf **§ 22 BDSG Abs. 1 Nr. 1 lit. b** (Gesundheitsvorsorge) obwohl die handelnden Personen **keine Berufsgeheimnistraeger** sind.
+
+**Pruef-Logik:**
+
+- Site-Setup = nur Wellness/Kosmetik/Massage (keine Heilpraktiker-Erlaubnis nachgewiesen) → § 22 BDSG NICHT verfuegbar.
+- Datenschutzerklaerung-Text greppen: Erwaehnung von „§ 22 BDSG" als Rechtsgrundlage fuer Anamnese? → **Verstoss**, muss durch Art. 9 Abs. 2 lit. a (Einwilligung) ersetzt werden.
+- Nur wenn Heilpraktiker / Arzt / Physiotherapeut mit beruflicher Schweigepflicht (§ 203 StGB) → § 22 BDSG verfuegbar.
+
+### 5h.6 Synthesizer-Output
+
+Bei Site mit Art-9-Daten ohne diese Pattern → Wahrscheinlichkeit Bussgeld 12 Monate **40-60%**, €-Range realistisch **15.000-80.000** (KMU-Skala) bis 20 Mio EUR / 4% Jahresumsatz (Art. 83 Abs. 5 lit. a DSGVO).
+
+**Cross-Risiko**: Art. 9-Verstoss + Art. 35-DSFA-fehlt + Art. 32-TOMs-unzureichend = drei Stufe-1/2-Bussgelder in einem Verfahren.
+
+> Branchen-Layer: siehe `references/branchenrecht.md` Sektion „Spa / Wellness / Kosmetik / Massage" + Sektion „Heilberufe".
+> DSFA-Template: siehe `references/templates/DSFA-template.md` Sektion 8 (Art-9-Spezifika).
+> Verstoss-Tabelle: siehe `references/dsgvo.md` „Haeufige Verstoesse bei Art-9-Verarbeitung".
 
 ---
 
@@ -1112,3 +1568,104 @@ Vorlage: `references/templates/proxy-strict-dynamic.ts.example` zeigt das Strict
 
 Skill darf keinen direct-push solcher Migrationen empfehlen, sondern muss
 explizit den HIGH-RISK-Workflow vorschlagen + Vorlagen-Refs liefern.
+
+---
+
+## Phase 3.5: Marketing↔AGB↔DSE Konsistenz-Audit (PR-1, post-DACH-Studio-Brutal-Audit 2026-05-03)
+
+> Anlass: B-001 (Anwalt-Pool-Behauptung) + B-003 (Refund-Trigger-Drift) im Brutal-Audit
+> 2026-05-03 waren MISS des Vor-Audits. Beide hatten Marketing-Claims, die mit
+> den jeweiligen AGB/DSE-Klauseln nicht konsistent waren.
+
+**Pattern**: PFLICHT nach Phase-2-Einzel-Audit-Pages, VOR Phase-4-DSE-Vollstaendigkeit.
+
+### 3.5.1 Trigger-Wording-Diff-Audit (UWG § 5 + § 5a)
+
+Folgende Kategorien systematisch cross-checken — Marketing-Page vs. AGB/DSE:
+
+| Kategorie | Marketing-Wording suchen | AGB/DSE-Klausel pruefen |
+|---|---|---|
+| **Refund-Trigger** | „nach Demo-Seite-Abnahme", „nach Lieferung" | AGB § 6 / § 6a: „ab Unterschrift", „ab Vertragsschluss" |
+| **Tarif-Inklusivleistungen** | Checkmark-Feature-Liste | AGB § 3 / § 4: Was ist tatsaechlich inklusive? |
+| **Zeit-Versprechen** | „binnen 72h", „8-12 Min", „innerhalb 24h" | AGB § 4: Vertragsfristen + Ausnahmen |
+| **Performance-Versprechen** | „Lighthouse ≥ 95", „LCP < 1.2s" | AGB: Garantie-Ausschluss-Klauseln |
+| **Service-Reichweite** | „Anwalt-Pool im Tarif", „Monitoring inklusive" | DSE / AGB: Ist dieses Feature tatsaechlich enthalten? |
+
+**Grep-Pattern fuer Code-Repo**:
+
+```bash
+# Refund-Trigger-Drift
+grep -rEn "nach Demo-Seite-Abnahme|nach Lieferung|nach Abnahme" src/app/ src/components/
+grep -n "ab Unterschrift\|ab Vertragsschluss\|ab Vertragsunterschrift" src/app/agb/
+
+# Tarif-Inklusivleistungen
+grep -rEn "✓|gehakt|us: true" src/app/preise/ src/components/preise/ | grep -v "\.test\."
+# → jede true-Zeile gegen AGB § 3 pruefen
+
+# Zeit-Versprechen
+grep -rEn "72.?[Hh]|8-12 Min|24.?[Hh]|binnen" src/app/ src/components/sections/ | grep -v "\.test\."
+# → gegen siteConfig.konfigurator + AGB-Fristen cross-checken
+```
+
+**Output-Format bei Drift-Finding**:
+```
+🔴 DRIFT-STYLE-4 — Marketing↔AGB-Refund-Trigger-Drift (KRITISCH)
+- Marketing src/app/preise/page.tsx:38 sagt: „7 Tage nach Demo-Seite-Abnahme"
+- AGB src/app/agb/page.tsx:515 sagt: „7 Tage ab Unterschrift"
+- Unterschied: Marketing => POST-Werk; AGB => POST-Unterschrift-PRE-Werk
+- §§ 305c Abs. 2 BGB (Auslegung gegen Verwender) + UWG § 5 Abs. 1
+- Fix-Option A (Quick): Marketing an AGB anpassen (30 min)
+- Fix-Option B (strukturell): AGB erweitern um Demo-Abnahme-Trigger
+```
+
+### 3.5.2 Cross-Page-Feature-Claim-Audit (UWG § 5 Abs. 1 Nr. 1)
+
+Systematische Pruefung: jedes Feature das in Marketing-Pages als „wir haben X" behauptet
+wird → gibt es X tatsaechlich im Service-Angebot/Code?
+
+```bash
+# Service-Feature in VS_OTHERS-Tabellen oder Feature-Cards
+grep -rEn "us: true|✓|'[^']+': true" src/app/preise/ src/components/ | grep -v test
+
+# Dann fuer jeden Treffer pruefen:
+# 1. Existiert der genannte Service/Endpoint/Feature im Code?
+# 2. Ist er in der DSE/AGB als Bestandteil deklariert?
+# 3. Gibt es eine Service-Page, die ihn als explizit NICHT-enthalten beschreibt?
+```
+
+Lesson aus B-001: preise.tsx hatte „Anwalt-Pool: ✓" obwohl dsgvo-check.tsx
+explizit „wir vermitteln keine Anwaelte" sagte. Solche 2-Page-Widersprueche
+sind ab sofort Phase-3.5-Pflicht.
+
+---
+
+## Phase 3.6: Az.-Citation-Provenance-Check (PR-2+PR-4, post-Brutal-Audit 2026-05-03)
+
+> Anlass: BGH I ZR 137/12 wurde in 5 Scanner-Output-Strings als Beleg fuer Impressum-
+> Pflicht-Verletzung zitiert. Tatsaechlich ist I ZR 137/12 Teil-Berufsuebungsgemeinschaft
+> (Medizin-Recht, BGH 15.05.2014) — NULL Bezug zu Impressum-Pflicht.
+
+**Trigger**: IMMER wenn Scanner-Output oder Site-Content Az. enthaelt.
+
+**Pattern**:
+
+```bash
+# Alle Az.-Zitate im Repo finden
+grep -rEn "[A-Z]+ [A-Z]+ [0-9]+\/[0-9]{2}" src/scanner/ src/app/ --include="*.ts" --include="*.tsx"
+
+# Jeden Treffer gegen lokale Whitelist pruefen (bgh-urteile.md)
+```
+
+**Whitelist-Check-Regel**:
+- Az. in bgh-urteile.md mit korrektem Tenor und Source-URL: ✅ Safe-to-use
+- Az. in bgh-urteile.md mit `[unverifiziert]` Marker: ⚠️ erst Volltext-Check, dann nutzen
+- Az. NICHT in bgh-urteile.md: ❌ NICHT zitieren, stattdessen Gesetzes-§
+- Az. mit `[FALSCH-ZITIERUNG]` Marker in bgh-urteile.md: ❌ NIEMALS nutzen
+
+**Wenn kein Az. sicher:**
+```
+Gesetzes-§ zitieren ist immer sicherer als eine moeglicherweise falsche Az.:
+- Impressum-Pflicht: § 5a Abs. 1 UWG i.V.m. § 5 DDG als Marktverhaltensregel
+- Cookie-Banner: § 25 TDDDG + EuGH C-673/17 (Planet49)
+- Tracking: DSGVO Art. 6 Abs. 1 + EuGH C-40/17 (Fashion-ID)
+```

@@ -123,6 +123,33 @@ Mindestinhalt pro Verarbeitungstätigkeit: Zweck / Rechtsgrundlage / Datenkatego
 
 Beispiel-Template: siehe `references/templates/VVT-template.md`.
 
+### VVT-Trigger-Pattern bei neuen Verarbeitungstätigkeiten (V4-Pattern, post-File-Upload-Sprint 2026-05-03)
+
+VVT ist nicht statisches Doc — es ist Living-Doc das bei jeder neuen
+Verarbeitungstätigkeit inkrementell wachsen MUSS, auch unter KMU-Privileg.
+BayLDA-Aufsichtspraxis: bei Datenpanne wird fehlende VVT auch bei < 250 MA
+als „Erschwerungsgrund" gewertet (Art. 83 Abs. 2 lit. h: bisheriges Verhalten).
+
+**Auslöser für VVT-Update (nicht-erschöpfend):**
+
+| Auslöser | Beispiele | VVT-Sektion betroffen |
+|----------|-----------|----------------------|
+| Neue Datenkategorie im Funnel | Konfigurator akzeptiert plötzlich Bilder-Bytes (vorher nur Filenames) | Datenkategorien + TOMs |
+| Neuer Auftragsverarbeiter aktiviert | SMTP-Provider-Wechsel, neuer CDN, neuer KI-Vendor | Empfänger + Drittland-Status |
+| Neuer Speicher-Pfad/-Backend | Object-Storage-Migration, Database-Provider-Wechsel | TOMs + Speicherdauer |
+| Neue Aufbewahrungsfrist | Retention-Cron geändert (180→90 Tage) | Speicherdauer |
+| Neue Rechtsgrundlage genutzt | Wechsel von Art. 6 lit. b auf lit. f (mit Interessenabwägung) | Rechtsgrundlage |
+| Neuer Empfänger-Kreis | Operator-Mail wird auch an externen Berater gespiegelt | Empfänger |
+| Neues TOM-Element | Server-side Sanitizer / WAF-Regel / DLP-Filter | TOMs |
+
+**Operativer Workflow (Pre-Deploy-Gate-Empfehlung):**
+1. Bei Code-Change der eine der Auslöser triggert: Pull-Request enthaelt Hinweis „VVT-Update erforderlich"
+2. VVT wird inkrementell ergaenzt (kein Total-Re-Write — neuer Eintrag oder bestehender erweitert)
+3. Pre-Deploy-Gate: VVT-Datei-Modtime juenger als CHANGELOG-Modtime, sonst Deploy-Block
+
+**Spezial-Templates**:
+- `references/templates/VVT-template-file-upload.md` — fuer Direct-File-Upload-Verarbeitungen mit Art. 9-Bewertung + TOMs-Inventar.
+
 ## Bußgeldrahmen (Art. 83 DSGVO)
 
 ### Stufe 1 — bis 10 Mio. € oder 2% Jahresumsatz (der höhere Betrag)
@@ -132,6 +159,23 @@ Beispiel-Template: siehe `references/templates/VVT-template.md`.
 - Verstoß gegen Art. 5-7, 9, 12-22, 44-49, 58 (z.B. keine Rechtsgrundlage, Verletzung Betroffenenrechte)
 
 **Wichtig**: Bei kleinen Unternehmen und KMU tendieren Behörden zu niedrigeren Bußgeldern; Kooperation und schnelle Abhilfe können strafmildernd wirken.
+
+### Häufige Verstoesse bei Art-9-Verarbeitung (V4-Pattern, post-Art-9-Workflow-Audit 2026-05-03)
+
+| Verstoss | Norm | Stufe | €-Range typisch (KMU) |
+|----------|------|-------|------------------------|
+| Art-9-Daten ohne ausdrueckliche Einwilligung erhoben | Art. 9 Abs. 1 + 2 lit. a | Stufe 2 (bis 20 Mio / 4%) | 15.000-80.000 |
+| Beweispflicht Einwilligung nicht erfuellt (kein Tablet-Sig + kein Papier-Scan) | Art. 7 Abs. 1 | Stufe 2 | 5.000-50.000 |
+| § 22 BDSG falsch berufen (kein Berufsgeheimnistraeger) | § 22 BDSG + Art. 9 | Stufe 2 | 5.000-30.000 |
+| DSFA fehlt bei Art-9 | Art. 35 Abs. 3 lit. b | Stufe 1 (bis 10 Mio / 2%) | 10.000-50.000 |
+| Audit-Log fuer Lese-Zugriff fehlt | Art. 5 Abs. 2 | Stufe 1 | 5.000-25.000 |
+| Aufbewahrungsfrist zu kurz (Schaden nicht beweisbar) | § 280 BGB Beweisproblem | Schadensersatz § 82 | individuell |
+| Health-Snapshot in audit_log bei DELETE | Art. 17 + Art. 5 Abs. 1 lit. e | Stufe 2 | 10.000-40.000 |
+| AAD-Binding fehlt (Block-Swap-Angriff moeglich) | Art. 32 + Art. 25 | Stufe 1 | 5.000-25.000 |
+
+**Cross-Risiko**: 3+ dieser Verstoesse in einem Verfahren = Synthesizer-Aufschlag um Faktor 1.5-2 (Behoerde wertet als systemisches Compliance-Versagen).
+
+> Audit-Pattern fuer diese Verstoss-Klasse: siehe `references/audit-patterns.md` Phase 5h (Art-9-Beweis-Workflow-Audit).
 
 ---
 

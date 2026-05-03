@@ -1,4 +1,3 @@
-<!-- aegis-local: AEGIS-native skill, MIT-licensed; adversarial DE/EU compliance auditor (DSGVO / DDG / TTDSG / UWG / NIS2 / AI-Act / branchenrecht) with 5-persona self-verification (Hunter / Challenger / Synthesizer + Devil's-Advocate + Live-Probe); consumes AEGIS scanner findings via references/aegis-integration.md; slash-command activation via /anwalt — keep frontmatter `name: brutaler-anwalt` so the trigger surface stays intact post-install. -->
 ---
 name: brutaler-anwalt
 description: Adversarial DE/EU Compliance-Auditor mit Multi-Persona-Self-Verification (5 Personas: Hunter/Challenger/Synthesizer + Devil's-Advocate + Live-Probe) fuer DSGVO/UWG/AGB/Impressum/Cookies/AVV/NIS2/AI-Act/Branchen-/Straf-/Steuerrecht. Output sachlich-praezise mit %-Wahrscheinlichkeit + €-Schadensschaetzung + Abmahn-Simulation. Universalskill — branchenagnostisch fuer SaaS/Webseiten/Apps/Vertraege. Aktiviert bei /anwalt, /audit, /compliance-check oder Keywords: dsgvo, datenschutz, impressum, cookie, abmahnung, compliance, agb, avv, drittland, einwilligung, ttdsg, ddg, tmg, uwg, nis2, ai-act, gobd, dsa, urheber, marke, ePrivacy, drittlandtransfer, schrems, eugh, bgh, abmahnanwalt, datenpanne, betroffenenrechte, art-13, art-15, art-83, scc, tia, dsfa, vvt, dpo, dsb, lg-muenchen-google-fonts, fashion-id, dkim, dmarc, single-opt-in, double-opt-in, doi, konfigurator-audit, scanner-selbst-audit, llm-chatbot-dsgvo, smtp-outbound, csrf-origin-bug. KEINE Rechtsberatung i.S.d. RDG.
@@ -113,6 +112,23 @@ Dieser Skill agiert NIE ohne Reference-Backup. Vor jedem Output-Schritt:
       "BGH X ZR Y/Z entscheidet die Frage", muss diese Az. genauso verifiziert
       sein wie wenn sie aus bgh-urteile.md kaeme.
 
+   f.1 **EU/DE-Verordnungs-Detail-Files (B.1/B.2 — `references/gesetze/`)**
+      — Provenance-Disziplin gilt ANALOG fuer Sanktions-Hoehen, Fristen,
+      Artikel-Nummern. Spot-Check 2026-05-02 (12 high-stakes Claims) hat
+      ~25-33% Error-Rate ergeben (3 substantielle Findings: AI-Act 1,5%->1%
+      gefixt, DORA-Frist unvollstaendig gefixt, MiCA Art. 86 vs Art. 111-Drift
+      gefixt).
+      Pflicht-Lesen vor jedem Citation-Output:
+      `references/gesetze/VERIFICATION-STATUS.md`. Dort Status-Klasse pro File:
+      - **verified** — zitierbar wie bisher
+      - **secondary-source-derived** — bei Citation Pflicht-Disclaimer
+        („Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen
+        eur-lex.europa.eu / gesetze-im-internet.de verifizieren")
+      - **skeleton-only** — NICHT zitieren
+
+      Verifikations-Roadmap auf v4.0.0-rc.2: alle `secondary-source-derived`
+      auf `verified` umstellen.
+
    g. **V3.1-Lessons (post-V3.1-Audit-Vorfall 2026-04-30)** — nicht
       nur Az.-Halluzinationen, sondern auch andere Output-Drift:
       - Wenn Skill eine DSE-Aenderung empfiehlt mit operativer Dimension
@@ -207,17 +223,20 @@ Der Skill folgt einem festen Drei-Persona-Workflow + Vier-Modi-Routing. Pro Audi
 4. **Output** im 4-Sektionen-Format (siehe `## Output-Format` unten)
 5. **Verification** — Self-Test-Checkliste durchgehen vor Done-Claim (siehe `## Verification / Success Criteria` unten)
 
-### HUNTER-8-Phasen-Workflow (intern, jeder SCAN-Pass)
+### HUNTER-9-Phasen-Workflow (intern, jeder SCAN-Pass)
 
 Per `references/audit-patterns.md`:
+0. **URL-INVENTORY** (V4-Pflicht) — ALLE Pages + API-Routes enumerieren (find page.tsx / sitemap.xml / footer-links / DE-Pflicht-Slug-Probe). DEFAULT: audit alle gefundenen URLs ohne explizite Eingrenzung. Halt-Condition: nicht in Phase 1 wechseln, bevor Pflicht-Pages-Set (impressum/datenschutz/agb/widerruf/widerrufsformular/kontakt + bei Pricing-Page auch /kuendigung + bei Scanner-Service auch /scanner-haftungsausschluss) gepruefft.
 1. HEADER-AUDIT (curl -sSI auf Live-URL)
 2. HTML-LIVE-PROBE (SSR-Inhalt + DOM-Struktur)
-3. IMPRESSUM-AUDIT (DDG §5 + Footer-Link-Resolver)
-4. DSE-AUDIT (DSGVO Art. 13 + Drittland + AVV)
+3. IMPRESSUM-AUDIT (DDG §5 + Footer-Link-Resolver) + § 312k Kuendigungsbutton-Check (V4) + PAngV/MwSt-Check (V4)
+4. DSE-AUDIT (DSGVO Art. 13 + Drittland + AVV) + Stand-Datum-Code-Drift-Check (V4: `new Date()` in Pflicht-Pages = Drift-Style-3)
 5. COOKIE-/CONSENT-AUDIT (TTDSG §25 + Pre-consent-Tracking)
 6. BRANCHEN-LAYER (BORA/HWG/LMIV/etc., wenn identifizierbar)
 7. CSP-CODE-CROSS-CHECK (wenn Repo-Zugriff)
 8. SCHADENS-DIAGNOSE-FORMEL (SYNTHESIZER-Konsolidierung)
+
+**DEFAULT-Scope**: Wenn der User nicht explizit eingrenzt („audit nur /datenschutz"), MUESSEN ALLE Pages des Repos auditiert werden. Bei eingrenztem Scope: Output enthaelt explizit „nicht-auditierte URLs" — Auditor traegt keine Verantwortung fuer das, was er nicht gesehen hat.
 
 **Plus optional Sub-Phasen** (V3.3, je nach Site-Typ; werden zwischen Phase 5 und 6 ausgeloest, wenn relevante Surface erkannt):
 - **5b BFSG** (B2C E-Commerce, seit 28.06.2025)
@@ -716,6 +735,41 @@ HUNTER → CHALLENGER → SYNTHESIZER (Pflicht) + DEVIL'S ADVOCATE bei Wahrsch. 
 
 ### Schritt 5: Findings zurueck in den Skill (Battle-Testing-Pattern)
 Neue Patterns die der Audit aufdeckt → zurueck in `references/audit-patterns.md` / `branchenrecht.md` / `bgh-urteile.md`. Skill verbessert sich mit jedem realen Audit (LIVE-Doc-Pattern).
+
+### Schritt 6: Sprint-Workflow (Pre-Implementation + Re-Audit, V4-Pattern)
+
+Pattern post-Art-9-Workflow-Audit 2026-05-03:
+
+1. **Pre-Implementation-Audit** (`/anwalt hunt <thema>`): Skill identifiziert Findings BEVOR Code geschrieben wird. Findings werden in Implementation-Plan als Akzeptanzkriterien aufgenommen.
+2. **Implementation** (z.B. via feature-dev:code-architect, code-reviewer-Agent): Code adressiert Findings 1:1.
+3. **Re-Audit** (`/anwalt hunt <thema>` erneut nach Implementation): Skill verifiziert ob Findings closed sind. Output landet als Audit-Doc in `docs/audits/<thema>-anwalt-<datum>.md` mit Status pro Finding.
+
+**Vorteil**: empirische Closure-Verifikation statt Selbst-Behauptung. Ein Restrisiko-Resttreffer im Re-Audit ist akzeptabel wenn dokumentiert.
+
+**Beispiel** (post-Art-9-Workflow-Sprint 2026-05-03): Pre-Audit identifizierte 8 Findings (Art. 9 + Art. 7 + § 823 + § 22 BDSG-Misuse + DSFA-fehlt + eIDAS-Beweis + Mitarbeiter-Abtipp + Aufbewahrung). 6 Sprint-Commits + DB-Migrationen. Re-Audit ergab 8/8 closed + 5 neue Findings (4 by-design, 1 P0-Mini-Sprint). Abmahn-Wahrscheinlichkeit von 45-60% auf 5-10% reduziert.
+
+### Schritt 7: Pre-Anwalt-Architektur-Review-Pattern (V4-Pattern)
+
+Pattern post-File-Upload-Sprint 2026-05-03:
+
+Bei groesseren Sprint-Umsetzungen die neue Code-Pfade einfuehren (File-Upload,
+neue API-Routes, Storage-Migration, Auth-Changes): VOR brutaler-anwalt einen
+Architektur-Review-Pass durchlaufen. Brutaler-anwalt audit Compliance-Layer;
+Architektur-Findings (Race-Conditions, falsche API-Position, Encoding-Crashes,
+Schema-Migration-Bugs) sind orthogonal und koennen brutaler-anwalt-Audit
+verfaelschen wenn nicht vorher geschlossen.
+
+**Empfohlener Workflow:**
+1. Sprint umgesetzt + Tests gruen
+2. Architektur-Review (z.B. advisor / code-reviewer / strict reviewer-Agent):
+   „Welche Architektur-Findings wuerde ein erfahrener Reviewer aufdecken?"
+3. Findings #1-N als Pre-Anwalt-Backlog → fixen ODER bewusst akzeptieren
+4. Brutaler-anwalt-Audit als finaler Compliance-Layer
+5. Anwalt-Findings als post-Anwalt-Backlog → fixen ODER deferred mit Owner
+
+**Anti-Pattern:** brutaler-anwalt allein als Sprint-Quality-Gate verwenden
+ohne Architektur-Review. Compliance-Audit findet keine Race-Conditions —
+diese sind aber genauso real fuer Customer-Risk wie DSE-Drift.
 
 ---
 

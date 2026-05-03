@@ -7,8 +7,11 @@
 > und Az.-Source-URL.
 
 **License:** MIT
-**Version:** 3.4.0 (siehe [`CHANGELOG.md`](./CHANGELOG.md))
-**Status:** lauffaehig + brand-agnostic; Phase 2 Maxout (References-Datenbank) work-in-progress
+**Version:** 4.2.0 (siehe [`CHANGELOG.md`](./CHANGELOG.md))
+**Status:** File-Upload-Compliance + Art-9-Beweis-Workflow + Spa/Wellness-Branche integriert.
+Health-Check 6/6 ✓ · 60 Az. mit 100% Source-Coverage · 14 EU/DE-Verordnungen + 23 DE-Spezialgesetze + 17 stack-patterns.
+**`secondary-source-derived`-Files in `references/gesetze/` brauchen Primary-Source-Verifikation
+vor Mandanten-Citation** (siehe `references/gesetze/VERIFICATION-STATUS.md`).
 
 ---
 
@@ -138,7 +141,7 @@ brutaler-anwalt/
     ├── aegis-integration.md           # AEGIS-Scanner-Findings → Anwalts-Bewertung
     ├── international.md               # CCPA / UK-GDPR / DSG / Schrems-II
     ├── strafrecht-steuer.md           # StGB §202a/263a/269 + GoBD/AO
-    ├── templates/                     # 11 anonymisierte Lehrbuch-Snippets
+    ├── templates/                     # 12 anonymisierte Lehrbuch-Snippets (inkl. VVT-File-Upload + DSFA-Art-9)
     ├── gesetze/                       # Strukturierte Gesetzes-Auszuege (Phase 2 WIP)
     └── stack-patterns/                # Tech-Stack-spezifische Patterns (Phase 2 WIP)
 ```

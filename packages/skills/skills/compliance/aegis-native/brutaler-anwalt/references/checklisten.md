@@ -307,3 +307,46 @@ Kein AVV nötig (Joint-Controller stattdessen):
 | Hessen | HBDI: datenschutz.hessen.de |
 | Sachsen | SDTB: datenschutz.sachsen.de |
 | Alle anderen | → dsgvo.md für vollständige Liste |
+
+---
+
+## Checkliste 12: Direkt-File-Upload Compliance (V4-Pattern, post-File-Upload-Sprint 2026-05-03)
+
+> Lade `audit-patterns.md` Phase 5d.1 fuer Methodik-Details. Diese Checkliste ist die Action-Liste vor Deploy.
+
+### Server-Side (KRITISCH)
+- [ ] MIME-Whitelist im Code (PNG/JPG/WEBP/SVG/PDF — nicht Browser-MIME blind trust)
+- [ ] Magic-Bytes-Check zusätzlich zu MIME (curl-able binary signature check)
+- [ ] Size-Cap pro Datei + Total-Cap pro Submission (max 10 MB / 15 MB total — Standard SMTP-Limits)
+- [ ] Path-Traversal-Schutz: 3-Layer (basename + char-whitelist + UUID-Praefix)
+- [ ] Content-Disposition: attachment im Operator-Mail-Header (nicht inline)
+- [ ] processFilesPayload-Position NACH `generateProjectId()` (sonst undefined-Folder)
+- [ ] `fs.statfs`-Check vor `fs.writeFile` (refuse bei <500 MB free)
+- [ ] Filename-PII-Hash in Server-Logs (nie raw Filename loggen)
+- [ ] SVG-Sanitize ODER SVG aus Whitelist entfernen ODER Operator-Warnung „nur in File-Manager-Vorschau ansehen"
+
+### Client-Side (HOCH)
+- [ ] FileReader.readAsDataURL fuer base64-Encoding (NICHT btoa-spread — crasht >256kB)
+- [ ] MIME-Whitelist auch client-side (Defense-in-Depth)
+- [ ] Drag-and-Drop preventDefault auf onDragOver/onDrop (sonst oeffnet Browser die Datei)
+- [ ] Total-Size-Limit clientseitig pruefen + skip-Hinweis im UI bei Over-Limit
+- [ ] localStorage Schema-Migration: v-bump bei type-incompatible Changes + Legacy-Cleanup auf Mount
+
+### DSE / Konfigurator-Page (HOCH)
+- [ ] Art. 13 Info auf Konfigurator-Page: erlaubte Datei-Typen + Speicher-Pfad + Empfaenger + Wahl-Freiheit
+- [ ] DSE §3.X (Speicher-Sektion): lokale Disk vs Object Storage differenziert
+- [ ] DSE §X (Cleanup): Cron-Pfad + Retention-Frist explizit
+- [ ] AGB §X-Liefer-Stack: Storage-Pfad konsistent mit DSE (Cross-Drift vermeiden — Drift-Style 4)
+
+### Email-Versand (MITTEL)
+- [ ] Operator-Mail enthaelt Customer-Anhaenge als attachments
+- [ ] Operator-HTML zeigt Upload-Status („X Dateien im Anhang, Y abgelehnt")
+- [ ] Customer-Receipt-Mail erwaehnt Upload-Summary (Art. 16-Berichtigungs-Pfad)
+- [ ] STARTTLS verwendet (Port 587 + secure=false), MTA-STS-Empfaenger-Check
+
+### VVT + Compliance (MITTEL)
+- [ ] VVT-Eintrag „Konfigurator-Direct-Upload" erstellt/aktualisiert (siehe Template `references/templates/VVT-template-file-upload.md`)
+- [ ] Cleanup-Cron raeumt uploads/-Subfolder mit (recursive rm pruefen)
+- [ ] Audit-Trail fuer upload-relevante Code-Changes im PR-Review-Log
+
+**Quick-Verify nach Deploy:** siehe `audit-patterns.md` Phase 5d.1 Verify-Commands #1-#7.
