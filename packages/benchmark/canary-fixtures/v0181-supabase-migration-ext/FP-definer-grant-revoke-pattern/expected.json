@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-definer-grant-revoke-pattern",
+  "cwe": 269,
+  "type": "FP",
+  "description": "Definer function: REVOKE FROM PUBLIC, anon then GRANT EXECUTE TO authenticated only. Canonical safe pattern. SBM-008 MUST NOT fire.",
+  "expected": [
+    { "scanner": "supabase-migration-checker", "cwe": 269 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-superuser-bypassrls",
+  "cwe": 269,
+  "type": "TP",
+  "description": "Migration creates a custom role with BYPASSRLS — the role's queries skip every RLS policy on every table.",
+  "expected": [
+    { "scanner": "supabase-migration-checker", "cwe": 269 }
+  ]
+}

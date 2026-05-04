@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-definer-grant-public",
+  "cwe": 269,
+  "type": "TP",
+  "description": "SECURITY DEFINER function granted EXECUTE to public/anon without prior REVOKE FROM public — anonymous-callable function with elevated definer privileges.",
+  "expected": [
+    { "scanner": "supabase-migration-checker", "cwe": 269 }
+  ]
+}

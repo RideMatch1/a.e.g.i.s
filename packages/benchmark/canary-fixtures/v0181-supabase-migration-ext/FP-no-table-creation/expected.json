@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-no-table-creation",
+  "cwe": 285,
+  "type": "FP",
+  "description": "Migration only adds an index — no CREATE TABLE, no GRANT, no SECURITY DEFINER. All extension rules MUST NOT fire (out-of-scope by content).",
+  "expected": [
+    { "scanner": "supabase-migration-checker", "cwe": 285 }
+  ]
+}

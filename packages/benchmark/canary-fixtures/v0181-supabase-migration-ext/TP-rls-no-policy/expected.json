@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-rls-no-policy",
+  "cwe": 285,
+  "type": "TP",
+  "description": "Migration enables RLS on public.profiles but defines no policies — silent deny-all (any read/write fails). Operator may panic-fix with WITH CHECK (true) which is the SBM-005 anti-pattern. SBM-007 catches the precursor before the operator footguns themselves.",
+  "expected": [
+    { "scanner": "supabase-migration-checker", "cwe": 285 }
+  ]
+}

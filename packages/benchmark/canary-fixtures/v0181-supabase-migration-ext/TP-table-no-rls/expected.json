@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-table-no-rls",
+  "cwe": 285,
+  "type": "TP",
+  "description": "Migration creates public.orders without ALTER TABLE ... ENABLE ROW LEVEL SECURITY. After F-SUPABASE-MIGRATION-EXT-1 the supabase-migration-checker SBM-006 rule detects this as HIGH (silent unrestricted-read).",
+  "expected": [
+    { "scanner": "supabase-migration-checker", "cwe": 285 }
+  ]
+}

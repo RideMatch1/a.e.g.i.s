@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-anon-grant-no-rls",
+  "cwe": 285,
+  "type": "TP",
+  "description": "Table public.events granted SELECT to anon role with no ENABLE ROW LEVEL SECURITY — every anonymous request reads every row.",
+  "expected": [
+    { "scanner": "supabase-migration-checker", "cwe": 285 }
+  ]
+}

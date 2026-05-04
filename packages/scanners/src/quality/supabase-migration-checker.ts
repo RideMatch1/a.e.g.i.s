@@ -247,6 +247,73 @@ const RULES: Record<string, MigrationCheck> = {
     fix:
       'Replace `WITH CHECK (true)` with a predicate that bounds inserts/updates to the calling user, e.g. `WITH CHECK (auth.uid() = user_id)`. For genuinely public sign-up forms (newsletter), tighten to a shape check: `WITH CHECK (email IS NOT NULL AND length(email) BETWEEN 5 AND 254 AND email ~ \'^[^@]+@[^@]+\\.[^@]+$\')`.',
   },
+  // ── F-SUPABASE-MIGRATION-EXT-1 — global SQL-line-level rules ───────
+  'SBM-006': {
+    id: 'SBM-006',
+    title: 'CREATE TABLE in public schema without ENABLE ROW LEVEL SECURITY',
+    description:
+      'A migration creates a table in the public schema but does not follow it with `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` in the same file. Supabase exposes the public schema via PostgREST/REST API, and an authenticated user can read every row of an RLS-less table. CWE-285 (Improper Authorization).',
+    severity: 'high',
+    cwe: 285,
+    owasp: 'A01:2021 — Broken Access Control',
+    fix:
+      'Immediately after the CREATE TABLE statement, add `ALTER TABLE public.<name> ENABLE ROW LEVEL SECURITY;` and at least one CREATE POLICY scoped to the calling user (`USING (user_id = auth.uid())` or equivalent). When RLS is enabled but no policy applies, every read/write is denied — that is the safer default.',
+  },
+  'SBM-007': {
+    id: 'SBM-007',
+    title: 'ENABLE ROW LEVEL SECURITY without any matching CREATE POLICY (silent deny-all)',
+    description:
+      'A migration enables RLS on a table but defines no policies for that table in the same file. The result is silent deny-all (every read/write fails with an empty result). The operator typically panic-fixes with `WITH CHECK (true)` or by disabling RLS — both downgrade security. CWE-285 (Improper Authorization).',
+    severity: 'medium',
+    cwe: 285,
+    owasp: 'A01:2021 — Broken Access Control',
+    fix:
+      'Add at least one CREATE POLICY for the table in the same migration. For owner-scoped data: `CREATE POLICY "owner_select" ON public.<name> FOR SELECT TO authenticated USING (user_id = auth.uid());` and a matching mutation policy. For tenant-scoped data: include a tenant-id predicate joined to the JWT claim.',
+  },
+  'SBM-008': {
+    id: 'SBM-008',
+    title: 'SECURITY DEFINER function granted EXECUTE to PUBLIC/anon without prior REVOKE',
+    description:
+      'A SECURITY DEFINER function is granted EXECUTE to PUBLIC or anon without a preceding `REVOKE EXECUTE ... FROM PUBLIC`. The function inherits the definer\'s elevated privileges (often supabase_admin), and any anonymous request to `/rest/v1/rpc/<name>` triggers the body. CWE-269 (Improper Privilege Management).',
+    severity: 'high',
+    cwe: 269,
+    owasp: 'A01:2021 — Broken Access Control',
+    fix:
+      'Use the canonical safe pattern: `REVOKE ALL ON FUNCTION public.<name>(<args>) FROM PUBLIC, anon;` and `GRANT EXECUTE ON FUNCTION public.<name>(<args>) TO authenticated, service_role;`. If the function legitimately must accept anonymous callers (sign-up flow, public-availability check), keep it but limit the body to authorized side effects only.',
+  },
+  'SBM-009': {
+    id: 'SBM-009',
+    title: 'Custom role granted SUPERUSER or BYPASSRLS — every RLS policy bypassed',
+    description:
+      'A migration creates or alters a role with `SUPERUSER` or `BYPASSRLS`. Either attribute on a non-managed role lets that role skip every RLS policy on every table — RLS becomes advisory rather than enforced. In Supabase, the only role that should carry BYPASSRLS is the platform-managed `service_role`; SUPERUSER should never appear in app migrations. CWE-269 (Improper Privilege Management).',
+    severity: 'critical',
+    cwe: 269,
+    owasp: 'A01:2021 — Broken Access Control',
+    fix:
+      'Remove the SUPERUSER / BYPASSRLS attribute. If the role legitimately needs cross-row access for a specific operation, route that operation through a SECURITY DEFINER function that performs the access with its own privileges and is callable only by `service_role` (`REVOKE FROM authenticated; GRANT EXECUTE TO service_role`).',
+  },
+  'SBM-010': {
+    id: 'SBM-010',
+    title: 'Anonymous role granted SELECT/INSERT/UPDATE/DELETE on table without RLS',
+    description:
+      'A migration grants a CRUD privilege to the anon role on a public-schema table that has no `ENABLE ROW LEVEL SECURITY`. Every anonymous request to `/rest/v1/<table>` reads or writes every row in the table. CWE-285 (Improper Authorization).',
+    severity: 'high',
+    cwe: 285,
+    owasp: 'A01:2021 — Broken Access Control',
+    fix:
+      'Either revoke the grant (`REVOKE SELECT ON public.<name> FROM anon;`) or enable RLS on the table and add a CREATE POLICY for the anon role that scopes reads/writes appropriately (typically empty for SELECT, or a public-safety filter for write — e.g., a contact-form sign-up).',
+  },
+  'SBM-011': {
+    id: 'SBM-011',
+    title: 'CREATE TABLE in public schema without REVOKE CREATE ON SCHEMA public FROM PUBLIC',
+    description:
+      'A migration creates objects in the public schema but does not REVOKE CREATE on that schema from PUBLIC. The default Postgres behaviour grants schema-level CREATE to PUBLIC, which means any role can create tables, views, and functions in the public schema — including objects that shadow built-in names and hijack `search_path`-driven resolution. CWE-732 (Incorrect Permission Assignment for Critical Resource).',
+    severity: 'medium',
+    cwe: 732,
+    owasp: 'A05:2021 — Security Misconfiguration',
+    fix:
+      'Add `REVOKE CREATE ON SCHEMA public FROM PUBLIC;` once in the project (typically the first migration). Subsequent migrations remain free to CREATE objects under whichever owning role they run as. This single REVOKE prevents the most common search-path-injection footgun.',
+  },
 };
 
 function buildFinding(
@@ -396,6 +463,179 @@ function checkPolicies(
   }
 }
 
+// ── F-SUPABASE-MIGRATION-EXT-1 — global SQL-line-level patterns ───────
+
+/** CREATE TABLE [IF NOT EXISTS] [public.]<name> — captures the table
+ *  identifier (group 1) and is line-anchorable via index/lineFromOffset. */
+const CREATE_TABLE_RE = /\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?["']?(\w+)["']?\s*\(/gi;
+
+const ENABLE_RLS_RE = /\bALTER\s+TABLE\s+(?:public\.)?["']?(\w+)["']?\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY\b/gi;
+
+const CREATE_POLICY_FOR_TABLE_RE = /\bCREATE\s+POLICY\s+["']?[^"']+["']?\s+ON\s+(?:public\.)?["']?(\w+)["']?\b/gi;
+
+/** GRANT EXECUTE ON FUNCTION <ident-with-args-or-not> TO PUBLIC|anon. */
+const GRANT_EXEC_PUBLIC_ANON_RE =
+  /\bGRANT\s+EXECUTE\s+ON\s+FUNCTION\s+([\w."]+(?:\s*\([^)]*\))?)\s+TO\s+(public|anon)\b/gi;
+
+/** REVOKE [ALL|EXECUTE] ON FUNCTION <ident> FROM PUBLIC|anon. */
+const REVOKE_FUNCTION_FROM_PUBLIC_ANON_RE =
+  /\bREVOKE\s+(?:ALL|EXECUTE)\s+ON\s+FUNCTION\s+([\w."]+(?:\s*\([^)]*\))?)\s+FROM\s+[^;]*\b(public|anon)\b/gi;
+
+const SUPERUSER_RE = /\bSUPERUSER\b/g;
+const BYPASSRLS_RE = /\bBYPASSRLS\b/g;
+
+/** GRANT <SELECT|INSERT|UPDATE|DELETE> [, ...] ON [public.]<table> TO anon. */
+const GRANT_DML_TO_ANON_RE =
+  /\bGRANT\s+(?:[A-Z]+\s*,\s*)*?(?:SELECT|INSERT|UPDATE|DELETE|ALL)(?:\s*,\s*[A-Z]+)*\s+ON\s+(?:TABLE\s+)?(?:public\.)?["']?(\w+)["']?\s+TO\s+(?:[\w,\s]*\b)?anon\b/gi;
+
+const REVOKE_CREATE_SCHEMA_PUBLIC_RE = /\bREVOKE\s+CREATE\s+ON\s+SCHEMA\s+public\s+FROM\s+public\b/i;
+
+/**
+ * F-SUPABASE-MIGRATION-EXT-1 global checks (SBM-006 to SBM-011).
+ *
+ * Operates on the stripped-of-comments source of a single migration file,
+ * with one accumulated cross-file flag (any-file-has-REVOKE-CREATE-ON-
+ * SCHEMA-public) supplied by the caller.
+ *
+ * Per-file rule-set:
+ *   SBM-006 — CREATE TABLE public.x without ENABLE ROW LEVEL SECURITY
+ *   SBM-007 — ENABLE RLS without any CREATE POLICY for that table
+ *   SBM-008 — SECURITY DEFINER + GRANT EXECUTE TO PUBLIC|anon without
+ *             a REVOKE on the same function
+ *   SBM-009 — SUPERUSER / BYPASSRLS keyword present
+ *   SBM-010 — GRANT (SELECT|INSERT|UPDATE|DELETE|ALL) ON public.x TO
+ *             anon without ENABLE ROW LEVEL SECURITY for that table
+ *   SBM-011 — file has CREATE TABLE public.x but no REVOKE CREATE ON
+ *             SCHEMA public FROM PUBLIC anywhere in the project
+ */
+function checkGlobalSql(
+  strippedSource: string,
+  originalSource: string,
+  file: string,
+  projectHasRevokeCreateSchema: boolean,
+  emit: (rule: MigrationCheck, line: number, detail: string) => void,
+): void {
+  // Build per-file maps.
+  const tablesCreated = new Map<string, number>(); // name -> first-line
+  const tablesWithRls = new Set<string>();
+  const tablesWithPolicy = new Set<string>();
+
+  resetGlobal(CREATE_TABLE_RE);
+  for (let m: RegExpExecArray | null; (m = CREATE_TABLE_RE.exec(strippedSource)) !== null; ) {
+    const name = m[1].toLowerCase();
+    if (!tablesCreated.has(name)) {
+      tablesCreated.set(name, lineFromOffset(originalSource, m.index));
+    }
+  }
+
+  resetGlobal(ENABLE_RLS_RE);
+  for (let m: RegExpExecArray | null; (m = ENABLE_RLS_RE.exec(strippedSource)) !== null; ) {
+    tablesWithRls.add(m[1].toLowerCase());
+  }
+
+  resetGlobal(CREATE_POLICY_FOR_TABLE_RE);
+  for (let m: RegExpExecArray | null; (m = CREATE_POLICY_FOR_TABLE_RE.exec(strippedSource)) !== null; ) {
+    tablesWithPolicy.add(m[1].toLowerCase());
+  }
+
+  // SBM-006 — CREATE TABLE without ENABLE RLS in same file.
+  for (const [name, line] of tablesCreated) {
+    if (tablesWithRls.has(name)) continue;
+    emit(
+      RULES['SBM-006'],
+      line,
+      `CREATE TABLE public.${name} has no ALTER TABLE ... ENABLE ROW LEVEL SECURITY in this migration. PostgREST exposes the public schema; without RLS every authenticated user can SELECT every row.`,
+    );
+  }
+
+  // SBM-007 — ENABLE RLS without any CREATE POLICY.
+  for (const name of tablesWithRls) {
+    if (tablesWithPolicy.has(name)) continue;
+    // Find the line of the ENABLE RLS for the per-table emit.
+    resetGlobal(ENABLE_RLS_RE);
+    let line = 1;
+    for (let m: RegExpExecArray | null; (m = ENABLE_RLS_RE.exec(strippedSource)) !== null; ) {
+      if (m[1].toLowerCase() === name) {
+        line = lineFromOffset(originalSource, m.index);
+        break;
+      }
+    }
+    emit(
+      RULES['SBM-007'],
+      line,
+      `ALTER TABLE public.${name} ENABLE ROW LEVEL SECURITY has no matching CREATE POLICY in this migration — silent deny-all.`,
+    );
+  }
+
+  // SBM-008 — SECURITY DEFINER + GRANT EXECUTE TO PUBLIC/anon without REVOKE.
+  // Build (function-ident-no-args -> seen-revoke) map.
+  const fnsRevoked = new Set<string>();
+  resetGlobal(REVOKE_FUNCTION_FROM_PUBLIC_ANON_RE);
+  for (
+    let m: RegExpExecArray | null;
+    (m = REVOKE_FUNCTION_FROM_PUBLIC_ANON_RE.exec(strippedSource)) !== null;
+  ) {
+    const fn = m[1].split('(')[0].toLowerCase();
+    fnsRevoked.add(fn);
+  }
+  if (SECURITY_DEFINER_PATTERN.test(strippedSource)) {
+    resetGlobal(GRANT_EXEC_PUBLIC_ANON_RE);
+    for (
+      let m: RegExpExecArray | null;
+      (m = GRANT_EXEC_PUBLIC_ANON_RE.exec(strippedSource)) !== null;
+    ) {
+      const fn = m[1].split('(')[0].toLowerCase();
+      if (fnsRevoked.has(fn)) continue;
+      emit(
+        RULES['SBM-008'],
+        lineFromOffset(originalSource, m.index),
+        `Function ${m[1]} granted EXECUTE to ${m[2]} without prior REVOKE FROM PUBLIC, anon. Combined with the SECURITY DEFINER body in this migration, anonymous callers gain definer-level access.`,
+      );
+    }
+  }
+
+  // SBM-009 — SUPERUSER / BYPASSRLS keyword.
+  for (const re of [SUPERUSER_RE, BYPASSRLS_RE]) {
+    resetGlobal(re);
+    let m = re.exec(strippedSource);
+    if (m) {
+      emit(
+        RULES['SBM-009'],
+        lineFromOffset(originalSource, m.index),
+        `Migration declares ${m[0]} on a custom role. RLS is bypassed for this role on every table.`,
+      );
+    }
+  }
+
+  // SBM-010 — GRANT DML TO anon without RLS.
+  resetGlobal(GRANT_DML_TO_ANON_RE);
+  for (let m: RegExpExecArray | null; (m = GRANT_DML_TO_ANON_RE.exec(strippedSource)) !== null; ) {
+    const tableName = m[1].toLowerCase();
+    if (tablesWithRls.has(tableName)) continue;
+    emit(
+      RULES['SBM-010'],
+      lineFromOffset(originalSource, m.index),
+      `GRANT to anon on public.${tableName} without ENABLE ROW LEVEL SECURITY — anonymous requests act on every row.`,
+    );
+  }
+
+  // SBM-011 — CREATE TABLE public + no REVOKE CREATE ON SCHEMA public FROM PUBLIC anywhere.
+  if (tablesCreated.size > 0 && !projectHasRevokeCreateSchema) {
+    const firstTable = tablesCreated.entries().next().value;
+    if (firstTable) {
+      emit(
+        RULES['SBM-011'],
+        firstTable[1],
+        `Project creates public-schema tables but no migration revokes CREATE on schema public from PUBLIC. Default Postgres grants schema-level CREATE to PUBLIC, allowing search-path-injection setups.`,
+      );
+    }
+  }
+}
+
+function resetGlobal(re: RegExp): void {
+  re.lastIndex = 0;
+}
+
 const DEFAULT_IGNORE = ['node_modules', 'dist', '.next', '.git', 'coverage', 'build', 'out', '.turbo'];
 
 export const supabaseMigrationCheckerScanner: Scanner = {
@@ -416,6 +656,21 @@ export const supabaseMigrationCheckerScanner: Scanner = {
     const ignore = [...new Set([...DEFAULT_IGNORE, ...(config.ignore ?? [])])];
     const files = walkFiles(projectPath, ignore, ['sql']).filter(isMigrationFile);
 
+    // F-SUPABASE-MIGRATION-EXT-1 cross-file pre-pass: a single
+    // REVOKE CREATE ON SCHEMA public FROM PUBLIC anywhere in the
+    // project suppresses SBM-011 across all files. Without this
+    // pre-pass, every migration after the one carrying the REVOKE
+    // would falsely emit SBM-011.
+    let projectHasRevokeCreateSchema = false;
+    for (const file of files) {
+      const raw = readFileSafe(file);
+      if (raw === null) continue;
+      if (REVOKE_CREATE_SCHEMA_PUBLIC_RE.test(stripSqlComments(raw))) {
+        projectHasRevokeCreateSchema = true;
+        break;
+      }
+    }
+
     for (const file of files) {
       const original = readFileSafe(file);
       if (original === null) continue;
@@ -431,6 +686,7 @@ export const supabaseMigrationCheckerScanner: Scanner = {
         checkFunction(fn, original, file, emit);
       }
       checkPolicies(stripped, original, file, emit);
+      checkGlobalSql(stripped, original, file, projectHasRevokeCreateSchema, emit);
     }
 
     return {
