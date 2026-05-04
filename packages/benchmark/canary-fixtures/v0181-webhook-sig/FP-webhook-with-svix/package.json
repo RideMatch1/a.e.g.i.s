@@ -2,7 +2,7 @@
   "name": "v0181-canary-fp-webhook-with-svix",
   "version": "0.0.1",
   "dependencies": {
-    "next": "15.5.7",
+    "next": "15.5.15",
     "svix": "^1.45.0"
   }
 }

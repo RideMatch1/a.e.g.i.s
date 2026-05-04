@@ -1,4 +1,4 @@
-// Real-world pattern from Spa-App's next-intl request config (battle-test
+// Real-world pattern from a third-party next-intl request-config (battle-test
 // 2026-05-02): a top-level call to a host function (getRequestConfig) that
 // receives an async arrow as its callback. The callback executes per-request,
 // not on module load — the dynamic import inside is NOT a persistence

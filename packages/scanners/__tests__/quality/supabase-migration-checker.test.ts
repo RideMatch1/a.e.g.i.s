@@ -85,7 +85,7 @@ describe('supabaseMigrationCheckerScanner', () => {
 
   // ─── SBM-001 ────────────────────────────────────────────────────────────
   describe('SBM-001 — definer + p_user_id without auth.uid() guard', () => {
-    it('flags Hundementor-shape vulnerable RPC', async () => {
+    it('flags real-world-shape vulnerable RPC', async () => {
       createMigration(projectPath, '20250112_arena.sql', `
 CREATE OR REPLACE FUNCTION public.purchase_arena_item(
   p_user_id uuid,
@@ -294,8 +294,8 @@ CREATE POLICY "public read"
     });
   });
 
-  // ─── Smoke: Hundementor-shape multi-vuln file ───────────────────────────
-  describe('integration — Hundementor-shape multi-rule file', () => {
+  // ─── Smoke: real-world multi-vuln file ──────────────────────────────────
+  describe('integration — real-world multi-rule migration file', () => {
     it('flags all distinct vulnerabilities in a single migration', async () => {
       createMigration(projectPath, '20250112_full.sql', `
 -- multiple vulns in one file

@@ -1,4 +1,4 @@
-import { walkFiles, readFileSafe, applyOpsecHeaders } from '@aegis-scan/core';
+import { walkFiles, applyOpsecHeaders } from '@aegis-scan/core';
 import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core';
 import { relative } from 'path';
 

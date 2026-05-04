@@ -5,8 +5,8 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
  * Supabase Migration Checker — static analysis of `*.sql` migration files.
  *
  * Audits the SQL layer that AEGIS's TypeScript-oriented scanners cannot see.
- * Closes the class of vulnerability surfaced by the Hundementor 2026-04-29
- * audit (21 SECURITY DEFINER RPCs accepting `p_user_id` without an internal
+ * Closes the class of vulnerability surfaced by a 2026-04 third-party audit
+ * (21 SECURITY DEFINER RPCs accepting `p_user_id` without an internal
  * `auth.uid()` check; CWE-863 IDOR exploitable via /rest/v1/rpc/<name> by
  * any authenticated user).
  *
@@ -229,7 +229,7 @@ const RULES: Record<string, MigrationCheck> = {
     id: 'SBM-004',
     title: 'SECURITY DEFINER function uses dynamic SQL with parameter interpolation',
     description:
-      'A SECURITY DEFINER function builds SQL via EXECUTE format() / concatenation that includes a function parameter. Combined with SECURITY DEFINER\'s elevated privileges, this is CWE-89 (SQL Injection) and the impact is the function-owner\'s full privilege set. The Hundementor 2026-04-29 audit found a `restore_deleted(p_table_name text, p_id uuid)` of exactly this shape.',
+      'A SECURITY DEFINER function builds SQL via EXECUTE format() / concatenation that includes a function parameter. Combined with SECURITY DEFINER\'s elevated privileges, this is CWE-89 (SQL Injection) and the impact is the function-owner\'s full privilege set. A 2026-04 third-party audit surfaced a `restore_deleted(p_table_name text, p_id uuid)` of exactly this shape.',
     severity: 'critical',
     cwe: 89,
     owasp: 'A03:2021 — Injection',

@@ -111,7 +111,7 @@ Detects references that became stale through edits, rebases, or refactors but we
 
 ```bash
 # Stale SHA detection in handover docs
-for sha in $(grep -roE '\b[0-9a-f]{7,40}\b' docs/handover seitengold-build/strategy 2>/dev/null \
+for sha in $(grep -roE '\b[0-9a-f]{7,40}\b' docs/handover 2>/dev/null \
               | awk -F: '{print $2}' | sort -u); do
   git cat-file -e "$sha" 2>/dev/null || echo "STALE-SHA: $sha"
 done

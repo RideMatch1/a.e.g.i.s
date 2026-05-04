@@ -486,7 +486,7 @@ function analyzeTopLevel(content: string): {
     // with-callback patterns like `getRequestConfig(async () => {})` or
     // `app.use(async (req, res) => {})` — those execute the callback only
     // when the host invokes it, not on module load. v0181-battle-test
-    // surfaced this on Spa-App's next-intl request config.
+    // surfaced this on a real-world next-intl request-config callback.
     const iifeOpenRe =
       /^\s*(?:[!;]|void\s+|await\s+)?\(\s*(?:async\s*)?\(?[^)]*\)?\s*=>\s*\{|^\s*(?:[!;]|void\s+|await\s+)?\(\s*(?:async\s+)?function\s*[^{]*\{/;
     if (iifeOpenRe.test(code) && braceDepth === 0) {

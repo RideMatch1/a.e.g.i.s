@@ -46,8 +46,10 @@ import { stripComments } from '../ast/page-context.js';
  * (handler that imports service-role and never reads auth state).
  */
 
+// Lazy quantifier + bounded repetition prevents polynomial-redos backtracking
+// on inputs like `/app/api/...........` while preserving match semantics.
 const ROUTE_FILE_RE =
-  /(?:^|[/\\])(?:app|pages)[/\\]api[/\\].*(?:route\.[tj]sx?$|[^/\\]+\.[tj]sx?$)/;
+  /(?:^|[/\\])(?:app|pages)[/\\]api[/\\][^?\n]{0,500}?(?:route\.[tj]sx?|[^/\\?\n]+\.[tj]sx?)$/;
 
 const USE_SERVER_DIRECTIVE_RE = /^[\s\n]*['"]use server['"]\s*;?/m;
 

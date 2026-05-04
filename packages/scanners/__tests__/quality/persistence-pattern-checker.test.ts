@@ -267,8 +267,8 @@ describe('persistence-pattern-checker — FP suppression (boundary regression-gu
     expect(result.findings.filter((f) => f.cwe === 912)).toHaveLength(0);
   });
 
-  it('does NOT flag function-call-with-async-arrow callback (IIFE-vs-callback discriminator, Spa-App next-intl pattern)', async () => {
-    // v0181 first-application battle-test surfaced this on Spa-App's
+  it('does NOT flag function-call-with-async-arrow callback (IIFE-vs-callback discriminator, next-intl request-config pattern)', async () => {
+    // v0181 first-application battle-test surfaced this on a real-world
     // next-intl request config. getRequestConfig(async () => { ... })
     // is a top-level call to a HOST function with a callback argument —
     // the callback only fires when the host invokes it, NOT on module

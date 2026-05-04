@@ -2,6 +2,6 @@
   "name": "v0180-canary-tp-csp-unsafe-inline",
   "version": "0.0.1",
   "dependencies": {
-    "next": "^14.0.0"
+    "next": "15.5.15"
   }
 }

@@ -4,7 +4,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 
 vi.mock('@aegis-scan/core', () => {
-  const { readdirSync, readFileSync, statSync } = require('fs');
+  const { readdirSync, readFileSync } = require('fs');
   const path = require('path');
 
   function walkFiles(dir: string, ignore: string[] = [], extensions: string[] = []): string[] {
@@ -92,7 +92,7 @@ describe('jwtLocalstorageCheckerScanner', () => {
     expect(r.findings[0].title).toContain('ne_token');
   });
 
-  it('TP — flags localStorage.setItem("ne_refresh", ...) (refresh-suffix shape — nanoedge canonical)', async () => {
+  it('TP — flags localStorage.setItem("ne_refresh", ...) (refresh-suffix shape — real-world canonical)', async () => {
     createFile(
       projectPath,
       'src/auth.ts',

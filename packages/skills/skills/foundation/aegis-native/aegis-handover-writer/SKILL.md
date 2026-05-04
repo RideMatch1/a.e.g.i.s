@@ -21,7 +21,7 @@ Writes a structured handover-file at `.claude/handover/HANDOVER-YYYY-MM-DD-<topi
 
 The handover-file MUST include all 8 sections listed under `## Verification / Success Criteria`. Skipping a section breaks the next agent's bootstrap. If a section legitimately has nothing to report (e.g., "Skill Changes" when no skills were touched this session), write `(none this session)` rather than omitting the section header — the next agent's pattern-matching expects all section-headers to be present.
 
-References + cross-links to the foundation spec (`seitengold/docs/2026-04-28-aegis-agent-foundation-design.md`) belong in `## Recommendations` if they affect the operator's next decisions, not buried in `## Status`.
+References + cross-links to the foundation spec (operator-local design doc) belong in `## Recommendations` if they affect the operator's next decisions, not buried in `## Status`.
 
 ---
 

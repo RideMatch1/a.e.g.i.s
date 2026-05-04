@@ -41,7 +41,7 @@ If you want to help reduce single-maintainer exposure: contributions are welcome
 
 ## Active work — Phase 3 (Agent Foundation, in progress)
 
-Per the AEGIS Agent Foundation spec (`seitengold/docs/2026-04-28-aegis-agent-foundation-design.md`).
+Per the AEGIS Agent Foundation spec (operator-local design doc, 2026-04-28).
 
 ### Phase 3 — CLI + agent-framework package (~8-10h work)
 
@@ -127,4 +127,4 @@ This project welcomes contributions. The single-maintainer status means meaningf
 
 ---
 
-**For day-by-day work tracking**, see the AEGIS Agent Foundation handover docs in `seitengold-build/strategy/HANDOVER-AEGIS-FOUNDATION-PHASE-N-DONE-*.md` (operator-local, pointer-only).
+**For day-by-day work tracking**, see the AEGIS Agent Foundation handover docs (operator-local, pointer-only).

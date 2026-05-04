@@ -8,8 +8,8 @@
 -- user-identity parameter (`p_user_id`), the function MUST verify
 -- internally that the caller is authorized to act on that user.
 --
--- This is the same vulnerability class that ate Hundementor in 2026:
--- 21 RPCs accepted `p_user_id` but never checked it against
+-- This is the same vulnerability class surfaced by a real-world 2026
+-- third-party Supabase audit: 21 RPCs accepted `p_user_id` but never checked it against
 -- `auth.uid()`. Any signed-in user could call any RPC with another
 -- user's id and act on their data (CWE-863, IDOR exploitable via
 -- Supabase REST endpoint).

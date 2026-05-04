@@ -1,5 +1,5 @@
 // Canonical anti-pattern: store JWT access-token in localStorage.
-// Source-pattern from real-world nanoedge.pro audit 2026-05-04.
+// Source-pattern derived from a real-world third-party SPA audit.
 
 export async function loginUser(email: string, password: string): Promise<void> {
   const res = await fetch('/api/v1/auth/login', {

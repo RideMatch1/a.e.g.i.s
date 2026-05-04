@@ -2,6 +2,6 @@
   "name": "v0181-canary-fp-non-webhook-route",
   "version": "0.0.1",
   "dependencies": {
-    "next": "15.5.7"
+    "next": "15.5.15"
   }
 }

@@ -49,8 +49,10 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
  *  match the literal `webhook` / `webhooks` / `hook` token. */
 const WEBHOOK_PATH_RE = /[/\\](?:webhook|webhooks|hooks)[/\\]/i;
 
+// Lazy quantifier + bounded repetition prevents polynomial-redos backtracking
+// on inputs like `/app/api/...........` while preserving match semantics.
 const ROUTE_FILE_RE =
-  /(?:^|[/\\])(?:app|pages)[/\\]api[/\\].*(?:route\.[tj]sx?$|[^/\\]+\.[tj]sx?$)/;
+  /(?:^|[/\\])(?:app|pages)[/\\]api[/\\][^?\n]{0,500}?(?:route\.[tj]sx?|[^/\\?\n]+\.[tj]sx?)$/;
 
 const POST_HANDLER_RE =
   /\bexport\s+(?:async\s+)?function\s+(?:POST|PUT)\b/;

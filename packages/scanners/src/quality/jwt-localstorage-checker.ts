@@ -30,7 +30,7 @@ import type { Scanner, ScanResult, Finding, AegisConfig } from '@aegis-scan/core
  *      - jwt or *_jwt as discrete word
  *      - bearer or *_bearer as discrete word
  *      - session_id / sessionid / sessionId
- *      - *_refresh suffix (catches the nanoedge ne_refresh shape)
+ *      - *_refresh suffix (catches `ne_refresh`-style refresh-token keys)
  *
  * Conservative-by-design — matches only keys whose tokenized form
  * contains an unambiguous token-suggesting word. `tokenBalance` /
@@ -73,7 +73,7 @@ function isTokenLikeKey(key: string): boolean {
     /(?:^|_)jwt(?:_|$)/, // jwt as discrete word
     /(?:^|_)bearer(?:_|$)/, // bearer as discrete word
     /(?:^|_)session_?id$/, // session_id / sessionid (camelCase post-norm)
-    /(?:^|_)refresh$/, // *_refresh suffix (nanoedge ne_refresh shape)
+    /(?:^|_)refresh$/, // *_refresh suffix (catches `ne_refresh`-style keys)
     /(?:^|_)(?:access|refresh|id|auth|bearer)_?token(?:_|$)/, // explicit *_token combos
   ].some((re) => re.test(norm));
 }

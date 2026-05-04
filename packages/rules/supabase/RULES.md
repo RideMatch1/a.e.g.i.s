@@ -13,7 +13,7 @@ upgrades).
 
 ## Why this exists
 
-Hundementor 2026-04-29 — a Supabase project went from 0 → 1 ERROR + 207
+2026-04-29 — a third-party Supabase project went from 0 → 1 ERROR + 207
 WARN advisor findings overnight. No code changed; Splinter shipped two
 new rules (0028, 0029) that retroactively flagged a longstanding
 SECURITY DEFINER + `p_user_id` IDOR pattern. AEGIS's TypeScript-oriented
@@ -58,7 +58,7 @@ Splinter + adding a static SQL scanner closes that gap and tells you
 
 | AEGIS | Title | Why Splinter doesn't catch |
 |---|---|---|
-| `supabase-migration-checker` SBM-004 | SECURITY DEFINER + dynamic SQL with parameter interpolation | Splinter is privilege-graph-aware but argument-blind. The Hundementor `restore_deleted(p_table_name text, p_id uuid)` would NOT trigger any Splinter rule because the privileges are correctly granted; the vulnerability is in the function body. AEGIS catches this statically at the migration-PR level. |
+| `supabase-migration-checker` SBM-004 | SECURITY DEFINER + dynamic SQL with parameter interpolation | Splinter is privilege-graph-aware but argument-blind. A real-world `restore_deleted(p_table_name text, p_id uuid)` of this shape would NOT trigger any Splinter rule because the privileges are correctly granted; the vulnerability is in the function body. AEGIS catches this statically at the migration-PR level. |
 
 ## Maintenance protocol
 
