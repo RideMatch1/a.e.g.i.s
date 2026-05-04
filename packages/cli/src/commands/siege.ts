@@ -68,6 +68,10 @@ export interface SiegeOptions {
   resume?: string;
   /** Webhook URL(s) to POST critical events (engagement-start, critical-finding, halt, kill, completion). Repeatable. */
   notifyWebhook?: string[];
+  /** Slack incoming-webhook URL(s) for the same events with Slack Block-Kit shape. Repeatable. F-NOTIFY-CHANNELS-1. */
+  notifySlack?: string[];
+  /** Discord webhook URL(s) for the same events with Discord embed shape. Repeatable. F-NOTIFY-CHANNELS-1. */
+  notifyDiscord?: string[];
   /** Sandbox mode for LLM-pentest wrappers (APTS-MR-018). One of: docker | firejail | none. Default none. */
   sandboxMode?: string;
   /** APTS-SC-009 — operator dead-man-switch heartbeat URL. CLI override of RoE.safety_controls.heartbeat_url. */
@@ -424,8 +428,15 @@ export async function runSiege(
     initStateFile(options.stateFile);
   }
 
-  const notifyConfig: NotificationConfig | null = options.notifyWebhook && options.notifyWebhook.length > 0
-    ? { webhooks: options.notifyWebhook }
+  const hasWebhook = (options.notifyWebhook?.length ?? 0) > 0;
+  const hasSlack = (options.notifySlack?.length ?? 0) > 0;
+  const hasDiscord = (options.notifyDiscord?.length ?? 0) > 0;
+  const notifyConfig: NotificationConfig | null = (hasWebhook || hasSlack || hasDiscord)
+    ? {
+        ...(hasWebhook ? { webhooks: options.notifyWebhook } : {}),
+        ...(hasSlack ? { slack: options.notifySlack } : {}),
+        ...(hasDiscord ? { discord: options.notifyDiscord } : {}),
+      }
     : null;
 
   // APTS-AR-012: Chained emitter maintains the SHA-256 hash chain across

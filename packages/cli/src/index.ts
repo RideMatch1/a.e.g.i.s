@@ -116,6 +116,8 @@ program
   .option('--state-file <path>', 'JSONL event-stream + state snapshot file (APTS-HO-002/006/008 — enables resume + signal-based pause/kill).')
   .option('--resume <path>', 'Resume from a prior --state-file. Skips already-completed phases and continues from the next.')
   .option('--notify-webhook <url>', 'Webhook URL to POST high-signal events (engagement-start, critical-finding, halt, kill, completion). Repeatable.', collectMulti, [])
+  .option('--notify-slack <url>', 'Slack incoming-webhook URL for high-signal events (Block-Kit shape). Repeatable. F-NOTIFY-CHANNELS-1.', collectMulti, [])
+  .option('--notify-discord <url>', 'Discord webhook URL for high-signal events (color-coded embed shape). Repeatable. F-NOTIFY-CHANNELS-1.', collectMulti, [])
   .option('--sandbox-mode <mode>', 'Wrap LLM-pentest invocations through a sandboxer (APTS-MR-018). Values: docker | firejail | none (default).', 'none')
   .option('--heartbeat-url <url>', 'Operator dead-man-switch heartbeat endpoint (APTS-SC-009). HTTPS URL POSTed at the configured interval; consecutive missed responses halt the engagement.')
   .option('--phase-timeout-minutes <n>', 'Per-phase decision timeout (APTS-HO-003). Falls back to RoE.stop_conditions.phase_timeout_minutes or max_duration_minutes/4.', (v: string) => Number.parseInt(v, 10))
@@ -130,7 +132,7 @@ program
   .action(
     async (
       path: string | undefined,
-      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; sandboxMode?: string; heartbeatUrl?: string; phaseTimeoutMinutes?: number; allowLoopback?: boolean; userAgent?: string; jitterMs?: number; rateMs?: number; proxy?: string; format: string; confirm: boolean; color: boolean },
+      options: { target: string; roe?: string; stateFile?: string; resume?: string; notifyWebhook: string[]; notifySlack: string[]; notifyDiscord: string[]; sandboxMode?: string; heartbeatUrl?: string; phaseTimeoutMinutes?: number; allowLoopback?: boolean; userAgent?: string; jitterMs?: number; rateMs?: number; proxy?: string; format: string; confirm: boolean; color: boolean },
     ) => {
       if (!options.color) {
         chalk.level = 0;

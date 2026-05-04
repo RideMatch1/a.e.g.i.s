@@ -423,3 +423,174 @@ describe('runtime/notifications', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
+
+// F-NOTIFY-CHANNELS-1 — Slack + Discord channel adapters
+// Closes APTS-HO-015 multi-channel partial work (was webhook-only).
+
+describe('runtime/notifications — Slack channel', () => {
+  it('posts a Slack-shaped payload to each slack URL', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    const event = makeEvent('eng-1', 'critical-finding', {
+      finding_id: 'f1', severity: 'critical', title: 'SQLi', stop_action: 'halt',
+    });
+    await dispatchNotification(
+      event,
+      { slack: ['https://hooks.slack.com/services/xxx', 'https://hooks.slack.com/services/yyy'] },
+      undefined,
+      fetcher as unknown as typeof fetch,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const [url, init] = fetcher.mock.calls[0]!;
+    expect(url).toBe('https://hooks.slack.com/services/xxx');
+    expect(init.method).toBe('POST');
+    const body = JSON.parse(init.body);
+    expect(body.text).toContain('AEGIS');
+    expect(body.text).toContain('critical-finding');
+    expect(body.blocks).toBeDefined();
+    expect(Array.isArray(body.blocks)).toBe(true);
+    expect(body.blocks.length).toBeGreaterThan(0);
+  });
+
+  it('Slack payload includes engagement_id in a block', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true });
+    const event = makeEvent('engagement-deadbeef', 'engagement-start', { roe_hash: 'abc' });
+    await dispatchNotification(
+      event,
+      { slack: ['https://hooks.slack.com/services/xxx'] },
+      undefined,
+      fetcher as unknown as typeof fetch,
+    );
+    const [, init] = fetcher.mock.calls[0]!;
+    const body = JSON.parse(init.body);
+    const flat = JSON.stringify(body);
+    expect(flat).toContain('engagement-deadbeef');
+  });
+
+  it('Slack channel respects event allow-list', async () => {
+    const fetcher = vi.fn();
+    const event = makeEvent('eng', 'finding-emitted', { finding_id: 'f1', severity: 'low', title: 'minor' });
+    await dispatchNotification(
+      event,
+      { slack: ['https://hooks.slack.com/services/xxx'] },
+      undefined,
+      fetcher as unknown as typeof fetch,
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('Slack failure is non-fatal and logged with channel-tagged reason', async () => {
+    const fetcher = vi.fn().mockRejectedValue(new Error('slack down'));
+    const event = makeEvent('eng', 'kill', { signal: 'SIGTERM' });
+    const events: EngagementEvent[] = [];
+    await expect(
+      dispatchNotification(
+        event,
+        { slack: ['https://hooks.slack.com/services/xxx'] },
+        (e) => events.push(e),
+        fetcher as unknown as typeof fetch,
+      ),
+    ).resolves.not.toThrow();
+    expect(events.some((e) => e.event === 'halt' && /notification-slack .* threw/.test((e as { reason: string }).reason))).toBe(true);
+  });
+});
+
+describe('runtime/notifications — Discord channel', () => {
+  it('posts a Discord-shaped payload to each discord URL', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, status: 204 });
+    const event = makeEvent('eng-2', 'critical-finding', {
+      finding_id: 'f1', severity: 'critical', title: 'XSS', stop_action: 'halt',
+    });
+    await dispatchNotification(
+      event,
+      { discord: ['https://discord.com/api/webhooks/123/abc'] },
+      undefined,
+      fetcher as unknown as typeof fetch,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const [url, init] = fetcher.mock.calls[0]!;
+    expect(url).toBe('https://discord.com/api/webhooks/123/abc');
+    expect(init.method).toBe('POST');
+    const body = JSON.parse(init.body);
+    expect(body.content).toContain('AEGIS');
+    expect(body.embeds).toBeDefined();
+    expect(Array.isArray(body.embeds)).toBe(true);
+    expect(body.embeds[0].title).toBe('critical-finding');
+    expect(typeof body.embeds[0].color).toBe('number');
+  });
+
+  it('Discord critical-finding gets a red color', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true });
+    const event = makeEvent('eng', 'critical-finding', { finding_id: 'f1', severity: 'critical', title: 'X', stop_action: 'halt' });
+    await dispatchNotification(
+      event,
+      { discord: ['https://discord.com/api/webhooks/123/abc'] },
+      undefined,
+      fetcher as unknown as typeof fetch,
+    );
+    const [, init] = fetcher.mock.calls[0]!;
+    const body = JSON.parse(init.body);
+    expect(body.embeds[0].color).toBe(16711680);
+  });
+
+  it('Discord completion gets a green color', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true });
+    const event = makeEvent('eng', 'completion', { duration_ms: 1234 });
+    await dispatchNotification(
+      event,
+      { discord: ['https://discord.com/api/webhooks/123/abc'] },
+      undefined,
+      fetcher as unknown as typeof fetch,
+    );
+    const [, init] = fetcher.mock.calls[0]!;
+    const body = JSON.parse(init.body);
+    expect(body.embeds[0].color).toBe(5763719);
+  });
+
+  it('Discord failure is non-fatal and logged with channel-tagged reason', async () => {
+    const fetcher = vi.fn().mockRejectedValue(new Error('discord down'));
+    const event = makeEvent('eng', 'kill', { signal: 'SIGTERM' });
+    const events: EngagementEvent[] = [];
+    await dispatchNotification(
+      event,
+      { discord: ['https://discord.com/api/webhooks/123/abc'] },
+      (e) => events.push(e),
+      fetcher as unknown as typeof fetch,
+    );
+    expect(events.some((e) => e.event === 'halt' && /notification-discord .* threw/.test((e as { reason: string }).reason))).toBe(true);
+  });
+});
+
+describe('runtime/notifications — multi-channel dispatch', () => {
+  it('fan-outs to all 3 channel types in a single config', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true });
+    const event = makeEvent('eng', 'critical-finding', { finding_id: 'f', severity: 'critical', title: 'X', stop_action: 'halt' });
+    await dispatchNotification(
+      event,
+      {
+        webhooks: ['https://hooks.example.com/raw'],
+        slack: ['https://hooks.slack.com/services/xxx'],
+        discord: ['https://discord.com/api/webhooks/123/abc'],
+      },
+      undefined,
+      fetcher as unknown as typeof fetch,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    // Each URL should be called exactly once
+    const calledUrls = fetcher.mock.calls.map((c) => c[0]);
+    expect(calledUrls).toContain('https://hooks.example.com/raw');
+    expect(calledUrls).toContain('https://hooks.slack.com/services/xxx');
+    expect(calledUrls).toContain('https://discord.com/api/webhooks/123/abc');
+  });
+
+  it('config with no channels (all undefined) is a no-op', async () => {
+    const fetcher = vi.fn();
+    const event = makeEvent('eng', 'critical-finding', { finding_id: 'f', severity: 'critical', title: 'X', stop_action: 'halt' });
+    await dispatchNotification(
+      event,
+      {},
+      undefined,
+      fetcher as unknown as typeof fetch,
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+});
