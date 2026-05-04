@@ -1,0 +1,1 @@
+{"name":"v0181-canary-tp-auth-admin-no-auth","version":"0.0.1","dependencies":{"@supabase/supabase-js":"^2.39.0","next":"15.5.7"}}

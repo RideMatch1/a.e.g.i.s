@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-auth-admin-no-auth",
+  "cwe": 285,
+  "type": "TP",
+  "description": "Route uses supabase.auth.admin.deleteUser() (service-role-only API) without verifying caller identity. supabase-service-role-flow-checker fires CRITICAL.",
+  "expected": [
+    { "scanner": "supabase-service-role-flow-checker", "cwe": 285 }
+  ]
+}

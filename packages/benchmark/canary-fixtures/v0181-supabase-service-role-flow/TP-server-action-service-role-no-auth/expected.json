@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-server-action-service-role-no-auth",
+  "cwe": 285,
+  "type": "TP",
+  "description": "'use server' file (Server Action) uses SUPABASE_SERVICE_ROLE_KEY without calling auth()/getUser() before the DB mutation. After F-SUPABASE-SERVICE-ROLE-FLOW-1 the supabase-service-role-flow-checker fires CRITICAL.",
+  "expected": [
+    { "scanner": "supabase-service-role-flow-checker", "cwe": 285 }
+  ]
+}

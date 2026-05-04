@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-route-service-role-no-auth",
+  "cwe": 285,
+  "type": "TP",
+  "description": "API route at app/api/admin/users/route.ts uses SUPABASE_SERVICE_ROLE_KEY in createClient(), runs DB writes, and never calls auth()/getUser(). After F-SUPABASE-SERVICE-ROLE-FLOW-1 the new supabase-service-role-flow-checker fires CRITICAL.",
+  "expected": [
+    { "scanner": "supabase-service-role-flow-checker", "cwe": 285 }
+  ]
+}

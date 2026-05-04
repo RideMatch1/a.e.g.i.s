@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-no-service-role-route",
+  "cwe": 285,
+  "type": "FP",
+  "description": "Regular route handler using anon-key client only. No service-role import. supabase-service-role-flow-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "supabase-service-role-flow-checker", "cwe": 285 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-service-role-with-getuser",
+  "cwe": 285,
+  "type": "FP",
+  "description": "Route calls supabase.auth.getUser() and admin-role check BEFORE the service-role client. supabase-service-role-flow-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "supabase-service-role-flow-checker", "cwe": 285 }
+  ]
+}

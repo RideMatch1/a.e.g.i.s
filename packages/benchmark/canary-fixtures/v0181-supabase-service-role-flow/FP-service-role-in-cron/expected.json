@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-service-role-in-cron",
+  "cwe": 285,
+  "type": "FP",
+  "description": "Service-role usage inside scripts/nightly-cleanup.ts (cron-style script, not an app/api route or 'use server' file). Out-of-scope for this scanner — must NOT fire.",
+  "expected": [
+    { "scanner": "supabase-service-role-flow-checker", "cwe": 285 }
+  ]
+}
