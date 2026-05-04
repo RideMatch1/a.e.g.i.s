@@ -88,6 +88,69 @@ skill catalog with content that either duplicates AEGIS' programmatic
 checks or duplicates `snailsploit-fork/` coverage. The five selected fill
 documented gaps that no other AEGIS surface covers today.
 
+## Offensive skills — pikpikcu/airecon (full skill-pack fork)
+
+All skills under `skills/offensive/airecon-fork/` are forked from
+[pikpikcu/airecon](https://github.com/pikpikcu/airecon) under MIT License.
+Upstream is an autonomous AI-driven pentesting agent; AEGIS pulls only the
+methodology skill-pack (.md files under `airecon/proxy/skills/`), not the
+Python runtime, Docker orchestration, JSON data files, or proxy/MCP scaffolding.
+
+- **Upstream author:** pikpikcu — https://github.com/pikpikcu
+- **Upstream repo:** https://github.com/pikpikcu/airecon
+- **SPDX:** MIT (`Copyright (c) 2026 pikpikcu`)
+- **Fork-SHA:** `9a21453459d87eefb012ea355c79b593d0d3c0cc`
+- **Fork date:** 2026-05-04
+- **Skill count at fork:** 141 (full upstream skills/ tree as of fork SHA)
+- **Categories pulled:** ctf, frameworks, payloads, postexploit, protocols, reconnaissance, technologies, tools, vulnerabilities (9 of 9)
+
+### Slug-naming convention
+
+Upstream layout is `airecon/proxy/skills/<category>/<...>/<file>.md`.
+AEGIS-side layout is flat `skills/offensive/airecon-fork/<slug>/SKILL.md`
+where `<slug>` = upstream relative-path with `/` and `_` mapped to `-`,
+lowercased. Examples:
+
+- `airecon/proxy/skills/postexploit/linux_privesc.md` -> `postexploit-linux-privesc`
+- `airecon/proxy/skills/ctf/crypto/modern-ciphers.md` -> `ctf-crypto-modern-ciphers`
+- `airecon/proxy/skills/vulnerabilities/idor.md` -> `vulnerabilities-idor`
+
+This flattens the 2-level upstream tree into AEGIS' 1-level
+`<source>/<name>/SKILL.md` loader convention while preserving full
+upstream provenance via the path-derived slug.
+
+### Overlap with existing forks
+
+Four upstream skills overlap by topic with `matty-fork/`:
+- `postexploit-container-escape` (vs matty `container-escape`)
+- `technologies-cicd-attacks` (vs matty `cicd-redteam`)
+- `technologies-cloud-security` (vs matty `cloud-security`)
+- `vulnerabilities-subdomain-takeover` (vs matty `subdomain-takeover`)
+
+Both forks ship — slug-prefixing under `airecon-fork/` keeps them
+independent. Operators select which to load via the skill-loader; no
+content is merged across upstream sources (do-not-remove rule applies).
+
+### Skill-pack scope (what is + what is NOT shipped)
+
+**Shipped (.md only):** 141 SKILL.md files preserving upstream content
+byte-identically, with the AEGIS aegis-local header on line 1.
+
+**Not shipped:** Python runtime under `airecon/`, Docker/Kali/Caido
+orchestration under `airecon/containers/`, JSON data files under
+`airecon/proxy/data/` (separately extractable to scanner-data dirs in a
+future cycle), phase prompts under `airecon/proxy/prompts/` (agent-runtime-
+specific), shell installers under `scripts/`. The skill-loader contract
+is `.md`-only by CI invariant (`packages/skills/skills/` markdown-only),
+so these are excluded by design.
+
+### Companion repo `airecon-dataset`
+
+pikpikcu also maintains a companion `airecon-dataset` repo (~1.09M training
+records). License of that repo is **not yet verified**; no content from it
+is integrated into AEGIS. If a future cycle wants to pull dataset-derived
+patterns into scanner data, that repo's license must be checked first.
+
 ## Defensive skills — AEGIS-native
 
 All skills under `skills/defensive/aegis-native/` are AEGIS-original

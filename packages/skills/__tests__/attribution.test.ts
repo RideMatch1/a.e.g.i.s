@@ -33,6 +33,12 @@ const HEADER_RE_BY_SOURCE: Record<string, RegExp> = {
   // SKILL.md with the fork-header on line 1.
   'matty-fork':
     /^<!-- aegis-local: forked \d{4}-\d{2}-\d{2} from matty69v\/Bug-Bounty-Agents@[0-9a-f]{40} \(MIT-licensed\); attribution preserved, see ATTRIBUTION\.md -->/,
+  // F-AIRECON-FORK-1 — fork from pikpikcu/airecon (MIT). 141 .md skill files
+  // across 9 categories (ctf, frameworks, payloads, postexploit, protocols,
+  // reconnaissance, technologies, tools, vulnerabilities). Each ships its
+  // upstream content byte-identically with the fork-header on line 1.
+  'airecon-fork':
+    /^<!-- aegis-local: forked \d{4}-\d{2}-\d{2} from pikpikcu\/airecon@[0-9a-f]{40} \(MIT-licensed\); attribution preserved, see ATTRIBUTION\.md -->/,
 };
 
 describe('attribution — every shipped SKILL.md preserves source-appropriate provenance', () => {

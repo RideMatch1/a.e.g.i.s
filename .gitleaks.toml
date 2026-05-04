@@ -56,6 +56,12 @@ paths = [
 ]
 
 [[allowlists]]
+description = "airecon-fork — byte-identical upstream offensive pedagogical content from pikpikcu/airecon@9a21453 (MIT). 141 .md skills across 9 categories with curl/Bearer/JWT/payload/SSRF/XXE/etc. examples — the patterns ARE the teaching content. Same class as snailsploit-fork / matty-fork / elementalsouls-fork pedagogical-skill allowlists."
+paths = [
+    '''^packages/skills/skills/offensive/airecon-fork/''',
+]
+
+[[allowlists]]
 description = "brutaler-anwalt — DE/EU compliance-auditor skill, pedagogical content. Files contain example bearer-tokens, curl-auth-headers, JWT-rotation patterns, KMS-references, and auth-flow snippets that teach DSGVO/AVV/auth-compliance — the patterns ARE the teaching content. No production secrets ever land here (skill is .md-only methodology + anonymized templates). Same structural class as snailsploit-fork / matty-fork / elementalsouls-fork pedagogical-skill allowlists. Specific patterns covered as of 2026-05-03: curl-auth-header in stack-patterns/nextjs/api-route-bearer-auth.md (curl -H 'Authorization: Bearer <example>') and generic-api-key entropy hits on multi-segment text like 'RS256-Pflicht' in stack-patterns/INDEX.md."
 paths = [
     '''^packages/skills/skills/compliance/aegis-native/brutaler-anwalt/''',
