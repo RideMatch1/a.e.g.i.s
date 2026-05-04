@@ -1,0 +1,1 @@
+{"id":"v0182-TP-localstorage-refresh-suffix","cwe":922,"type":"TP","description":"camelCase 'refreshToken' key name normalizes to refresh_token — same anti-pattern. Confirms case-insensitive + camelCase normalization in scanner.","expected":[{"scanner":"jwt-localstorage-checker","cwe":922}]}

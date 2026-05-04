@@ -1,0 +1,1 @@
+{"id":"v0182-FP-localstorage-theme","cwe":922,"type":"FP","description":"Theme/language preferences in localStorage — legitimate UI state, no token. Must NOT fire.","expected":[]}

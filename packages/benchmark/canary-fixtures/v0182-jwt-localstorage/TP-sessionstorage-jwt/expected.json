@@ -1,0 +1,1 @@
+{"id":"v0182-TP-sessionstorage-jwt","cwe":922,"type":"TP","description":"sessionStorage variant — same XSS-readable risk as localStorage. Key 'auth_jwt' uses snake-case naming. Must fire.","expected":[{"scanner":"jwt-localstorage-checker","cwe":922}]}

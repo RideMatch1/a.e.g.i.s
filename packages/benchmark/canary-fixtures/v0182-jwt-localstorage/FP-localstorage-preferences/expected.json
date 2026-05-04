@@ -1,0 +1,1 @@
+{"id":"v0182-FP-localstorage-preferences","cwe":922,"type":"FP","description":"Generic user-preferences object stored in localStorage. Key name 'user_preferences' contains no token-related substring. Must NOT fire.","expected":[]}
