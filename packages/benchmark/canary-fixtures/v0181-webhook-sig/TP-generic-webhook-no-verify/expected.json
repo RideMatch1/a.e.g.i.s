@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-generic-webhook-no-verify",
+  "cwe": 345,
+  "type": "TP",
+  "description": "Generic webhook handler at app/api/webhooks/notify/route.ts triggers a side-effect (email send) without any signature/auth verification. After F-WEBHOOK-SIG-1 the webhook-signature-checker scanner detects this as HIGH.",
+  "expected": [
+    { "scanner": "webhook-signature-checker", "cwe": 345 }
+  ]
+}

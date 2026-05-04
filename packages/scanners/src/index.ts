@@ -70,6 +70,7 @@ import { middlewareAuthCheckerScanner } from './quality/middleware-auth-checker.
 import { edgeFunctionAuthCheckerScanner } from './quality/edge-function-auth-checker.js';
 import { paymentFlowCheckerScanner } from './quality/payment-flow-checker.js';
 import { nextjsCveVersionCheckerScanner } from './quality/nextjs-cve-version-checker.js';
+import { webhookSignatureCheckerScanner } from './quality/webhook-signature-checker.js';
 import { subfinderScanner } from './recon/subfinder.js';
 import type { Scanner } from '@aegis-scan/core';
 
@@ -146,6 +147,7 @@ export function getAllScanners(): Scanner[] {
     edgeFunctionAuthCheckerScanner,
     paymentFlowCheckerScanner,
     nextjsCveVersionCheckerScanner,
+    webhookSignatureCheckerScanner,
     subfinderScanner,
   ];
 }
@@ -235,6 +237,7 @@ export {
   edgeFunctionAuthCheckerScanner,
   paymentFlowCheckerScanner,
   nextjsCveVersionCheckerScanner,
+  webhookSignatureCheckerScanner,
   middlewareAuthCheckerScanner,
   nextPublicLeakScanner,
   subfinderScanner,

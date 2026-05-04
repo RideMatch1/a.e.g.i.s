@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-webhook-with-svix",
+  "cwe": 345,
+  "type": "FP",
+  "description": "Clerk-style webhook uses svix Webhook.verify(body, headers) to validate signature before processing. webhook-signature-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "webhook-signature-checker", "cwe": 345 }
+  ]
+}

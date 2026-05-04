@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-stripe-webhook-no-verify",
+  "cwe": 345,
+  "type": "TP",
+  "description": "Stripe webhook handler under app/api/webhooks/stripe/route.ts processes the payload as JSON without invoking stripe.webhooks.constructEvent — anyone who finds the route URL can fabricate Stripe events. After F-WEBHOOK-SIG-1 the webhook-signature-checker scanner detects this as HIGH.",
+  "expected": [
+    { "scanner": "webhook-signature-checker", "cwe": 345 }
+  ]
+}

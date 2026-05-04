@@ -1,0 +1,9 @@
+{
+  "id": "v0181-TP-github-webhook-no-hmac",
+  "cwe": 345,
+  "type": "TP",
+  "description": "GitHub webhook handler at app/api/webhooks/github/route.ts processes JSON payload without verifying x-hub-signature-256 HMAC. After F-WEBHOOK-SIG-1 the webhook-signature-checker scanner detects this as HIGH.",
+  "expected": [
+    { "scanner": "webhook-signature-checker", "cwe": 345 }
+  ]
+}

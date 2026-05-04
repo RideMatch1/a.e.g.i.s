@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-non-webhook-route",
+  "cwe": 345,
+  "type": "FP",
+  "description": "Regular /api/users route handler — path does not contain 'webhook'. webhook-signature-checker MUST NOT fire (out-of-scope by file-path filter).",
+  "expected": [
+    { "scanner": "webhook-signature-checker", "cwe": 345 }
+  ]
+}

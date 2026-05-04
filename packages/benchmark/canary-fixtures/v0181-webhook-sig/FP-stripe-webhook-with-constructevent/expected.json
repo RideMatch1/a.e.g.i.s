@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-stripe-webhook-with-constructevent",
+  "cwe": 345,
+  "type": "FP",
+  "description": "Stripe webhook handler invokes stripe.webhooks.constructEvent before processing — signature verified. webhook-signature-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "webhook-signature-checker", "cwe": 345 }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "v0181-FP-github-webhook-with-hmac",
+  "cwe": 345,
+  "type": "FP",
+  "description": "GitHub webhook handler verifies x-hub-signature-256 HMAC via crypto.createHmac + crypto.timingSafeEqual. webhook-signature-checker MUST NOT fire.",
+  "expected": [
+    { "scanner": "webhook-signature-checker", "cwe": 345 }
+  ]
+}
