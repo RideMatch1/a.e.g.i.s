@@ -14,7 +14,7 @@
 [![Gitleaks](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/gitleaks.yml/badge.svg?branch=main)](https://github.com/RideMatch1/a.e.g.i.s/actions/workflows/gitleaks.yml)
 [![Roadmap](https://img.shields.io/badge/roadmap-public-blue)](./ROADMAP.md)
 
-Stack-specific security scanner for **Next.js + Supabase + React**. 42 built-in checkers plus 20 external-tool wrappers (16 traditional SAST/DAST + 1 passive subdomain-recon + 3 LLM-agent pentest frameworks: Strix, PTAI, Pentest-Swarm-AI), AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, and a GitHub-Actions recipe for CI integration.
+Stack-specific security scanner for **Next.js + Supabase + React**. 71 default-enabled scanners (built-in checkers + external-tool wrappers including 16 traditional SAST/DAST tools + 1 passive subdomain-recon + 3 LLM-agent pentest frameworks: Strix, PTAI, Pentest-Swarm-AI) plus 5 opt-in active attack-probes, AST-based cross-file taint analysis, 0-1000 score with `FORTRESS → CRITICAL` grade. Best used **alongside** Semgrep / CodeQL — not instead of them. Ships a CLI, MCP server, and a GitHub-Actions recipe for CI integration.
 
 ---
 
@@ -39,7 +39,7 @@ db.query(query);                                   // sink: SQL Injection (CWE-8
 
 Per-CWE sanitizer awareness: `parseInt()` blocks SQL injection but not XSS, `DOMPurify.sanitize()` blocks XSS but not SQL injection, `encodeURIComponent()` blocks SSRF but not path traversal (frameworks decode before fs access).
 
-Suite composition: **40** regex scanners + **1** AST taint analyzer + **1** RPC-specific SQLi scanner (built-in), **16** external tool wrappers (Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** live attack probes, **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, and a reusable GitHub-Actions recipe (at `ci/github-action/`) that posts PR comments with the score + top findings.
+Suite composition: **71 default-enabled scanners** in the static-analysis pipeline (built-in regex + AST taint analyzer + RPC-specific SQLi scanner + 16 external tool wrappers: Semgrep, Gitleaks, ZAP, Trivy, Nuclei, Bearer, Checkov, Hadolint, TruffleHog, OSV-Scanner, testssl.sh, React Doctor, Lighthouse, Axe, …), **5** opt-in live attack probes (`aegis siege` / `pentest` with `--confirm`), **4** compliance frameworks (GDPR / SOC 2 / ISO 27001 / PCI-DSS), an MCP server for AI agents, and a reusable GitHub-Actions recipe (at `ci/github-action/`) that posts PR comments with the score + top findings.
 
 ---
 
@@ -184,7 +184,7 @@ AEGIS ships three sibling packages that cover the full pre-ship security lifecyc
 | Package | Role | Quickstart |
 |---|---|---|
 | [`@aegis-wizard/cli`](https://www.npmjs.com/package/@aegis-wizard/cli) | **Build** — interactive scaffold + agent-brief generator for Next.js + Supabase + shadcn SaaS | `npx -y @aegis-wizard/cli new my-saas --interactive` |
-| [`@aegis-scan/cli`](https://www.npmjs.com/package/@aegis-scan/cli) | **Scan** — defensive SAST scanner (five-package family). 42 built-in checkers plus 20 external-tool wrappers (16 SAST/DAST + 1 passive subdomain-recon + 3 LLM-agent pentest frameworks), AST-based cross-file taint analysis. | `npx -y @aegis-scan/cli scan ./my-saas` |
+| [`@aegis-scan/cli`](https://www.npmjs.com/package/@aegis-scan/cli) | **Scan** — defensive SAST scanner (five-package family). 71 default-enabled scanners (built-in checkers + 16 SAST/DAST wrappers + 1 passive subdomain-recon + 3 LLM-agent pentest frameworks) plus 5 opt-in active attack-probes, AST-based cross-file taint analysis. | `npx -y @aegis-scan/cli scan ./my-saas` |
 | [`@aegis-scan/skills`](https://www.npmjs.com/package/@aegis-scan/skills) | **Test** — opt-in red-team skill library for Claude Code and compatible AI agents. Prime your agent with attack-class methodology so you can stress-test what you built before shipping. | `npm i -g @aegis-scan/skills && aegis-skills install` |
 
 Build with the wizard. Scan what you built. Test it red-team-style. Full lifecycle, one toolchain, one attribution-compliant open-source license stack. The three packages release independently (`wizard-v*`, `v*`, and `skills-v*` tag-namespaces) so neither gates the other — but they co-calibrate on architectural assumptions: a wizard-scaffolded project scoring below 960 on scan's grade is treated as a pattern-defect, and an agent running under the skills library can reach for attack classes scan detects defensively.
@@ -426,7 +426,7 @@ Three-tier model — each tier is a strict superset of the previous:
 > [`packages/scanners/src/index.ts`](./packages/scanners/src/index.ts). Counts
 > below are re-verified at every release per the release checklist.
 
-### Built-in (42 scanners: 41 regex + 1 AST taint analyzer)
+### Built-in (71 default-enabled scanners + 5 opt-in active attack-probes)
 
 | Scanner | Category | CWE(s) | What it checks |
 |---------|----------|--------|----------------|
