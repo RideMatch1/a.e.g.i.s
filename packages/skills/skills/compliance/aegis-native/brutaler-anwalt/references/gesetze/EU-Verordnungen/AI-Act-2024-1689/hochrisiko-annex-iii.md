@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32024R1689
 last-checked: 2026-05-02
 purpose: AI Act Anhang III — vollstaendige 8-Bereiche-Hochrisiko-Liste mit Audit-Trigger pro Use-Case.
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen eur-lex.europa.eu Volltext (Anhang III AI Act) verifizieren"
+last-verified: 2026-05-05
 ---
 
 # AI Act — Anhang III Hochrisiko-Use-Cases (vollstaendig)

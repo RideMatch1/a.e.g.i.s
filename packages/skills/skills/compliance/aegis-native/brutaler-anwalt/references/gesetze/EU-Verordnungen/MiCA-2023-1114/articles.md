@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32023R1114
 last-checked: 2026-05-02
 purpose: MiCA (Markets in Crypto-Assets) — Crypto-Token-Regulierung EU.
+verification-status: partially-verified
+skill-output-disclaimer: "⚠ Teil-verifiziert — Anwendbarkeit (30.12.2024) + Token-Kategorien primaer-verifiziert; Sanktions-Hoehen (Art. 111 ff.) gegen eur-lex.europa.eu Volltext verifizieren"
+last-verified: 2026-05-05
 ---
 
 # MiCA — VO 2023/1114

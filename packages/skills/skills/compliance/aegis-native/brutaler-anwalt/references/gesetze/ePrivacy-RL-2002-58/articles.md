@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32002L0058
 last-checked: 2026-05-02
 purpose: ePrivacy-Richtlinie — Cookie-Einwilligungs-Pflicht-Grundlage (DE-Umsetzung in TDDDG).
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen eur-lex.europa.eu Volltext verifizieren"
+last-verified: 2026-05-05
 ---
 
 # ePrivacy-RL 2002/58/EG (konsolidiert mit RL 2009/136/EG)

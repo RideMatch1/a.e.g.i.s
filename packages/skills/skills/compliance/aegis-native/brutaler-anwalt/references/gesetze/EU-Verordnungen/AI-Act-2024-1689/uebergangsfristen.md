@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32024R1689
 last-checked: 2026-05-02
 purpose: AI Act Uebergangs-Timeline mit Pflicht-Aktionen je Stichtag.
+verification-status: verified
+skill-output-disclaimer: "Top-Layer-verifiziert (eur-lex.europa.eu) — Stichtage 02.02.2025 / 02.08.2025 / 02.08.2026 / 02.08.2027 primaer-verifiziert"
+last-verified: 2026-05-05
 ---
 
 # AI Act — Uebergangsfristen-Timeline

@@ -1,6 +1,9 @@
 ---
 license: CC BY 4.0 (EUR-Lex)
 purpose: DSGVO Audit-Relevance — Skill-Auto-Loading-Trigger.
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen Verordnungs-Volltext verifizieren"
+last-verified: 2026-05-05
 ---
 
 # DSGVO — Audit-Relevance

@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32024R1689
 last-checked: 2026-05-02
 purpose: AI Act Art. 50 — Transparenz-Pflichten fuer Chatbots / Synthetic Content / Deepfakes / KI-Texte.
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen eur-lex.europa.eu Volltext (Art. 50 AI Act) verifizieren"
+last-verified: 2026-05-05
 ---
 
 # AI Act — Art. 50 Transparenz-Pflichten (anwendbar 02.08.2026)

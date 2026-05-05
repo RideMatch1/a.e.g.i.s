@@ -3,6 +3,9 @@ license: gemeinfrei nach § 5 UrhG (DE)
 source: https://www.gesetze-im-internet.de/juschg/
 last-checked: 2026-05-02
 purpose: JuSchG + JMStV — Kinder-/Jugendschutz Online.
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen gesetze-im-internet.de verifizieren"
+last-verified: 2026-05-05
 ---
 
 # JuSchG + JMStV — Audit-relevante Paragraphen

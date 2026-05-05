@@ -3,6 +3,9 @@ license: gemeinfrei nach § 5 UrhG (DE)
 source: https://www.gesetze-im-internet.de/hinschg/
 last-checked: 2026-05-02
 purpose: HinSchG (Hinweisgeberschutzgesetz) — interne Meldekanal-Pflicht.
+verification-status: verified
+skill-output-disclaimer: "Top-Layer-verifiziert (gesetze-im-internet.de) — Sanktions-Hoehen + Schwellwerte primaer-verifiziert"
+last-verified: 2026-05-05
 ---
 
 # HinSchG — Audit-relevante Paragraphen

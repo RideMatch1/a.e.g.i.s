@@ -3,6 +3,9 @@ license: gemeinfrei nach § 5 UrhG (DE)
 source: https://www.gesetze-im-internet.de/lksg/
 last-checked: 2026-05-02
 purpose: LkSG (Lieferkettensorgfalt) — Sorgfaltspflicht in Lieferkette.
+verification-status: verified
+skill-output-disclaimer: "Top-Layer-verifiziert (gesetze-im-internet.de) — Sanktions-Hoehen + Schwellwerte primaer-verifiziert"
+last-verified: 2026-05-05
 ---
 
 # LkSG — Audit-relevante Paragraphen

@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32022R2065
 last-checked: 2026-05-01
 purpose: Digital Services Act (VO 2022/2065) — Pflichten für Online-Plattformen + UGC-Hosting.
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen eur-lex.europa.eu Volltext verifizieren"
+last-verified: 2026-05-05
 ---
 
 # DSA (VO 2022/2065) — Audit-relevante Artikel

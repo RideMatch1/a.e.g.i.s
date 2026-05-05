@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32015L2366
 last-checked: 2026-05-02
 purpose: PSD2 — Zahlungsdienstleister-Richtlinie. DE-Umsetzung in ZAG.
+verification-status: partially-verified
+skill-output-disclaimer: "⚠ Teil-verifiziert — Top-Claims (SCA 30 EUR-Schwelle) primaerquelle-bestaetigt; weitere Detail-Claims gegen eur-lex.europa.eu / RTS 2018/389 verifizieren"
+last-verified: 2026-05-05
 ---
 
 # PSD2 — RL 2015/2366

@@ -1,6 +1,9 @@
 ---
 license: gemeinfrei nach § 5 UrhG (DE)
 purpose: HGB + AO Audit-Relevance — GoBD / Aufbewahrung.
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen gesetze-im-internet.de verifizieren"
+last-verified: 2026-05-05
 ---
 
 # HGB + AO — Audit-Relevance

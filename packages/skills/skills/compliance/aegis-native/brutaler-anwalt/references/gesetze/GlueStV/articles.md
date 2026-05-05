@@ -3,6 +3,9 @@ license: oeffentlich-rechtlich (Staatsvertrag der Laender)
 source: https://www.gluecksspiel-behoerde.de/glcksspielstaatsvertrag-2021
 last-checked: 2026-05-02
 purpose: GlueStV 2021 — Gluecksspielrecht Online.
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen GlueStV-Volltext / Aufsichtsbehoerde verifizieren"
+last-verified: 2026-05-05
 ---
 
 # GlueStV 2021 — Audit-relevante Paragraphen

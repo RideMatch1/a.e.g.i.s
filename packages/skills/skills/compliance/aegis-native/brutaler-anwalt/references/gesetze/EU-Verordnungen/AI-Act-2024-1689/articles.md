@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32024R1689
 last-checked: 2026-05-01
 purpose: EU AI Act (VO 2024/1689) — Audit-relevante Artikel für Web/SaaS mit KI-Komponente.
+verification-status: secondary-source-derived
+skill-output-disclaimer: "⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen eur-lex.europa.eu Volltext verifizieren"
+last-verified: 2026-05-05
 ---
 
 # EU AI Act (VO 2024/1689) — Audit-relevante Artikel

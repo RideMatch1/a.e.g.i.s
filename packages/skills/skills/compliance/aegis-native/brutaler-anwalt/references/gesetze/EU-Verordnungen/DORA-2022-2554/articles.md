@@ -3,6 +3,9 @@ license: CC BY 4.0 (EUR-Lex)
 source: https://eur-lex.europa.eu/legal-content/DE/TXT/HTML/?uri=CELEX:32022R2554
 last-checked: 2026-05-02
 purpose: DORA (Digital Operational Resilience Act) — IKT-Risikomanagement fuer Finanzbranche.
+verification-status: verified
+skill-output-disclaimer: "Top-Layer-verifiziert (eur-lex.europa.eu) — Art. 19-Frist-Kaskade + Anwendbarkeit primaer-verifiziert"
+last-verified: 2026-05-05
 ---
 
 # DORA — VO 2022/2554
