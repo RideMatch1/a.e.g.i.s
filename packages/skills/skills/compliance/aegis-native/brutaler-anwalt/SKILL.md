@@ -378,6 +378,7 @@ Lade nur die passenden References — nicht alle auf einmal. Token-Disziplin.
 | Checklisten Impressum/DSE/Cookie/AVV/Datenpanne/Form/E-Commerce/Cold-Outreach | `references/checklisten.md` |
 | BORA (Anwaelte), HOAI (Architekten), HWG (Heilberufe), LMIV (Lebensmittel), MPDG (Medizin), GlueStV (Gluecksspiel), JuSchG, FernUSG, Versicherung, Bank, BfArM | `references/branchenrecht.md` |
 | BGH/EuGH/LG-Urteile mit Az., Datum, Tenor — als Beleg-Datenbank | `references/bgh-urteile.md` |
+| EuGH-DSGVO-Schadensersatz-Linie (Art. 82 DSGVO, 24 verifizierte Urteile, Tier-1+Tier-2 + Anwendungs-Mapping) — Pflicht-Lookup bei Schadensersatz-Argumentation, Bagatell-Schwelle, Befuerchtungs-Schaden, Konzern-Umsatz-Bussgeld-Basis | `references/eu-eugh-dsgvo-schadensersatz.md` |
 | Abmahn-Brief-Templates, Behoerden-Anhoerung-Templates, Unterlassungserklaerung-Vorlage | `references/abmahn-templates.md` |
 | AEGIS-Scanner-JSON-Output konsumieren, Findings mappen auf Rechtsgrundlagen | `references/aegis-integration.md` |
 | CCPA, UK-GDPR, Schweizer DSG, Drittlandtransfer-Details, Schrems-II-Folgen | `references/international.md` |
