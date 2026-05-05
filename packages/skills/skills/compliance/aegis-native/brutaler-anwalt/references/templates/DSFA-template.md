@@ -46,6 +46,33 @@ sources: BayLDA-Hinweise zur DSFA + DSK-Whitelist 2018
 | Profiling | `<...>` | `<...>` |
 | Verlust Kontrolle ueber Daten | `<...>` | `<...>` |
 
+### 4.1 Schadensersatz-Erwartungswert (post-EuGH C-300/21)
+
+| Schaden-Klasse | Realistische Hoehe pro Betroffener | Begruendung |
+|---|---|---|
+| Bagatell-Verletzung | 0-100 EUR | C-456/22 Gemeinde Ummendorf — keine Erheblichkeitsschwelle, aber kurzfristiger Kontrollverlust niedrig bewertet |
+| Befuerchtungs-Schaden (Datenleck) | 100-500 EUR | C-340/21 Natsionalna agentsia — bei Cyber-Angriff ausreichend; pro Betroffener |
+| Massendaten-Verarbeitung ohne Rechtsgrundlage | 500-2.000 EUR | C-446/21 Schrems vs Meta — Datenminimierungs-Verstoss bei Profiling-Aggregation |
+| Sensible Daten Art. 9 DSGVO | 1.000-5.000 EUR | C-21/23 Lindenapotheke — Gesundheits-/Religiose/Biometrie-Daten erhoehter Schutz |
+| Identitaetsdiebstahl tatsaechlich erfolgt | bis Vollausgleich materieller Schaden | C-182/22 + C-189/22 Scalable — voller Ausgleich |
+
+**Wichtig (C-590/22 PS GbR)**: Schadensersatz hat **reine Kompensationsfunktion** — NICHT mit Bussgeld-Hoehen argumentieren. Bemessung orientiert sich an konkreten Auswirkungen fuer Betroffene (Aerger-Dauer, Daten-Sensitivitaet, Wiederholbarkeit). Cross-Reference: `references/eu-eugh-dsgvo-schadensersatz.md` Tier-1.
+
+### 4.2 Doku-Pflicht nach § 35 BDSG (Beschaeftigtendaten-Spezifika)
+
+Bei Beschaeftigtendaten-Verarbeitung zusaetzlich zur DSGVO-DSFA pruefen:
+- **§ 35 Abs. 1 BDSG**: Recht auf Berichtigung — Verfahren ueberhaupt vorgesehen?
+- **§ 35 Abs. 2 BDSG**: Loeschungs-Anspruch enger als Art. 17 DSGVO bei behoerdlichen Aufbewahrungspflichten
+- **§ 35 Abs. 3 BDSG**: Statt Loeschung Einschraenkung der Verarbeitung bei Pflicht-Aufbewahrung
+- **EuGH C-65/23 MK gg K GmbH (19.12.2024)**: Beschaeftigten-Betriebsvereinbarung muss kumulativ Art. 88 Abs. 2 DSGVO **UND** Art. 5/6/9 DSGVO erfuellen — BV kein Schutzschild fuer DSGVO-Nicht-Konformitaet (Cross-Reference: `references/eu-eugh-dsgvo-schadensersatz.md` Tier-1 #10)
+
+**Pflicht-Pruefung bei HR-Tools (Workday, HRIS, Workforce-Analytics, KI-Hiring)**:
+1. Rechtsgrundlage Art. 88 + Art. 6 + ggf. Art. 9 DSGVO
+2. § 26 BDSG-Verhaeltnismaessigkeit
+3. BetrVG § 87 Abs. 1 Nr. 6 (Mitbestimmung KI-Tools)
+4. AGG § 7 + § 22 (Diskriminierungs-Beweislast bei KI-Bewerbungstools)
+5. § 35 BDSG-Berichtigungs-/Loeschungs-Verfahren
+
 ## 5. Abhilfemassnahmen (Art. 35 Abs. 7 lit. d)
 
 | Massnahme | Implementierungsstatus | Verify-Command |

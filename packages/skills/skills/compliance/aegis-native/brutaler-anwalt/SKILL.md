@@ -231,22 +231,28 @@ Per `references/audit-patterns.md`:
 1. HEADER-AUDIT (curl -sSI auf Live-URL)
 2. HTML-LIVE-PROBE (SSR-Inhalt + DOM-Struktur)
 3. IMPRESSUM-AUDIT (DDG §5 + Footer-Link-Resolver) + § 312k Kuendigungsbutton-Check (V4) + PAngV/MwSt-Check (V4)
+3.5 **MARKETING<->AGB<->DSE-KONSISTENZ-AUDIT** (V3.3-Pattern, post-2026-05-05) — Cross-Doc-Drift zwischen Marketing-Aussagen + AGB-Klauseln + DSE
+3.6 **AZ.-CITATION-PROVENANCE-CHECK** (V3.3-Pattern, post-2026-05-05) — Whitelist-Cross-Check jedes Az. gegen `bgh-urteile.md`; nicht-gelistete Az. nur mit Volltext-Verifikation oder bare § citation
 4. DSE-AUDIT (DSGVO Art. 13 + Drittland + AVV) + Stand-Datum-Code-Drift-Check (V4: `new Date()` in Pflicht-Pages = Drift-Style-3)
-5. COOKIE-/CONSENT-AUDIT (TTDSG §25 + Pre-consent-Tracking)
+5. COOKIE-/CONSENT-AUDIT (§ 25 TDDDG + Pre-consent-Tracking)
 6. BRANCHEN-LAYER (BORA/HWG/LMIV/etc., wenn identifizierbar)
+6b **DEPLOYMENT-HYGIENE-AUDIT** (V3.3-Pattern, post-2026-05-05) — Robots.txt / X-Robots-Tag / .git-public-leak / `.env`-public-leak / Sitemap-Pflicht-Page-Coverage
 7. CSP-CODE-CROSS-CHECK (wenn Repo-Zugriff)
 8. SCHADENS-DIAGNOSE-FORMEL (SYNTHESIZER-Konsolidierung)
 
 **DEFAULT-Scope**: Wenn der User nicht explizit eingrenzt („audit nur /datenschutz"), MUESSEN ALLE Pages des Repos auditiert werden. Bei eingrenztem Scope: Output enthaelt explizit „nicht-auditierte URLs" — Auditor traegt keine Verantwortung fuer das, was er nicht gesehen hat.
 
-**Plus optional Sub-Phasen** (V3.3, je nach Site-Typ; werden zwischen Phase 5 und 6 ausgeloest, wenn relevante Surface erkannt):
+**Plus optional Sub-Phasen** (V3.3+V4, je nach Site-Typ; werden zwischen Phase 5 und 6 ausgeloest, wenn relevante Surface erkannt):
 - **5b BFSG** (B2C E-Commerce, seit 28.06.2025)
 - **5c UGC-PUBLIC-PII** (Vermisst-/Marketplace-/Forum-Plattformen)
 - **5d KONFIGURATOR-/MULTI-STEP-FORM** (Onboarding-Wizard, Quoting, Customer-Briefing-Pipeline)
-- **5e AI-CHATBOT-/LLM-DSGVO** (Site-weite LLM-Chats: Mistral / OpenAI / Claude / Self-hosted)
+  - **5d.1 DIRECT-FILE-UPLOAD-COMPLIANCE** (V4-Sub-Pattern, post-2026-05-03) — Multi-Step-Form mit File-Upload (Schema-Migration / localStorage / base64-Crash / Path-Traversal / SVG-XSS / Filename-PII / Customer-Receipt / Disk-DoS / Email-Cap / VVT)
+- **5e AI-CHATBOT-/LLM-DSGVO** (Site-weite LLM-Chats: Mistral / OpenAI / major-LLM-providers / Self-hosted)
 - **5f SCANNER-/AUDIT-TOOL-SELBST-AUDIT** (wenn die Site selbst einen Scanner / Audit-Tool als Service anbietet — Smartlaw-Disclaimer + SSRF + Active-Probes-Pflichten)
-- **5g EMAIL-/SMTP-OUTBOUND-COMPLIANCE** (SPF/DKIM-TXT/DMARC + DOI + Cold-Outreach + List-Unsubscribe + Email-Template Font-Audit, post-2026-05-05)
+- **5g EMAIL-/SMTP-OUTBOUND-COMPLIANCE** (SPF/DKIM-TXT/DMARC + DOI + Cold-Outreach + List-Unsubscribe, post-2026-05-05)
+  - **5g.4 EMAIL-TEMPLATE-FONT-AUDIT** (V4-Sub-Pattern, post-2026-05-05) — Google Fonts in HTML-Mail-Templates / System-Font-Stack-Pflicht / LG-Muenchen-3-O-17493/20-Analogie
 - **5h B2C/B2B-FUNNEL-KONFLIKT** (B2B-AGB-Klausel vs. oeffentlicher Konfigurator/Buchung — § 13 BGB / § 312g BGB / UWG § 5a, post-2026-05-05)
+- **5i ART-9-BEWEIS-WORKFLOW-AUDIT** (V4-Pattern, post-2026-05-03) — Site verarbeitet besondere Kategorien Art. 9 DSGVO (Gesundheit, biometrisch, etc.) — Beweis-Modi-Audit + Crypto-at-Rest-Pflicht + Aufbewahrungsfristen + Audit-Log-Pflicht-Events + § 22 BDSG-Misuse-Detection
 
 ### Modi
 
