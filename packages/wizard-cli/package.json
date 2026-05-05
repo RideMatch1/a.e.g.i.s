@@ -57,7 +57,7 @@
     "chalk": "^5.4.0",
     "commander": "^13.0.0",
     "gray-matter": "^4.0.3",
-    "yaml": "^2.8.3",
+    "yaml": "^2.8.4",
     "zod": "^3.23.0"
   },
   "devDependencies": {
