@@ -379,6 +379,8 @@ Lade nur die passenden References — nicht alle auf einmal. Token-Disziplin.
 | BORA (Anwaelte), HOAI (Architekten), HWG (Heilberufe), LMIV (Lebensmittel), MPDG (Medizin), GlueStV (Gluecksspiel), JuSchG, FernUSG, Versicherung, Bank, BfArM | `references/branchenrecht.md` |
 | BGH/EuGH/LG-Urteile mit Az., Datum, Tenor — als Beleg-Datenbank | `references/bgh-urteile.md` |
 | EuGH-DSGVO-Schadensersatz-Linie (Art. 82 DSGVO, 24 verifizierte Urteile, Tier-1+Tier-2 + Anwendungs-Mapping) — Pflicht-Lookup bei Schadensersatz-Argumentation, Bagatell-Schwelle, Befuerchtungs-Schaden, Konzern-Umsatz-Bussgeld-Basis | `references/eu-eugh-dsgvo-schadensersatz.md` |
+| EDPB-Guidelines/Recommendations/Opinions (33+ nummerierte Guidelines, 6 Recommendations, 4 Top-Opinions, WP29-endorsed-Set, 10-Cluster-Index nach Themen Bussgeld/Cookies/Rechtsgrundlagen/Drittland/Betroffenenrechte/PbD/Breach/Sektor/AI/Joint) — primaere Behoerden-Auslegung der DSGVO, Skill zitiert Guideline-ID + Adoption-Datum + URL bei jedem DSGVO-Audit-Befund | `references/eu-edpb-guidelines.md` |
+| Aufsichtsbehoerden-Taetigkeitsberichte 2024 (BfDI/BayLDA/LfDI BW/HmbBfDI/LDI NRW) mit Bussgeld-Statistiken, Top-Faellen, Schwerpunkten + Cross-Cluster-Themen — Marktrealitaets-Anker fuer Bussgeld-Hoehe-Argumentation + Pre-Anwalts-Risiko-Bewertung | `references/de-aufsichtsbehoerden-taetigkeitsberichte-2024.md` |
 | Abmahn-Brief-Templates, Behoerden-Anhoerung-Templates, Unterlassungserklaerung-Vorlage | `references/abmahn-templates.md` |
 | AEGIS-Scanner-JSON-Output konsumieren, Findings mappen auf Rechtsgrundlagen | `references/aegis-integration.md` |
 | CCPA, UK-GDPR, Schweizer DSG, Drittlandtransfer-Details, Schrems-II-Folgen | `references/international.md` |
