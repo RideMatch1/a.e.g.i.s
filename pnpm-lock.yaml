@@ -6,6 +6,7 @@ settings:
 
 overrides:
   postcss@<8.5.10: '>=8.5.10'
+  uuid@<13.0.1: '>=13.0.1'
 
 importers:
 
@@ -2180,8 +2181,8 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
-  uuid@13.0.0:
-    resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
+  uuid@14.0.0:
+    resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
     hasBin: true
 
   validate-npm-package-name@7.0.2:
@@ -2525,7 +2526,7 @@ snapshots:
       table: 6.9.0
       tar: 7.5.13
       treeverse: 3.0.0
-      uuid: 13.0.0
+      uuid: 14.0.0
       walk-up-path: 4.0.0
       xml-js: 1.6.11
       yaml: 2.8.3
@@ -4264,7 +4265,7 @@ snapshots:
   utils-merge@1.0.1:
     optional: true
 
-  uuid@13.0.0: {}
+  uuid@14.0.0: {}
 
   validate-npm-package-name@7.0.2: {}
 
