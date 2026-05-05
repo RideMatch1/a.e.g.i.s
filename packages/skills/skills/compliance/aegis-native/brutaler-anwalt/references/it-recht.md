@@ -13,13 +13,13 @@
 | **DDG** (Digitale-Dienste-Gesetz) — seit 14.5.2024 | https://www.gesetze-im-internet.de/ddg/ | Impressumspflicht § 5 (= TMG § 5), Umsetzung des DSA |
 | **DSA** (Digital Services Act, EU 2022/2065) | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32022R2065 | Plattformhaftung, Transparenzpflichten, Risikoaudits für große Plattformen |
 | **DMA** (Digital Markets Act, EU 2022/1925) | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32022R1925 | Verpflichtungen für "Gatekeeper" (Apple, Google, Meta, Amazon...) |
-| **TTDSG** | https://www.gesetze-im-internet.de/ttdsg/ | Cookies, E-Privacy (→ auch dsgvo.md) |
+| **TDDDG** (vormals TTDSG, seit 14.05.2024) | https://www.gesetze-im-internet.de/tddg/ | Cookies, E-Privacy — Wortlaut § 25 unveraendert (→ auch dsgvo.md) |
 
 ### IT-Sicherheit
 | Gesetz / Norm | Volltext | Relevanz |
 |--------|---------|---------|
 | **BSIG** (BSI-Gesetz) | https://www.gesetze-im-internet.de/bsig_2009/ | Kritische Infrastrukturen, Meldepflichten, BSI-Befugnisse |
-| **NIS2-Umsetzungsgesetz (NIS2UmsuCG)** | In Kraft seit Oktober 2024 | Erweiterte Sicherheits- und Meldepflichten für viele Unternehmen |
+| **NIS2-Umsetzungsgesetz (NIS2UmsuCG)** | DE-Bundestags-Verfahren laufend (Stand 2026-05-05); EU-NIS2-RL-Frist 17.10.2024 verstrichen ohne DE-Umsetzung — `gesetze/NIS2UmsuCG-BSIG/articles.md` siehe; bis Verabschiedung gilt das BSIG (alt) subsidiaer | Erweiterte Sicherheits- und Meldepflichten fuer viele Unternehmen — bei Eintritt: Bundesrats-Zustimmungs-Bedarf pruefen |
 | **NIS2-Richtlinie (EU 2022/2555)** | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32022L2555 | EU-Grundlage für NIS2 |
 | **IT-Sicherheitsgesetz 2.0** | Änderungen des BSIG | KRITIS-Betreiber, Systeme zur Angriffserkennung |
 | **ISO/IEC 27001:2022** | https://www.iso.org/standard/27001 | Internationaler Standard für Informationssicherheits-Management (ISMS) — kein Gesetz, aber Maßstab für "angemessene TOMs" nach Art. 32 DSGVO und NIS2 |
@@ -28,11 +28,11 @@
 ### ePrivacy
 | Gesetz | Volltext | Relevanz |
 |--------|---------|---------|
-| **TTDSG** (Telekommunikation-Telemedien-Datenschutz-Gesetz) | https://www.gesetze-im-internet.de/ttdsg/ | § 25: Einwilligung für Cookies / Endgerätezugriff; § 24: Öffentliche Netze |
-| **ePrivacy-Richtlinie (2002/58/EG)** | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32002L0058 | EU-Grundlage, durch TTDSG in DE umgesetzt |
+| **TDDDG** (Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz, vormals TTDSG seit 14.05.2024) | https://www.gesetze-im-internet.de/tddg/ | § 25: Einwilligung fuer Cookies / Endgeraetezugriff; § 24: Oeffentliche Netze. § 25 inhaltlich unveraendert seit TTDSG-Aera. |
+| **ePrivacy-Richtlinie (2002/58/EG)** | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32002L0058 | EU-Grundlage, durch TDDDG (vormals TTDSG) in DE umgesetzt |
 | **ePrivacy-Verordnung (geplant)** | Noch nicht in Kraft (Stand: 2025) | Soll ePrivacy-Richtlinie ersetzen und Cookie-Regeln EU-weit vereinheitlichen — politisch noch blockiert |
 
-**Praxis-Hinweis ePrivacy:** Bis die ePrivacy-Verordnung in Kraft tritt, gilt das TTDSG. Der Entwurf der Verordnung kann sich noch erheblich ändern — aktuelle Entwicklungen beobachten via https://www.edpb.europa.eu
+**Praxis-Hinweis ePrivacy:** Bis die ePrivacy-Verordnung in Kraft tritt, gilt das TDDDG (vormals TTDSG). Der Entwurf der Verordnung kann sich noch erheblich aendern — aktuelle Entwicklungen beobachten via https://www.edpb.europa.eu
 
 ### Urheberrecht (Software & Inhalte)
 | Gesetz | Volltext | Relevanz |
@@ -215,7 +215,7 @@ NIS2 gilt für Unternehmen in **18 Sektoren** (erweitert gegenüber NIS1):
 ### Häufige Abmahngründe
 - Impressumsmangel (§ 5 DDG / TMG)
 - Datenschutzverstoß (DSGVO + UWG § 3a)
-- Cookie-Consent-Fehler (§ 25 TTDSG + UWG)
+- Cookie-Consent-Fehler (§ 25 TDDDG + UWG)
 - Urheberrechtsverletzung (Bilder, Software, Texte)
 - Wettbewerbswidrige Werbung (UWG)
 - Fehlende Pflichtangaben (Preisangaben, Widerrufsrecht, Gewährleistung)

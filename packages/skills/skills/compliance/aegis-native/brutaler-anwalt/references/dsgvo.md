@@ -17,11 +17,13 @@
 - Ergänzt und konkretisiert die DSGVO im deutschen Recht
 - Besonders relevant: Beschäftigtendatenschutz (§ 26 BDSG), Videoüberwachung (§ 4 BDSG), Scoring (§ 31 BDSG)
 
-### TTDSG (Telekommunikation-Telemedien-Datenschutz-Gesetz)
-- **Volltext**: https://www.gesetze-im-internet.de/ttdsg/
-- Regelt Cookies und ähnliche Technologien (§ 25 TTDSG)
+### TDDDG (Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz, vormals TTDSG)
+- **Volltext**: https://www.gesetze-im-internet.de/tddg/ (TTDSG-URL leitet weiter)
+- **Umbenennung**: Seit 14.05.2024 (DSA-Anpassungsgesetz) heisst das TTDSG **TDDDG** — Wortlaut des § 25 unveraendert.
+- Regelt Cookies und aehnliche Technologien (§ 25 TDDDG, vormals § 25 TTDSG)
 - Umsetzt ePrivacy-Richtlinie in nationales Recht
-- **Merksatz**: § 25 TTDSG gilt für den Zugriff auf Endgeräte (Cookies, Tracking), DSGVO gilt für die Verarbeitung der dabei erhobenen Daten
+- **Merksatz**: § 25 TDDDG gilt fuer den Zugriff auf Endgeraete (Cookies, Tracking), DSGVO gilt fuer die Verarbeitung der dabei erhobenen Daten
+- **Citation-Hinweis**: in aelteren Urteilen + Sekundaerliteratur noch "§ 25 TTDSG" — inhaltlich identisch mit "§ 25 TDDDG"
 
 ---
 
@@ -252,7 +254,7 @@ als „Erschwerungsgrund" gewertet (Art. 83 Abs. 2 lit. h: bisheriges Verhalten)
 |---------|---------|--------------|
 | Kein AVV mit Cloud-Anbieter | Art. 28 | Stufe 1 |
 | Keine Rechtsgrundlage für Verarbeitung | Art. 6 | Stufe 2 |
-| Tracking ohne Einwilligung (§ 25 TTDSG) | § 25 TTDSG + Art. 6 | Stufe 2 |
+| Tracking ohne Einwilligung (§ 25 TDDDG) | § 25 TDDDG + Art. 6 | Stufe 2 |
 | Datenpanne nicht gemeldet | Art. 33 | Stufe 1 |
 | Auskunftsanfrage ignoriert | Art. 15 | Stufe 2 |
 | Keine DSFA bei Hochrisikoverarbeitung | Art. 35 | Stufe 1 |
@@ -279,11 +281,12 @@ als „Erschwerungsgrund" gewertet (Art. 83 Abs. 2 lit. h: bisheriges Verhalten)
 
 ---
 
-## Cookie-Consent (§ 25 TTDSG)
+## Cookie-Consent (§ 25 TDDDG, vormals § 25 TTDSG)
 
 ### Regelung
-- **§ 25 Abs. 1 TTDSG**: Einwilligung erforderlich für Zugriff auf Endgerät-Informationen (Cookies, Pixel, Fingerprinting)
-- **§ 25 Abs. 2 TTDSG**: Ausnahme für technisch notwendige Cookies (keine Einwilligung nötig)
+- **§ 25 Abs. 1 TDDDG**: Einwilligung erforderlich für Zugriff auf Endgerät-Informationen (Cookies, Pixel, Fingerprinting)
+- **§ 25 Abs. 2 TDDDG**: Ausnahme für technisch notwendige Cookies (keine Einwilligung nötig)
+- **Hinweis**: TTDSG wurde zum 14.05.2024 in TDDDG umbenannt. § 25 inhaltlich unveraendert. Aeltere Urteile + Sekundaerliteratur noch "§ 25 TTDSG" — gleicher Norm-Inhalt.
 
 ### Anforderungen an gültigen Consent
 - Informiert: Nutzer muss wissen, wer, warum, was speichert

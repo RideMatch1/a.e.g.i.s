@@ -170,7 +170,7 @@ Datenschutz-Grundverordnung erhoben:
             Betroffenen / Routinekontrolle
 
 2. Verstoss-Vorwurf
-   Art. [X] DSGVO i.V.m. [§ XYZ TTDSG / DDG / BDSG]
+   Art. [X] DSGVO i.V.m. [§ XYZ TDDDG / DDG / BDSG]
    [Konkreter Vorwurf]
 
 3. Bussgeldrahmen

@@ -118,14 +118,14 @@ Pruefe ob folgende Domains in CSP `script-src`, `style-src`, `font-src`, `connec
 |---------------|--------------|
 | `fonts.googleapis.com` | 🔴 KRITISCH — LG Muenchen I 3 O 17493/20, Schadensersatz 100€/Visitor, Massen-Abmahn-Pattern |
 | `fonts.gstatic.com` | 🔴 KRITISCH — siehe oben |
-| `googletagmanager.com` | 🟡 HOCH wenn aktiv — § 25 TTDSG Consent-Pflicht, EuGH C-673/17 |
-| `google-analytics.com` | 🟡 HOCH wenn aktiv — § 25 TTDSG + Drittlandtransfer USA |
+| `googletagmanager.com` | 🟡 HOCH wenn aktiv — § 25 TDDDG Consent-Pflicht, EuGH C-673/17 |
+| `google-analytics.com` | 🟡 HOCH wenn aktiv — § 25 TDDDG + Drittlandtransfer USA |
 | `connect.facebook.net` / `*.facebook.com` | 🔴 KRITISCH — Fashion-ID-Mit-Verantwortlichkeit, EuGH C-40/17 |
-| `*.linkedin.com` (Insight Tag) | 🟡 HOCH — § 25 TTDSG Consent |
+| `*.linkedin.com` (Insight Tag) | 🟡 HOCH — § 25 TDDDG Consent |
 | `*.x.com` / `*.twitter.com` (Embeds) | 🟡 HOCH — Fashion-ID-Pattern |
 | `*.tiktok.com` / `tiktokapis.com` | 🟡 HOCH — China-Drittland-Layer; CCP-Datenzugriff-Risiko |
 | `*.stripe.com` | 🟢 MITTEL — US-Drittland; Stripe ist DSGVO-konform aber Erwaehnung in DSE Pflicht |
-| `*.youtube.com` | 🟡 HOCH — wenn nicht youtube-nocookie.com → § 25 TTDSG |
+| `*.youtube.com` | 🟡 HOCH — wenn nicht youtube-nocookie.com → § 25 TDDDG |
 | `youtube-nocookie.com` | 🟢 NIEDRIG (akzeptiert, DSE-Erwaehnung trotzdem) |
 | `vimeo.com` / `player.vimeo.com` | 🟡 HOCH — Drittland + Tracking-Cookies |
 | `*.openstreetmap.org` / `nominatim.openstreetmap.org` | 🟢 MITTEL — UK-Foundation; Drittland-Hinweis in DSE noetig |
@@ -262,7 +262,7 @@ Externer CAPTCHA-Service = Drittland-Transfer + Cookie-Setzung. Pruefe:
 
 | Provider | Drittland | Consent noetig? |
 |----------|-----------|-----------------|
-| Google reCAPTCHA v2/v3 (`www.google.com/recaptcha`) | US | ✅ ja — § 25 TTDSG, da der Score auf Geraet/Browser-Daten basiert |
+| Google reCAPTCHA v2/v3 (`www.google.com/recaptcha`) | US | ✅ ja — § 25 TDDDG, da der Score auf Geraet/Browser-Daten basiert |
 | hCaptcha (`hcaptcha.com`) | US | ✅ ja |
 | Cloudflare Turnstile (`challenges.cloudflare.com`) | US | 🟡 strittig — minimal-invasiv, aber Drittland-Hinweis in DSE Pflicht |
 | Friendly Captcha (`friendlycaptcha.com`) | EU (DE) | 🟢 niedrig — DSE-Eintrag empfohlen |
@@ -274,7 +274,7 @@ grep -rEn 'recaptcha|hcaptcha|turnstile|friendlycaptcha' src/
 ```
 
 Finding-Pattern: Google reCAPTCHA ohne ConsentGate auf Public-Form
-(Login, Signup, Newsletter, Kontakt) → 🔴 KRITISCH § 25 TTDSG +
+(Login, Signup, Newsletter, Kontakt) → 🔴 KRITISCH § 25 TDDDG +
 Drittland (DPF zertifiziert, aber Erwaehnung in DSE Pflicht).
 
 ### DNS-Prefetch / Preconnect Audit
@@ -283,7 +283,7 @@ Drittland (DPF zertifiziert, aber Erwaehnung in DSE Pflicht).
 loesen DNS-Resolution / TCP-Handshake VOR dem ersten Asset-Request aus.
 Wenn Ziel ein Tracker / Drittland-Service ist, sendet der Browser
 Daten (mind. IP an DNS-Resolver, ggf. TCP-SYN an Drittland) BEVOR
-Consent erteilt ist. § 25 TTDSG-relevant fuer Tracker-Domains.
+Consent erteilt ist. § 25 TDDDG-relevant fuer Tracker-Domains.
 
 ```bash
 # Live-HTML:
@@ -663,7 +663,7 @@ Retention-Frist, Self-Hosting-Standort, AVV-Liste, Datenstandort):
 
 ## Phase 5: COOKIE-/CONSENT-AUDIT
 
-### Pflicht-Checks (§ 25 TTDSG)
+### Pflicht-Checks (§ 25 TDDDG)
 
 ```
 1. Cookie-Banner sichtbar bei Erstbesuch?
@@ -792,7 +792,7 @@ in localStorage/state liegt.
 | Folder-/Slug-Sanitization | Path-Traversal-Schutz, kein User-Input direkt in `fs.writeFile`-Pfad | KRITISCH (RCE / Pfad-Escape) |
 | File-Storage in Production-Container (V3.4-Lesson, post-2026-05-01) | Persistente File-Writes via `process.cwd()` funktionieren lokal, **failen aber in Docker-Production-Container** wenn der unprivilegierte User (z.B. `nextjs`) keine write-Permissions auf working-dir hat. Folge: Endpoint wirft HTTP 500 unter Last, lokale Tests sehen es nie. **Pflicht-Pattern**: Default-Path mit `os.tmpdir()` als Production-Fallback (ENV `NODE_ENV === 'production'`) + ENV-Override (`NEWSLETTER_PENDING_DIR`, `INQUIRIES_DIR`) fuer persistent volume wenn Container-Restart-Tolerance nicht akzeptabel. Verify: `docker run --user 1001 -v /readonly ... && curl /api/<form-submit>` muss 200 liefern. Anti-Pattern: blind `await fs.writeFile(path.join(process.cwd(), '.foo', ...))` ohne writable-Check. | HOCH (Production-Outage, von lokal-Tests nicht erkennbar) |
 | File-Upload (wenn Logo etc.): MIME-Type + Magic-Bytes + Size-Cap + Content-Disposition: attachment | wenn User Files hochladen kann | HOCH (XSS via SVG, RCE via Polyglot) |
-| PII-Pre-Submit-Hygiene | KEIN Analytics-Tracking auf Form-Felder waehrend User tippt; KEIN Auto-Save mit PII zu 3rd-party | HOCH (Werbungs-Datenschutz § 25 TTDSG) |
+| PII-Pre-Submit-Hygiene | KEIN Analytics-Tracking auf Form-Felder waehrend User tippt; KEIN Auto-Save mit PII zu 3rd-party | HOCH (Werbungs-Datenschutz § 25 TDDDG) |
 | Auto-Save-Indikator | User sieht "Daten werden zwischengespeichert" — kein verstecktes localStorage von PII | MITTEL (Transparenz Art. 13 DSGVO) |
 | DSE-Konfigurator-Block | Datenschutzerklaerung beschreibt Konfigurator-Daten-Fluss konkret (Welche Daten, Zweck, Speicherdauer, Empfaenger) | KRITISCH (Art. 13 DSGVO) |
 | Aufbewahrungs-Loesch-Konzept | Eingehende Briefings haben definiertes TTL (z.B. 30/90/180 Tage) wenn nicht in Customer-Onboarding ueberfuehrt | HOCH (Art. 5 lit. e DSGVO) |

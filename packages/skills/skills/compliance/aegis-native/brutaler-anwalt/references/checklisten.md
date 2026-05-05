@@ -85,7 +85,7 @@ Für jede Verarbeitung (Website-Besuch, Kontaktformular, Newsletter, Shop-Bestel
 
 ---
 
-## Checkliste 3: Cookie-Consent (§ 25 TTDSG + Art. 6 DSGVO)
+## Checkliste 3: Cookie-Consent (§ 25 TDDDG + Art. 6 DSGVO)
 
 ### Consent-Banner / CMP (Consent Management Platform)
 - [ ] Banner erscheint vor Setzen nicht-notwendiger Cookies

@@ -85,7 +85,7 @@ last-checked: <YYYY-MM-DD>
 | Risiko | Auswirkung | Fix |
 |--------|-----------|-----|
 | Drittland | Schrems-II | Region setzen + SCC + TIA |
-| Cookies | § 25 TTDSG | Consent-Mode oder cookieless |
+| Cookies | § 25 TDDDG | Consent-Mode oder cookieless |
 | Default-Logs | Art. 5 DSGVO | Anonymisierung, Loeschfristen |
 
 ## 3. Code-Pattern (sanitized)

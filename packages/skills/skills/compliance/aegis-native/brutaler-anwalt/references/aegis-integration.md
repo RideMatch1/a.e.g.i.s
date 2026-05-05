@@ -44,11 +44,11 @@ Wenn keiner davon vorhanden → AEGIS-Integration ueberspringen, normalen SCAN-M
 
 | AEGIS-Modul | Pruefung | Rechts-Bezug | Wenn AEGIS critical/high |
 |------------|----------|--------------|--------------------------|
-| `cookie-audit.ts` | Cookie-Inventar vor Consent | § 25 TTDSG, Art. 6 DSGVO | KRITISCH — direkt abmahnbar (LG Muenchen, OLG Koeln) |
+| `cookie-audit.ts` | Cookie-Inventar vor Consent | § 25 TDDDG, Art. 6 DSGVO | KRITISCH — direkt abmahnbar (LG Muenchen, OLG Koeln) |
 | `embeds-consent.ts` | Iframe/Embed vor Consent | Art. 26 DSGVO Mit-Verantwortlichkeit (Fashion-ID) | KRITISCH — Vimeo/YouTube/Spotify ohne Consent → Verstoss |
 | `font-provider.ts` | Externe Fonts | LG Muenchen 3 O 17493/20 | KRITISCH — Google Fonts extern = Massen-Abmahn-Risiko |
 | `links-footer.ts` | Footer-Pflicht-Links | § 5 DDG, § 13 DSGVO | KRITISCH wenn Impressum/DSE-Link fehlt |
-| `tracking-scan.ts` | Tracker vor Consent | § 25 TTDSG | KRITISCH — Google Analytics/Pixel ohne Consent |
+| `tracking-scan.ts` | Tracker vor Consent | § 25 TDDDG | KRITISCH — Google Analytics/Pixel ohne Consent |
 
 ### Tier-3 Module (Rechtliche Vollpruefung)
 
@@ -57,7 +57,7 @@ Wenn keiner davon vorhanden → AEGIS-Integration ueberspringen, normalen SCAN-M
 | `a11y.ts` | Barrierefreiheit | BFSG (ab 28.06.2025 verpflichtend!) | HOCH — ab Jun 2025 abmahnbar fuer B2C-Sites |
 | `branche.ts` | Branchen-spezifische Pflichten | BORA, HOAI, HWG, LMIV, MPDG | KRITISCH wenn Branche identifiziert + Pflichten fehlen |
 | `carbon.ts` / `carbon-status.ts` | CO2-Footprint | Nicht direkt rechtlich (noch) | NIEDRIG — kann unter Greenwashing-UWG fallen |
-| `cookie-compliance.ts` | Cookie-Banner-Compliance Detail | § 25 TTDSG + Art. 7 DSGVO | KRITISCH bei Pre-Tick / Cookie-Wall / Dark-Pattern |
+| `cookie-compliance.ts` | Cookie-Banner-Compliance Detail | § 25 TDDDG + Art. 7 DSGVO | KRITISCH bei Pre-Tick / Cookie-Wall / Dark-Pattern |
 | `datenschutz-check.ts` | DSE-Vollpruefung | Art. 13/14 DSGVO | KRITISCH bei fehlenden Pflichtangaben |
 | `impressum-check.ts` | Impressum-Vollpruefung | § 5 DDG | KRITISCH bei fehlenden Pflichtangaben |
 | `lighthouse.ts` | Performance / SEO / A11y | Mittelbar BFSG/Verbraucherschutz | MITTEL |
@@ -120,7 +120,7 @@ Wenn mehrere AEGIS-Findings zusammenkommen, kombiniere sie:
 
 | AEGIS-Findings (zusammen) | Synthesizer-Cross-Risiko |
 |---------------------------|--------------------------|
-| `cookie-audit critical` + `tracking-scan critical` | Verdoppelter § 25 TTDSG-Hebel; Abmahn-Wahrsch. > 80% wenn Site B2C-DACH |
+| `cookie-audit critical` + `tracking-scan critical` | Verdoppelter § 25 TDDDG-Hebel; Abmahn-Wahrsch. > 80% wenn Site B2C-DACH |
 | `font-provider critical` + `embeds-consent critical` | Google-Fonts-Welle 2022 Pattern; mehrere Abmahn-Anwaelte aktiv; € 170-500 pro Fall |
 | `impressum-check critical` + `linked-pages critical` (Footer) | UWG § 3a Marktverhaltensregel; jeder Mitbewerber kann abmahnen |
 | `datenschutz-check critical` + `branche.ts critical` | DSGVO + branchenrechtliche Pflicht (z.B. BORA, HWG); doppeltes Bussgeldrisiko |
@@ -141,7 +141,7 @@ dann generiert HUNTER:
 Finding 1: Tracking-Cookie vor Consent (cookie-audit)
 - Wahrsch.: 87% (B2C-DACH-Site, sichtbar, Konkurrenz aktiv)
 - Kritikalitaet: 🔴 KRITISCH
-- §: 25 TTDSG + Art. 6 DSGVO
+- §: 25 TDDDG + Art. 6 DSGVO
 - €-Range: 5.000–15.000 (UWG-Streitwert) + bis 4 % JU (DSGVO-Bussgeld)
 - Belege: EuGH C-673/17 Planet49, BGH I ZR 7/16
 

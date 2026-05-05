@@ -94,13 +94,27 @@ zusaetzliche Volltext-Verifikation.
 
 - `DMA-2022-1925/articles.md`
 - `DGA-2022-868/articles.md`
-- `NIS2-2022-2555/articles.md`
 - `eIDAS-2024-1183/articles.md`
 - `CER-2022-2557/articles.md`
 - `ProdHaftRL-2024-2853/articles.md`
 - `CSDDD-2024-1760/articles.md`
 - `CSRD-2022-2464/articles.md`
-- `CRA-2024-2847/articles.md`
+
+### Secondary-Source-Derived (re-klassifiziert 2026-05-05)
+
+Diese Files wurden zuvor faelschlich als "skeleton-only" gefuehrt, sind
+aber tatsaechlich mit verifiziertem Sekundaerquellen-Inhalt befuellt
+(98 bzw. 84 Zeilen mit konkreten Sanktions-Hoehen, Schwellwerten,
+Meldepflichten):
+
+- `NIS2-2022-2555/articles.md` — Art. 34 Sanktionen (10M/2% bzw. 7M/1,4%),
+  Schwellwerte 250 MA / 50 Mio. EUR, Meldepflichten 24h/72h/1M
+- `CRA-2024-2847/articles.md` — Hauptpflichten ab 11.12.2027, Reporting
+  ab 11.09.2026, Common Specifications 2025/2026
+
+Skill darf aus diesen Files zitieren mit Pflicht-Disclaimer
+"⚠ Sekundaerquellen-Inhalt — vor Mandanten-Citation gegen Verordnungs-
+Volltext verifizieren".
 
 ## Detail-Status (B.2 — DE-Spezialgesetze)
 

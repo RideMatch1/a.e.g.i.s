@@ -64,7 +64,7 @@
 
 ### I ZR 7/16 — Cookie-Einwilligung (28.05.2020)
 - **Tenor**: Vorausgewaehlte Checkbox fuer Cookies ist unwirksame Einwilligung. Setzt Planet49 (EuGH C-673/17) in deutsches Recht um.
-- **Anwendung**: Pre-checked Cookie-Boxen = unwirksamer Consent → Tracking ohne Rechtsgrundlage → § 25 TTDSG-Verstoss.
+- **Anwendung**: Pre-checked Cookie-Boxen = unwirksamer Consent → Tracking ohne Rechtsgrundlage → § 25 TDDDG-Verstoss.
 - **Source**: [dejure.org BGH I ZR 7/16](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+7/16)
 
 ### VI ZR 1370/20 — DSGVO-Schadensersatz (17.10.2023)
@@ -101,7 +101,7 @@
 - **Source**: [dejure.org LG Muenchen I 35 O 5839/22](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=LG+M%C3%BCnchen+I&Aktenzeichen=35+O+5839/22)
 
 ### OLG Koeln — 6 U 8/22 (Cookie-Banner-Gestaltung, 03.11.2022) [unverifiziert]
-- **Tenor**: „Akzeptieren" gross/farbig + „Ablehnen" versteckt = unzulaessige Manipulation des Consent. Verstoss gegen § 25 TTDSG.
+- **Tenor**: „Akzeptieren" gross/farbig + „Ablehnen" versteckt = unzulaessige Manipulation des Consent. Verstoss gegen § 25 TDDDG.
 - **Anwendung**: Cookie-Banner muss "equal weight buttons" haben (gleiche Groesse, Farbe, Position fuer Akzeptieren/Ablehnen).
 - **Source**: [unverifiziert — bitte vor Verwendung gegen openjur.de pruefen]
 - **Hinweis**: Empfohlen statt diesem Az. das primaer-quellen-verifizierte Az. **OLG Koeln 6 U 80/23 (19.01.2024)** zu zitieren — gleiche Aussage, eindeutig belegt.
@@ -370,7 +370,7 @@
 ## Patterns fuer den Skill
 
 ### Wenn Cookie-Banner-Verstoss erkannt:
-- Zitiere: EuGH C-673/17 Planet49 + BGH I ZR 7/16 + OLG Koeln 6 U 8/22
+- Zitiere: EuGH C-673/17 Planet49 + BGH I ZR 7/16 + **OLG Koeln 6 U 80/23** (19.01.2024 — primaer-quellen-verifiziert; nicht mehr OLG Koeln 6 U 8/22 von 2022, der unverifiziert geflaggt ist)
 - Schadensschaetzung: 170–500 € pro Abmahnung; Aufsichtsbehoerden-Bussgeld bis 4 % Jahresumsatz (Stufe 2).
 
 ### Wenn Google Fonts extern eingebunden:
