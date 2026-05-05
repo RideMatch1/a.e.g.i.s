@@ -26,7 +26,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.1.0
-        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -34,8 +34,8 @@ importers:
   packages/benchmark/vulnerable-app:
     dependencies:
       '@supabase/supabase-js':
-        specifier: ^2.105.0
-        version: 2.105.0
+        specifier: ^2.105.3
+        version: 2.105.3
       next:
         specifier: ^15.0.0
         version: 15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -79,7 +79,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.1.0
-        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
 
   packages/core:
     dependencies:
@@ -107,7 +107,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.1.0
-        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
 
   packages/mcp-server:
     dependencies:
@@ -132,7 +132,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.1.0
-        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
 
   packages/reporters:
     dependencies:
@@ -148,7 +148,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.1.0
-        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
 
   packages/rules: {}
 
@@ -163,7 +163,7 @@ importers:
         version: 22.19.17
       vitest:
         specifier: ^3.1.0
-        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
     optionalDependencies:
       typescript:
         specifier: ^5.8.0
@@ -179,7 +179,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.1.0
-        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
 
   packages/wizard-cli:
     dependencies:
@@ -196,8 +196,8 @@ importers:
         specifier: ^4.0.3
         version: 4.0.3
       yaml:
-        specifier: ^2.8.3
-        version: 2.8.3
+        specifier: ^2.8.4
+        version: 2.8.4
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -210,7 +210,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.1.0
-        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+        version: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
 
 packages:
 
@@ -930,31 +930,31 @@ packages:
     resolution: {integrity: sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw==}
     engines: {node: '>=18'}
 
-  '@supabase/auth-js@2.105.0':
-    resolution: {integrity: sha512-cwNB9M4gClqOVJrlX+p2oPgqgRHiUm6hOQSRjgntplB/9XLP78/6MtvkhWdGeWpkP6npZxiLZ+VwNgeigk1wiw==}
+  '@supabase/auth-js@2.105.3':
+    resolution: {integrity: sha512-hMFuzP++mjRfe0/BUq4/e82CXIDgyjUgg0khLN8waol/gzoM1t2iGmhfJSGvQHQ1dr3XqWpP6ThAw4bLHMot5Q==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/functions-js@2.105.0':
-    resolution: {integrity: sha512-Q58EDZPb/3KM0Ksp4pUYPrShIAjoC12BRMIKlMOxcpVBYMQRZCDqr5ohRp1pKiCCvRbDD/bhiLIutdBmU5Nu6Q==}
+  '@supabase/functions-js@2.105.3':
+    resolution: {integrity: sha512-KyutUwLLUZ9fRXsiFACL6lq7akBVHFl0fnqQnrxjbsPco8jeb4EyirQuvr52QCLnikzjMRC0uxAHOSM54aDrZA==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/phoenix@0.4.0':
-    resolution: {integrity: sha512-RHSx8bHS02xwfHdAbX5Lpbo6PXbgyf7lTaXTlwtFDPwOIw64NnVRwFAXGojHhjtVYI+PEPNSWwkL90f4agN3bw==}
+  '@supabase/phoenix@0.4.1':
+    resolution: {integrity: sha512-hWGJkDAfWUNY8k0C080u3sGNFd2ncl9erhKgP7hnGkgJWEfT5Pd/SXal4QmWXBECVlZrannMAc9sBaaRyWpiUA==}
 
-  '@supabase/postgrest-js@2.105.0':
-    resolution: {integrity: sha512-+M8mHTNEGlWXNvDEU14oL0aGQxAwGra19PO49/Gqco9iHKzgKL2xceE5CiqGOLQ547KMB/1uSFsETIKj8WQYmg==}
+  '@supabase/postgrest-js@2.105.3':
+    resolution: {integrity: sha512-jFVYRHcri0ZMcTzKpQ2r2wWOB8/rPsbj92kxmCmVJUiRrdgiMtuYlkS06Fhs8UJZhEOL0UpGhh06XDwh8JwtBQ==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/realtime-js@2.105.0':
-    resolution: {integrity: sha512-sU3bhcZnIT8rny4ZAR257JMjh6tBZVLvhTfczDXDKHaFZVje9Qaaqbl4O9UuuZmPsGWRfOfI1kUJ15uPeL0KhA==}
+  '@supabase/realtime-js@2.105.3':
+    resolution: {integrity: sha512-L+qPiJlq1RKh3QD2fORGCFo2RKDKlvG9mjvPtUEQJ2tMixrx70VIV6j8BdWzQkbc1Nao6mvTWajyDhX3TFgljw==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/storage-js@2.105.0':
-    resolution: {integrity: sha512-advo1qhRjeNLPYciUMpGeJTVFqaidPJq/6h4FoPF3XSo2SfecBUYQg/axcy26uon7y58QZoJxxguSmRZhuiRQA==}
+  '@supabase/storage-js@2.105.3':
+    resolution: {integrity: sha512-M7oPCCcHim/FsR6rKIs10Nd9mW051N2SQvA27jiVLa7oQMFFb7faX5dCQRV4GS5QeFsBcV5J/fWl4Ppoaw8cBQ==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/supabase-js@2.105.0':
-    resolution: {integrity: sha512-UUmh6KpStf2RdKpRUmzj0cPl6OXlo1hkRTNHdFHozbiJv2MIxR/7eWGKHAO8OgnaZt0gv52k7NL/bZXgPQbw/A==}
+  '@supabase/supabase-js@2.105.3':
+    resolution: {integrity: sha512-5Dm9+I61LAWwjw+0zcqXhSmTxUJaYHBPyHwMCIBH4TBUNwDn2pYUIsi6oUu0I5r9HtLtaFl7w4wa+DV9gRsbDg==}
     engines: {node: '>=20.0.0'}
 
   '@swc/helpers@0.5.15':
@@ -2338,6 +2338,11 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
+  yaml@2.8.4:
+    resolution: {integrity: sha512-ml/JPOj9fOQK8RNnWojA67GbZ0ApXAUlN2UQclwv2eVgTgn7O9gg9o7paZWKMp4g0H3nTLtS9LVzhkpOFIKzog==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yargs-parser@21.1.1:
     resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
     engines: {node: '>=12'}
@@ -2937,23 +2942,23 @@ snapshots:
 
   '@sindresorhus/is@7.2.0': {}
 
-  '@supabase/auth-js@2.105.0':
+  '@supabase/auth-js@2.105.3':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/functions-js@2.105.0':
+  '@supabase/functions-js@2.105.3':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/phoenix@0.4.0': {}
+  '@supabase/phoenix@0.4.1': {}
 
-  '@supabase/postgrest-js@2.105.0':
+  '@supabase/postgrest-js@2.105.3':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/realtime-js@2.105.0':
+  '@supabase/realtime-js@2.105.3':
     dependencies:
-      '@supabase/phoenix': 0.4.0
+      '@supabase/phoenix': 0.4.1
       '@types/ws': 8.18.1
       tslib: 2.8.1
       ws: 8.20.0
@@ -2961,18 +2966,18 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@supabase/storage-js@2.105.0':
+  '@supabase/storage-js@2.105.3':
     dependencies:
       iceberg-js: 0.8.1
       tslib: 2.8.1
 
-  '@supabase/supabase-js@2.105.0':
+  '@supabase/supabase-js@2.105.3':
     dependencies:
-      '@supabase/auth-js': 2.105.0
-      '@supabase/functions-js': 2.105.0
-      '@supabase/postgrest-js': 2.105.0
-      '@supabase/realtime-js': 2.105.0
-      '@supabase/storage-js': 2.105.0
+      '@supabase/auth-js': 2.105.3
+      '@supabase/functions-js': 2.105.3
+      '@supabase/postgrest-js': 2.105.3
+      '@supabase/realtime-js': 2.105.3
+      '@supabase/storage-js': 2.105.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -3032,13 +3037,13 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.2.4(vite@7.3.2(@types/node@22.19.17)(yaml@2.8.3))':
+  '@vitest/mocker@3.2.4(vite@7.3.2(@types/node@22.19.17)(yaml@2.8.4))':
     dependencies:
       '@vitest/spy': 3.2.4
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.2(@types/node@22.19.17)(yaml@2.8.3)
+      vite: 7.3.2(@types/node@22.19.17)(yaml@2.8.4)
 
   '@vitest/pretty-format@3.2.4':
     dependencies:
@@ -4271,13 +4276,13 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite-node@3.2.4(@types/node@22.19.17)(yaml@2.8.3):
+  vite-node@3.2.4(@types/node@22.19.17)(yaml@2.8.4):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 7.3.2(@types/node@22.19.17)(yaml@2.8.3)
+      vite: 7.3.2(@types/node@22.19.17)(yaml@2.8.4)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -4292,7 +4297,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite@7.3.2(@types/node@22.19.17)(yaml@2.8.3):
+  vite@7.3.2(@types/node@22.19.17)(yaml@2.8.4):
     dependencies:
       esbuild: 0.27.7
       fdir: 6.5.0(picomatch@4.0.4)
@@ -4303,13 +4308,13 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.17
       fsevents: 2.3.3
-      yaml: 2.8.3
+      yaml: 2.8.4
 
-  vitest@3.2.4(@types/node@22.19.17)(yaml@2.8.3):
+  vitest@3.2.4(@types/node@22.19.17)(yaml@2.8.4):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.3.2(@types/node@22.19.17)(yaml@2.8.3))
+      '@vitest/mocker': 3.2.4(vite@7.3.2(@types/node@22.19.17)(yaml@2.8.4))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
@@ -4327,8 +4332,8 @@ snapshots:
       tinyglobby: 0.2.16
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
-      vite: 7.3.2(@types/node@22.19.17)(yaml@2.8.3)
-      vite-node: 3.2.4(@types/node@22.19.17)(yaml@2.8.3)
+      vite: 7.3.2(@types/node@22.19.17)(yaml@2.8.4)
+      vite-node: 3.2.4(@types/node@22.19.17)(yaml@2.8.4)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.19.17
@@ -4397,6 +4402,8 @@ snapshots:
   yallist@5.0.0: {}
 
   yaml@2.8.3: {}
+
+  yaml@2.8.4: {}
 
   yargs-parser@21.1.1:
     optional: true
