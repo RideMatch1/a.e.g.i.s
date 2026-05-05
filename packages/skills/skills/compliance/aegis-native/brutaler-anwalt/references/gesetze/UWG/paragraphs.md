@@ -93,9 +93,39 @@ Abmahnung darf nicht missbräuchlich sein. Indizien Abs. 2:
 
 - Abs. 1: Pflicht zur Abmahnung VOR Klage (Inanspruchnahme)
 - Abs. 2: Inhaltsanforderungen (Identität, Sachverhalt, geforderte Unterlassung)
-- Abs. 4: Aufwendungsersatz NUR wenn Abmahnung berechtigt + erforderlich
+- Abs. 3 Nr. 1-4: Aufwendungsersatz-Voraussetzung — Mitbewerber, Wirtschaftsverband, Verbraucherverband, IHK/HwK (parallel zu § 8 Abs. 3)
+- **Abs. 4 Nr. 1-2: Aufwendungsersatz-Cap + KMU-Schutz-Norm (post 02.12.2020 Novelle)**
 
-**Audit-Relevanz:** Abmahn-Brief-Templates (`references/abmahn-templates.md`) folgen § 13 Abs. 2 Pflichtinhalt.
+### § 13 Abs. 4 Nr. 1 — Aufwendungsersatz-Limit (1.000 EUR Cap bei DSGVO-/TDDDG-Mitbewerber-Abmahnungen)
+
+> Verbraucherverbaende und Mitbewerber duerfen NUR Aufwendungsersatz fordern, der bei einer **streitwertorientierten** Abmahnung anfaellt. Bei Verstoessen gegen DSGVO, TDDDG, DDG (vormals TMG), KWG, BDSG ist der **Aufwendungsersatz-Anspruch ausgeschlossen** wenn der Abmahner ein **Mitbewerber** ist UND der Abgemahnte **weniger als 100 Mitarbeiter beschaeftigt**.
+
+**Konkret:** Mitbewerber-Abmahnungen wegen reiner DSGVO-/Cookie-/Impressum-Verstoesse gegen KMU (< 100 MA) duerfen KEINEN Aufwendungsersatz mehr abrechnen — der Abmahn-Anwalt kostet den Abmahner selbst. **Massive Reduktion des Abmahn-Geschaeftsmodells fuer KMU-Targeting**.
+
+### § 13 Abs. 4 Nr. 2 — KMU-Privileg / Bagatell-Schutz (KEY KMU-Schutz-Norm)
+
+> **Bei einer ersten Abmahnung wegen Verstoss gegen Informations- oder Kennzeichnungspflichten** im elektronischen Geschaeftsverkehr, in Telemedien oder bei Datenschutz-Vorschriften der DSGVO, des BDSG, des TDDDG (vormals TTDSG) durch einen Mitbewerber **gegen ein Unternehmen mit weniger als 100 Mitarbeitern** koennen **kein Aufwendungsersatz** UND **keine Vertragsstrafe** verlangt werden.
+
+**Voraussetzungen kumulativ:**
+- Erster Verstoss (keine Wiederholung)
+- Informations-/Kennzeichnungspflicht (DSE, Cookie, Impressum, Werbe-Kennzeichnung)
+- Telemedien / E-Commerce / DSGVO-Norm
+- Mitbewerber-Abmahnung (NICHT Behoerde, NICHT Wettbewerbszentrale)
+- Abgemahnter < 100 Mitarbeiter
+
+**Wenn alle erfuellt:** Abmahnung kostet KEIN Geld — keine Anwalts-Erstattung, keine Vertragsstrafe, kein Streitwert-orientierter Aufwendungsersatz. Abgemahnter muss aber Unterlassung erklaeren (sonst Klage moeglich, dann Streitwert-Kosten).
+
+**Audit-Relevanz fuer Skill-Output:** bei Mandant **< 100 MA** auf der Empfaenger-Seite einer Mitbewerber-Abmahnung wegen DSGVO/Cookie/Impressum: **§ 13 Abs. 4 Nr. 2 UWG-Schutzschild explizit zitieren** + Aufwendungsersatz-Forderung verweigern. Pflicht-Element jedes Anwort-Schreibens.
+
+### § 13 Abs. 5 — Vertragsstrafe-Begrenzung
+
+> Eine Vertragsstrafe darf bei Abmahnungen wegen Verstoss gegen Informations- oder Kennzeichnungspflichten **nicht hoeher als 1.000 EUR** je Verstoss sein, wenn der Abgemahnte **weniger als 100 Mitarbeiter** hat.
+
+**Konkret:** Abmahnungs-Anwalt-Klausel "30.000 EUR Vertragsstrafe je weiterer Verstoss" ist bei < 100-MA-KMU **unwirksam** — Reduktion auf 1.000 EUR pflicht.
+
+**Audit-Relevanz:** Mandant ist Abmahnungs-Empfaenger? Pflicht-Check der Vertragsstrafe-Hoehe in Unterlassungserklaerung-Vorlage. Bei Ueberschreitung 1.000 EUR-Cap: gegnerischen Anwalt auf § 13 Abs. 5 hinweisen.
+
+**Audit-Relevanz:** Abmahn-Brief-Templates (`references/abmahn-templates.md`) folgen § 13 Abs. 2 Pflichtinhalt + Abwehr-Templates muessen § 13 Abs. 4 Nr. 2 + Abs. 5 KMU-Schutzschild als Standard-Verteidigungs-Linie zitieren.
 
 ---
 
@@ -114,4 +144,6 @@ Abmahnung darf nicht missbräuchlich sein. Indizien Abs. 2:
 | Cold-Anruf | § 7 Abs. 2 Nr. 2 |
 | Bestandskunden-Werbung | § 7 Abs. 3 |
 | Abmahn-Brief-Pflichten | § 13 Abs. 2 |
-| Aufwendungsersatz-Limit | § 13 Abs. 4 |
+| Aufwendungsersatz-Limit | § 13 Abs. 4 Nr. 1 |
+| **KMU-Privileg (< 100 MA, erstes Mal, Info/DSGVO/Cookie)** | **§ 13 Abs. 4 Nr. 2** — Schutzschild bei Mitbewerber-Abmahnung |
+| Vertragsstrafe-Cap (< 100 MA Mandant) | § 13 Abs. 5 (max. 1.000 EUR / Verstoss) |
