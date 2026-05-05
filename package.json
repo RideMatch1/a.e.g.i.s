@@ -17,9 +17,9 @@
     "release:smoke": "bash scripts/release-smoke.sh"
   },
   "devDependencies": {
-    "@cyclonedx/cdxgen": "12.1.4",
+    "@cyclonedx/cdxgen": "12.3.2",
     "@types/node": "^22.0.0",
-    "turbo": "^2.5.0",
+    "turbo": "^2.9.8",
     "typescript": "^5.8.0",
     "vitest": "^3.1.0",
     "zod": "^3.23.0"
