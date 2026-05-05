@@ -133,10 +133,11 @@
 - **Anwendung**: Pflicht zum § 312k Kuendigungsbutton trifft praktisch jedes B2C-Online-Dauerschuldverhaeltnis — auch zeitlich begrenzte Vertraege (Probe-Abos, Punkte-Pakete, Veranstaltungs-Tickets).
 - **Source**: [Bird & Bird — § 312k Rechtsprechungsuebersicht](https://www.twobirds.com/de/insights/2025/germany/k%C3%BCndigungsbutton-nach-%C2%A7-312k-bgb-%E2%80%93-eine-rechtsprechungs%C3%BCbersicht) · [Wettbewerbszentrale](https://www.wettbewerbszentrale.de/bgh-kuendigungsbutton-auch-fuer-vertraege-ohne-automatische-verlaengerung/)
 
-### OLG Hamburg — 5 UKI 1/23 (Kuendigungsbutton-Beschriftung, 26.09.2024) ✓ verifiziert [secondary-source-verified]
+### OLG Hamburg — 5 UKl 1/23 (Kuendigungsbutton-Beschriftung, 26.09.2024) ✓ verifiziert [secondary-source-verified]
 - **Tenor**: Beschriftung „Kuendigungsabsicht abschicken" ist UNZUREICHEND. Der Button muss mit dem gesetzlichen Wortlaut „Jetzt kuendigen" oder einer entsprechend eindeutigen Formulierung beschriftet sein (§ 312k Abs. 2 Satz 4 BGB).
 - **Anwendung**: Bei jedem Kuendigungsbutton-Audit den Bestaetigungs-Button-Text gegen das Pflichtwording pruefen.
-- **Source**: [dejure.org Vernetzung 5 UKI 1/23](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=OLG+Hamburg&Datum=26.09.2024&Aktenzeichen=5+UKI+1/23) · [rewis.io](https://rewis.io/urteile/urteil/9b1-26-09-2024-5-uki-123/) · [Bird & Bird](https://www.twobirds.com/de/insights/2025/germany/k%C3%BCndigungsbutton-nach-%C2%A7-312k-bgb-%E2%80%93-eine-rechtsprechungs%C3%BCbersicht)
+- **Source**: [dejure.org Vernetzung 5 UKl 1/23](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=OLG+Hamburg&Datum=26.09.2024&Aktenzeichen=5+UKl+1/23) · [rewis.io](https://rewis.io/urteile/urteil/ifu-26-09-2024-5-uki-123/) · [Bird & Bird](https://www.twobirds.com/de/insights/2025/germany/k%C3%BCndigungsbutton-nach-%C2%A7-312k-bgb-%E2%80%93-eine-rechtsprechungs%C3%BCbersicht)
+- **Provenance-Note**: Az.-Form ist `5 UKl 1/23` (kleines `l` für **Unterlassungsklage**, UKlaG-Senat des Hanseatischen OLG). Vorheriger Skill-Stand (V4.2.0) zeigte `5 UKI 1/23` (Großbuchstabe I) — Tippfehler aus OCR/Kanzlei-Blogs propagiert (rewis-URL-Slug enthält den Tippfehler ebenfalls). Korrigiert 2026-05-05 nach landesrecht-hamburg.de NJRE001588999 + dejure.org-Vernetzung-Title-Verifikation.
 
 ### OLG Duesseldorf — I-20 UKl 3/23 (Kuendigungsbutton ohne Login, 23.05.2024) ✓ verifiziert
 - **Tenor**: Ein Button, der den Verbraucher nicht zur Kuendigungsbestaetigungsseite fuehrt, sondern auf eine andere Webseite mit Login-Anforderung, stellt eine unzulaessige „Aufspaltung" der zweiten Stufe dar. Der Kuendigungs-Pfad muss ohne Login bis zur Bestaetigung durchlaufbar sein.
@@ -161,7 +162,7 @@
 ### BGH — I ZR 169/17 (§ 36 VSBG-Hinweis, 15.03.2018) ✓ verifiziert [secondary-source-verified]
 - **Tenor**: § 36 VSBG-Hinweis (Teilnahme-Bereitschaft an Verbraucherstreitbeilegung) ist geschaeftliche Handlung i.S.d. UWG. Fehlender oder unklarer Hinweis = abmahnfaehig.
 - **Anwendung**: Bei jedem B2C-Online-Anbieter MUSS in AGB UND Impressum stehen ob teilnahmebereit oder nicht (typ. Wording: "Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen"). Auch bei Premium-Subscription-Modellen relevant.
-- **Source**: [dejure.org BGH I ZR 169/17](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Datum=21.08.2019&Aktenzeichen=VIII%20ZR%20259/17) · [Bundesamt für Justiz § 36 VSBG](https://www.gesetze-im-internet.de/vsbg/__36.html)
+- **Source**: [dejure.org BGH I ZR 169/17](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+169/17) · [Bundesamt für Justiz § 36 VSBG](https://www.gesetze-im-internet.de/vsbg/__36.html)
 
 ### BGH — VIII ZR 70/08 (Mustergerechte Widerrufsbelehrung, 21.12.2011) ✓ verifiziert (alt aber zentral)
 - **Tenor**: Eine Widerrufsbelehrung darf in Format und Schriftgroesse vom Muster nach § 14 Abs. 3 BGB-InfoV abweichen, muss aber deutlich gestaltet sein. Das Fehlen der Ueberschrift „Widerrufsbelehrung" fuehrt dazu, dass Verbraucher nicht ausreichend informiert sind, dass die Klein-Print-Erklaerungen einen wichtigen Hinweis enthalten — die Widerrufsbelehrung ist dann unzureichend und loest die gesetzliche Frist nicht aus.
@@ -233,9 +234,11 @@
 - **Tenor**: Cold-E-Mail-Werbung an B2B ohne mutmaßliche Einwilligung = Verstoss UWG § 7 Abs. 2 Nr. 3. „Mutmaßlich" ist eng auszulegen — vorbestehende Geschaeftsbeziehung Pflicht.
 - **Source**: [dejure.org BGH I ZR 218/07](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+218/07)
 
-### BGH — I ZR 246/15 — Goldbärenbarren (06.02.2014) [secondary-source-verified]
-- **Tenor**: Werbe-Beigaben + Gratifizierungs-Aktionen muessen klar gekennzeichnet sein. Versteckte „nur fuer Bestandskunden"-Aktionen koennen § 5a UWG verletzen.
-- **Source**: [dejure.org BGH I ZR 246/15](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Aktenzeichen=I+ZR+246/15)
+### BGH — I ZR 192/12 — Goldbärenbarren (12.12.2013) ✓ verifiziert [secondary-source-verified]
+- **Tenor**: TV-Werbung mit Gewinnspiel zielt auf Familie als Adressat — Anwendung des strengeren Pruefungsmassstabs nach § 3 Abs. 2 Satz 3 UWG („geschaeftliche Handlung gegenueber Verbrauchern, deren Schutzbeduerftigkeit erhoeht ist") greift NICHT bereits dann, wenn Kinder/Jugendliche von der Praktik moeglicherweise beeinflusst werden, weil sie zumindest auch Adressaten sind.
+- **Anwendung**: Werbe-Inhalte fuer mehrere Zielgruppen (auch Kinder) — Schutzmassstab erhoeht sich nur, wenn Kinder/Jugendliche **gezielt** angesprochen oder mitangesprochen werden, nicht bei „auch-Erfassung". Wichtig fuer Influencer-/Family-Content + Werbe-Branche.
+- **Provenance-Note (Halluzinations-Korrektur 2026-05-05)**: Vorheriger Skill-Stand zitierte falsches Az. **`I ZR 246/15` mit Datum 06.02.2014** und falschen Tenor („Werbe-Beigaben + Gratifizierungs-Aktionen kennzeichnen"). Az. `246/15` mit Urteil aus 2014 ist physikalisch unmoeglich (Az. wird im Eingangsjahr vergeben). Echtes Goldbärenbarren-Urteil ist `BGH I ZR 192/12` vom 12.12.2013, GRUR 2014, 686 — Sachverhalt war TV-Werbung-Kinder-Thematik nach § 3 Abs. 2 Satz 3 UWG, NICHT Werbe-Beigaben-Kennzeichnung. Quellen-Verifikation via WebSearch: LTO-Hintergrund + dejure.org-Index. Auch Skill-Eintrag in `checklisten.md` mit `I ZR 125/14 'Goldbärenbarren' 06.02.2014, Werbeartikel-Kennzeichnung` ist Halluzination — gleichzeitig korrigiert.
+- **Source**: [LTO — BGH-Hintergrund I ZR 192/12 Goldbärenbarren](https://www.lto.de/recht/hintergruende/h/bgh-urteil-i-zr-192-12-goldbaeren-goldbarren-werbung-gewinnspiel-haribo) · [dejure.org BGH I ZR 192/12](https://dejure.org/dienste/vernetzung/rechtsprechung?Gericht=BGH&Datum=12.12.2013&Aktenzeichen=I+ZR+192/12)
 
 ---
 

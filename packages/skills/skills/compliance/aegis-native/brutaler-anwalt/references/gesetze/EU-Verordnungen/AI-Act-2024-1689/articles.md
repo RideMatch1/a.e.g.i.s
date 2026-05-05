@@ -90,7 +90,7 @@ GPAI-Anbieter (z.B. OpenAI, Anthropic, Mistral) haben spezielle Pflichten:
 
 - bis 35 Mio. € oder 7% globaler Jahresumsatz: bei Verstößen gegen Art. 5 (verbotene Praktiken)
 - bis 15 Mio. € oder 3%: andere Verstöße
-- bis 7,5 Mio. € oder 1,5%: falsche Auskünfte
+- bis 7,5 Mio. € oder 1%: falsche Auskünfte (Art. 99 Abs. 5 AI-Act)
 
 ---
 

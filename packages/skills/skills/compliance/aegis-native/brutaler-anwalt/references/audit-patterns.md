@@ -459,7 +459,7 @@ Klassische Drift-Ausloeser:
 **Pflicht** nach BGH I ZR 161/24 (22.05.2025) + § 312k BGB:
 - „Jetzt-kuendigen"-Button auf oeffentlich erreichbarer URL (NICHT nur im Login-Bereich) — OLG Nuernberg 3 U 2214/23
 - Pfad ohne Login durchlaufbar — OLG Duesseldorf I-20 UKl 3/23
-- Button-Beschriftung: „Jetzt kuendigen" o.ae. eindeutig — OLG Hamburg 5 UKI 1/23
+- Button-Beschriftung: „Jetzt kuendigen" o.ae. eindeutig — OLG Hamburg 5 UKl 1/23
 - Bestaetigungsseite + Eingangsbestaetigung-Email
 - Funktioniert auch bei Dauerschuldverhaeltnissen mit fester Laufzeit (Probe-Abos, Punkte-Pakete) — BGH I ZR 161/24 explizit klarstellt
 
@@ -1370,7 +1370,9 @@ audience: { '@type': 'BusinessAudience', audienceType: '...' }
 
 ---
 
-## Phase 5h: ART-9-BEWEIS-WORKFLOW-AUDIT (V4-Pattern, post-Art-9-Workflow-Audit 2026-05-03)
+## Phase 5i: ART-9-BEWEIS-WORKFLOW-AUDIT (V4-Pattern, post-Art-9-Workflow-Audit 2026-05-03)
+
+> **Phase-Renaming-Note (2026-05-05)**: vorheriger Skill-Stand hatte zwei verschiedene `Phase 5h`-Sektionen (B2C/B2B-Funnel-Konflikt + Art-9-Beweis-Workflow). Phasen-Logik kollidierte intern. Art-9-Beweis-Workflow ist seit 2026-05-05 **Phase 5i**, B2C/B2B-Funnel-Konflikt bleibt **Phase 5h** (chronologische Erstvergabe).
 
 **Trigger**: Site verarbeitet besondere Kategorien Art. 9 DSGVO (Gesundheitsdaten, biometrisch, Gewerkschaft, Religion, politische Meinung). Erkennbar an:
 

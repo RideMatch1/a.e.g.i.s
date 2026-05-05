@@ -253,7 +253,7 @@ NIS2 gilt für Unternehmen in **18 Sektoren** (erweitert gegenüber NIS1):
 ### Bußgelder AI Act
 - Verbotene Praktiken: bis 35 Mio. € oder 7% Jahresumsatz
 - Verstöße gegen Hochrisiko-Pflichten: bis 15 Mio. € oder 3%
-- Falsche Informationen: bis 7,5 Mio. € oder 1,5%
+- Falsche Informationen: bis 7,5 Mio. € oder 1% (Art. 99 Abs. 5 AI-Act)
 
 ---
 

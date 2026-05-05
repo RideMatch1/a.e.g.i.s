@@ -139,7 +139,7 @@ Bei B2C-Online-Anbietern (Webshop, SaaS-Subscription, App-Store-Abo) sind folgen
 | Influencer-Posts | "Werbung" / "Anzeige" | erste Zeile / Stories: Sticker | manuelles Audit |
 | Newsletter mit Affiliate | "Werbehinweis" im Header | erste Zeile | E-Mail-Inhalt-Audit |
 
-**Az.-Anker:** LG Muenchen I 4 HK O 14302/15 "Brand Ambassador" (29.04.2019, Influencer-Werbung als "Werbung"/"Anzeige") [secondary-source-verified]; BGH I ZR 125/14 "Goldbärenbarren" (06.02.2014, Werbeartikel-Kennzeichnung).
+**Az.-Anker:** LG Muenchen I 4 HK O 14302/15 "Brand Ambassador" (29.04.2019, Influencer-Werbung als "Werbung"/"Anzeige") [secondary-source-verified]; etablierte Rechtsprechung zu § 5a Abs. 1 UWG (Irrefuehrung durch Unterlassen) bei nicht-gekennzeichneter Werbung. (Provenance-Note 2026-05-05: vorheriger Eintrag `BGH I ZR 125/14 'Goldbärenbarren' 06.02.2014, Werbeartikel-Kennzeichnung` war Halluzination — echtes Goldbärenbarren-Urteil ist `I ZR 192/12 vom 12.12.2013` und betrifft TV-Werbung-Kinder, NICHT Werbeartikel-Kennzeichnung.)
 
 **Component-Pattern:** wiederverwendbare `AffiliateDisclaimer`-Component im Layout der Empfehlungs-Routes einbauen. Component-Vorlage: `references/templates/AffiliateDisclaimer.tsx.example`. Einbau-Pattern: in `(dashboard)/empfehlungen/layout.tsx` o.ae. Layout-Datei der Affiliate-Routes.
 

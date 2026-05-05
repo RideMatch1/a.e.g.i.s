@@ -327,7 +327,7 @@
 - [ ] Vorzeitige Loesung bei Lehrgangs-Vertraegen § 21 FernUSG (3-Monats-Frist)
 
 ### Typische Verstoesse
-- B2C-Coaching ohne ZFU-Zulassung → Vertrag nichtig (BGH XI ZR 188/22, 2023) [Az. ungeprueft, vor Verwendung verifizieren]
+- B2C-Coaching ohne ZFU-Zulassung → Vertrag nichtig (etablierte Rechtsprechung zu § 7 Abs. 1 FernUSG; vor Verwendung im Schriftsatz aktuelle Az.-Recherche pflicht — vorheriger Skill-Stand zitierte BGH XI ZR 188/22 mit Coaching-Kontext, das ist tatsaechlich ein bankrechtlicher Beschluss vom 12.09.2023 (XI. Zivilsenat = Bankrecht), der Sachverhalt deckt sich nicht mit Coaching-Vertraegen — Halluzinations-Korrektur 2026-05-05)
 - Coaching-Vertrag ohne Widerrufsrecht-Hinweis → Frist beginnt nicht zu laufen
 
 ---
@@ -517,7 +517,7 @@ URL-Pattern: `*-news.*`, `*-zeitung.*`, `*-verlag.*`. schema.org @type: NewsArti
 
 ### Az.-Anker
 - EuGH C-401/19 (Upload-Filter, 26.04.2022)
-- BGH I ZR 246/15 (Goldbärenbarren, 06.02.2014)
+- BGH I ZR 192/12 (Goldbärenbarren, 12.12.2013) — TV-Werbung-Kinder/Jugendliche-Adressaten-Frage nach § 3 Abs. 2 Satz 3 UWG (siehe `bgh-urteile.md` Provenance-Note: vorheriger Eintrag `I ZR 246/15 06.02.2014` war Halluzination)
 
 ---
 

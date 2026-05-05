@@ -102,7 +102,7 @@ Pro Audit-Surface:
 Verstoss gegen Art. 50:
 - bis 15 Mio. EUR oder 3% globaler Jahresumsatz
 
-Bei „falschen, unvollstaendigen oder irrefuehrenden Informationen" gegenueber Behoerden zusaetzlich Art. 99 Abs. 5: bis 7,5 Mio. EUR oder 1,5%.
+Bei „falschen, unvollstaendigen oder irrefuehrenden Informationen" gegenueber Behoerden zusaetzlich Art. 99 Abs. 5: bis 7,5 Mio. EUR oder 1%.
 
 ## Cross-Reference
 
