@@ -145,6 +145,36 @@ Bei B2C-Online-Anbietern (Webshop, SaaS-Subscription, App-Store-Abo) sind folgen
 
 ---
 
+## Checkliste 3d: B2B-only-AGB + öffentlicher Funnel (post-V3.3-Audit 2026-05-05)
+
+Wenn die AGB sich „ausschließlich an Unternehmer im Sinne von § 14 BGB" richten, müssen alle öffentlichen Akquise-Funnels diese Beschränkung **aktiv umsetzen** — sonst greifen Verbraucherschutz-Pflichten (§ 312g BGB Widerrufsrecht, § 312j Abs. 3 BGB Button-Lösung) trotz AGB-Klausel.
+
+| Surface | Pflicht | Verify-Command |
+|---------|---------|----------------|
+| Konfigurator / Preisrechner | Hinweis-Box „nur für Unternehmen" sichtbar UND Pflicht-Checkbox „Ich bin Unternehmer (§ 14 BGB)" am Form-Ende | `curl <konfigurator-url> \| grep -ic "§ 14 BGB\|nur fuer Unternehmen\|ausschliesslich.{0,40}Unternehmer"` + Code-Side `grep -E "b2bConfirmed\|isUnternehmer" src/components/configurator/` |
+| Online-Terminbuchung (Cal.com/Calendly) | Hinweis im Buchungs-Slot ODER auf der Vor-Seite | manuelles Audit |
+| Onboarding-Wizard / Lead-Form | Hinweis-Box + Pflicht-Checkbox | wie Konfigurator |
+| /preise / /leistungen | Hinweis-Box (nicht Pflicht-Checkbox, weil keine Submission) | `curl /preise \| grep -ic "§ 14 BGB"` |
+| /datenschutz Section „Kontaktformular" | Hinweis: „Anfragen von Privatpersonen werden nicht bearbeitet" | `curl /datenschutz \| grep -i "Privatperson"` |
+
+**Pflicht-Klauseln in AGB (wenn B2B-Variante A gewählt)**:
+- [ ] § 1 Abs. 2 (Geltungsbereich) — explizit „ausschließlich Unternehmer im Sinne von § 14 BGB"
+- [ ] § (Vertragsschluss) — Hinweis dass Verbraucher-Anfragen abgelehnt werden
+- [ ] AGB-Stand-Datum + Versionsnummer (Drift-Style 3 schützen)
+
+**Component-Pattern**: wiederverwendbare `B2BNotice`-Komponente (default + compact Varianten, `role="note"`, ARIA-konform). Vorlage siehe Audit 2026-05-05 — `src/components/B2BNotice.tsx`.
+
+**Schema.org-Bonus** (signalisiert Google + Aufsichtsbehörde die B2B-Ausrichtung):
+```typescript
+audience: { '@type': 'BusinessAudience', audienceType: 'Kleine und mittlere Unternehmen' }
+```
+
+**Rechtliche Verankerung**: § 13, § 14, § 312g, § 312j Abs. 3 BGB; § 5a Abs. 4 UWG. Etablierte Rechtsprechung zur objektiven Bestimmung der Verbrauchereigenschaft (vor anwaltlicher Verwendung Primärquelle prüfen).
+
+**Risiko ohne Fix**: 18 % Abmahnung 12 Wochen, 887–5.500 EUR (Streitwert 5.000 EUR, RVG 1,3-Geschäftsgebühr).
+
+---
+
 ## Checkliste 4: Auftragsverarbeitungsvertrag (AVV, Art. 28 DSGVO)
 
 ### Muss ein AVV abgeschlossen werden?

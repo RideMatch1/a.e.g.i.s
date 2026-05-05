@@ -245,7 +245,8 @@ Per `references/audit-patterns.md`:
 - **5d KONFIGURATOR-/MULTI-STEP-FORM** (Onboarding-Wizard, Quoting, Customer-Briefing-Pipeline)
 - **5e AI-CHATBOT-/LLM-DSGVO** (Site-weite LLM-Chats: Mistral / OpenAI / Claude / Self-hosted)
 - **5f SCANNER-/AUDIT-TOOL-SELBST-AUDIT** (wenn die Site selbst einen Scanner / Audit-Tool als Service anbietet — Smartlaw-Disclaimer + SSRF + Active-Probes-Pflichten)
-- **5g EMAIL-/SMTP-OUTBOUND-COMPLIANCE** (SPF/DKIM-TXT/DMARC + DOI + Cold-Outreach + List-Unsubscribe)
+- **5g EMAIL-/SMTP-OUTBOUND-COMPLIANCE** (SPF/DKIM-TXT/DMARC + DOI + Cold-Outreach + List-Unsubscribe + Email-Template Font-Audit, post-2026-05-05)
+- **5h B2C/B2B-FUNNEL-KONFLIKT** (B2B-AGB-Klausel vs. oeffentlicher Konfigurator/Buchung — § 13 BGB / § 312g BGB / UWG § 5a, post-2026-05-05)
 
 ### Modi
 
@@ -553,6 +554,10 @@ Aktiviere automatisch wenn User in seiner Anfrage erwaehnt:
 - NIS2 / KRITIS / BSIG / IT-Sicherheit
 - AI Act / EU AI Act / KI-Verordnung
 - BGH-Urteil / EuGH / Schrems / Fashion-ID / Smartlaw / LG-Muenchen-Google-Fonts
+- Konfigurator / Onboarding-Wizard / Multi-Step-Form / Quoting-Tool
+- B2B-only-AGB / B2C-Funnel / § 13 BGB / § 14 BGB / Verbraucher-Eigenschaft
+- Email-Template / E-Mail-Versand / Newsletter-Template / Transactional-Mail
+- DSE-Versions-Drift / Versionsnummer-Inkonsistenz / Drift-Style-3
 
 ---
 

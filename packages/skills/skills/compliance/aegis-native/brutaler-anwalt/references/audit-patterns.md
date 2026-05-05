@@ -585,6 +585,36 @@ nicht eingerichtet ist oder anders laeuft. Beispiele:
   laeuft ueber externen Provider-SMTP (Drift-Beispiel V3.1-Audit-Vorfall
   2026-04-30)
 
+**Drift-Style 3 (Inkonsistenz innerhalb desselben Dokuments — V3.3-Lesson 2026-05-05)**:
+DSE widerspricht sich selbst. Header sagt eine Versions-Nummer, ein
+spaeterer Abschnitt sagt eine andere; Code-Konstante (z.B. CONSENT_VERSION)
+hat eine dritte. Verstoss gegen Art. 5 Abs. 1 lit. a DSGVO (Transparenz)
+auch wenn alle drei „technisch korrekt" sind — Inkonsistenz untergraebt
+die Glaubwuerdigkeit aller Angaben und ist abmahnfaehig. Beispiele:
+
+- DSE-Header sagt „Version 3.2", Section „Aktualitaet" sagt „Version 3.1"
+- DSE behauptet 12 Monate Retention, AGB nennt 6 Monate
+- DSE-Drittland-Tabelle nennt 4 Dienste, im AVV-Listing in Section X
+  stehen 6
+- DSE in DE-Footer-Datum „April 2026", englische /en/datenschutz-Variante
+  hat „January 2026" (Mehrsprachigkeit-Drift)
+
+**Verify-Command Drift-Style 3**:
+```bash
+# Versionsnummern in DSE einsammeln + counten:
+curl -sS https://<brand>/datenschutz | \
+  grep -oE 'Version [0-9]+\.[0-9]+' | sort -u
+
+# Cookie-Banner-Revision aus Code:
+grep -oE 'CONSENT_VERSION = [0-9]+' src/lib/consent-config.ts
+grep -oE 'revision: [0-9]+' src/components/CookieBanner.tsx
+
+# Drei verschiedene Werte = Drift-Style 3 → fix.
+```
+
+Fix-Risiko-Klassifikation: LOW (typisch 1 Edit + 1 Commit, aber Pflicht-Audit
+bei jedem Audit-Lauf).
+
 **Pflicht-Audit-Matrix** (beide Richtungen, jede DSE-Aussage):
 
 | Drift-Style | Audit-Frage | Verify-Command (Beispiel) |
@@ -1192,6 +1222,151 @@ nc -zv -w 5 mail.example.com 25   # nur fuer Server-zu-Server, oft outbound-bloc
 - DOI fehlt = Wettbewerbsabmahnung 800-3.000 EUR + Behoerden-Bussgeld
 - Bestaetigungs-Mail mit Werbung (LG Stendal) = 100-500 EUR Schadensersatz pro Empfaenger
 - 3rd-party-SMTP ohne AVV = Bussgeld 10.000-50.000 EUR (Art. 83 Stufe 2)
+
+### 5g.4: EMAIL-TEMPLATE FONT-AUDIT (V3.3-Lesson 2026-05-05)
+
+**Anlass**: bei einem operativen Audit (Webdesign-Solo-Buero) am 2026-05-05
+gefunden: E-Mail-HTML-Template laedt `<link href="https://fonts.googleapis.com/...">`.
+Outbound-Mails uebertragen damit potenziell die IP des Empfaengers an
+Google, sobald der E-Mail-Client externe Ressourcen laedt (Outlook blockt
+default, Apple-Mail seit iOS 15 mit Mail Privacy Protection, Gmail-Web
+proxiet — aber Drittanbieter-Clients oder Mobile-Mail-Apps koennen es
+weiterhin laden).
+
+**Rechtlicher Hintergrund**:
+- LG Muenchen I 3 O 17493/20 (20.01.2022) — Google Fonts via dynamisches
+  Embedding loest 100 EUR Schadensersatz nach Art. 82 DSGVO aus.
+- Analogie auf E-Mail-Outbound: streitig, aber **nicht ausgeschlossen**.
+  Massen-Abmahn-Anwaelte koennten es testen, da E-Mail-Clients real
+  IPs des Empfaengers an Google senden.
+
+**Verify-Command**:
+```bash
+# Repo-Scan auf E-Mail-Template-Source:
+grep -rE 'fonts\.googleapis\.com|fonts\.gstatic\.com' \
+  src/lib/email* src/server/email* src/emails/ 2>/dev/null
+# → jeder Treffer in *.ts/*.tsx/*.html-Dateien fuer Mail-Versand: Finding.
+```
+
+**Anti-Pattern**:
+```html
+<!-- in E-Mail-Template-HTML: -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans..." rel="stylesheet">
+```
+
+**Fix-Pattern**:
+```typescript
+// System-Font-Stacks statt Google Fonts. Visuell nahe Aequivalente:
+const FONT_SANS = `-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif`
+const FONT_MONO = `ui-monospace,'SF Mono','Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace`
+```
+
+Helvetica Neue / Segoe UI sind geometrische Sans-Serifs sehr nahe an
+DM Sans / Inter; SF Mono / Cascadia Mono sind moderne Monospace-Schriften
+sehr nahe an JetBrains Mono. Visueller Unterschied minimal, DSGVO-Risiko 0.
+
+**Risiko**: 0-100 EUR pro betroffener Empfaenger (theoretisch), Massen-
+Abmahnung 800-3.000 EUR. **Fix-Risiko-Klassifikation**: LOW (1 file,
+Search & Replace, keine UX-Aenderung).
+
+---
+
+## Phase 5h: B2C/B2B-FUNNEL-KONFLIKT-AUDIT (V3.3-Pattern, post-2026-05-05)
+
+**Anlass**: bei einem operativen Audit (Webdesign-Solo-Buero) am 2026-05-05
+gefunden: AGB enthielten Klausel `"diese AGB richten sich AUSSCHLIESSLICH
+an Unternehmer im Sinne von § 14 BGB"`, gleichzeitig waren oeffentliche
+Funnels (Konfigurator, Onboarding-Wizard, Online-Buchung Cal.com) **ohne
+Verbraucher-Filter** zugaenglich.
+
+**Rechtlicher Hintergrund**:
+- § 13 BGB: Verbrauchereigenschaft wird **objektiv** bestimmt
+  (natuerliche Person, Vertrag nicht zu gewerblichem Zweck) — eine
+  AGB-Klausel kann sie NICHT konstitutiv ausschliessen.
+- Wenn ein Verbraucher trotz B2B-AGB beauftragt: § 312g BGB Widerrufsrecht
+  + § 312j Abs. 3 BGB Button-Loesung greifen automatisch.
+- § 5a Abs. 4 UWG: Vorenthaltung wesentlicher Verbraucher-Informationen
+  (Widerrufsbelehrung, Button-Loesung) = Wettbewerbsverstoss → abmahnfaehig.
+- Etablierte Rechtsprechung zu §§ 13, 312g BGB: AGB-Klauseln zu
+  „nur fuer Unternehmer" haben keine konstitutive Wirkung. Vor anwaltlicher
+  Verwendung Primaerquelle pruefen.
+
+**Trigger-Erkennung**:
+- AGB hat Klausel mit „nur Unternehmer", „§ 14 BGB", „B2B only",
+  „Verbraucher ausgeschlossen"
+- UND eine oder mehrere oeffentliche Surfaces ohne Verbraucher-Filter:
+  - Konfigurator / Preisrechner ohne B2B-Hinweis
+  - Online-Terminbuchung ohne „nur Unternehmen"-Hinweis
+  - Onboarding-Wizard ohne Pflicht-Checkbox „Ich bin Unternehmer"
+  - Kontaktformular ohne klaren Hinweis auf Zielgruppe
+
+**Verify-Commands**:
+```bash
+# 1. AGB-Klausel pruefen:
+curl -sS https://<brand>/agb | \
+  grep -oE 'ausschliesslich.{0,50}Unternehmer|§\s*14\s*BGB|nur.{0,30}gewerblich'
+
+# 2. Konfigurator/Onboarding/Preise auf B2B-Hinweis pruefen:
+for path in /konfigurator /onboarding /preise; do
+  echo "=== $path ==="
+  curl -sS "https://<brand>$path" | \
+    grep -ic "nur fuer Unternehmen\|§ 14 BGB\|B2B\|gewerblich"
+done
+
+# 3. Submit-Form-Pflicht-Checkbox pruefen (Code-Side):
+grep -rE 'b2bConfirmed|isUnternehmen|gewerblichBestätigt' src/components/
+```
+
+**Konflikt-Detection**:
+
+| AGB-Klausel | Funnel-Hinweis | B2B-Pflicht-Checkbox | Verdict |
+|-------------|----------------|---------------------|---------|
+| „nur § 14 BGB" | sichtbar | Pflicht | ✓ konsistent (Variante A) |
+| „nur § 14 BGB" | sichtbar | fehlt | 🟡 Lücke (Schwach) |
+| „nur § 14 BGB" | fehlt | fehlt | 🔴 Konflikt (Wahrsch. 18% Abmahnung) |
+| AGB B2C-OK | Hinweis fehlt | fehlt | ✓ ok (Verbraucher zugelassen, dann AGB-Anhang B2C noetig) |
+| AGB B2C-OK | „nur Unternehmen" | Pflicht | ⚠ AGB anpassen oder Funnel oeffnen |
+
+**Fix-Pattern (Variante A — Verbraucher aktiv ausschliessen)**:
+1. Wiederverwendbare `B2BNotice`-Komponente (role="note", ARIA-konform):
+   ```tsx
+   <aside role="note" aria-label="Hinweis zur Zielgruppe">
+     Diese Leistung richtet sich ausschliesslich an Unternehmen,
+     Selbstaendige und Freiberufler im Sinne von § 14 BGB. Eine
+     Beauftragung als Privatperson (§ 13 BGB) ist nicht moeglich.
+   </aside>
+   ```
+2. Einbindung in alle oeffentlichen Funnels (Konfigurator, Onboarding,
+   Preise, ggf. Kontakt-Formular).
+3. Pflicht-Checkbox VOR Datenschutz-Checkbox am Form-Ende:
+   ```tsx
+   <input type="checkbox" id="b2b" required />
+   <label>Ich bestaetige, dass ich die Anfrage als Unternehmen,
+   Selbstaendiger oder Freiberufler im Sinne von § 14 BGB stelle.</label>
+   ```
+4. `canSubmit` / `canProceed`-Flag um `b2bConfirmed` erweitern.
+5. DSE-Section „Kontaktformular" / „Anfragen" um Hinweis erweitern:
+   „Anfragen von Privatpersonen werden nicht bearbeitet und im Rahmen
+   gesetzlicher Aufbewahrungsfristen geloescht."
+6. AGB unveraendert lassen (B2B-Klausel bleibt — Variante A schuetzt sie).
+
+**Fix-Pattern (Variante B — Verbraucher zulassen)**:
+1. AGB-Klausel B2B-only streichen.
+2. AGB-Anhang B2C mit Widerrufsbelehrung (Anlage 1 zu Art. 246a § 1
+   Abs. 2 EGBGB) + Muster-Widerrufsformular.
+3. Falls direkter Vertragsschluss im Funnel: Button-Loesung „Zahlungs-
+   pflichtig bestellen" (§ 312j Abs. 3 BGB).
+4. DSE-Section „Kontaktformular" um Verbraucher-Rechte-Hinweis erweitern.
+
+**Risiko**: 18% Abmahnung 12 Wochen, 887-5.500 EUR (Streitwert 5.000 EUR,
+RVG 1.3-Geschaeftsgebuehr). **Fix-Risiko-Klassifikation**: LOW (Variante A:
+2-3h Implementierung, kein struktureller Eingriff).
+
+**Schema.org-Bonus** (signalisiert Google + Aufsichtsbehoerde die B2B-
+Ausrichtung):
+```typescript
+audience: { '@type': 'BusinessAudience', audienceType: '...' }
+```
 
 ---
 

@@ -238,3 +238,58 @@ Bei DSGVO-spezifischen a.e.g.i.s-Findings: pruefe Cross-Risiko mit Pages-Content
 
 Wenn ein Audit a.e.g.i.s-Ergebnisse einbezieht, in der Disclaimer-Note erwaehnen:
 > Tiefenscanning durch a.e.g.i.s (open-source @aegis-scan/cli, MIT-Lizenz, ergaenzend zu Semgrep/CodeQL — nicht Ersatz). Findings sind technisch-indikativ; rechtliche Bewertung durch Anwalts-Anhang dieses Skills, nicht durch a.e.g.i.s selbst.
+
+---
+
+## AEGIS-False-Positives — Häufige Patterns (post-2026-05-05)
+
+Aus realen Audits zusammengetragen. Wenn AEGIS einen dieser Befunde
+meldet, sollte der CHALLENGER ihn als `false-positive` oder `disputed`
+einordnen, **nachdem** der Code-Kontext verifiziert wurde.
+
+### XSS-Checker / Bearer / Semgrep — `dangerouslySetInnerHTML`-FPs
+
+| AEGIS-Pattern | Realität | CHALLENGER-Verify |
+|---------------|----------|-------------------|
+| `dangerouslySetInnerHTML` mit JSON.stringify(staticObject) | Schema.org JSON-LD aus statischer siteConfig — kein User-Input-Pfad | grep nach `JSON.stringify` direkt davor; pruefen ob Object-Keys aus User-Land oder aus `siteConfig` |
+| `dangerouslySetInnerHTML` nach `formatMessageContent(text)` | DOMPurify.sanitize() läuft am Ende der Funktion — AEGIS sieht den Sanitize-Call nicht | grep `DOMPurify.sanitize` in derselben Datei. Wenn vorhanden + `ALLOWED_TAGS`-Whitelist + `ALLOWED_URI_REGEXP`: FP |
+| `dangerouslySetInnerHTML` für Animation-Effekt (Style-Tag mit Tailwind-Variablen) | Statisches Style-String, keine User-Inputs | Code-Kontext lesen, prüfen ob String aus Constants oder Props |
+| Server-side `escapeHtml()` in E-Mail-Template | Nodemailer-Output, KEIN React-Render — kein XSS-Vektor | Wenn `nodemailer.sendMail()` der Empfänger ist: FP |
+
+### Bearer / Open-Redirect-Pattern
+
+| AEGIS-Pattern | Realität | CHALLENGER-Verify |
+|---------------|----------|-------------------|
+| `router.push(url)` / `window.location.href = url` | Wenn `url` aus `new URL(window.location.href)` mit `searchParams.delete/set` konstruiert ist: bereits same-origin by construction | grep nach `URL(window.location.href)` direkt darüber. Wenn keine `?callbackUrl=`-Param-Lesung: FP |
+| `router.push(callbackUrl)` aus URL-Param | Echter Open-Redirect-Vektor | Allowlist-Check fordern (relative Pfade only, kein Schema, kein `//`) |
+
+### Supply-Chain-Scanner — Typosquatting-FPs
+
+| AEGIS-Pattern | Realität | CHALLENGER-Verify |
+|---------------|----------|-------------------|
+| `gsap` ↔ `tsup` (L-Distanz 2) | GreenSock-Animation, etabliert seit 2008 | npm download stats > 1M/wk |
+| `lenis` ↔ `redis`/`less` (L-Distanz 2) | Darkroom Engineering Smooth-Scroll, etabliert | npm download stats |
+| `ogl` ↔ andere | Minimal-WebGL-Lib, etabliert | npm download stats |
+| Native binaries (`unrs-resolver`, fsevents, lightningcss) | Build-Dependencies des Frameworks | bekannt aus Tailwind/Next.js-Stack |
+
+### http-timeout-checker
+
+| AEGIS-Pattern | Realität | CHALLENGER-Verify |
+|---------------|----------|-------------------|
+| `fetch(url, { signal: controller.signal })` mit setTimeout-cleanup | Funktional äquivalent zu `AbortSignal.timeout()` | Code-Lesen: gibt es `setTimeout(..., timeout)` + `clearTimeout`? Dann FP |
+| `fetch(url)` ohne signal | Echter Timeout-Bug | Fix fordern: `AbortSignal.timeout(MS)` |
+
+### entropy-scanner — Marketing-Strings
+
+| AEGIS-Pattern | Realität | CHALLENGER-Verify |
+|---------------|----------|-------------------|
+| Hohe Entropie in `content-map.ts` / FAQ-Strings | Marketing-Text mit Listen, Preisen, Features | Code-Kontext prüfen — wenn Kommentar/JSDoc oder Strings nahe `description:`-Properties: FP |
+
+### Wann KEIN FP angenommen werden darf
+
+CHALLENGER soll NICHT pauschal alle BEARER/Semgrep/Supply-Chain-Findings als FP markieren. Diese Regeln gelten **nur**, wenn:
+1. Der Code-Kontext explizit gelesen wurde (`Read`-Tool, nicht nur Filename)
+2. Mindestens ein objektiver Verify-Schritt aus der jeweiligen Tabelle erfüllt ist
+3. Keine User-Input-Quelle in den letzten 5 Code-Zeilen vor dem AEGIS-Hit liegt
+
+Bei Unsicherheit: `disputed` markieren statt `false-positive`, mit Begründung im Anwalts-Anhang.
