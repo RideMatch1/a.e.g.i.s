@@ -5,7 +5,7 @@
 > Provenance: jeder Eintrag mit mind. Primaerquelle ODER 2 kongruenten Sekundaerquellen,
 > deren konkreter Tenor durch WebFetch-Volltext bestaetigt ist (nicht nur Az.-Existenz).
 > Komplementaer zu existing `references/bgh-urteile.md` (63 Eintraege)
-> und `aegis-precision/maxout-content/eu-eugh-dsgvo-schadensersatz.md` (Art. 82-Linie, 25 EuGH).
+> und `references/eu-eugh-dsgvo-schadensersatz.md` (Art. 82-Linie, 24 EuGH).
 > Doppelungen mit beiden Vorgaengern wurden bewusst ausgeschlossen.
 > 5 weitere Az.-Leads sind in der Methodik-Section unter „Needs-Volltext-Verification"
 > dokumentiert — diese sind NICHT als verifiziert zu zitieren.

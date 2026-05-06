@@ -263,4 +263,4 @@ jedem Reference-File-Zugriff:
 - `EU-Verordnungen/Data-Act-2023-2854/*` — nicht im Migrations-Scope (separate Tier verified)
 - DSA `notice-and-action.md` / `vlop-vlose.md` / `trusted-flaggers.md` / `small-platform-pflichten.md` — nicht im Migrations-Scope (Tier-1 verified bzw. weitere Sub-Files)
 
-Details: `aegis-precision/maxout-content/frontmatter-update-summary.md`.
+Details: lokale Working-Notes (gitignored Operator-Workspace).

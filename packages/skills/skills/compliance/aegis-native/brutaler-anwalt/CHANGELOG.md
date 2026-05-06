@@ -63,8 +63,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Hintergrund
 
-P-1-Review-Report durable unter `aegis-precision/v5-adversarial-review-
-2026-05-06.md` (gitignored, lokal). 13 substantive verified-OK Spot-
+P-1-Review-Report durable in lokalen Working-Notes (gitignored
+Operator-Workspace, nicht im Skill-Tarball). 13 substantive verified-OK Spot-
 Checks bestaetigen dass Major-Claims ausserhalb dieser 5 Drifts (EuGH-
 Schadensersatz-Daten, 1&1-Reduktion, SCC 2021/914-Versions, revDSG-
 Cutoff, Stack-Pattern-Code-Syntax, YAML-Frontmatter) verifiziert
