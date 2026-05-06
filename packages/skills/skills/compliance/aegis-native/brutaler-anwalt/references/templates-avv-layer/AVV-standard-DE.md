@@ -2,7 +2,7 @@
 
 **Version**: v1.0 (2026-05-05)
 **Vorlagen-Typ**: Auftragsverarbeitung (Art. 28 DSGVO) — NICHT gemeinsame Verantwortung (Art. 26 DSGVO; siehe `Joint-Controller-Vertrag-Art-26.md`)
-**Disclaimer**: Diese Vorlage stellt keine Rechtsberatung im Sinne § 2 RDG dar. Vor produktiver Verwendung ist eine individuelle anwaltliche Prüfung — insbesondere zur Drittlands-Konstellation, Sub-Auftragsverarbeiter-Kette und branchenspezifischen Anforderungen (BDSG, TTDSG, GeschGehG, sektorspezifische Aufsichtsregelungen) — erforderlich.
+**Disclaimer**: Diese Vorlage stellt keine Rechtsberatung im Sinne § 2 RDG dar. Vor produktiver Verwendung ist eine individuelle anwaltliche Prüfung — insbesondere zur Drittlands-Konstellation, Sub-Auftragsverarbeiter-Kette und branchenspezifischen Anforderungen (BDSG, TDDDG, GeschGehG, sektorspezifische Aufsichtsregelungen) — erforderlich.
 
 ---
 
@@ -184,7 +184,7 @@ b) **zu löschen** und die Löschung in Textform zu bestätigen.
 
 **§ 9.2 Backup-Löschfrist**: Daten in Datensicherungs-/Backup-Systemen sind spätestens innerhalb von **<90 / 180> Kalendertagen** zu löschen oder bis zur Löschung gegen Zugriff zu sperren.
 
-**§ 9.3 Gesetzliche Aufbewahrungspflichten**: Soweit gesetzliche Aufbewahrungspflichten (z. B. § 257 HGB, § 147 AO, § 16 TTDSG) einer Löschung entgegenstehen, gilt ein Verarbeitungsverbot nach Art. 18 DSGVO; die Daten werden nach Ablauf der Aufbewahrungsfrist gelöscht.
+**§ 9.3 Gesetzliche Aufbewahrungspflichten**: Soweit gesetzliche Aufbewahrungspflichten (z. B. § 257 HGB, § 147 AO, § 16 TDDDG) einer Löschung entgegenstehen, gilt ein Verarbeitungsverbot nach Art. 18 DSGVO; die Daten werden nach Ablauf der Aufbewahrungsfrist gelöscht.
 
 **§ 9.4 Löschnachweis**: Auf Anforderung weist der Auftragsverarbeiter die ordnungsgemäße Löschung — einschließlich aller bei Sub-Auftragsverarbeitern verarbeiteten Kopien — durch Löschprotokoll oder Lösch-Zertifikat nach.
 

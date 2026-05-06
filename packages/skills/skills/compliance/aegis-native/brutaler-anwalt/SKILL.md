@@ -1,7 +1,7 @@
-<!-- aegis-local: AEGIS-native skill, MIT-licensed; adversarial DE/EU compliance auditor (DSGVO / DDG / TTDSG / UWG / NIS2 / AI-Act / branchenrecht) with 5-persona self-verification (Hunter / Challenger / Synthesizer + Devil's-Advocate + Live-Probe); consumes AEGIS scanner findings via references/aegis-integration.md; slash-command activation via /anwalt — keep frontmatter `name: brutaler-anwalt` so the trigger surface stays intact post-install. -->
+<!-- aegis-local: AEGIS-native skill, MIT-licensed; adversarial DE/EU compliance auditor (DSGVO / DDG / TDDDG (vormals TTDSG, umbenannt 14.05.2024) / UWG / NIS2 / AI-Act / branchenrecht) with 5-persona self-verification (Hunter / Challenger / Synthesizer + Devil's-Advocate + Live-Probe); consumes AEGIS scanner findings via references/aegis-integration.md; slash-command activation via /anwalt — keep frontmatter `name: brutaler-anwalt` so the trigger surface stays intact post-install. -->
 ---
 name: brutaler-anwalt
-description: Adversarial DE/EU Compliance-Auditor mit Multi-Persona-Self-Verification (5 Personas: Hunter/Challenger/Synthesizer + Devil's-Advocate + Live-Probe) fuer DSGVO/UWG/AGB/Impressum/Cookies/AVV/NIS2/AI-Act/Branchen-/Straf-/Steuerrecht. Output sachlich-praezise mit %-Wahrscheinlichkeit + €-Schadensschaetzung + Abmahn-Simulation. Universalskill — branchenagnostisch fuer SaaS/Webseiten/Apps/Vertraege. Aktiviert bei /anwalt, /audit, /compliance-check oder Keywords: dsgvo, datenschutz, impressum, cookie, abmahnung, compliance, agb, avv, drittland, einwilligung, ttdsg, ddg, tmg, uwg, nis2, ai-act, gobd, dsa, urheber, marke, ePrivacy, drittlandtransfer, schrems, eugh, bgh, abmahnanwalt, datenpanne, betroffenenrechte, art-13, art-15, art-83, scc, tia, dsfa, vvt, dpo, dsb, lg-muenchen-google-fonts, fashion-id, dkim, dmarc, single-opt-in, double-opt-in, doi, konfigurator-audit, scanner-selbst-audit, llm-chatbot-dsgvo, smtp-outbound, csrf-origin-bug. KEINE Rechtsberatung i.S.d. RDG.
+description: Adversarial DE/EU Compliance-Auditor mit Multi-Persona-Self-Verification (5 Personas: Hunter/Challenger/Synthesizer + Devil's-Advocate + Live-Probe) fuer DSGVO/UWG/AGB/Impressum/Cookies/AVV/NIS2/AI-Act/Branchen-/Straf-/Steuerrecht. Output sachlich-praezise mit %-Wahrscheinlichkeit + €-Schadensschaetzung + Abmahn-Simulation. Universalskill — branchenagnostisch fuer SaaS/Webseiten/Apps/Vertraege. Aktiviert bei /anwalt, /audit, /compliance-check oder Keywords: dsgvo, datenschutz, impressum, cookie, abmahnung, compliance, agb, avv, drittland, einwilligung, tdddg, ttdsg, ddg, tmg, uwg, nis2, ai-act, gobd, dsa, urheber, marke, ePrivacy, drittlandtransfer, schrems, eugh, bgh, abmahnanwalt, datenpanne, betroffenenrechte, art-13, art-15, art-83, scc, tia, dsfa, vvt, dpo, dsb, lg-muenchen-google-fonts, fashion-id, dkim, dmarc, single-opt-in, double-opt-in, doi, konfigurator-audit, scanner-selbst-audit, llm-chatbot-dsgvo, smtp-outbound, csrf-origin-bug. KEINE Rechtsberatung i.S.d. RDG.
 model: opus
 license: MIT
 metadata:
@@ -309,14 +309,14 @@ Stand: [Datum] | Rechtsstand: Deutschland / EU
 [2–4 Saetze: Wahrscheinlichkeit Abmahnung/Bussgeld binnen 90 Tagen,
 €-Range Worst-Case, kritischste 1–3 Findings, primaerer Hebel.
 Beispiel: „Abmahn-Wahrscheinlichkeit binnen 12 Wochen: 78%. €-Range
-4.500–18.000. Hauptrisiko: § 25 TTDSG (Tracker vor Consent) +
+4.500–18.000. Hauptrisiko: § 25 TDDDG (Tracker vor Consent) +
 § 5 DDG (Telefon fehlt) als doppelter UWG-§3a-Hebel."]
 
 ## 2. Findings (HUNTER + CHALLENGER verified)
 
 | # | Wahrsch. | Kritikalitaet | Bereich | Rechtsgrundlage | €-Range | Status | Fix |
 |---|----------|---------------|---------|-----------------|---------|--------|-----|
-| 1 | 87% | 🔴 KRITISCH | Cookie-Consent | § 25 TTDSG + Art. 6 DSGVO | 5.000–15.000 | verified | [konkret] |
+| 1 | 87% | 🔴 KRITISCH | Cookie-Consent | § 25 TDDDG + Art. 6 DSGVO | 5.000–15.000 | verified | [konkret] |
 | 2 | 64% | 🟡 HOCH | Impressum | § 5 DDG | 800–4.000 | verified | [konkret] |
 | 3 | 31% | 🟢 MITTEL | AGB | § 307 BGB | 0–1.500 | disputed | [konkret] |
 
@@ -559,7 +559,7 @@ Wenn auch nur **eine** Checkbox nicht erfuellt: NICHT als `done` deklarieren. St
 Aktiviere automatisch wenn User in seiner Anfrage erwaehnt:
 - DSGVO / GDPR / Datenschutz
 - Impressum / DDG / TMG / TDDDG
-- Cookie / Cookie-Banner / Consent / TTDSG / § 25
+- Cookie / Cookie-Banner / Consent / TDDDG / TTDSG (Legacy-Alias) / § 25
 - Abmahnung / Abmahn-Anwalt / UWG / Wettbewerb
 - AVV / Auftragsverarbeitung / Drittland / SCC / TIA
 - AGB / Widerrufsrecht / Verbraucherschutz
@@ -582,7 +582,7 @@ Wenn das Projekt das AEGIS-Scanner-System hat (Indikator: `src/scanner/` mit `ti
 1. Pruefe ob ein aktueller AEGIS-Scan-Output existiert (`/tmp/aegis-scan.json` oder `aegis-reports/latest.json`). Wenn nein, schlage SCAN-Lauf vor (`pnpm aegis scan` o.ae.).
 2. Konsumiere AEGIS-Findings:
    - tier1 (DNS/Headers/HSTS) → `it-recht.md` BSI-Referenz
-   - tier2 (cookie-audit, embeds-consent, font-provider, tracking-scan) → `dsgvo.md` § 25 TTDSG
+   - tier2 (cookie-audit, embeds-consent, font-provider, tracking-scan) → `dsgvo.md` § 25 TDDDG
    - tier3 (cookie-compliance, datenschutz-check, impressum-check, branche) → DSGVO/DDG-Mapping
 3. Mappe AEGIS-Schweregrad auf Anwalts-Kritikalitaet:
    - AEGIS critical → 🔴 KRITISCH (Wahrsch. typisch > 70%)
