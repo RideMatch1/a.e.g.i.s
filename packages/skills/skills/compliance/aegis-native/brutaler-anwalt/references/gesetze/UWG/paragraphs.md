@@ -94,38 +94,72 @@ Abmahnung darf nicht missbräuchlich sein. Indizien Abs. 2:
 - Abs. 1: Pflicht zur Abmahnung VOR Klage (Inanspruchnahme)
 - Abs. 2: Inhaltsanforderungen (Identität, Sachverhalt, geforderte Unterlassung)
 - Abs. 3 Nr. 1-4: Aufwendungsersatz-Voraussetzung — Mitbewerber, Wirtschaftsverband, Verbraucherverband, IHK/HwK (parallel zu § 8 Abs. 3)
-- **Abs. 4 Nr. 1-2: Aufwendungsersatz-Cap + KMU-Schutz-Norm (post 02.12.2020 Novelle)**
+- **Abs. 4 Nr. 1-2: Aufwendungsersatz-AUSSCHLUSS-Norm (post 02.12.2020 Novelle)**
+- **Abs. 5: Reverse-Anspruch des Abgemahnten bei unberechtigter Abmahnung**
 
-### § 13 Abs. 4 Nr. 1 — Aufwendungsersatz-Limit (1.000 EUR Cap bei DSGVO-/TDDDG-Mitbewerber-Abmahnungen)
+> **WICHTIG (Abgrenzung):** Die 1.000-EUR-Vertragsstrafen-Cap und die < 100-MA-Schwelle stehen **NICHT** in § 13, sondern in **§ 13a Abs. 2 + Abs. 3 UWG** — separater Paragraph (siehe weiter unten). Häufige Verwechslung in Sekundärliteratur. Quelle: gesetze-im-internet.de + dejure.org.
 
-> Verbraucherverbaende und Mitbewerber duerfen NUR Aufwendungsersatz fordern, der bei einer **streitwertorientierten** Abmahnung anfaellt. Bei Verstoessen gegen DSGVO, TDDDG, DDG (vormals TMG), KWG, BDSG ist der **Aufwendungsersatz-Anspruch ausgeschlossen** wenn der Abmahner ein **Mitbewerber** ist UND der Abgemahnte **weniger als 100 Mitarbeiter beschaeftigt**.
+### § 13 Abs. 4 Nr. 1 — Aufwendungsersatz-Ausschluss bei E-Commerce-/Telemedien-Informationspflichten (KEINE MA-Schwelle)
 
-**Konkret:** Mitbewerber-Abmahnungen wegen reiner DSGVO-/Cookie-/Impressum-Verstoesse gegen KMU (< 100 MA) duerfen KEINEN Aufwendungsersatz mehr abrechnen — der Abmahn-Anwalt kostet den Abmahner selbst. **Massive Reduktion des Abmahn-Geschaeftsmodells fuer KMU-Targeting**.
+> "Der Anspruch [auf Aufwendungsersatz] aus § 8 Abs. 3 Nr. 1 ist ausgeschlossen bei Mitbewerbern wegen [...] **im elektronischen Geschäftsverkehr oder in digitalen Diensten nach § 1 Abs. 4 Nr. 1 des Digitale-Dienste-Gesetzes** begangenen Verstößen gegen gesetzliche Informations- und Kennzeichnungspflichten."
 
-### § 13 Abs. 4 Nr. 2 — KMU-Privileg / Bagatell-Schutz (KEY KMU-Schutz-Norm)
+**Konkret:** Mitbewerber-Abmahnungen wegen reiner Impressum-/Widerruf-/Preisangabe-Verstösse im E-Commerce ⇒ Mitbewerber kann KEINEN Aufwendungsersatz mehr abrechnen. **KEINE Mitarbeiter-Schwelle** — gilt für jeden Abgemahnten unabhängig von Größe.
 
-> **Bei einer ersten Abmahnung wegen Verstoss gegen Informations- oder Kennzeichnungspflichten** im elektronischen Geschaeftsverkehr, in Telemedien oder bei Datenschutz-Vorschriften der DSGVO, des BDSG, des TDDDG (vormals TTDSG) durch einen Mitbewerber **gegen ein Unternehmen mit weniger als 100 Mitarbeitern** koennen **kein Aufwendungsersatz** UND **keine Vertragsstrafe** verlangt werden.
+**Audit-Relevanz:** Mandant erhält Mitbewerber-Abmahnung wegen Impressum/Widerruf/Preisangabe-Pflicht? **§ 13 Abs. 4 Nr. 1 UWG zitieren + Aufwendungsersatz-Forderung verweigern.** MA-Anzahl irrelevant.
+
+### § 13 Abs. 4 Nr. 2 — Aufwendungsersatz-Ausschluss bei DSGVO/BDSG-Verstößen (< 250 MA)
+
+> "Der Anspruch ist ausgeschlossen bei Mitbewerbern wegen [...] **sonstigen Verstößen gegen die Verordnung (EU) 2016/679 (Datenschutz-Grundverordnung) und das Bundesdatenschutzgesetz** durch Unternehmen sowie gewerblich tätige Vereine, **sofern sie in der Regel weniger als 250 Mitarbeiter beschäftigen**."
 
 **Voraussetzungen kumulativ:**
-- Erster Verstoss (keine Wiederholung)
-- Informations-/Kennzeichnungspflicht (DSE, Cookie, Impressum, Werbe-Kennzeichnung)
-- Telemedien / E-Commerce / DSGVO-Norm
-- Mitbewerber-Abmahnung (NICHT Behoerde, NICHT Wettbewerbszentrale)
-- Abgemahnter < 100 Mitarbeiter
+- Verstoss gegen DSGVO oder BDSG (NICHT TDDDG/DDG — die fallen unter Nr. 1 wenn E-Commerce, sonst nicht)
+- Mitbewerber-Abmahnung (NICHT Behörde, NICHT Wettbewerbszentrale, NICHT Verbraucherverband)
+- Abgemahnter ist Unternehmen oder gewerblich tätiger Verein
+- Abgemahnter beschäftigt **i.d.R. weniger als 250 Mitarbeiter** (NICHT 100 — häufige Sekundärliteratur-Verwechslung mit § 13a)
 
-**Wenn alle erfuellt:** Abmahnung kostet KEIN Geld — keine Anwalts-Erstattung, keine Vertragsstrafe, kein Streitwert-orientierter Aufwendungsersatz. Abgemahnter muss aber Unterlassung erklaeren (sonst Klage moeglich, dann Streitwert-Kosten).
+**Audit-Relevanz fuer Skill-Output:** bei Mandant **< 250 MA** auf der Empfänger-Seite einer Mitbewerber-Abmahnung wegen DSGVO/BDSG: **§ 13 Abs. 4 Nr. 2 UWG-Schutzschild explizit zitieren** + Aufwendungsersatz-Forderung verweigern. Pflicht-Element jedes Antwort-Schreibens. **100-249 MA-Mandanten profitieren ebenfalls** — übliche Verwechslung mit § 13a wäre hier ein vermeidbarer Verteidigungs-Fehler.
 
-**Audit-Relevanz fuer Skill-Output:** bei Mandant **< 100 MA** auf der Empfaenger-Seite einer Mitbewerber-Abmahnung wegen DSGVO/Cookie/Impressum: **§ 13 Abs. 4 Nr. 2 UWG-Schutzschild explizit zitieren** + Aufwendungsersatz-Forderung verweigern. Pflicht-Element jedes Anwort-Schreibens.
+### § 13 Abs. 5 — Reverse-Aufwendungsersatz (Abgemahnter gegen Abmahnenden)
 
-### § 13 Abs. 5 — Vertragsstrafe-Begrenzung
+> "Soweit die Abmahnung unberechtigt ist oder nicht den Anforderungen des Absatzes 2 entspricht oder soweit entgegen Absatz 4 ein Anspruch auf Aufwendungsersatz geltend gemacht wird, hat der Abgemahnte gegen den Abmahnenden einen Anspruch auf Ersatz der für seine Rechtsverteidigung erforderlichen Aufwendungen. Der Anspruch nach Satz 1 ist beschränkt auf die Höhe des Aufwendungsersatzanspruchs, die der Abmahnende geltend macht. Bei einer unberechtigten Abmahnung ist der Anspruch nach Satz 1 ausgeschlossen, wenn die fehlende Berechtigung der Abmahnung für den Abmahnenden zum Zeitpunkt der Abmahnung nicht erkennbar war. Weitergehende Ersatzansprüche bleiben unberührt."
 
-> Eine Vertragsstrafe darf bei Abmahnungen wegen Verstoss gegen Informations- oder Kennzeichnungspflichten **nicht hoeher als 1.000 EUR** je Verstoss sein, wenn der Abgemahnte **weniger als 100 Mitarbeiter** hat.
+**Konkret:** Abs. 5 ist KEIN Vertragsstrafen-Cap — Abs. 5 ist ein **Reverse-Schadensersatzanspruch** des Abgemahnten gegen den Abmahnenden, wenn die Abmahnung unberechtigt war oder Abs. 4 verletzt wurde. Höhen-Limit = die Höhe des vom Abmahnenden behaupteten Aufwendungsersatzanspruchs. Keine MA-Schwelle.
 
-**Konkret:** Abmahnungs-Anwalt-Klausel "30.000 EUR Vertragsstrafe je weiterer Verstoss" ist bei < 100-MA-KMU **unwirksam** — Reduktion auf 1.000 EUR pflicht.
+**Audit-Relevanz:** Mandant erhält unberechtigte Mitbewerber-Abmahnung (z.B. Aufwendungsersatz nach § 13 Abs. 4 Nr. 1/2 ausgeschlossen)? **§ 13 Abs. 5 = Mandant kann seinerseits eigene Anwalts-Kosten von Abmahnenden einfordern**. Massiver Verteidigungs-Hebel.
 
-**Audit-Relevanz:** Mandant ist Abmahnungs-Empfaenger? Pflicht-Check der Vertragsstrafe-Hoehe in Unterlassungserklaerung-Vorlage. Bei Ueberschreitung 1.000 EUR-Cap: gegnerischen Anwalt auf § 13 Abs. 5 hinweisen.
+## § 13a — Vertragsstrafe (separater Paragraph)
 
-**Audit-Relevanz:** Abmahn-Brief-Templates (`references/abmahn-templates.md`) folgen § 13 Abs. 2 Pflichtinhalt + Abwehr-Templates muessen § 13 Abs. 4 Nr. 2 + Abs. 5 KMU-Schutzschild als Standard-Verteidigungs-Linie zitieren.
+§ 13a regelt die Vertragsstrafen-Bemessung im Zusammenhang mit Unterlassungserklärungen. **Hier** liegen die KMU-Schutz-Mechaniken < 100 MA + 1.000-EUR-Cap.
+
+### § 13a Abs. 1 — Bemessungs-Kriterien
+
+> Bei Bemessung angemessener Vertragsstrafen sind zu berücksichtigen: Art/Umfang/Folgen der Zuwiderhandlung, Verschulden, Größe/Marktstärke/Wettbewerbsfähigkeit des Abgemahnten, wirtschaftliches Interesse an früheren/zukünftigen Verstößen.
+
+### § 13a Abs. 2 — Vertragsstrafe-Ausschluss bei Erst-Abmahnung (< 100 MA)
+
+> "Bei einer erstmaligen Abmahnung wegen Verstößen nach § 13 Absatz 4 Nummer 1 oder 2 ist die Vereinbarung einer Vertragsstrafe nach § 8 Absatz 3 Nummer 1 berechtigten Anspruchstellern ausgeschlossen, sofern der Abgemahnte in der Regel weniger als 100 Mitarbeiter beschäftigt."
+
+**Voraussetzungen kumulativ:**
+- Erstmalige Abmahnung (keine Wiederholung — Wiederholungs-Abmahnung erlaubt Vertragsstrafe)
+- Verstoss nach § 13 Abs. 4 Nr. 1 ODER Nr. 2 (E-Commerce-Info-Pflichten oder DSGVO/BDSG)
+- Mitbewerber-Abmahnung (nach § 8 Abs. 3 Nr. 1)
+- Abgemahnter **< 100 MA** (nicht 250 — andere Schwelle als § 13 Abs. 4 Nr. 2)
+
+**Audit-Relevanz:** Mandant ist Erst-Abmahnungs-Empfänger + < 100 MA + Verstoss fällt unter § 13 Abs. 4? **Vertragsstrafe-Klausel in Unterlassungserklärung verweigern unter § 13a Abs. 2**. Mandant muss Unterlassung erklären, aber OHNE Vertragsstrafe.
+
+### § 13a Abs. 3 — 1.000-EUR-Vertragsstrafen-Cap (< 100 MA + Bagatell-Schaden)
+
+> "Eine Vertragsstrafe darf bei Abmahnungen, durch die nur in unerheblichem Maße Verbraucher-, Mitbewerber- und sonstige Marktteilnehmer-Interessen beeinträchtigt werden, **1.000 Euro nicht überschreiten**, sofern der Abgemahnte in der Regel **weniger als 100 Mitarbeiter** beschäftigt."
+
+**Voraussetzungen kumulativ:**
+- Bagatell-Verstoss (geringfügige Interessen-Beeinträchtigung — eng auszulegen, keine wettbewerbserheblichen Verstöße)
+- Abgemahnter **< 100 MA**
+
+**Konkret:** Klausel "30.000 EUR Vertragsstrafe je weiterer Verstoss" in der vorgegebenen Unterlassungserklärung ist bei Bagatell + < 100 MA **auf 1.000 EUR/Verstoss zu reduzieren**.
+
+**Audit-Relevanz:** Mandant ist Abmahnungs-Empfänger + Bagatell-Verstoss + < 100 MA? **Pflicht-Check der Vertragsstrafe-Höhe in der vorgegebenen Unterlassungserklärung**. Bei Überschreitung 1.000 EUR-Cap: gegnerischen Anwalt auf **§ 13a Abs. 3** hinweisen (NICHT § 13 Abs. 5 — häufige Falsch-Citation in Sekundärliteratur).
+
+**Audit-Relevanz:** Abmahn-Brief-Templates (`references/abmahn-templates.md`) folgen § 13 Abs. 2 Pflichtinhalt + Abwehr-Templates müssen **§ 13 Abs. 4 Nr. 1/2 + § 13a Abs. 2 + Abs. 3** als Standard-Verteidigungs-Linie zitieren (nicht § 13 Abs. 5 für Vertragsstrafen-Cap).
 
 ---
 
@@ -144,6 +178,8 @@ Abmahnung darf nicht missbräuchlich sein. Indizien Abs. 2:
 | Cold-Anruf | § 7 Abs. 2 Nr. 2 |
 | Bestandskunden-Werbung | § 7 Abs. 3 |
 | Abmahn-Brief-Pflichten | § 13 Abs. 2 |
-| Aufwendungsersatz-Limit | § 13 Abs. 4 Nr. 1 |
-| **KMU-Privileg (< 100 MA, erstes Mal, Info/DSGVO/Cookie)** | **§ 13 Abs. 4 Nr. 2** — Schutzschild bei Mitbewerber-Abmahnung |
-| Vertragsstrafe-Cap (< 100 MA Mandant) | § 13 Abs. 5 (max. 1.000 EUR / Verstoss) |
+| Aufwendungsersatz-Ausschluss E-Commerce-Info-Pflichten (KEINE MA-Schwelle) | § 13 Abs. 4 Nr. 1 |
+| **Aufwendungsersatz-Ausschluss DSGVO/BDSG (< 250 MA Mandant)** | **§ 13 Abs. 4 Nr. 2** — Schutzschild bei Mitbewerber-Abmahnung |
+| Reverse-Aufwendungsersatz Abgemahnter ⇒ Abmahnender (unberechtigt) | § 13 Abs. 5 |
+| Vertragsstrafe-Ausschluss Erst-Abmahnung (< 100 MA + § 13 Abs. 4) | § 13a Abs. 2 |
+| Vertragsstrafe-Cap 1.000 EUR (< 100 MA + Bagatell) | § 13a Abs. 3 |
