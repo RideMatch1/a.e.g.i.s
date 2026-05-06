@@ -18,7 +18,7 @@
 - Besonders relevant: Beschäftigtendatenschutz (§ 26 BDSG), Videoüberwachung (§ 4 BDSG), Scoring (§ 31 BDSG)
 
 ### TDDDG (Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz, vormals TTDSG)
-- **Volltext**: https://www.gesetze-im-internet.de/tddg/ (TTDSG-URL leitet weiter)
+- **Volltext**: https://www.gesetze-im-internet.de/ttdsg/ (kanonischer URL bleibt der Legacy-Slug `/ttdsg/` — `/tdddg/` und `/tddg/` sind 404)
 - **Umbenennung**: Seit 14.05.2024 (DSA-Anpassungsgesetz) heisst das TTDSG **TDDDG** — Wortlaut des § 25 unveraendert.
 - Regelt Cookies und aehnliche Technologien (§ 25 TDDDG, vormals § 25 TTDSG)
 - Umsetzt ePrivacy-Richtlinie in nationales Recht

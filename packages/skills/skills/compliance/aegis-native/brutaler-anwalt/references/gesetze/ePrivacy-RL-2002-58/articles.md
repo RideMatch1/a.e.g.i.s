@@ -88,5 +88,5 @@ Stand 2026: weiter in Verhandlung. Bis Inkrafttreten gilt ePrivacy-RL + national
 ## Source
 
 - [eur-lex.europa.eu — RL 2002/58/EG (konsolidiert)](https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32002L0058)
-- [TDDDG (DE-Umsetzung)](https://www.gesetze-im-internet.de/tdddg/)
+- [TDDDG (DE-Umsetzung)](https://www.gesetze-im-internet.de/ttdsg/)
 - [EDPB Guidelines 03/2022 (Cookie-Banner)](https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-032022-deceptive-design-patterns-social-media_de)

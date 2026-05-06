@@ -1,7 +1,7 @@
 ---
 license: gemeinfrei nach § 5 UrhG (DE)
 verification-status: az-list-unverified (siehe VERIFICATION-NOTES.md — Az.-Listen aus Domain-Wissen, vor Skill-Integration gegen juris/dejure cross-checken)
-source: https://www.gesetze-im-internet.de/tdddg/
+source: https://www.gesetze-im-internet.de/ttdsg/
 last-checked: 2026-05-05
 purpose: TDDDG (vormals TTDSG) — Cookie-/Endgerät-Layer-Datenschutz; relevante Paragraphen mit Audit-Mapping. Gilt seit 14.05.2024 (vorher TTDSG seit 01.12.2021).
 ---
@@ -10,7 +10,8 @@ purpose: TDDDG (vormals TTDSG) — Cookie-/Endgerät-Layer-Datenschutz; relevant
 
 > Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz (TDDDG).
 > Vormals TTDSG, umbenannt zum 14.05.2024 (DSA-Anpassungsgesetz).
-> Volltext: https://www.gesetze-im-internet.de/tdddg/
+> Volltext: https://www.gesetze-im-internet.de/ttdsg/ (kanonischer URL bleibt
+> der Legacy-Slug; `/tdddg/` und `/tddg/` sind 404)
 > EU-Hintergrund: ePrivacy-RL 2002/58/EG; DSGVO ergänzend.
 
 ## §§ 1–3 — Anwendungsbereich

@@ -58,5 +58,5 @@ last-verified: 2026-05-05
 ## Source
 
 - [RL 2002/58/EG](https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32002L0058)
-- [TDDDG](https://www.gesetze-im-internet.de/tdddg/)
+- [TDDDG](https://www.gesetze-im-internet.de/ttdsg/)
 - [EDPB Guidelines](https://www.edpb.europa.eu/)

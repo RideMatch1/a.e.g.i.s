@@ -13,7 +13,7 @@
 | **DDG** (Digitale-Dienste-Gesetz) — seit 14.5.2024 | https://www.gesetze-im-internet.de/ddg/ | Impressumspflicht § 5 (= TMG § 5), Umsetzung des DSA |
 | **DSA** (Digital Services Act, EU 2022/2065) | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32022R2065 | Plattformhaftung, Transparenzpflichten, Risikoaudits für große Plattformen |
 | **DMA** (Digital Markets Act, EU 2022/1925) | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32022R1925 | Verpflichtungen für "Gatekeeper" (Apple, Google, Meta, Amazon...) |
-| **TDDDG** (vormals TTDSG, seit 14.05.2024) | https://www.gesetze-im-internet.de/tddg/ | Cookies, E-Privacy — Wortlaut § 25 unveraendert (→ auch dsgvo.md) |
+| **TDDDG** (vormals TTDSG, seit 14.05.2024) | https://www.gesetze-im-internet.de/ttdsg/ | Cookies, E-Privacy — Wortlaut § 25 unveraendert (→ auch dsgvo.md) |
 
 ### IT-Sicherheit
 | Gesetz / Norm | Volltext | Relevanz |
@@ -28,7 +28,7 @@
 ### ePrivacy
 | Gesetz | Volltext | Relevanz |
 |--------|---------|---------|
-| **TDDDG** (Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz, vormals TTDSG seit 14.05.2024) | https://www.gesetze-im-internet.de/tddg/ | § 25: Einwilligung fuer Cookies / Endgeraetezugriff; § 24: Oeffentliche Netze. § 25 inhaltlich unveraendert seit TTDSG-Aera. |
+| **TDDDG** (Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz, vormals TTDSG seit 14.05.2024) | https://www.gesetze-im-internet.de/ttdsg/ | § 25: Einwilligung fuer Cookies / Endgeraetezugriff; § 24: Oeffentliche Netze. § 25 inhaltlich unveraendert seit TTDSG-Aera. |
 | **ePrivacy-Richtlinie (2002/58/EG)** | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32002L0058 | EU-Grundlage, durch TDDDG (vormals TTDSG) in DE umgesetzt |
 | **ePrivacy-Verordnung (geplant)** | Noch nicht in Kraft (Stand: 2025) | Soll ePrivacy-Richtlinie ersetzen und Cookie-Regeln EU-weit vereinheitlichen — politisch noch blockiert |
 

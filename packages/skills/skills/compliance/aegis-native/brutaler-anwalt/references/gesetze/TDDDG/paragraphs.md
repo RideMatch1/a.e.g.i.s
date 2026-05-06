@@ -1,6 +1,6 @@
 ---
 license: gemeinfrei nach § 5 UrhG (DE)
-source: https://www.gesetze-im-internet.de/tdddg/
+source: https://www.gesetze-im-internet.de/ttdsg/
 last-checked: 2026-05-01
 purpose: TDDDG (vormals TTDSG) — relevante Paragraphen mit Audit-Mapping. Gilt seit 14.05.2024 (vorher TTDSG seit 01.12.2021).
 ---
@@ -9,7 +9,8 @@ purpose: TDDDG (vormals TTDSG) — relevante Paragraphen mit Audit-Mapping. Gilt
 
 > Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz (TDDDG).
 > Vormals TTDSG, umbenannt zum 14.05.2024 (DSA-Anpassungsgesetz).
-> Volltext: https://www.gesetze-im-internet.de/tdddg/
+> Volltext: https://www.gesetze-im-internet.de/ttdsg/ (kanonischer URL bleibt
+> der Legacy-Slug; `/tdddg/` und `/tddg/` sind 404)
 
 ## § 25 — Schutz der Privatsphäre bei Endeinrichtungen (Cookies)
 
