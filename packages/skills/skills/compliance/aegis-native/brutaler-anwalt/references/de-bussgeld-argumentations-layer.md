@@ -391,7 +391,7 @@ Faktor **14,4** entspricht exakt **4 %** des mittleren Jahresumsatzes (= dynamis
 | 6 | DPC Ireland | TikTok Technology Limited | 15.09.2023 | 345.000.000 | Art. 5+8 Kinder-Daten | 2 | Social Media | cross-confirmed |
 | 7 | CNIL France | Google LLC | 03.09.2025 | 325.000.000 | Cookie-Consent + Gmail Werbung | 2 | Tech | secondary-only |
 | 8 | DPC Ireland | LinkedIn Ireland | 24.10.2024 | 310.000.000 | Werbung ohne valide Rechtsgrundlage | 2 | Tech/Recruiting | secondary-only |
-| 9 | DPC Ireland | Meta Platforms Ireland | 04.09.2024 | 251.000.000 | Datenpanne 533M Profile | 2 | Social Media | secondary-only |
+| 9 | DPC Ireland | Meta Platforms Ireland | 17.12.2024 | 251.000.000 | Datenpannen 09/2018 (~29M Konten) Art. 25/33 GDPR | 2 | Social Media | cross-confirmed |
 | 10 | DPC Ireland | Meta (Facebook) | 25.11.2022 | 265.000.000 | Art. 25 Privacy by Design (Datenpanne 533M) | 2 | Social Media | cross-confirmed |
 | 11 | DPC Ireland | WhatsApp Ireland | 02.09.2021 | 225.000.000 | Art. 12-14 Transparenz-Defizit | 2 | Messaging | cross-confirmed |
 | 12 | CNIL France | Google LLC | 31.12.2021 | 90.000.000 | Cookie-Refuse-Mechanismus erschwert | 2 | Tech | cross-confirmed |
