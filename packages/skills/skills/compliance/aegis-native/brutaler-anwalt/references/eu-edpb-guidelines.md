@@ -78,7 +78,7 @@ Weitere Spec-Conflations:
 - **Audit-Anwendung**: Procedural-Tail im Bussgeld-Layer — flagt Settlement-Optionen vor formellem Art. 65-Verfahren.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-062022-practical-implementation-amicable_en
 
-### Guidelines 8/2022 — Identifying a Controller or Processor's Lead Supervisory Authority
+### Guidelines 08/2022 — Identifying a Controller or Processor's Lead Supervisory Authority
 - **Status**: adopted 17.04.2023 · final (loest WP244 rev.01 ab)
 - **Topic**: Kriterien zur Bestimmung der "main establishment" + LSA — central administration vs. effective decision-making location vs. EU-establishment-of-controller.
 - **Audit-Anwendung**: brutaler-Skill nutzt diese Guideline um bei Mandanten ohne klare Hauptniederlassung die zustaendige DSGVO-Aufsicht zu identifizieren. Wichtig wenn Mandant-Holding (zB. NL) != operatives Geschaeft (zB. DE-Tochter).
@@ -94,7 +94,7 @@ Weitere Spec-Conflations:
 
 ## Cluster 2: Cookies + Tracking + Dark Patterns (Art. 5(3) ePrivacy + Deceptive Design)
 
-### Guidelines 2/2023 — Technical Scope of Art. 5(3) of ePrivacy Directive
+### Guidelines 02/2023 — Technical Scope of Art. 5(3) of ePrivacy Directive
 - **Status**: adopted 16.10.2024 · final
 - **Topic**: Erweitert "Cookie-Richtlinie" Art. 5(3) ePrivacy ueber klassische Cookies hinaus — vier Storage/Access-Szenarien: (a) URL/pixel tracking, (b) Local processing+transmission, (c) Tracking based on IP only, (d) IoT/connected-device data exfil. Jede dieser Mechaniken loest Consent-Pflicht aus.
 - **Audit-Anwendung**: KRITISCH fuer Cookie/Tracking-Audits. brutaler-Skill flagt jeden Tracking-Pixel + Local-Storage-Read + Fingerprinting + IoT-Telemetry als Art. 5(3) ePrivacy-Eingriff (nicht nur klassische Cookies). Bei FP-Untersuchung: ist der Mechanismus "storage of OR access to information stored in terminal equipment" — wenn ja, Consent-Pflicht.
@@ -106,7 +106,7 @@ Weitere Spec-Conflations:
 - **Audit-Anwendung**: brutaler-Skill nutzt 6er-Taxonomie als Pruefraster bei Cookie-Banner + Consent-UI + Account-Settings-Audits. Konkretes Beispiel: Reject-All-Button kleiner/grau vs. Accept-All-Button gross/grun = "Hindering" + "Stirring". Cite mit Guideline-ID + spezifischer Pattern-Kategorie.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-032022-deceptive-design-patterns-social-media_en
 
-### Guidelines 8/2020 — Targeting of Social Media Users
+### Guidelines 08/2020 — Targeting of Social Media Users
 - **Status**: adopted 13.04.2021 · final
 - **Topic**: Joint-Controllership Plattform <-> Targeter, Rechtsgrundlagen fuer Custom Audiences / Lookalikes / Behavior-Profile.
 - **Audit-Anwendung**: Bei Mandanten die Meta/Google/TikTok-Audiences nutzen: brutaler-Skill flagt Joint-Controller-Anforderungen Art. 26 + zwingend explicit consent fuer behavioral targeting.
@@ -116,7 +116,7 @@ Weitere Spec-Conflations:
 
 ## Cluster 3: Verarbeitungs-Rechtsgrundlagen (Art. 6 + 9, Consent, LegInt)
 
-### Guidelines 1/2024 — Processing of Personal Data Based on Article 6(1)(f) GDPR (Legitimate Interests)
+### Guidelines 01/2024 — Processing of Personal Data Based on Article 6(1)(f) GDPR (Legitimate Interests)
 - **Status**: adopted 08.10.2024 · public consultation closed (final-after-consultation pending)
 - **Topic**: Drei-Stufen-Test fuer berechtigtes Interesse: (1) Existence of legitimate interest, (2) Necessity test, (3) Balancing-Test gegen Betroffenen-Erwartungen + Grundrechte. Detaillierte Beispiel-Cases inkl. Direct-Marketing, Network-Security, Fraud-Prevention.
 - **Audit-Anwendung**: KRITISCH bei jeder Article-6(1)(f)-Berufung im Mandanten-AVV oder Datenschutzerklaerung. brutaler-Skill verlangt dokumentierten LIA (Legitimate Interest Assessment) mit allen 3 Stufen, sonst Auditfund "Art. 6(1)(f) ohne dokumentierten Test = unzulaessig".
@@ -128,7 +128,7 @@ Weitere Spec-Conflations:
 - **Audit-Anwendung**: Standard-Reference im Cookie-Audit + Datenschutzerklaerungs-Pruefung. Skill zitiert Para 38-41 fuer Cookie-Wall-Bewertung, Para 51+ fuer "free consent" gegen Macht-Asymmetrie (Arbeitgeber-AN, Plattform-Nutzer).
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-052020-consent-under-regulation-2016679_en
 
-### Guidelines 2/2019 — Processing of Personal Data under Article 6(1)(b) GDPR (Online Services)
+### Guidelines 02/2019 — Processing of Personal Data under Article 6(1)(b) GDPR (Online Services)
 - **Status**: adopted 16.10.2019 · final
 - **Topic**: Strenge Auslegung von "necessary for performance of contract" — verhindert Vertragspraegung als Sammelrechtfertigung fuer alle Datenverarbeitungen.
 - **Audit-Anwendung**: brutaler-Skill flagt Auditfunde bei Mandanten die Art. 6(1)(b) als Rechtsgrundlage fuer Personalisierung / Tracking / Advertising berufen — diese sind NICHT contract-necessary, sondern brauchen Consent (Art. 6(1)(a)) oder LegInt-Balancing.
@@ -174,19 +174,19 @@ Weitere Spec-Conflations:
 - **Audit-Anwendung**: Schmal — relevant wenn Mandant zertifizierungsbasierten Transfer-Mechanismus dokumentiert (selten in Praxis).
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-072022-certification-tool-transfers_en
 
-### Guidelines 2/2020 — Articles 46(2)(a) and 46(3)(b) (Transfers between EEA and non-EEA Public Authorities)
+### Guidelines 02/2020 — Articles 46(2)(a) and 46(3)(b) (Transfers between EEA and non-EEA Public Authorities)
 - **Status**: adopted 15.12.2020 · final
 - **Topic**: Sektorvereinbarungen zwischen Behoerden als Art. 46-Garantie.
 - **Audit-Anwendung**: Behoerden-Mandanten only.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-22020-articles-46-2-and-46-3-b-regulation_en
 
-### Guidelines 2/2018 — Derogations of Article 49 under Regulation 2016/679
+### Guidelines 02/2018 — Derogations of Article 49 under Regulation 2016/679
 - **Status**: adopted 25.05.2018 · final
 - **Topic**: Strenge Auslegung der Ausnahmen Art. 49 (kein Adequacy, keine SCC) — explicit consent, contract-necessity, important-public-interest. NICHT als routine-Vehicle nutzbar.
 - **Audit-Anwendung**: brutaler-Skill flagt Mandanten die Art. 49 als Standard-Transfer-Mechanismus berufen ("notwendig fuer Vertragserfuellung mit US-Anbieter") — Art. 49 ist Ausnahme, nicht Regel.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-22018-derogations-article-49-under-regulation_en
 
-### Guidelines 3/2018 — Territorial Scope of the GDPR (Article 3)
+### Guidelines 03/2018 — Territorial Scope of the GDPR (Article 3)
 - **Status**: adopted 12.11.2019 · final (after public consultation)
 - **Topic**: Article 3 — establishment-criterion + targeting-criterion. Definiert wann nicht-EU-Anbieter doch GDPR-pflichtig sind (zB. US-SaaS mit EU-Kundenbasis).
 - **Audit-Anwendung**: Bei nicht-EU-Mandanten oder Mandanten mit nicht-EU-Subprocessors: brutaler-Skill prueft Targeting-Test (gezielt EU-Markt? EU-Sprache? EUR-Preise? EU-Versand?).
@@ -202,7 +202,7 @@ Weitere Spec-Conflations:
 - **Audit-Anwendung**: KRITISCH fuer DSAR-Audit. brutaler-Skill prueft: (a) wird der volle Datensatz herausgegeben (nicht nur "die wichtigen"), (b) Identitaetspruefung-Verhaeltnismaessigkeit (Para 73+), (c) max-3-Monats-Frist (Art. 12(3)) eingehalten, (d) keine Pauschal-Gebuehren.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-012022-data-subject-rights-right-access_en
 
-### Guidelines 5/2019 — Criteria of the Right to be Forgotten in Search Engines (Part 1)
+### Guidelines 05/2019 — Criteria of the Right to be Forgotten in Search Engines (Part 1)
 - **Status**: adopted 07.07.2020 · final
 - **Topic**: Art. 17 — Loeschung/De-Listing-Kriterien fuer Suchmaschinen post-Google-Spain.
 - **Audit-Anwendung**: Schmal — relevant fuer SEO/Reputations-Mandanten + RTBF-Antraege.
@@ -218,25 +218,25 @@ Weitere Spec-Conflations:
 
 ## Cluster 6: Privacy-by-Design + Zertifizierung + Codes
 
-### Guidelines 4/2019 — Article 25 Data Protection by Design and by Default
+### Guidelines 04/2019 — Article 25 Data Protection by Design and by Default
 - **Status**: adopted 20.10.2020 · final
 - **Topic**: Art. 25 — 7 Principle-Categories (Effectiveness, Necessity, Proportionality, etc.) + Concrete-Mappings.
 - **Audit-Anwendung**: Bei Software-/Produkt-Audits: brutaler-Skill prueft ob Default-Settings privacy-friendly sind (Para 80+) und ob "Effectiveness" der gewaehlten Massnahmen dokumentiert ist.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-42019-article-25-data-protection-design-and_en
 
-### Guidelines 1/2018 — Certification and Identifying Certification Criteria (Art. 42 + 43)
+### Guidelines 01/2018 — Certification and Identifying Certification Criteria (Art. 42 + 43)
 - **Status**: adopted 04.06.2019 · final
 - **Topic**: Anforderungen an Datenschutz-Zertifizierungen + Akkreditierung der Zertifizierungsstellen.
 - **Audit-Anwendung**: Schmal — relevant nur bei Mandanten die Zertifizierung (zB. EuroPriSe, ePrivacyseal) als Compliance-Beweis fuehren.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-12018-certification-and-identifying_en
 
-### Guidelines 4/2018 — Accreditation of Certification Bodies (Art. 43)
+### Guidelines 04/2018 — Accreditation of Certification Bodies (Art. 43)
 - **Status**: adopted 14.12.2018 · final
 - **Topic**: Voraussetzungen fuer Akkreditierungsstellen.
 - **Audit-Anwendung**: Schmal.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-42018-accreditation-certification-bodies_en
 
-### Guidelines 1/2019 — Codes of Conduct and Monitoring Bodies
+### Guidelines 01/2019 — Codes of Conduct and Monitoring Bodies
 - **Status**: adopted 04.06.2019 · final
 - **Topic**: Anforderungen an CoCs gem. Art. 40 + Monitoring-Bodies Art. 41.
 - **Audit-Anwendung**: brutaler-Skill prueft bei Mandanten die CoC-Mitgliedschaft als Compliance-Argument fuehren ob CoC genehmigt + Monitoring funktional ist.
@@ -246,7 +246,7 @@ Weitere Spec-Conflations:
 
 ## Cluster 7: Data Breach + DPIA + DPO
 
-### Guidelines 9/2022 — Personal Data Breach Notification under GDPR
+### Guidelines 09/2022 — Personal Data Breach Notification under GDPR
 - **Status**: adopted 04.04.2023 · final (loest WP250 rev.01 ab)
 - **Topic**: Art. 33/34 — 72h-Frist + Risk-Threshold fuer Notification + Inhalt des Notification-Reports + Documentation-Pflicht.
 - **Audit-Anwendung**: KRITISCH bei jedem Incident-Audit. brutaler-Skill prueft: (a) Detection-to-Notification-Latenz (Para 28+), (b) Risk-Assessment dokumentiert, (c) Affected-Individuals-Notification bei "high risk" (Art. 34), (d) Internal-Documentation auch bei nicht-meldepflichtigen Breaches.
@@ -280,7 +280,7 @@ Weitere Spec-Conflations:
 
 ## Cluster 8: Sektorspezifisch (Video, Vehicles, Health, Voice, Finance)
 
-### Guidelines 3/2019 — Processing of Personal Data through Video Devices
+### Guidelines 03/2019 — Processing of Personal Data through Video Devices
 - **Status**: adopted 30.01.2020 · final
 - **Topic**: CCTV-/Video-Surveillance — Rechtsgrundlagen, Information-Pflichten, Speicherdauer.
 - **Audit-Anwendung**: Bei Mandanten mit Video-Ueberwachung (Hotel, Retail, Buero): brutaler-Skill prueft Schilder-Pflicht (Para 4.1) + Speicher-Default 72h + LegInt-Balancing.
@@ -338,7 +338,7 @@ Weitere Spec-Conflations:
 - **Audit-Anwendung**: Bei Web3-/Crypto-Mandanten: brutaler-Skill flagt jeden On-Chain-PII-Storage als Art-17-Verstoss — auch wenn als hash gespeichert (re-identifiability via known plaintext attack).
 - **Source**: https://www.edpb.europa.eu/our-work-tools/documents/public-consultations/2025/guidelines-022025-processing-personal-data-through_en
 
-### Guidelines 3/2025 — Interplay between the DSA and the GDPR
+### Guidelines 03/2025 — Interplay between the DSA and the GDPR
 - **Status**: adopted 12.09.2025 · public consultation closed
 - **Topic**: Verhaeltnis Digital Services Act <-> DSGVO — Reporting-Verpflichtungen, Transparency-Database, Mod-Decisions.
 - **Audit-Anwendung**: Bei Plattform-Mandanten (>VLOP-Schwelle oder Hosting/Online-Marketplace): brutaler-Skill prueft DSA-Reporting-Trigger + DSGVO-Konflikt-Bereiche.
@@ -350,7 +350,7 @@ Weitere Spec-Conflations:
 - **Audit-Anwendung**: Sehr schmal — nur bei DMA-Gatekeeper-Mandanten oder Konkurrenten die gegen Gatekeeper vorgehen.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/documents/public-consultations/2025/joint-guidelines-edpb-edps-interplay-between_en
 
-### Guidelines 1/2026 — Processing of Personal Data for Scientific Research Purposes
+### Guidelines 01/2026 — Processing of Personal Data for Scientific Research Purposes
 - **Status**: adopted 16.04.2026 · public consultation ONGOING (Stand 2026-05-05)
 - **Topic**: Long-awaited Research-Guidelines — Art. 5(1)(b) compatible-purpose, Art. 9(2)(j) special-category-research, Broad-Consent-Modelle.
 - **Audit-Anwendung**: Achtung: noch in consultation — bei Research-Mandanten als "draft, can change" zitieren, nicht als final.
@@ -372,25 +372,25 @@ Weitere Spec-Conflations:
 - **Audit-Anwendung**: Companion zu Rec-01/2020. brutaler-Skill prueft die 4 EEG fuer das jeweilige Drittland (US: FISA-702 schlaegt Garantien (3)+(4); China: alle 4 fragwuerdig; UK: post-Brexit-Adequacy-Decision aber Watch-List).
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/recommendations/recommendations-022020-european-essential-guarantees_en
 
-### Recommendations 1/2022 — Application for Approval and Elements/Principles in Controller BCR (Art. 47 GDPR)
+### Recommendations 01/2022 — Application for Approval and Elements/Principles in Controller BCR (Art. 47 GDPR)
 - **Status**: adopted 20.06.2023 · final
 - **Topic**: Aktualisierte Controller-BCR-Anforderungen post-Schrems-II.
 - **Audit-Anwendung**: Bei Konzern-Mandanten mit BCR: brutaler-Skill prueft ob BCR die post-Schrems-II-Updates inkorporiert (TIA-Klausel, government-access-transparency, redress-mechanism).
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/recommendations/recommendations-12022-application-approval-and_en
 
-### Recommendations 1/2025 — 2027 WADA World Anti-Doping Code
+### Recommendations 01/2025 — 2027 WADA World Anti-Doping Code
 - **Status**: adopted 13.02.2025 · final
 - **Topic**: Sektor-spezifisch — Anti-Doping-Datenverarbeitung im Sport.
 - **Audit-Anwendung**: Schmal — Sport-/Anti-Doping-Mandanten only.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/recommendations/recommendations-12025-2027-wada-world-anti-doping-code_en
 
-### Recommendations 2/2025 — Legal Basis for Requiring User Account Creation on E-Commerce Websites
+### Recommendations 02/2025 — Legal Basis for Requiring User Account Creation on E-Commerce Websites
 - **Status**: adopted 04.12.2025 · public consultation closed
 - **Topic**: E-Commerce-Mandatory-Account-Creation — wann ist Account-Pflicht Art. 6(1)(b) (necessary for contract) vs. unzulaessiger Bundling-Verstoss?
 - **Audit-Anwendung**: Bei E-Commerce-Mandanten: brutaler-Skill prueft ob Guest-Checkout angeboten wird; mandatory-account-fuer-1-time-purchase = Auditfund.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/documents/public-consultations/2025/recommendations-22025-legal-basis-requiring-user_en
 
-### Recommendations 1/2026 — Application for Approval and Elements/Principles in Processor BCR (Art. 47 GDPR)
+### Recommendations 01/2026 — Application for Approval and Elements/Principles in Processor BCR (Art. 47 GDPR)
 - **Status**: adopted 19.01.2026 · public consultation closed
 - **Topic**: Processor-BCR-Pendant zu Rec-1/2022.
 - **Audit-Anwendung**: Bei Cloud-/SaaS-Provider-Mandanten mit BCR-Strategy: brutaler-Skill prueft Processor-BCR-Eligibility.
@@ -402,7 +402,7 @@ Weitere Spec-Conflations:
 
 ### Opinion 28/2024 — Data Protection Aspects related to AI Models
 - **Status**: adopted 17.12.2024 · final
-- **Topic**: Drei-Saulen-Antwort auf Irish-DPC-Anfrage: (1) Wann gilt ein AI-Modell als "anonym"? Case-by-case-Test mit (a) Identification-very-unlikely + (b) Extraction-via-queries-very-unlikely. (2) Kann LegInt-Art. 6(1)(f) Rechtsgrundlage fuer Training/Deployment sein? Ja, mit 3-Step-Test (siehe Guidelines 1/2024). (3) Was wenn das Modell aus rechtswidrig verarbeiteten Daten gebaut wurde? "Fruit of the poisonous tree"-Doktrin: Folge-Verarbeitungen koennen ebenfalls rechtswidrig sein.
+- **Topic**: Drei-Saulen-Antwort auf Irish-DPC-Anfrage: (1) Wann gilt ein AI-Modell als "anonym"? Case-by-case-Test mit (a) Identification-very-unlikely + (b) Extraction-via-queries-very-unlikely. (2) Kann LegInt-Art. 6(1)(f) Rechtsgrundlage fuer Training/Deployment sein? Ja, mit 3-Step-Test (siehe Guidelines 01/2024). (3) Was wenn das Modell aus rechtswidrig verarbeiteten Daten gebaut wurde? "Fruit of the poisonous tree"-Doktrin: Folge-Verarbeitungen koennen ebenfalls rechtswidrig sein.
 - **Audit-Anwendung**: KRITISCH bei AI/LLM-Mandanten. brutaler-Skill flagt: (a) "Modell ist anonym"-Behauptung ohne dokumentierten 2-Test, (b) LegInt fuer Training ohne dokumentierten 3-Step-LIA, (c) Verwendung von Modell-Output ohne Pruefung der Trainings-Daten-Rechtmaessigkeit.
 - **Source**: https://www.edpb.europa.eu/our-work-tools/our-documents/opinion-board-art-64/opinion-282024-certain-data-protection-aspects_en
 
@@ -435,11 +435,11 @@ EDPB-Endorsement vom 25.05.2018 hat folgende Article-29-Working-Party-Guidelines
 | WP259 rev.01 | Guidelines on Consent (2017) | SUPERSEDED durch Guidelines 05/2020 |
 | WP260 rev.01 | Guidelines on Transparency (2017) | aktiv |
 | WP251 rev.01 | Automated Decision-Making and Profiling (2017) | aktiv (Art. 22) |
-| WP250 rev.01 | Personal Data Breach Notification (2017) | SUPERSEDED durch Guidelines 9/2022 |
+| WP250 rev.01 | Personal Data Breach Notification (2017) | SUPERSEDED durch Guidelines 09/2022 |
 | WP242 rev.01 | Right to Data Portability (2017) | aktiv (Art. 20) |
 | WP248 rev.01 | DPIA + High-Risk-Determination (2017) | aktiv (Art. 35) |
 | WP243 rev.01 | Data Protection Officers (DPO) (2017) | aktiv (Art. 37-39) |
-| WP244 rev.01 | Lead Supervisory Authority Identification (2017) | SUPERSEDED durch Guidelines 8/2022 |
+| WP244 rev.01 | Lead Supervisory Authority Identification (2017) | SUPERSEDED durch Guidelines 08/2022 |
 | WP253 | Application + Setting of Administrative Fines (2017) | SUPERSEDED durch Guidelines 04/2022 |
 | WP254 rev.01 | Adequacy Referential (2017) | aktiv |
 
@@ -455,31 +455,31 @@ EDPB-Endorsement vom 25.05.2018 hat folgende Article-29-Working-Party-Guidelines
 
 | Audit-Bereich | Primary EDPB-Quelle | Adoption | Sekundaer |
 |---|---|---|---|
-| Cookie-Banner / ePrivacy-Tracking | Guidelines 2/2023 (Art. 5(3)) | 16.10.2024 | Guidelines 03/2022 (dark patterns), Guidelines 05/2020 (consent) |
+| Cookie-Banner / ePrivacy-Tracking | Guidelines 02/2023 (Art. 5(3)) | 16.10.2024 | Guidelines 03/2022 (dark patterns), Guidelines 05/2020 (consent) |
 | Bussgeld-Layer / Schwere-Bewertung | Guidelines 04/2022 (calculation) | 24.05.2023 | Guidelines 02/2022 (Art. 60), Guidelines 03/2021 (Art. 65) |
-| LegInt / Art. 6(1)(f) | Guidelines 1/2024 (LegInt) | 08.10.2024 | Guidelines 8/2020 (targeting) |
+| LegInt / Art. 6(1)(f) | Guidelines 01/2024 (LegInt) | 08.10.2024 | Guidelines 08/2020 (targeting) |
 | Consent-Pruefung | Guidelines 05/2020 (consent) | 04.05.2020 | Opinion 08/2024 (consent-or-pay) |
 | DSAR / Art. 15 | Guidelines 01/2022 (right of access) | 17.04.2023 | WP260 (transparency, endorsed) |
-| Data-Breach / Art. 33-34 | Guidelines 9/2022 (breach notification) | 04.04.2023 | Guidelines 01/2021 (18 examples) |
+| Data-Breach / Art. 33-34 | Guidelines 09/2022 (breach notification) | 04.04.2023 | Guidelines 01/2021 (18 examples) |
 | DPIA-Pflicht | WP248 rev.01 (endorsed) | 25.05.2018 | nationaler DPIA-Whitelist je AB |
 | DPO-Designation | WP243 rev.01 (endorsed) | 25.05.2018 | (nicht Guidelines 01/2023 — die ist LED) |
 | AVV / Controller-Processor | Guidelines 07/2020 (concepts) | 07.07.2021 | Opinion 22/2024 (sub-processor obligations) |
 | Schrems-II / SCC + TIA | Recommendations 01/2020 (suppl. measures) | 18.06.2021 | Recommendations 02/2020 (EEG), Guidelines 02/2024 (Art. 48) |
-| Transfer-Scope-Pruefung | Guidelines 05/2021 (Art. 3 vs. Kap. V) | 24.02.2023 | Guidelines 3/2018 (territorial scope) |
-| BCR-Pruefung | Recommendations 1/2022 (Controller-BCR) | 20.06.2023 | Recommendations 1/2026 (Processor-BCR), Opinion 23/2024 |
-| Privacy-by-Design | Guidelines 4/2019 (Art. 25) | 20.10.2020 | — |
-| Joint-Controller / Art. 26 | Guidelines 07/2020 (concepts) | 07.07.2021 | Guidelines 8/2020 (targeting) |
-| AI-Modell-Audit | Opinion 28/2024 (AI models) | 17.12.2024 | Guidelines 1/2024 (LegInt fuer training) |
+| Transfer-Scope-Pruefung | Guidelines 05/2021 (Art. 3 vs. Kap. V) | 24.02.2023 | Guidelines 03/2018 (territorial scope) |
+| BCR-Pruefung | Recommendations 01/2022 (Controller-BCR) | 20.06.2023 | Recommendations 01/2026 (Processor-BCR), Opinion 23/2024 |
+| Privacy-by-Design | Guidelines 04/2019 (Art. 25) | 20.10.2020 | — |
+| Joint-Controller / Art. 26 | Guidelines 07/2020 (concepts) | 07.07.2021 | Guidelines 08/2020 (targeting) |
+| AI-Modell-Audit | Opinion 28/2024 (AI models) | 17.12.2024 | Guidelines 01/2024 (LegInt fuer training) |
 | Pseudonymization-Claim-Pruefung | Guidelines 01/2025 (pseudonymisation) | 17.01.2025 | — |
 | Blockchain / On-Chain-PII | Guidelines 02/2025 (blockchain) | 14.04.2025 | Opinion 28/2024 (AI-Anonymity-Test analog) |
-| Plattform / DSA-Compliance | Guidelines 3/2025 (DSA-GDPR) | 12.09.2025 | Joint DMA-GDPR (2025-10-09) |
+| Plattform / DSA-Compliance | Guidelines 03/2025 (DSA-GDPR) | 12.09.2025 | Joint DMA-GDPR (2025-10-09) |
 | FRT / Biometrics LEA | Guidelines 05/2022 (FRT-LEA) | 17.05.2023 | nationale LED-Umsetzung |
-| Video-Surveillance | Guidelines 3/2019 (video) | 30.01.2020 | nationale BfDI-FAQ |
+| Video-Surveillance | Guidelines 03/2019 (video) | 30.01.2020 | nationale BfDI-FAQ |
 | Voice-Assistants | Guidelines 02/2021 (voice) | 07.07.2021 | — |
 | FinTech / PSD2 | Guidelines 06/2020 (PSD2) | 15.12.2020 | nationale BaFin-FAQ |
-| E-Commerce-Account-Pflicht | Recommendations 2/2025 | 04.12.2025 | Guidelines 2/2019 (Art. 6(1)(b)) |
-| Codes-of-Conduct-Mandant | Guidelines 1/2019 (CoC + monitoring) | 04.06.2019 | Guidelines 04/2021 (CoC als transfer tool) |
-| Behoerden-Datenuebermittlung | Guidelines 02/2024 (Art. 48) | 05.06.2025 | Guidelines 2/2018 (Art. 49) |
+| E-Commerce-Account-Pflicht | Recommendations 02/2025 | 04.12.2025 | Guidelines 02/2019 (Art. 6(1)(b)) |
+| Codes-of-Conduct-Mandant | Guidelines 01/2019 (CoC + monitoring) | 04.06.2019 | Guidelines 04/2021 (CoC als transfer tool) |
+| Behoerden-Datenuebermittlung | Guidelines 02/2024 (Art. 48) | 05.06.2025 | Guidelines 02/2018 (Art. 49) |
 
 ### Quick-Cite-Format im Skill-Output
 
@@ -491,7 +491,7 @@ Para X-Y: <konkrete Fundstelle>
 
 > Beispiel-Skill-Output:
 > "Auditfund: Mandant nutzt Art. 6(1)(f) (Direct Marketing) ohne dokumentiertes LIA.
-> EDPB-Quelle: Guidelines 1/2024 ("Processing based on Article 6(1)(f) GDPR"),
+> EDPB-Quelle: Guidelines 01/2024 ("Processing based on Article 6(1)(f) GDPR"),
 > adopted 08.10.2024. URL: https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-12024-processing-personal-data-based_en
 > Para 11-29: 3-Step-Test (existence / necessity / balancing) ist Pflicht;
 > ohne dokumentiertes LIA = unzulaessige Verarbeitung => Bussgeldrisiko Tier-2."
