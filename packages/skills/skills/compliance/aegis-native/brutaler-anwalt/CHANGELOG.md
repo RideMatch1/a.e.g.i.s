@@ -10,6 +10,45 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ---
 
+## [5.0.1] — 2026-05-06 — Health-check Frontmatter-Validation
+
+Tooling-only patch — keine Inhalts-Aenderungen am Skill-Output.
+
+### Hinzugefuegt
+
+- `scripts/health-check.sh` Section 7: Frontmatter-Validation ueber alle
+  167 reference-files mit YAML-Top-Block.
+  - **verification-status** Whitelist enforced: `verified`,
+    `partially-verified`, `secondary-source-derived`, `az-list-unverified`,
+    `skeleton-only` (Zukunfts-Wert; aktuell unbenutzt — bewusst reserviert)
+  - **last-checked** / **last-verified** muessen Format `YYYY-MM-DD` matchen
+  - **source** muss http(s)-URL sein (YAML-Block-Scalar `|` / `>` skip)
+  - **Placeholder-Drift-Detector**: faengt unausgefuelltes `<YYYY-MM-DD>`,
+    `<primary-URL>`, `<Quelle>`, `<TBD>` im Frontmatter ab
+- Validator parst NUR den ersten YAML-Block (zwischen erstem `---` und
+  zweitem `---`); code-fenced template-Bloecke im Markdown-Body werden
+  korrekt ignoriert (verhindert false-positives in INDEX/Skeleton-Files).
+- Section-Labels von uneinheitlich `X/5` + `X/6` auf einheitlich `X/7`
+  renummeriert (Cosmetic-Fix; alte Labels waren post-Section-Insertion-Drift).
+
+### Validiert
+
+- Alle 5 Sub-Checks per fault-injection getestet (invalid-status,
+  bad-date, placeholder, non-URL-source, multi-issue-cluster).
+- Aktuell **0 Frontmatter-Verstoesse** in 167 geprueften reference-files
+  → Skill-Konsistenz post-v5.0.0 verifiziert.
+
+### Hintergrund
+
+Per advisor-recommendation (post-v5.0.0 next-step prioritization) als
+P-5 "leichteste Haertung mit hoechstem Drift-Catch-Hebel" identifiziert.
+Parallel zur P-1 adversarial-review-Analyse ausgefuehrt — kollidiert nicht
+mit Content-Findings, da rein tooling-only.
+
+Commit: af68d63
+
+---
+
 ## [5.0.0] — 2026-05-05 — Massive Max-Out: Kanzlei-Tier Layer-Stack
 
 > 4-Agent-Audit-Review + 10 parallel Subagent-Content-Generation +
