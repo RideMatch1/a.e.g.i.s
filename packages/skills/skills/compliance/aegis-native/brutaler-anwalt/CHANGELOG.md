@@ -10,6 +10,68 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ---
 
+## [5.0.2] — 2026-05-06 — Adversarial-Review Drift-Fixes (5 Findings)
+
+> 5 substantive Drifts behoben, die ein P-1-Adversarial-Review-Agent
+> (~14min Background-Analyse, 3 unabhaengige Quellen pro Finding) im
+> v5.0.0-Inhalt aufgedeckt hatte. Alle Findings live-verifiziert via
+> Primaerquellen (gesetze-im-internet.de, dejure.org, dataprotection.ie).
+
+### Behoben (P0 — Mandanten-Memo-blockierend)
+
+- **D-1** § 13 UWG / § 13a UWG paragraph + threshold drift (commit ab7602a):
+  v5.0.0-H-4-Self-Inflict. § 13 Abs. 4 wurde mit § 13a verwechselt, MA-
+  Schwelle 100 statt 250 fuer DSGVO-/BDSG-Track. Korrektur:
+  - § 13 Abs. 4 Nr. 1: KEINE MA-Schwelle (E-Commerce-Info-Pflichten)
+  - § 13 Abs. 4 Nr. 2: < 250 MA (DSGVO/BDSG)
+  - § 13 Abs. 5: Reverse-Anspruch (KEIN Vertragsstrafen-Cap)
+  - § 13a Abs. 2 + Abs. 3 (NEU als eigene Section): < 100 MA-Schutz +
+    1.000-EUR-Vertragsstrafen-Cap
+
+- **D-5** Top-50 row #9 Meta 251M date + breach conflation (commit dfd1d4d):
+  04.09.2024 → 17.12.2024 (3,5 Mo. off; vermutl. Sept-2024 Meta-Passwort-
+  Bussgeld konflatiert). Breach-Scope „533M Profile" → „Datenpannen 09/2018
+  (~29M Konten) Art. 25/33 GDPR". Status secondary-only → cross-confirmed.
+
+- **D-2** 9 dead /tdddg/ und /tddg/ URLs → /ttdsg/ (commit ca8e06d):
+  BMJ behaelt den TTDSG-URL-Slug trotz Umbenennung 14.05.2024.
+  Live-verifiziert via curl: /ttdsg/ HTTP 200, /tdddg/ + /tddg/ HTTP 404.
+  9 URLs in 6 Files korrigiert + erklaerender Hinweis bei Volltext-Linien.
+
+### Behoben (P1 — naechste Session)
+
+- **D-3** TTDSG → TDDDG migration completion (commit 79059e3): 5 active
+  citations in SKILL.md + 2 in AVV-standard-DE.md (incl. § 16 TTDSG →
+  § 16 TDDDG). Trigger-Keywords: tdddg primary, ttdsg als Legacy-Alias
+  (per advisor-recommendation fuer Historic-Query-Discoverability).
+
+### Behoben (P2 — Cleanup)
+
+- **C-2** EDPB Guideline-IDs canonicalisiert (commit e09fbf7): 38 unpadded
+  IDs (8/2022, 2/2023, 1/2024) → zero-padded (08/2022, 02/2023, 01/2024).
+  Verify: 0 unpadded post-replace, 88 zero-padded total.
+
+### Offen (post-v5.0.2)
+
+- **D-4** Duplicate statute structure: gesetze/ + de-statute-tier1/
+  beide haben HinSchG/DDG/TDDDG/etc. mit divergierender Inhalte. Keine
+  active-drift (beide sind technisch korrekt), aber Drift-Pressure fuer
+  zukuenftige Edits. Strukturelle Entscheidung 1-2h — deferred.
+- **C-1** Handover-Stat 45/4/1 → 44/5/1: cosmetic, in gitignored
+  handover-Datei. Wenn TikTok 530M / CNIL 325M von secondary-only zu
+  cross-confirmed promoted: 44/3/1+2 = 47/3/0.
+
+### Hintergrund
+
+P-1-Review-Report durable unter `aegis-precision/v5-adversarial-review-
+2026-05-06.md` (gitignored, lokal). 13 substantive verified-OK Spot-
+Checks bestaetigen dass Major-Claims ausserhalb dieser 5 Drifts (EuGH-
+Schadensersatz-Daten, 1&1-Reduktion, SCC 2021/914-Versions, revDSG-
+Cutoff, Stack-Pattern-Code-Syntax, YAML-Frontmatter) verifiziert
+korrekt bleiben.
+
+---
+
 ## [5.0.1] — 2026-05-06 — Health-check Frontmatter-Validation
 
 Tooling-only patch — keine Inhalts-Aenderungen am Skill-Output.
